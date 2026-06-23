@@ -257,7 +257,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
       periodo: (rep as any).periodo,
       modelo: (rep as any).model_used,
-      emitido_at: new Date((rep as any).created_at).toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" }),
+      emitido_at: new Date((rep as any).created_at).toLocaleDateString("es-SV", { year: "numeric", month: "long", day: "numeric" }),
       resumen,
       kpis,
       hallazgos,
@@ -265,7 +265,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       trabajos: (trabajos ?? []).map((t) => ({
         folio: t.folio,
         servicio: t.servicio,
-        fecha: new Date(t.fecha_programada).toLocaleDateString("es-CL"),
+        fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV"),
         estado: t.estado,
         tecnico: null,
         notas: t.notas,
