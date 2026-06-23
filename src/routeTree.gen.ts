@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedTrabajosRouteImport } from './routes/_authenticated/trabajos'
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
@@ -25,55 +26,60 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/_authenticated/',
-  path: '/',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTrabajosRoute = AuthenticatedTrabajosRouteImport.update({
-  id: '/_authenticated/trabajos',
+  id: '/trabajos',
   path: '/trabajos',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportesRoute = AuthenticatedReportesRouteImport.update({
-  id: '/_authenticated/reportes',
+  id: '/reportes',
   path: '/reportes',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProgramacionRoute =
   AuthenticatedProgramacionRouteImport.update({
-    id: '/_authenticated/programacion',
+    id: '/programacion',
     path: '/programacion',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPlantasRoute = AuthenticatedPlantasRouteImport.update({
-  id: '/_authenticated/plantas',
+  id: '/plantas',
   path: '/plantas',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMantenimientosRoute =
   AuthenticatedMantenimientosRouteImport.update({
-    id: '/_authenticated/mantenimientos',
+    id: '/mantenimientos',
     path: '/mantenimientos',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedInventarioRoute = AuthenticatedInventarioRouteImport.update({
-  id: '/_authenticated/inventario',
+  id: '/inventario',
   path: '/inventario',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEquiposRoute = AuthenticatedEquiposRouteImport.update({
-  id: '/_authenticated/equipos',
+  id: '/equipos',
   path: '/equipos',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
-  id: '/_authenticated/clientes',
+  id: '/clientes',
   path: '/clientes',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/equipos': typeof AuthenticatedEquiposRoute
@@ -83,7 +89,6 @@ export interface FileRoutesByFullPath {
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
-  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -99,6 +104,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
@@ -113,6 +119,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/auth'
     | '/clientes'
     | '/equipos'
@@ -122,7 +129,6 @@ export interface FileRouteTypes {
     | '/programacion'
     | '/reportes'
     | '/trabajos'
-    | '/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -137,6 +143,7 @@ export interface FileRouteTypes {
     | '/'
   id:
     | '__root__'
+    | '/_authenticated'
     | '/auth'
     | '/_authenticated/clientes'
     | '/_authenticated/equipos'
@@ -150,16 +157,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
-  AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
-  AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
-  AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
-  AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
-  AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
-  AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
-  AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -171,74 +170,92 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/trabajos': {
       id: '/_authenticated/trabajos'
       path: '/trabajos'
       fullPath: '/trabajos'
       preLoaderRoute: typeof AuthenticatedTrabajosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reportes': {
       id: '/_authenticated/reportes'
       path: '/reportes'
       fullPath: '/reportes'
       preLoaderRoute: typeof AuthenticatedReportesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/programacion': {
       id: '/_authenticated/programacion'
       path: '/programacion'
       fullPath: '/programacion'
       preLoaderRoute: typeof AuthenticatedProgramacionRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/plantas': {
       id: '/_authenticated/plantas'
       path: '/plantas'
       fullPath: '/plantas'
       preLoaderRoute: typeof AuthenticatedPlantasRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mantenimientos': {
       id: '/_authenticated/mantenimientos'
       path: '/mantenimientos'
       fullPath: '/mantenimientos'
       preLoaderRoute: typeof AuthenticatedMantenimientosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inventario': {
       id: '/_authenticated/inventario'
       path: '/inventario'
       fullPath: '/inventario'
       preLoaderRoute: typeof AuthenticatedInventarioRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/equipos': {
       id: '/_authenticated/equipos'
       path: '/equipos'
       fullPath: '/equipos'
       preLoaderRoute: typeof AuthenticatedEquiposRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
       id: '/_authenticated/clientes'
       path: '/clientes'
       fullPath: '/clientes'
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  AuthRoute: AuthRoute,
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
+  AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
+  AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
+  AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
+  AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
+  AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
+  AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
@@ -248,6 +265,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
   AuthenticatedTrabajosRoute: AuthenticatedTrabajosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
