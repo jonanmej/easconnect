@@ -94,6 +94,140 @@ export type Database = {
           },
         ]
       }
+      inventario_items: {
+        Row: {
+          categoria: Database["public"]["Enums"]["inventario_categoria"]
+          created_at: string
+          id: string
+          nombre: string
+          sku: string
+          stock_actual: number
+          stock_minimo: number
+          ubicacion: string | null
+          unidad: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: Database["public"]["Enums"]["inventario_categoria"]
+          created_at?: string
+          id?: string
+          nombre: string
+          sku: string
+          stock_actual?: number
+          stock_minimo?: number
+          ubicacion?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["inventario_categoria"]
+          created_at?: string
+          id?: string
+          nombre?: string
+          sku?: string
+          stock_actual?: number
+          stock_minimo?: number
+          ubicacion?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventario_movimientos: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          item_id: string
+          motivo: string | null
+          realizado_por: string | null
+          tipo: Database["public"]["Enums"]["movimiento_tipo"]
+          trabajo_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          id?: string
+          item_id: string
+          motivo?: string | null
+          realizado_por?: string | null
+          tipo: Database["public"]["Enums"]["movimiento_tipo"]
+          trabajo_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          motivo?: string | null
+          realizado_por?: string | null
+          tipo?: Database["public"]["Enums"]["movimiento_tipo"]
+          trabajo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventario_movimientos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventario_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventario_movimientos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mantenimientos: {
+        Row: {
+          created_at: string
+          equipo_id: string
+          estado: Database["public"]["Enums"]["mantenimiento_estado"]
+          fecha: string
+          horas: number
+          id: string
+          notas: string | null
+          tecnico_id: string | null
+          tipo: Database["public"]["Enums"]["mantenimiento_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipo_id: string
+          estado?: Database["public"]["Enums"]["mantenimiento_estado"]
+          fecha: string
+          horas?: number
+          id?: string
+          notas?: string | null
+          tecnico_id?: string | null
+          tipo: Database["public"]["Enums"]["mantenimiento_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipo_id?: string
+          estado?: Database["public"]["Enums"]["mantenimiento_estado"]
+          fecha?: string
+          horas?: number
+          id?: string
+          notas?: string | null
+          tecnico_id?: string | null
+          tipo?: Database["public"]["Enums"]["mantenimiento_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mantenimientos_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantas: {
         Row: {
           capacidad: string | null
@@ -169,6 +303,66 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reportes: {
+        Row: {
+          cliente_id: string
+          contenido_markdown: string
+          created_at: string
+          estado: Database["public"]["Enums"]["reporte_estado"]
+          generado_por: string | null
+          id: string
+          insight_resumen: string | null
+          model_used: string | null
+          periodo: string
+          planta_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          contenido_markdown: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["reporte_estado"]
+          generado_por?: string | null
+          id?: string
+          insight_resumen?: string | null
+          model_used?: string | null
+          periodo: string
+          planta_id?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          contenido_markdown?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["reporte_estado"]
+          generado_por?: string | null
+          id?: string
+          insight_resumen?: string | null
+          model_used?: string | null
+          periodo?: string
+          planta_id?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reportes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reportes_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
             referencedColumns: ["id"]
           },
         ]
@@ -300,6 +494,15 @@ export type Database = {
         | "mantenimiento"
         | "disponible"
         | "fuera_servicio"
+      inventario_categoria: "insumo" | "repuesto" | "herramienta" | "epp"
+      mantenimiento_estado:
+        | "programado"
+        | "pendiente"
+        | "completado"
+        | "cancelado"
+      mantenimiento_tipo: "preventivo" | "correctivo" | "predictivo"
+      movimiento_tipo: "ingreso" | "salida" | "ajuste"
+      reporte_estado: "borrador" | "enviado"
       trabajo_estado: "programado" | "en_progreso" | "completado" | "cancelado"
     }
     CompositeTypes: {
@@ -436,6 +639,16 @@ export const Constants = {
         "disponible",
         "fuera_servicio",
       ],
+      inventario_categoria: ["insumo", "repuesto", "herramienta", "epp"],
+      mantenimiento_estado: [
+        "programado",
+        "pendiente",
+        "completado",
+        "cancelado",
+      ],
+      mantenimiento_tipo: ["preventivo", "correctivo", "predictivo"],
+      movimiento_tipo: ["ingreso", "salida", "ajuste"],
+      reporte_estado: ["borrador", "enviado"],
       trabajo_estado: ["programado", "en_progreso", "completado", "cancelado"],
     },
   },
