@@ -287,3 +287,126 @@ function AlertaItem({ to, icon: Icon, label, count, tone = "danger" }: { to: str
     </li>
   );
 }
+
+function ClienteDashboard() {
+  const fetchPlantas = useServerFn(listPlantas);
+  const fetchTrabajos = useServerFn(listTrabajos);
+  const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
+  const trabajos = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos() });
+
+  const rows = (plantas.data as any[] | undefined) ?? [];
+  const ts = (trabajos.data as any[] | undefined) ?? [];
+  const ahora = Date.now();
+  const proximos = ts.filter((t) => t.estado === "programado" && new Date(t.fecha_programada).getTime() >= ahora);
+  const enCurso = ts.filter((t) => t.estado === "en_progreso");
+  const completados = ts.filter((t) => t.estado === "completado");
+  const pendienteFirma = completados.filter((t) => !t.firmado_at);
+
+  const hoy = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long" });
+
+  const kpis = [
+    { label: "Mis plantas", value: rows.length },
+    { label: "Trabajos en curso", value: enCurso.length },
+    { label: "Próximos trabajos", value: proximos.length },
+    { label: "Pendientes de firma", value: pendienteFirma.length, tone: pendienteFirma.length ? "danger" as const : undefined },
+  ];
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Panel del Cliente</h1>
+        <p className="text-sm text-muted-foreground mt-1">Resumen operativo de tus plantas · {hoy}</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((k) => (
+          <div key={k.label}
+            className={"p-5 bg-card border border-border rounded-lg shadow-sm " + (k.tone === "danger" ? "ring-2 ring-destructive/20" : "")}>
+            <p className={"text-[10px] font-bold uppercase tracking-wider mb-2 " + (k.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{k.label}</p>
+            <p className={"text-3xl font-semibold font-mono tracking-tighter " + (k.tone === "danger" ? "text-destructive" : "")}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Mis plantas solares</h2>
+          <Link to="/plantas" className="text-xs text-primary hover:underline font-medium">Ver todas →</Link>
+        </div>
+        {plantas.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+        {!plantas.isLoading && rows.length === 0 && (
+          <p className="text-sm text-muted-foreground py-6 text-center bg-card border border-border rounded-lg">
+            Aún no tienes plantas registradas. Contacta al administrador.
+          </p>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rows.map((p) => {
+            const tp = ts.filter((t) => t.planta_id === p.id);
+            const abiertos = tp.filter((t) => t.estado === "programado" || t.estado === "en_progreso").length;
+            return (
+              <div key={p.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                    <Sun className="size-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">{abiertos} abiertos</span>
+                </div>
+                <h3 className="font-semibold tracking-tight">{p.nombre}</h3>
+                <p className="text-[10px] text-muted-foreground mb-3">{p.ubicacion ?? "—"}</p>
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Paneles</p>
+                    <p className="text-sm font-mono font-semibold">{p.paneles?.toLocaleString() ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
+                    <p className="text-sm font-medium">{p.capacidad ?? "—"}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider">Próximos trabajos</h3>
+            <Link to="/trabajos" className="text-xs text-primary hover:underline font-medium">Ver →</Link>
+          </div>
+          <ul className="space-y-3 text-sm">
+            {proximos.slice(0, 6).map((t) => (
+              <li key={t.id} className="flex items-start gap-3">
+                <span className="mt-1 size-2 rounded-full bg-primary" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · {new Date(t.fecha_programada).toLocaleString("es-CL")}</p>
+                </div>
+              </li>
+            ))}
+            {proximos.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Sin trabajos programados.</li>}
+          </ul>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider">Pendientes de tu firma</h3>
+            <Link to="/mis-trabajos" className="text-xs text-primary hover:underline font-medium">Firmar →</Link>
+          </div>
+          <ul className="space-y-3 text-sm">
+            {pendienteFirma.slice(0, 6).map((t) => (
+              <li key={t.id} className="flex items-start gap-3">
+                <span className="mt-1 size-2 rounded-full bg-destructive" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-CL")}</p>
+                </div>
+              </li>
+            ))}
+            {pendienteFirma.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Todo al día. ✓</li>}
+          </ul>
+        </div>
+      </section>
+    </div>
+  );
+}
