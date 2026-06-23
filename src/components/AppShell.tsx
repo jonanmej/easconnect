@@ -23,6 +23,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
+import { EALogo } from "@/components/logos/EALogo";
+import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
+import { PVStopLogo } from "@/components/logos/PVStopLogo";
 
 type NavItem = {
   to: string;
@@ -103,12 +106,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
-        <div className="p-6 flex items-center gap-3">
-          <div className="size-8 bg-foreground rounded flex items-center justify-center">
-            <div className="size-4 bg-primary rounded-sm" />
-          </div>
-          <span className="font-semibold tracking-tight text-lg">SOLAROS</span>
-        </div>
+        <Link to="/" className="p-6 flex items-center" aria-label="EA Service & Consulting">
+          <EALogo className="h-10 w-auto text-foreground" accentClassName="text-primary" />
+        </Link>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
           {groups.map((group) => (
@@ -140,6 +140,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border">
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
+              Marcas asociadas
+            </p>
+            <div className="flex items-center gap-3 px-2">
+              <ChemitekLogo
+                className="h-4 w-auto text-muted-foreground hover:text-foreground transition-colors"
+                accentClassName="text-primary"
+              />
+              <PVStopLogo
+                className="h-4 w-auto text-muted-foreground hover:text-foreground transition-colors"
+                accentClassName="text-primary"
+              />
+            </div>
+          </div>
           <div className="flex items-center gap-3 p-2">
             <div className="size-8 rounded-full bg-secondary grid place-items-center text-xs font-bold">
               {initials}
