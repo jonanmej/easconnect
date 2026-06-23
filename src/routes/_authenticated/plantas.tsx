@@ -71,6 +71,8 @@ function Plantas() {
       eficiencia: f.get("eficiencia") || null,
       notificaciones_completado: f.get("notificaciones_completado") === "on",
       email_notificaciones: f.get("email_notificaciones") || "",
+      sla_horas_respuesta: f.get("sla_horas_respuesta") || null,
+      sla_horas_resolucion: f.get("sla_horas_resolucion") || null,
     });
   }
 
@@ -158,7 +160,7 @@ function Plantas() {
           </select>
         </Field>
         <Field label="Ubicación">
-          <input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="Antofagasta, CL" />
+          <input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="San Salvador, SV" />
         </Field>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Paneles">
@@ -191,6 +193,19 @@ function Plantas() {
               placeholder="cliente@empresa.com"
             />
           </Field>
+        </div>
+        <div className="pt-2 border-t border-border space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SLA (horas)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Respuesta">
+              <input name="sla_horas_respuesta" type="number" min="0"
+                defaultValue={editing?.sla_horas_respuesta ?? ""} className={inputCls} placeholder="4" />
+            </Field>
+            <Field label="Resolución">
+              <input name="sla_horas_resolucion" type="number" min="0"
+                defaultValue={editing?.sla_horas_resolucion ?? ""} className={inputCls} placeholder="24" />
+            </Field>
+          </div>
         </div>
       </RecordDialog>
     </div>
