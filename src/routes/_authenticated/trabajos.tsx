@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
@@ -25,6 +25,7 @@ import {
   upsertTrabajoRecurso,
   deleteTrabajoRecurso,
   toggleRecursoFlag,
+  listTrabajoEquipos,
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 
@@ -121,6 +122,7 @@ function Trabajos() {
   const fetchEquipos = useServerFn(listEquipos);
   const fetchUpsert = useServerFn(upsertTrabajo);
   const fetchDelete = useServerFn(deleteTrabajo);
+  const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
 
@@ -128,12 +130,32 @@ function Trabajos() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const [editing, setEditing] = useState<any | null>(null);
+  const [tab, setTab] = useState<"ot" | "reporte" | "recursos">("ot");
+  const [equipoIds, setEquipoIds] = useState<string[]>([]);
+
+  // Cargar equipos asignados cuando se abre un trabajo existente
+  const equiposAsignados = useQuery({
+    queryKey: ["trabajo-equipos", editing?.id],
+    queryFn: () => fetchTrabajoEquipos({ data: { trabajo_id: editing.id } }),
+    enabled: !!editing?.id,
+  });
+
+  // Sincronizar selección con datos recibidos / reset al abrir
+  useEffect(() => {
+    if (!editing) { setEquipoIds([]); setTab("ot"); return; }
+    if (editing.id && equiposAsignados.data) {
+      setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
+    } else if (!editing.id) {
+      setEquipoIds([]);
+    }
+  }, [editing?.id, equiposAsignados.data]);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo guardado");
       qc.invalidateQueries({ queryKey: ["trabajos"] });
+      qc.invalidateQueries({ queryKey: ["trabajo-equipos"] });
       setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -156,7 +178,8 @@ function Trabajos() {
     save.mutate({
       id: editing?.id,
       planta_id: f.get("planta_id"),
-      equipo_id: f.get("equipo_id") || null,
+      equipo_id: equipoIds[0] || null,
+      equipo_ids: equipoIds,
       servicio: f.get("servicio"),
       fecha_programada: fecha,
       estado: f.get("estado"),
@@ -276,6 +299,31 @@ function Trabajos() {
         error={save.error?.message}
         onSubmit={onSubmit}
       >
+        {editing?.id && (
+          <div className="flex gap-1 border-b border-border -mt-2 mb-2">
+            {([
+              { k: "ot", l: "Orden de trabajo" },
+              { k: "reporte", l: "Reporte técnico" },
+              { k: "recursos", l: "Recursos de la visita" },
+            ] as const).map((t) => (
+              <button
+                key={t.k}
+                type="button"
+                onClick={() => setTab(t.k)}
+                className={
+                  "px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors " +
+                  (tab === t.k
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground")
+                }
+              >
+                {t.l}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={editing?.id && tab !== "ot" ? "hidden" : "space-y-3"}>
         <Field label="Planta">
           <select name="planta_id" required defaultValue={editing?.planta_id ?? ""} className={inputCls}>
             <option value="">— Selecciona planta —</option>
@@ -322,26 +370,52 @@ function Trabajos() {
               <option value="cancelado">Cancelado</option>
             </select>
           </Field>
-        <Field label="Equipo asignado (opcional)">
-          <select name="equipo_id" defaultValue={editing?.equipo_id ?? ""} className={inputCls}>
-            <option value="">— Sin equipo —</option>
-            {(equipos.data as any[] | undefined)?.map((e) => (
-              <option key={e.id} value={e.id}>{e.codigo} · {e.nombre}</option>
-            ))}
-          </select>
+        <Field label={`Equipos asignados (${equipoIds.length})`}>
+          <div className="border border-border rounded-md max-h-48 overflow-y-auto divide-y divide-border">
+            {(equipos.data as any[] | undefined)?.length ? (
+              (equipos.data as any[]).map((e) => {
+                const checked = equipoIds.includes(e.id);
+                return (
+                  <label key={e.id} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-secondary/40 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(ev) => {
+                        setEquipoIds((prev) =>
+                          ev.currentTarget.checked
+                            ? [...prev, e.id]
+                            : prev.filter((x) => x !== e.id),
+                        );
+                      }}
+                    />
+                    <span className="font-mono text-[10px] text-muted-foreground">{e.codigo}</span>
+                    <span>{e.nombre}</span>
+                    {e.tipo && <span className="ml-auto text-[10px] text-muted-foreground capitalize">{e.tipo}</span>}
+                  </label>
+                );
+              })
+            ) : (
+              <p className="px-3 py-3 text-xs text-muted-foreground">No hay equipos registrados.</p>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Selecciona uno o más equipos para esta OT.</p>
         </Field>
         <Field label="Notas">
           <textarea name="notas" rows={3} defaultValue={editing?.notas ?? ""} className={inputCls} />
         </Field>
         {editing?.id && (
-          <>
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
-              <EvidenciaUploader trabajoId={editing.id} />
-            </div>
-            <ReporteBaseSection trabajoId={editing.id} canEdit={canEdit} />
-            <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
-          </>
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
+            <EvidenciaUploader trabajoId={editing.id} />
+          </div>
+        )}
+        </div>
+
+        {editing?.id && tab === "reporte" && (
+          <ReporteBaseSection trabajoId={editing.id} canEdit={canEdit} />
+        )}
+        {editing?.id && tab === "recursos" && (
+          <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
         )}
       </RecordDialog>
     </div>

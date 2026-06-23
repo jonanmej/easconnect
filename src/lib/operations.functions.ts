@@ -194,6 +194,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       id: z.string().uuid().optional(),
       planta_id: z.string().uuid(),
       equipo_id: z.string().uuid().nullable().optional(),
+      equipo_ids: z.array(z.string().uuid()).optional(),
       servicio: z.string().min(1),
       fecha_programada: z.string(),
       estado: TrabajoEstado,
@@ -204,10 +205,10 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, ...rest } = data;
+    const { id, equipo_ids, ...rest } = data;
     const payload = {
       ...rest,
-      equipo_id: rest.equipo_id || null,
+      equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
@@ -221,6 +222,16 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       : context.supabase.from("trabajos").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
+    // Sincronizar asignaciones múltiples (trabajo_equipos)
+    if (equipo_ids) {
+      const trabajoId = (row as any).id;
+      await context.supabase.from("trabajo_equipos").delete().eq("trabajo_id", trabajoId);
+      if (equipo_ids.length > 0) {
+        const rows = equipo_ids.map((eid) => ({ trabajo_id: trabajoId, equipo_id: eid }));
+        const { error: errIns } = await context.supabase.from("trabajo_equipos").insert(rows);
+        if (errIns) throw new Error(errIns.message);
+      }
+    }
     // Notificación automática al cliente cuando un trabajo pasa a "completado"
     if (id && rest.estado === "completado" && estadoPrevio !== "completado") {
       try {

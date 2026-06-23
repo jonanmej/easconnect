@@ -682,6 +682,49 @@ export type Database = {
           },
         ]
       }
+      trabajo_equipos: {
+        Row: {
+          created_at: string
+          equipo_id: string
+          id: string
+          trabajo_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipo_id: string
+          id?: string
+          trabajo_id: string
+        }
+        Update: {
+          created_at?: string
+          equipo_id?: string
+          id?: string
+          trabajo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_equipos_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_equipos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_equipos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trabajo_evidencias: {
         Row: {
           created_at: string

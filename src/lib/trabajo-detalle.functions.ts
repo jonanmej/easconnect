@@ -2,6 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// ---------- Equipos asignados (N:M) ----------
+
+export const listTrabajoEquipos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("trabajo_equipos")
+      .select("equipo_id, equipos(id, codigo, nombre, tipo)")
+      .eq("trabajo_id", data.trabajo_id);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      equipo_id: r.equipo_id,
+      codigo: r.equipos?.codigo,
+      nombre: r.equipos?.nombre,
+      tipo: r.equipos?.tipo,
+    }));
+  });
+
 // ---------- Reporte base por OT ----------
 
 export const getTrabajoReporte = createServerFn({ method: "GET" })
