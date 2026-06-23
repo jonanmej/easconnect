@@ -51,31 +51,58 @@ export type Database = {
         Row: {
           capacidad: string | null
           contacto: string | null
+          contrato_om: boolean
           created_at: string
+          cuota_correctivos: number
+          cuota_limpiezas: number
+          cuota_mayores: number
+          cuota_medios: number
+          cuota_menores: number
+          cuota_preventivos: number
+          email: string | null
           estado: Database["public"]["Enums"]["cliente_estado"]
           id: string
           nombre: string
           rut: string | null
+          telefono: string | null
           updated_at: string
         }
         Insert: {
           capacidad?: string | null
           contacto?: string | null
+          contrato_om?: boolean
           created_at?: string
+          cuota_correctivos?: number
+          cuota_limpiezas?: number
+          cuota_mayores?: number
+          cuota_medios?: number
+          cuota_menores?: number
+          cuota_preventivos?: number
+          email?: string | null
           estado?: Database["public"]["Enums"]["cliente_estado"]
           id?: string
           nombre: string
           rut?: string | null
+          telefono?: string | null
           updated_at?: string
         }
         Update: {
           capacidad?: string | null
           contacto?: string | null
+          contrato_om?: boolean
           created_at?: string
+          cuota_correctivos?: number
+          cuota_limpiezas?: number
+          cuota_mayores?: number
+          cuota_medios?: number
+          cuota_menores?: number
+          cuota_preventivos?: number
+          email?: string | null
           estado?: Database["public"]["Enums"]["cliente_estado"]
           id?: string
           nombre?: string
           rut?: string | null
+          telefono?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -227,6 +254,8 @@ export type Database = {
           equipo_id: string
           estado: Database["public"]["Enums"]["mantenimiento_estado"]
           fecha: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
           horas: number
           id: string
           notas: string | null
@@ -239,6 +268,8 @@ export type Database = {
           equipo_id: string
           estado?: Database["public"]["Enums"]["mantenimiento_estado"]
           fecha: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           horas?: number
           id?: string
           notas?: string | null
@@ -251,6 +282,8 @@ export type Database = {
           equipo_id?: string
           estado?: Database["public"]["Enums"]["mantenimiento_estado"]
           fecha?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           horas?: number
           id?: string
           notas?: string | null
@@ -918,6 +951,7 @@ export type Database = {
       }
       trabajos: {
         Row: {
+          avisos_enviados: Json
           created_at: string
           duracion_dias: number
           equipo_id: string | null
@@ -938,6 +972,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avisos_enviados?: Json
           created_at?: string
           duracion_dias?: number
           equipo_id?: string | null
@@ -958,6 +993,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avisos_enviados?: Json
           created_at?: string
           duracion_dias?: number
           equipo_id?: string | null
