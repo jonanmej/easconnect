@@ -122,6 +122,7 @@ function Trabajos() {
   const fetchEquipos = useServerFn(listEquipos);
   const fetchUpsert = useServerFn(upsertTrabajo);
   const fetchDelete = useServerFn(deleteTrabajo);
+  const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
 
@@ -129,12 +130,32 @@ function Trabajos() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const [editing, setEditing] = useState<any | null>(null);
+  const [tab, setTab] = useState<"ot" | "reporte" | "recursos">("ot");
+  const [equipoIds, setEquipoIds] = useState<string[]>([]);
+
+  // Cargar equipos asignados cuando se abre un trabajo existente
+  const equiposAsignados = useQuery({
+    queryKey: ["trabajo-equipos", editing?.id],
+    queryFn: () => fetchTrabajoEquipos({ data: { trabajo_id: editing.id } }),
+    enabled: !!editing?.id,
+  });
+
+  // Sincronizar selección con datos recibidos / reset al abrir
+  useEffect(() => {
+    if (!editing) { setEquipoIds([]); setTab("ot"); return; }
+    if (editing.id && equiposAsignados.data) {
+      setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
+    } else if (!editing.id) {
+      setEquipoIds([]);
+    }
+  }, [editing?.id, equiposAsignados.data]);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo guardado");
       qc.invalidateQueries({ queryKey: ["trabajos"] });
+      qc.invalidateQueries({ queryKey: ["trabajo-equipos"] });
       setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -157,7 +178,8 @@ function Trabajos() {
     save.mutate({
       id: editing?.id,
       planta_id: f.get("planta_id"),
-      equipo_id: f.get("equipo_id") || null,
+      equipo_id: equipoIds[0] || null,
+      equipo_ids: equipoIds,
       servicio: f.get("servicio"),
       fecha_programada: fecha,
       estado: f.get("estado"),
