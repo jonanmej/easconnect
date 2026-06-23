@@ -12,69 +12,64 @@ export function PVStopLogo({
 }: SVGProps<SVGSVGElement> & { accentClassName?: string }) {
   return (
     <svg
-      viewBox="0 0 260 70"
+      viewBox="0 0 360 110"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="PVStop"
       className={className}
       {...props}
     >
-      {/* 4 rombos del monograma */}
-      <g
-        className={accentClassName}
-        fill="currentColor"
-        transform="translate(4 6)"
-      >
-        <rect x="22" y="0" width="20" height="20" transform="rotate(45 32 10)" />
-        <rect x="0" y="22" width="20" height="20" transform="rotate(45 10 32)" />
-        <rect x="44" y="22" width="20" height="20" transform="rotate(45 54 32)" />
-        <rect x="22" y="44" width="20" height="20" transform="rotate(45 32 54)" />
+      {/* Monograma: 4 rombos en disposición diamante */}
+      <g fill="currentColor" transform="translate(10 15)">
+        <rect x="28" y="-2" width="24" height="24" rx="3" transform="rotate(45 40 10)" />
+        <rect x="6" y="20" width="24" height="24" rx="3" transform="rotate(45 18 32)" />
+        <rect x="50" y="20" width="24" height="24" rx="3" transform="rotate(45 62 32)" />
+        <rect x="28" y="42" width="24" height="24" rx="3" transform="rotate(45 40 54)" />
       </g>
-      {/* Wordmark */}
+      {/* Wordmark PVST_P */}
       <text
-        x="80"
-        y="48"
+        x="105"
+        y="68"
         fontFamily="var(--font-sans, Inter, sans-serif)"
-        fontSize="38"
+        fontSize="58"
         fontWeight="900"
-        letterSpacing="0.5"
+        letterSpacing="0"
         fill="currentColor"
       >
-        PV
+        PVST
       </text>
-      <text
-        x="128"
-        y="48"
-        fontFamily="var(--font-sans, Inter, sans-serif)"
-        fontSize="38"
-        fontWeight="500"
-        letterSpacing="1"
-        fill="currentColor"
-        opacity="0.85"
-      >
-        ST
-      </text>
-      {/* "O" como rombo */}
+      {/* "O" como rombo rojo (accent) */}
       <g
         className={accentClassName}
         fill="none"
         stroke="currentColor"
-        strokeWidth="3.5"
-        transform="translate(186 18)"
+        strokeWidth="6"
+        strokeLinejoin="round"
+        transform="translate(243 24)"
       >
-        <rect x="2" y="2" width="22" height="22" transform="rotate(45 13 13)" />
+        <rect x="3" y="3" width="32" height="32" transform="rotate(45 19 19)" />
       </g>
       <text
-        x="218"
-        y="48"
+        x="285"
+        y="68"
         fontFamily="var(--font-sans, Inter, sans-serif)"
-        fontSize="38"
-        fontWeight="500"
-        letterSpacing="1"
+        fontSize="58"
+        fontWeight="900"
         fill="currentColor"
-        opacity="0.85"
       >
         P
+      </text>
+      {/* Tagline */}
+      <text
+        x="105"
+        y="98"
+        fontFamily="var(--font-sans, Inter, sans-serif)"
+        fontSize="20"
+        fontWeight="700"
+        letterSpacing="3"
+        fill="currentColor"
+      >
+        EL SALVADOR
       </text>
     </svg>
   );
