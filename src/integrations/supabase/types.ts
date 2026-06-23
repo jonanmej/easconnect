@@ -14,6 +14,165 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          capacidad: string | null
+          contacto: string | null
+          created_at: string
+          estado: Database["public"]["Enums"]["cliente_estado"]
+          id: string
+          nombre: string
+          rut: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacidad?: string | null
+          contacto?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["cliente_estado"]
+          id?: string
+          nombre: string
+          rut?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacidad?: string | null
+          contacto?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["cliente_estado"]
+          id?: string
+          nombre?: string
+          rut?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipos: {
+        Row: {
+          codigo: string
+          created_at: string
+          estado: Database["public"]["Enums"]["equipo_estado"]
+          id: string
+          nombre: string
+          planta_id: string | null
+          salud: number | null
+          tipo: string
+          ubicacion: string | null
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["equipo_estado"]
+          id?: string
+          nombre: string
+          planta_id?: string | null
+          salud?: number | null
+          tipo: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["equipo_estado"]
+          id?: string
+          nombre?: string
+          planta_id?: string | null
+          salud?: number | null
+          tipo?: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipos_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantas: {
+        Row: {
+          capacidad: string | null
+          cliente_id: string
+          created_at: string
+          eficiencia: number | null
+          id: string
+          nombre: string
+          paneles: number
+          ubicacion: string | null
+          ultima_limpieza: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacidad?: string | null
+          cliente_id: string
+          created_at?: string
+          eficiencia?: number | null
+          id?: string
+          nombre: string
+          paneles?: number
+          ubicacion?: string | null
+          ultima_limpieza?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacidad?: string | null
+          cliente_id?: string
+          created_at?: string
+          eficiencia?: number | null
+          id?: string
+          nombre?: string
+          paneles?: number
+          ubicacion?: string | null
+          ultima_limpieza?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_cliente_fk"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_audit_log: {
         Row: {
           action: string
@@ -41,6 +200,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trabajos: {
+        Row: {
+          created_at: string
+          equipo_id: string | null
+          estado: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_programada: string
+          folio: string
+          id: string
+          notas: string | null
+          planta_id: string
+          servicio: string
+          tecnico_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipo_id?: string | null
+          estado?: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_programada: string
+          folio?: string
+          id?: string
+          notas?: string | null
+          planta_id: string
+          servicio: string
+          tecnico_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipo_id?: string | null
+          estado?: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_programada?: string
+          folio?: string
+          id?: string
+          notas?: string | null
+          planta_id?: string
+          servicio?: string
+          tecnico_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajos_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajos_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -67,6 +283,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_cliente_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -77,6 +294,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "supervisor" | "tecnico" | "cliente"
+      cliente_estado: "activo" | "revision" | "pausado"
+      equipo_estado:
+        | "operativo"
+        | "mantenimiento"
+        | "disponible"
+        | "fuera_servicio"
+      trabajo_estado: "programado" | "en_progreso" | "completado" | "cancelado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,6 +429,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "supervisor", "tecnico", "cliente"],
+      cliente_estado: ["activo", "revision", "pausado"],
+      equipo_estado: [
+        "operativo",
+        "mantenimiento",
+        "disponible",
+        "fuera_servicio",
+      ],
+      trabajo_estado: ["programado", "en_progreso", "completado", "cancelado"],
     },
   },
 } as const

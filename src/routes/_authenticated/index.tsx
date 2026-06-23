@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { kpis, equipos, agendaHoy } from "@/lib/mock-data";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { agendaHoy } from "@/lib/mock-data";
 import plantaIso from "@/assets/planta-iso.jpg";
-import { Link } from "@tanstack/react-router";
 import { Plus, FileDown } from "lucide-react";
+import { dashboardStats, listEquipos } from "@/lib/operations.functions";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -17,11 +19,30 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Index() {
-  const statusStyles = {
-    Operativo: "bg-accent/10 text-accent",
-    Mantenimiento: "bg-amber-100 text-amber-700",
-    Disponible: "bg-secondary text-foreground",
-  } as const;
+  const fetchStats = useServerFn(dashboardStats);
+  const fetchEquipos = useServerFn(listEquipos);
+  const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats() });
+  const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
+
+  const statusStyles: Record<string, string> = {
+    operativo: "bg-accent/10 text-accent",
+    mantenimiento: "bg-amber-100 text-amber-700",
+    disponible: "bg-secondary text-foreground",
+    fuera_servicio: "bg-destructive/10 text-destructive",
+  };
+  const statusLabel: Record<string, string> = {
+    operativo: "Operativo",
+    mantenimiento: "Mantenimiento",
+    disponible: "Disponible",
+    fuera_servicio: "Fuera de servicio",
+  };
+
+  const kpis = [
+    { label: "Trabajos Hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
+    { label: "Equipos Operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
+    { label: "Salud Promedio", value: String(stats.data?.eficiencia ?? "--"), delta: "%", tone: "accent" as const },
+    { label: "Alertas", value: String(stats.data?.alertas ?? 0).padStart(2, "0"), delta: stats.data?.alertas ? "Ver" : "OK", tone: stats.data?.alertas ? "danger" as const : "muted" as const },
+  ];
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
@@ -166,16 +187,16 @@ function Index() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {equipos.slice(0, 4).map((e) => (
-                    <tr key={e.code} className="hover:bg-secondary/50 transition-colors">
+                  {(equipos.data as any[] | undefined)?.slice(0, 4).map((e) => (
+                    <tr key={e.id} className="hover:bg-secondary/50 transition-colors">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="size-8 bg-secondary rounded grid place-items-center text-[10px] font-bold text-muted-foreground">
-                            {e.code}
+                            {e.codigo}
                           </div>
                           <div>
-                            <p className="font-medium">{e.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{e.type}</p>
+                            <p className="font-medium">{e.nombre}</p>
+                            <p className="text-[10px] text-muted-foreground">{e.tipo}</p>
                           </div>
                         </div>
                       </td>
@@ -183,16 +204,19 @@ function Index() {
                         <span
                           className={
                             "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
-                            (statusStyles[e.status as keyof typeof statusStyles] ?? "bg-secondary")
+                            (statusStyles[e.estado] ?? "bg-secondary")
                           }
                         >
-                          {e.status}
+                          {statusLabel[e.estado] ?? e.estado}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-xs text-muted-foreground">{e.activity}</td>
-                      <td className="px-4 py-4 text-right font-mono">{e.health}</td>
+                      <td className="px-4 py-4 text-xs text-muted-foreground">{e.planta_nombre ?? e.ubicacion ?? "—"}</td>
+                      <td className="px-4 py-4 text-right font-mono">{e.salud != null ? `${e.salud}%` : "—"}</td>
                     </tr>
                   ))}
+                  {!equipos.isLoading && (equipos.data as any[] | undefined)?.length === 0 && (
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-muted-foreground">Aún no hay equipos registrados.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
