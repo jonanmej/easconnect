@@ -16,6 +16,8 @@ export function EALogo({
   accentClassName?: string;
   showTagline?: boolean;
 }) {
+  const BRAND = "#5B85C2";
+  const BRAND_LIGHT = "#B6CCE4";
   return (
     <svg
       viewBox="0 0 200 220"
@@ -25,27 +27,10 @@ export function EALogo({
       className={className}
       {...props}
     >
-      {/* Isotipo: triángulo "play" compuesto de 3 caras (dos tonos). */}
-      {/* Cara superior (tono claro / accent) */}
-      <path
-        d="M40 10 L190 75 L110 75 Z"
-        className={accentClassName}
-        fill="currentColor"
-        opacity="0.55"
-      />
-      {/* Cara inferior (tono claro / accent) */}
-      <path
-        d="M40 10 L40 140 L110 75 Z"
-        className={accentClassName}
-        fill="currentColor"
-        opacity="0.55"
-      />
-      {/* Cara frontal (tono principal) */}
-      <path
-        d="M110 75 L190 75 L40 140 Z"
-        fill="currentColor"
-      />
-      {/* Wordmark EA */}
+      {/* Isotipo "play" en dos tonos azules originales */}
+      <path d="M40 10 L190 75 L110 75 Z" fill={BRAND_LIGHT} />
+      <path d="M40 10 L40 140 L110 75 Z" fill={BRAND_LIGHT} />
+      <path d="M110 75 L190 75 L40 140 Z" fill={BRAND} />
       <text
         x="100"
         y="190"
@@ -54,7 +39,7 @@ export function EALogo({
         fontSize="56"
         fontWeight="700"
         letterSpacing="6"
-        fill="currentColor"
+        fill={BRAND}
       >
         EA
       </text>
@@ -67,7 +52,7 @@ export function EALogo({
           fontSize="14"
           fontWeight="600"
           letterSpacing="0.5"
-          fill="currentColor"
+          fill={BRAND}
         >
           Service and Consulting
         </text>

@@ -10,6 +10,7 @@ export function ChemitekLogo({
   accentClassName = "text-primary",
   ...props
 }: SVGProps<SVGSVGElement> & { accentClassName?: string }) {
+  const BRAND = "#1F6FE0";
   return (
     <svg
       viewBox="0 0 320 70"
@@ -26,7 +27,7 @@ export function ChemitekLogo({
         fontSize="56"
         fontWeight="800"
         letterSpacing="-1"
-        fill="currentColor"
+        fill={BRAND}
       >
         Chem
         <tspan dx="0">i</tspan>
@@ -35,8 +36,7 @@ export function ChemitekLogo({
       {/* Droplet accent above the "i" */}
       <path
         d="M168 6 C172 14 176 18 176 24 C176 28 172.4 31 168 31 C163.6 31 160 28 160 24 C160 18 164 14 168 6 Z"
-        className={accentClassName}
-        fill="currentColor"
+        fill={BRAND}
       />
     </svg>
   );
