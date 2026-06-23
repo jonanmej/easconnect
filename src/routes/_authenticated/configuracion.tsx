@@ -44,7 +44,7 @@ function ConfiguracionPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Configuración"
-        subtitle="Preferencias de la interfaz y accesibilidad"
+        description="Preferencias de la interfaz y accesibilidad"
       />
 
       <div className="px-4 md:px-8 pb-8">
