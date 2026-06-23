@@ -323,8 +323,10 @@ function AlertaItem({ to, icon: Icon, label, count, tone = "danger" }: { to: str
 function ClienteDashboard() {
   const fetchPlantas = useServerFn(listPlantas);
   const fetchTrabajos = useServerFn(listTrabajos);
+  const fetchAgua = useServerFn(aguaPorPlanta);
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const trabajos = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos() });
+  const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua() });
 
   const rows = (plantas.data as any[] | undefined) ?? [];
   const ts = (trabajos.data as any[] | undefined) ?? [];
@@ -438,6 +440,23 @@ function ClienteDashboard() {
             {pendienteFirma.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Todo al día. ✓</li>}
           </ul>
         </div>
+      </section>
+
+      <section className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString()} gal
+        </h3>
+        <ul className="divide-y divide-border text-sm">
+          {(agua.data?.filas ?? []).slice(0, 8).map((r: any) => (
+            <li key={r.planta_id} className="flex items-center justify-between py-2">
+              <span className="truncate">{r.nombre}</span>
+              <span className="font-mono text-xs">{Math.round(r.galones).toLocaleString()} gal</span>
+            </li>
+          ))}
+          {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
+            <li className="text-xs text-muted-foreground text-center py-3">Sin registros de consumo de agua todavía.</li>
+          )}
+        </ul>
       </section>
     </div>
   );
