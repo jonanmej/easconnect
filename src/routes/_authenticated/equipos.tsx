@@ -77,7 +77,7 @@ function Equipos() {
       nombre: f.get("nombre"),
       tipo: f.get("tipo"),
       estado: f.get("estado"),
-      salud: f.get("salud") || null,
+      salud: null,
       planta_id: f.get("planta_id") || null,
       ubicacion: f.get("ubicacion") || null,
     });
@@ -86,8 +86,8 @@ function Equipos() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
-        title="Equipos y Herramientas"
-        description="Robots, motores y maquinaria asignable a plantas."
+        title="Equipos"
+        description="Robots y maquinaria asignable a plantas."
         actions={canEdit && (
           <button
             onClick={() => setEditing({ estado: "disponible" })}
@@ -106,13 +106,12 @@ function Equipos() {
               <th className="px-4 py-3 text-left">Tipo</th>
               <th className="px-4 py-3 text-left">Estado</th>
               <th className="px-4 py-3 text-left">Ubicación</th>
-              <th className="px-4 py-3 text-right">Salud</th>
               {canEdit && <th />}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {list.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
+              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
             {(list.data as any[] | undefined)?.map((e) => (
               <tr key={e.id} className="hover:bg-secondary/40 transition-colors">
@@ -131,8 +130,9 @@ function Equipos() {
                     {estadoLabel[e.estado] ?? e.estado}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-xs text-muted-foreground">{e.ubicacion ?? "—"}</td>
-                <td className="px-4 py-4 text-right font-mono">{e.salud != null ? `${e.salud}%` : "—"}</td>
+                <td className="px-4 py-4 text-xs text-muted-foreground">
+                  {e.planta_nombre ?? (e.ubicacion || "Bodega")}
+                </td>
                 {canEdit && (
                   <td className="px-4 py-4 text-right">
                     <div className="inline-flex gap-1">
@@ -198,21 +198,18 @@ function Equipos() {
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Salud (%)">
-            <input name="salud" type="number" min="0" max="100" defaultValue={editing?.salud ?? ""} className={inputCls} />
-          </Field>
-          <Field label="Planta">
+          <Field label="Planta asignada">
             <select name="planta_id" defaultValue={editing?.planta_id ?? ""} className={inputCls}>
-              <option value="">— Sin asignar —</option>
+              <option value="">— En Bodega —</option>
               {(plantas.data as any[] | undefined)?.map((p) => (
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
             </select>
           </Field>
+          <Field label="Ubicación específica (opcional)">
+            <input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="Bodega Central / Sector A" />
+          </Field>
         </div>
-        <Field label="Ubicación específica">
-          <input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="Bodega Central" />
-        </Field>
       </RecordDialog>
     </div>
   );

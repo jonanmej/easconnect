@@ -31,7 +31,7 @@ type Item = {
   id: string;
   sku: string;
   nombre: string;
-  categoria: "insumo" | "repuesto" | "herramienta" | "epp";
+  categoria: "insumo" | "repuesto" | "herramienta" | "epp" | "equipo" | "electrico" | "quimico";
   ubicacion: string | null;
   unidad: string;
   stock_actual: number;
@@ -40,6 +40,7 @@ type Item = {
 
 const catLabel: Record<Item["categoria"], string> = {
   insumo: "Insumo", repuesto: "Repuesto", herramienta: "Herramienta", epp: "EPP",
+  equipo: "Equipo", electrico: "Eléctrico", quimico: "Químico",
 };
 
 function Inventario() {
@@ -219,8 +220,11 @@ function Inventario() {
             <Field label="SKU"><input name="sku" defaultValue={editing?.sku ?? ""} className={inputCls + " font-mono bg-secondary"} readOnly /></Field>
             <Field label="Categoría">
               <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
-                <option value="insumo">Insumo</option>
+                <option value="equipo">Equipo</option>
                 <option value="repuesto">Repuesto</option>
+                <option value="electrico">Eléctrico</option>
+                <option value="quimico">Químico</option>
+                <option value="insumo">Insumo</option>
                 <option value="herramienta">Herramienta</option>
                 <option value="epp">EPP</option>
               </select>
@@ -230,8 +234,11 @@ function Inventario() {
           <>
             <Field label="Categoría">
               <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
-                <option value="insumo">Insumo</option>
+                <option value="equipo">Equipo</option>
                 <option value="repuesto">Repuesto</option>
+                <option value="electrico">Eléctrico</option>
+                <option value="quimico">Químico</option>
+                <option value="insumo">Insumo</option>
                 <option value="herramienta">Herramienta</option>
                 <option value="epp">EPP</option>
               </select>
