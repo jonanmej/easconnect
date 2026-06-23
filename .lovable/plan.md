@@ -1,94 +1,95 @@
 
-## Fase 5 — Reportes PDF, Notificaciones reales y Calendario del cliente
+## Fase 8 — Portal del cliente y modo técnico en terreno
 
-### 1. Generación y descarga de PDF ejecutivo
+Cierra el ciclo operativo: el cliente firma y aprueba el trabajo desde su navegador, y el técnico opera en terreno desde su celular incluso con señal intermitente. Se apoya en lo construido en fases previas (solicitudes, reportes PDF, notificaciones Gmail, evidencias).
 
-**Stack:** `@react-pdf/renderer` (puro JS, compatible con Worker SSR). Se genera del lado del cliente para evitar problemas con fuentes/imágenes en el runtime serverless.
+### 1. Portal del cliente reforzado
 
-**Estructura del PDF ejecutivo:**
-- **Portada**: logo SOLAROS, nombre de planta, cliente, periodo, fecha de emisión, número de reporte.
-- **Índice** auto-generado.
-- **Resumen ejecutivo** (texto IA ya guardado en `reportes.contenido_md`).
-- **KPIs** (tabla + barras simples dibujadas en SVG con react-pdf): trabajos completados/pendientes, % cumplimiento, horas operación, alertas.
-- **Detalle de trabajos** del periodo (tabla con fecha, tipo, técnico, estado, observaciones).
-- **Evidencias**: una página por trabajo con hasta 4 fotos en grilla. Se descargan vía URLs firmadas y se embeben como base64.
-- **Pie de firma** (supervisor responsable + fecha).
+Nueva pestaña **"Mis trabajos"** (ruta `/cliente/trabajos`) visible solo para rol `cliente`:
 
-**Reporte interno**: misma plantilla, sin portada elaborada y sin sección ejecutiva — solo tablas crudas y todas las evidencias.
+- Lista de trabajos ejecutados en sus plantas con filtros (planta, rango de fechas, estado, tipo).
+- Detalle de trabajo con: resumen del reporte IA, evidencias en galería, técnico responsable y SLA cumplido.
+- Botón **"Descargar PDF Ejecutivo"** (reutiliza generador de Fase 5).
+- Bloque **"Próximas visitas"** con las visitas programadas y las solicitudes pendientes/aprobadas.
 
-**Botones en `/reportes`**: "Descargar PDF Ejecutivo" y "Descargar PDF Interno" junto a cada reporte. Loading state mientras se ensambla.
+Mejora de `/solicitudes` para cliente: línea de tiempo visual (pendiente → aprobada → programada → completada).
 
-### 2. Envío real de correos con Gmail (proyectos@easervice.app)
+### 2. Firma digital del cliente sobre evidencias
 
-**Decisión técnica:** No usaré Lovable Emails (requiere dominio propio delegado). Conectaré el connector **Gmail** que autentica esa cuenta Gmail del builder y envía vía Gmail API a través del gateway.
+Al completar un trabajo el supervisor genera un **link de aprobación firmado (TTL 7 días)** que llega al cliente por Gmail. El link abre una vista pública sin login (`/aprobar/:token`):
 
-**Pasos:**
-1. Conectar el connector `google_mail` con esa cuenta Gmail.
-2. Crear server fn `sendNotificacionCompletado({ trabajoId })` que:
-   - Verifica rol staff.
-   - Carga trabajo + planta + cliente.
-   - Si `plantas.notificaciones_completado=true` y hay `email_notificaciones`, construye email HTML (plantilla con branding SOLAROS) y lo envía vía `https://connector-gateway.lovable.dev/google_mail/gmail/v1/users/me/messages/send`.
-   - Registra el envío en tabla de auditoría (siguiente sección).
-3. Botón manual "Enviar al cliente" en detalle de trabajo y en `/reportes` (envío del PDF como link de descarga firmado de 7 días, no como attachment).
-4. Trigger automático: cuando un trabajo pasa a `completado` y la planta tiene notificaciones activas, encolar el envío vía server fn invocada desde el handler de update (no SQL trigger — Gmail necesita LOVABLE_API_KEY que solo existe en runtime de la app).
+- Resumen del trabajo, fotos, técnico, fecha.
+- Canvas de firma (mouse/touch) + nombre y RUT del firmante.
+- Checkbox de conformidad ("Apruebo la ejecución del trabajo").
+- Al firmar: se guarda PNG de la firma en bucket privado, se sella `trabajos.firmado_at` y `firmado_por`, se notifica al supervisor por correo, y el link queda inutilizable.
 
-### 3. Auditoría de envíos de notificaciones
+Nueva tabla `trabajo_aprobaciones` (token, trabajo_id, expira_at, firmado_at, firmante_nombre, firmante_rut, firma_storage_path, ip, user_agent). RLS: solo `service_role` (la vista pública usa server fn sin requerir auth para validar el token con SECURITY DEFINER).
 
-**Nueva tabla `notificaciones_log`:**
-- `id`, `trabajo_id`, `planta_id`, `cliente_id`, `reporte_id` (nullable)
-- `destinatario` (email), `asunto`, `tipo` (`completado` | `reporte_ejecutivo` | `reporte_interno` | `manual`)
-- `estado` (`enviado` | `error`), `error_mensaje` (nullable), `gmail_message_id` (nullable)
-- `enviado_por` (uuid del usuario que disparó), `enviado_at`
-- RLS: staff lee todo; cliente ve solo los suyos por `cliente_id = current_cliente_id()`.
+La firma se renderiza en el PDF ejecutivo del reporte si existe.
 
-**Vista `/notificaciones` (nueva ruta `_authenticated/notificaciones.tsx`):**
-- Filtros: cliente (select), planta (cascada del cliente), rango de fechas (date picker), tipo y estado.
-- Tabla con paginación: fecha, planta, cliente, tipo, destinatario, estado, ver detalle.
-- Botón "Reintentar" para envíos en error.
-- Item en sidebar visible solo para staff.
+### 3. PWA + modo técnico en terreno
 
-### 4. Calendario para clientes — "Solicitar visita" con bloqueo por duración
+Convertir la app en PWA instalable:
 
-**Cambios de modelo:**
-- Añadir a `trabajos`: `duracion_dias INT NOT NULL DEFAULT 1` (cuántos días consecutivos ocupa) y `origen TEXT DEFAULT 'staff'` (`staff` | `cliente`).
-- Nueva tabla `solicitudes_visita`:
-  - `id`, `cliente_id`, `planta_id`, `tipo` (mantenimiento/inspección/falla), `descripcion`, `fecha_preferida`, `duracion_dias_estimada`, `estado` (`pendiente` | `aprobada` | `rechazada` | `convertida`), `trabajo_id` (nullable cuando se convierte), `respuesta_supervisor` (text).
-- RLS: cliente CRUD solo sobre las suyas en estado `pendiente`; supervisor/admin gestionan todas.
+- `manifest.webmanifest` con íconos EA, color de marca y `display: standalone`.
+- Service worker (Workbox via Vite plugin `vite-plugin-pwa`) con estrategias:
+  - `NetworkFirst` para rutas API y server fns.
+  - `CacheFirst` para assets estáticos, logos y fuentes.
+  - `StaleWhileRevalidate` para `dashboardAlertas` y listas pequeñas.
+- Banner de "Instalar app" en login para técnicos.
 
-**Cálculo de disponibilidad:**
-- Server fn `getDisponibilidad({ desde, hasta })` que devuelve por día: `{ fecha, ocupada: boolean }`.
-- Ocupada = existe al menos un trabajo cuyo rango `[fecha_programada, fecha_programada + duracion_dias)` cubre ese día (regla: 1 trabajo simultáneo en la operación — capacidad global simple; si después se requiere por planta o técnico se amplía).
-- Si la respuesta es "no existe espacio", el cliente verá la fecha tachada en rojo con tooltip "No disponible" pero podrá pedir otra fecha; la confirmación final la hace el supervisor.
+Nueva vista móvil **`/terreno`** (rol `tecnico`):
 
-**UI:**
-- En `/programacion` para clientes (vista distinta): calendario mensual con días ocupados en rojo, libres en verde. Click en día libre abre diálogo "Solicitar visita" (planta, tipo, descripción, duración estimada). Cliente solo ve sus propias plantas.
-- En `/solicitudes` (nueva ruta) para staff: lista de solicitudes pendientes con acciones "Aprobar y crear trabajo" (abre modal de trabajo con datos prellenados) o "Rechazar" (con motivo).
-- En `/solicitudes` para cliente: ve el estado de las suyas.
+- Lista compacta de trabajos asignados hoy/mañana con icono de sincronización por trabajo.
+- Pantalla de trabajo con tres acciones grandes: **Iniciar**, **Subir evidencia**, **Completar**.
+- Captura de evidencias funciona offline: las fotos se guardan en IndexedDB (cola) y se suben en cuanto vuelve la conexión, con indicador visible "N evidencias pendientes de sincronizar".
+- Botón **"Sincronizar ahora"** manual.
+
+### 4. Notificaciones más inteligentes
+
+Extender `notificaciones.functions.ts`:
+
+- Nuevo tipo `aprobacion_solicitada` (correo con link de firma al completar).
+- Nuevo tipo `aprobacion_recibida` (notifica al supervisor que el cliente firmó).
+- Recordatorio automático a las 72h si el cliente no ha firmado (cron pg con server fn `revisarFirmasPendientes`).
 
 ### 5. Migraciones y entregables
 
 **SQL (una migración):**
-- `ALTER TABLE trabajos ADD duracion_dias`, `origen`.
-- `CREATE TABLE solicitudes_visita` + GRANTs + RLS + policies + trigger updated_at.
-- `CREATE TABLE notificaciones_log` + GRANTs + RLS + policies.
-- Función `public.dia_ocupado(fecha date)` security definer estable usada en el cálculo.
 
-**Código nuevo:**
-- `src/lib/pdf/ReporteEjecutivoDoc.tsx`, `ReporteInternoDoc.tsx` (componentes react-pdf).
-- `src/lib/pdf/exportar.ts` (helper para empaquetar evidencias en base64).
-- `src/lib/notificaciones.functions.ts` (sendNotificacionCompletado, listLogs, reintentar).
-- `src/lib/solicitudes.functions.ts` (CRUD solicitudes, aprobar, rechazar, getDisponibilidad).
-- `src/routes/_authenticated/notificaciones.tsx`.
-- `src/routes/_authenticated/solicitudes.tsx`.
-- Reescribir `src/routes/_authenticated/programacion.tsx` para diferenciar vista staff (la actual) vs vista cliente (calendario de solicitud).
+- `ALTER TABLE trabajos ADD COLUMN firmado_at timestamptz, firmado_por text, firma_storage_path text`.
+- `CREATE TABLE trabajo_aprobaciones` + GRANTs + RLS (`service_role` only).
+- Función `public.validar_token_aprobacion(token text)` SECURITY DEFINER que devuelve el trabajo si el token es válido y no expiró.
+- Crear bucket privado `firmas-clientes` (TTL de URLs firmadas 1h).
+- Cron pg diario para `revisarFirmasPendientes`.
 
-**Conector requerido del usuario:** te pediré conectar Gmail con la cuenta `proyectos@easervice.app` cuando llegue ese paso — la cuenta debe iniciar sesión y autorizar los scopes `gmail.send` (y opcionalmente `gmail.compose`).
+**Código nuevo / modificado:**
+
+- `src/routes/aprobar.$token.tsx` (ruta pública, sin layout autenticado).
+- `src/routes/_authenticated/cliente.trabajos.tsx`.
+- `src/routes/_authenticated/terreno.tsx` (vista técnico).
+- `src/lib/aprobaciones.functions.ts` (generar token, validar, firmar).
+- `src/lib/offline-queue.ts` (cola de evidencias en IndexedDB con `idb-keyval`).
+- `src/lib/pdf/ReporteDoc.tsx` (insertar firma si existe).
+- `vite.config.ts` + `public/manifest.webmanifest` + iconos.
+- `src/components/SignaturePad.tsx` (canvas de firma, ~80 líneas, sin librería externa).
+
+**Roles afectados (`src/lib/roles.ts`):** rutas `/cliente/trabajos` solo `cliente`; `/terreno` solo `tecnico` y `supervisor`.
 
 ### Lo que NO entra en esta fase
 
-- Adjuntar PDFs binarios al email (Gmail API lo soporta pero complica el flujo; se envía un enlace firmado en su lugar).
-- Capacidad por técnico o por planta — se deja capacidad global; ampliable luego.
-- Push notifications móviles.
-- Firma digital del cliente en evidencias.
+- Firma con certificado digital legal (eIDAS/FEA chilena) — la firma actual es gráfica con sello de tiempo y trazabilidad, suficiente para conformidad operativa, no para validez tributaria.
+- Modo offline completo para el resto de la app (solo evidencias y lectura de trabajos asignados).
+- Notificaciones push del navegador (requiere VAPID + suscripción; opcional para fase posterior).
+- App nativa iOS/Android — la PWA cubre 95% del caso de uso.
 
-¿Procedo con esto, o ajustas algo (por ejemplo, capacidad por planta en lugar de global, o adjuntar el PDF al correo)?
+### Orden de implementación sugerido
+
+1. Migración SQL + bucket de firmas.
+2. Firma digital y vista pública `/aprobar/:token` + correo de aprobación.
+3. Portal cliente "Mis trabajos".
+4. PWA (manifest + SW) y vista `/terreno`.
+5. Cola offline de evidencias.
+6. Cron de recordatorio de firma.
+
+¿Procedo con esta Fase 8 o ajustamos algo (por ejemplo, dejar fuera la PWA y enfocar solo en firma + portal cliente, o adelantar push notifications)?
