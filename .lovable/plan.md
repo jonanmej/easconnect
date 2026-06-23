@@ -1,63 +1,65 @@
-# Fase 3 — Inventario, Mantenimientos y Reportes IA
+# Fase 4 — Calendario operativo, evidencia visual y notificaciones
 
-Cierro las tres secciones que aún viven en `mock-data.ts` y conecto la primera capacidad de IA del producto.
+Cierro los temas pendientes de la Fase 3 (`out of scope`): una **programación tipo calendario real**, **fotos adjuntas en trabajos** vía Storage, y **notificaciones por email** a clientes cuando se publica un reporte o se completa un trabajo. Con esto el ciclo operativo queda completo de punta a punta.
 
-## 1. Inventario con movimientos de stock
+## 1. Programación tipo calendario
 
-**Tablas nuevas:**
-- `inventario_items` — sku (único), nombre, categoría (insumo / repuesto / herramienta / EPP), ubicación, unidad, stock_actual (numérico, calculado por trigger), stock_minimo.
-- `inventario_movimientos` — item_id, tipo (ingreso / salida / ajuste), cantidad, motivo, trabajo_id (opcional, para ligar consumos a un trabajo), realizado_por, created_at.
+**UI `/programacion`**
+- Vista semanal y mensual con `react-day-picker` (ya instalado) + grilla custom de horarios.
+- Cada `trabajo` aparece como bloque, color por tipo (inspección / mantenimiento / reparación) y borde por estado.
+- Drag-and-drop entre días/franjas para reprogramar (actualiza `fecha_programada` del trabajo).
+- Drag entre filas de técnico para reasignar (`tecnico_id`).
+- Filtros por planta, técnico y tipo.
+- Click en bloque → diálogo de detalle / edición rápida.
 
-Trigger: cada movimiento recalcula `stock_actual` del item.
+**Backend**
+- Nueva server fn `reprogramarTrabajo({ id, fecha_programada, tecnico_id? })` — admin / supervisor.
+- Reutiliza el RLS existente de `trabajos`.
 
-**UI `/inventario`:**
-- Tabla actual conectada a datos reales (admin / supervisor / técnico ven todo; cliente no ve esta sección).
-- Botón "Nuevo SKU" → `RecordDialog` (admin/supervisor).
-- Botón "Registrar movimiento" en cada fila → diálogo con tipo + cantidad + motivo + trabajo opcional.
-- KPI "Bajo stock" calculado en vivo.
+## 2. Evidencia fotográfica de campo
 
-## 2. Mantenimientos ligados a equipos
+**Storage**
+- Bucket `trabajos-evidencia` (privado).
+- Política: técnico/admin/supervisor suben a `trabajos/{trabajo_id}/...`; cliente solo lee las de sus trabajos.
 
-**Tabla nueva:**
-- `mantenimientos` — equipo_id, tipo (preventivo / correctivo / predictivo), fecha, horas, técnico_id, estado (programado / completado / pendiente), notas.
+**Tabla `trabajo_evidencias`**
+- `trabajo_id`, `storage_path`, `descripcion`, `subido_por`, `created_at`.
 
-RLS: admin/supervisor escriben; técnico ve y completa los suyos; cliente ve los de sus plantas (a través de equipo → planta → cliente).
+**UI**
+- En el diálogo de detalle de un trabajo: zona de carga (drag-drop), galería con thumbnails y lightbox.
+- Visible en `/trabajos` para cliente (solo lectura) y en el detalle del reporte si la foto pertenece al periodo cubierto.
 
-**UI `/mantenimientos`:**
-- Listado real con filtro por equipo y por estado.
-- Crear / editar con `RecordDialog`.
-- Al marcar como completado, registra automáticamente las horas de uso acumuladas del equipo.
+## 3. Notificaciones por email
 
-## 3. Reportes ejecutivos con Lovable AI
+**Connector**
+- Usar el connector **Resend** vía Lovable Gateway (sin API key manual).
+- Si el usuario no lo tiene linkeado, lo pido al inicio de la fase.
 
-**Tabla nueva:**
-- `reportes` — cliente_id, planta_id (opcional), periodo (texto, ej "Q2 2026"), titulo, contenido_markdown, insight_resumen, estado (borrador / enviado), generado_por, model_used, created_at.
+**Server fns / triggers**
+- `enviarReporteCliente(reporte_id)` — admin/supervisor. Renderiza el markdown a HTML inline, envía al email del contacto del cliente y marca el reporte como `enviado`.
+- Trigger en `trabajos`: cuando pasa a `completado` y la planta tiene `notificaciones_completado = true`, encola un email resumen al cliente (vía server route `/api/public/hooks/notify-trabajo` llamada desde un pg_net después del UPDATE).
 
-**Server function** `generarReporte` (admin/supervisor):
-- Toma cliente_id + planta_id + rango de fechas.
-- Recopila desde la base: trabajos completados, mantenimientos del periodo, salud promedio de equipos, alertas.
-- Llama a Lovable AI (`google/gemini-3-flash-preview`) con un prompt que produce salida estructurada (zod `Output.object`):
-  - `titulo`, `resumen_ejecutivo`, `kpis[]`, `hallazgos[]`, `recomendaciones[]`.
-- Persiste el reporte en markdown listo para mostrar/exportar.
+**UI**
+- Switch "Notificar al cliente al completar trabajos" en la ficha de `plantas`.
+- En `/reportes`, el botón "Marcar como enviado" pasa a "Enviar al cliente" cuando hay email configurado, con preview del HTML antes de enviar.
 
-**UI `/reportes`:**
-- Botón "Generar nuevo" → diálogo con cliente + planta + periodo.
-- Lista de reportes reales con estado, modelo usado y fecha.
-- Vista de detalle (diálogo grande) con el markdown renderizado.
-- Acción "Marcar como enviado".
-- Manejo explícito de errores `429` (límite) y `402` (créditos agotados) con toast claro.
+## 4. Dashboard
 
-## Entregables técnicos
+- Nuevo KPI "Trabajos reprogramados esta semana".
+- Card "Próximos 7 días" con mini-calendario que enlaza a `/programacion`.
 
-- 3 migraciones (una por sección) con tablas, GRANTs, RLS, triggers y policies por rol.
-- `src/lib/inventario.functions.ts`, `mantenimientos.functions.ts`, `reportes.functions.ts` (server functions con `requireSupabaseAuth`).
-- `src/lib/ai-gateway.server.ts` con el provider helper de Lovable AI.
-- Refactor de `/inventario`, `/mantenimientos`, `/reportes` para usar `useQuery` + `RecordDialog`.
-- Dashboard `/` añade KPI "SKUs bajo stock" y "Reportes pendientes de envío".
-- `mock-data.ts` queda solo con `agendaHoy` (vista táctica del día); se evaluará migrar en Fase 4.
+## Detalles técnicos
 
-## Fuera de alcance (Fase 4+)
+- **Migraciones (3):** `trabajo_evidencias` + bucket + policies, columnas nuevas en `plantas` (`notificaciones_completado`, `email_notificaciones`) y en `reportes` (`enviado_a`, `enviado_at`), trigger de notificación.
+- **Server functions nuevas:** `reprogramarTrabajo`, `subirEvidencia` (firma URL), `listarEvidencias`, `eliminarEvidencia`, `enviarReporteCliente`.
+- **Server route pública:** `/api/public/hooks/notify-trabajo` con verificación HMAC, llamada por `pg_net` desde el trigger.
+- **Componentes nuevos:** `CalendarioTrabajos`, `EvidenciaUploader`, `EvidenciaGallery`, `EmailPreviewDialog`.
+- **Sin cambios en `mock-data.ts`:** `agendaHoy` se reemplaza por una consulta real a `trabajos` del día.
 
-Programación tipo calendario drag-and-drop, exportes PDF reales del reporte, notificaciones por email a clientes, fotos adjuntas de campo subidas a Storage, app móvil del técnico.
+## Fuera de alcance
 
-¿Procedo con esta Fase 3 tal cual, o ajustamos?
+- Exportes PDF (queda para Fase 5 junto con branding del cliente).
+- App móvil nativa.
+- Push notifications.
+
+¿Procedo con Fase 4 así, o quieres ajustar prioridades (por ejemplo, hacer solo calendario + emails y dejar evidencia para después)?
