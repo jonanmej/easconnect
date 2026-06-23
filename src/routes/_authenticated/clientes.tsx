@@ -29,9 +29,18 @@ type ClienteRow = {
   nombre: string;
   rut: string | null;
   contacto: string | null;
+  email: string | null;
+  telefono: string | null;
   capacidad: string | null;
   estado: "activo" | "revision" | "pausado";
   plantas_count: number;
+  contrato_om: boolean;
+  cuota_preventivos: number;
+  cuota_correctivos: number;
+  cuota_menores: number;
+  cuota_medios: number;
+  cuota_mayores: number;
+  cuota_limpiezas: number;
 };
 
 const estadoLabel: Record<ClienteRow["estado"], string> = {
@@ -79,8 +88,17 @@ function Clientes() {
       nombre: f.get("nombre"),
       rut: f.get("rut") || null,
       contacto: f.get("contacto") || null,
+      email: f.get("email") || null,
+      telefono: f.get("telefono") || null,
       capacidad: f.get("capacidad") || null,
       estado: f.get("estado"),
+      contrato_om: f.get("contrato_om") === "on",
+      cuota_preventivos: Number(f.get("cuota_preventivos") ?? 0),
+      cuota_correctivos: Number(f.get("cuota_correctivos") ?? 0),
+      cuota_menores: Number(f.get("cuota_menores") ?? 0),
+      cuota_medios: Number(f.get("cuota_medios") ?? 0),
+      cuota_mayores: Number(f.get("cuota_mayores") ?? 0),
+      cuota_limpiezas: Number(f.get("cuota_limpiezas") ?? 0),
     });
   }
 
@@ -184,9 +202,44 @@ function Clientes() {
         <Field label="Contacto principal">
           <input name="contacto" defaultValue={editing?.contacto ?? ""} className={inputCls} />
         </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Email">
+            <input name="email" type="email" defaultValue={editing?.email ?? ""} className={inputCls} placeholder="contacto@cliente.cl" />
+          </Field>
+          <Field label="Teléfono">
+            <input name="telefono" defaultValue={editing?.telefono ?? ""} className={inputCls} placeholder="+56 9 1234 5678" />
+          </Field>
+        </div>
         <Field label="Capacidad declarada">
           <input name="capacidad" defaultValue={editing?.capacidad ?? ""} className={inputCls} placeholder="48 MW" />
         </Field>
+        <div className="pt-3 border-t border-border">
+          <label className="flex items-center gap-2 text-xs font-medium mb-3">
+            <input type="checkbox" name="contrato_om" defaultChecked={!!editing?.contrato_om} />
+            Tiene contrato de O&amp;M activo
+          </label>
+          <p className="text-[10px] text-muted-foreground mb-2">Cuotas anuales contratadas por tipo de servicio:</p>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { name: "cuota_preventivos", label: "Preventivos" },
+              { name: "cuota_correctivos", label: "Correctivos" },
+              { name: "cuota_menores", label: "Menores" },
+              { name: "cuota_medios", label: "Medios" },
+              { name: "cuota_mayores", label: "Mayores" },
+              { name: "cuota_limpiezas", label: "Limpiezas" },
+            ].map((c) => (
+              <Field key={c.name} label={c.label}>
+                <input
+                  name={c.name}
+                  type="number"
+                  min={0}
+                  defaultValue={(editing as any)?.[c.name] ?? 0}
+                  className={inputCls + " text-xs"}
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
       </RecordDialog>
     </div>
   );
