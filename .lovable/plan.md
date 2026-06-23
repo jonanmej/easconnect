@@ -1,59 +1,63 @@
+# Fase 3 — Inventario, Mantenimientos y Reportes IA
 
-# Fase 2 — Datos reales (CRUD operativo)
+Cierro las tres secciones que aún viven en `mock-data.ts` y conecto la primera capacidad de IA del producto.
 
-Hoy todas las vistas usan `mock-data.ts`. La siguiente fase es reemplazar ese mock por tablas reales con CRUD, respetando los roles ya definidos. Propongo abordar **Clientes → Plantas → Equipos → Trabajos** como vertical mínima viable (sin tocar Inventario / Mantenimientos / Reportes IA todavía).
+## 1. Inventario con movimientos de stock
 
-## Modelo de datos
+**Tablas nuevas:**
+- `inventario_items` — sku (único), nombre, categoría (insumo / repuesto / herramienta / EPP), ubicación, unidad, stock_actual (numérico, calculado por trigger), stock_minimo.
+- `inventario_movimientos` — item_id, tipo (ingreso / salida / ajuste), cantidad, motivo, trabajo_id (opcional, para ligar consumos a un trabajo), realizado_por, created_at.
 
-```text
-clientes (1) ──< plantas (1) ──< equipos
-                       │
-                       └─< trabajos (>─ equipos opcional, >─ asignado_a auth.users)
-```
+Trigger: cada movimiento recalcula `stock_actual` del item.
 
-Tablas en `public`:
+**UI `/inventario`:**
+- Tabla actual conectada a datos reales (admin / supervisor / técnico ven todo; cliente no ve esta sección).
+- Botón "Nuevo SKU" → `RecordDialog` (admin/supervisor).
+- Botón "Registrar movimiento" en cada fila → diálogo con tipo + cantidad + motivo + trabajo opcional.
+- KPI "Bajo stock" calculado en vivo.
 
-- **clientes** — razón social, RUT, contacto, estado (activo/revision/pausado).
-- **plantas** — nombre, cliente_id, ubicación, paneles, capacidad_mw, eficiencia.
-- **equipos** — código, nombre, tipo (robot/manual/motor), estado, salud %, planta_id (opcional).
-- **trabajos** — folio (auto), planta_id, servicio, fecha_programada, tecnico_id, estado (programado/en_progreso/completado/cancelado), notas.
+## 2. Mantenimientos ligados a equipos
 
-Todas con `created_at`, `updated_at`, trigger de timestamp, RLS habilitado, GRANTs estándar.
+**Tabla nueva:**
+- `mantenimientos` — equipo_id, tipo (preventivo / correctivo / predictivo), fecha, horas, técnico_id, estado (programado / completado / pendiente), notas.
 
-## Permisos por rol (RLS + UI)
+RLS: admin/supervisor escriben; técnico ve y completa los suyos; cliente ve los de sus plantas (a través de equipo → planta → cliente).
 
-| Acción | admin | supervisor | técnico | cliente |
-|---|---|---|---|---|
-| Ver clientes/plantas/equipos | sí | sí | sí | solo los propios |
-| Crear/editar/eliminar | sí | sí | no | no |
-| Ver trabajos | todos | todos | asignados a él | de sus plantas |
-| Cambiar estado de trabajo | sí | sí | solo los suyos | no |
+**UI `/mantenimientos`:**
+- Listado real con filtro por equipo y por estado.
+- Crear / editar con `RecordDialog`.
+- Al marcar como completado, registra automáticamente las horas de uso acumuladas del equipo.
 
-"Cliente propio" requiere vincular `auth.users → cliente_id`. Añado columna `cliente_id` a un nuevo perfil ligero `profiles` (id = auth.users.id, cliente_id nullable).
+## 3. Reportes ejecutivos con Lovable AI
 
-## Entregables de esta fase
+**Tabla nueva:**
+- `reportes` — cliente_id, planta_id (opcional), periodo (texto, ej "Q2 2026"), titulo, contenido_markdown, insight_resumen, estado (borrador / enviado), generado_por, model_used, created_at.
 
-1. Migración con las 5 tablas + `profiles` + policies + triggers de `updated_at`.
-2. Seed opcional (datos del mock actual) ejecutable desde un botón "Cargar datos de ejemplo" en `/usuarios` (solo admin).
-3. Server functions tipadas en `src/lib/{clientes,plantas,equipos,trabajos}.functions.ts` con list / get / create / update / delete.
-4. Refactor de las 4 rutas `/clientes`, `/plantas`, `/equipos`, `/trabajos`:
-   - lectura con `useSuspenseQuery` + loader `ensureQueryData`.
-   - formularios de crear/editar en `<Dialog>` shadcn.
-   - botón eliminar con `<AlertDialog>` de confirmación.
-   - estados de carga (skeletons) y error (`errorComponent` por ruta).
-5. Dashboard `/` recalcula KPIs desde la base (trabajos hoy, equipos operativos, alertas).
-6. Mantener `mock-data.ts` solo para `agendaHoy` y secciones aún no migradas (Inventario, Mantenimientos, Reportes) — se abordan en la Fase 3.
+**Server function** `generarReporte` (admin/supervisor):
+- Toma cliente_id + planta_id + rango de fechas.
+- Recopila desde la base: trabajos completados, mantenimientos del periodo, salud promedio de equipos, alertas.
+- Llama a Lovable AI (`google/gemini-3-flash-preview`) con un prompt que produce salida estructurada (zod `Output.object`):
+  - `titulo`, `resumen_ejecutivo`, `kpis[]`, `hallazgos[]`, `recomendaciones[]`.
+- Persiste el reporte en markdown listo para mostrar/exportar.
 
-## Detalles técnicos
+**UI `/reportes`:**
+- Botón "Generar nuevo" → diálogo con cliente + planta + periodo.
+- Lista de reportes reales con estado, modelo usado y fecha.
+- Vista de detalle (diálogo grande) con el markdown renderizado.
+- Acción "Marcar como enviado".
+- Manejo explícito de errores `429` (límite) y `402` (créditos agotados) con toast claro.
 
-- Server functions con `requireSupabaseAuth`; las protegidas en loaders solo bajo `_authenticated/`.
-- Validación de input con `zod` (ya en el proyecto).
-- Folio de trabajos: secuencia Postgres `trabajos_folio_seq` formateada `T-YYYY-NNNN`.
-- `useQueryClient().invalidateQueries({queryKey:['clientes']})` tras cada mutación.
-- Reuso de `<PageHeader>` y estilos actuales — sin cambios visuales.
+## Entregables técnicos
 
-## Fuera de alcance (Fase 3+)
+- 3 migraciones (una por sección) con tablas, GRANTs, RLS, triggers y policies por rol.
+- `src/lib/inventario.functions.ts`, `mantenimientos.functions.ts`, `reportes.functions.ts` (server functions con `requireSupabaseAuth`).
+- `src/lib/ai-gateway.server.ts` con el provider helper de Lovable AI.
+- Refactor de `/inventario`, `/mantenimientos`, `/reportes` para usar `useQuery` + `RecordDialog`.
+- Dashboard `/` añade KPI "SKUs bajo stock" y "Reportes pendientes de envío".
+- `mock-data.ts` queda solo con `agendaHoy` (vista táctica del día); se evaluará migrar en Fase 4.
 
-Inventario con movimientos de stock, órdenes de mantenimiento ligadas a equipos, generador de reportes IA con Lovable AI, programación tipo calendario, notificaciones, exportes PDF.
+## Fuera de alcance (Fase 4+)
 
-¿Procedo con esta Fase 2 tal cual, o ajustamos alcance/orden?
+Programación tipo calendario drag-and-drop, exportes PDF reales del reporte, notificaciones por email a clientes, fotos adjuntas de campo subidas a Storage, app móvil del técnico.
+
+¿Procedo con esta Fase 3 tal cual, o ajustamos?

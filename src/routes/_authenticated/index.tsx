@@ -42,6 +42,8 @@ function Index() {
     { label: "Equipos Operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
     { label: "Salud Promedio", value: String(stats.data?.eficiencia ?? "--"), delta: "%", tone: "accent" as const },
     { label: "Alertas", value: String(stats.data?.alertas ?? 0).padStart(2, "0"), delta: stats.data?.alertas ? "Ver" : "OK", tone: stats.data?.alertas ? "danger" as const : "muted" as const },
+    { label: "Bajo Stock", value: String(stats.data?.inv_bajo_stock ?? 0).padStart(2, "0"), delta: stats.data?.inv_bajo_stock ? "SKUs" : "OK", tone: stats.data?.inv_bajo_stock ? "danger" as const : "muted" as const },
+    { label: "Reportes Borrador", value: String(stats.data?.reportes_borrador ?? 0).padStart(2, "0"), delta: "por enviar", tone: "muted" as const },
   ];
 
   return (
@@ -64,7 +66,7 @@ function Index() {
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {kpis.map((kpi, i) => (
           <div
             key={kpi.label}

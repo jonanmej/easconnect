@@ -223,12 +223,14 @@ export const dashboardStats = createServerFn({ method: "GET" })
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
 
-    const [trabajosHoy, trabajosTotal, equipos] = await Promise.all([
+    const [trabajosHoy, trabajosTotal, equipos, inv, reps] = await Promise.all([
       supabase.from("trabajos").select("id", { count: "exact", head: true })
         .gte("fecha_programada", todayStart.toISOString())
         .lt("fecha_programada", todayEnd.toISOString()),
       supabase.from("trabajos").select("id, estado", { count: "exact" }),
       supabase.from("equipos").select("id, estado, salud"),
+      supabase.from("inventario_items").select("stock_actual, stock_minimo"),
+      supabase.from("reportes").select("id, estado"),
     ]);
 
     const eqs = equipos.data ?? [];
@@ -246,5 +248,7 @@ export const dashboardStats = createServerFn({ method: "GET" })
       eficiencia,
       alertas,
       trabajos_total: trabajosTotal.count ?? 0,
+      inv_bajo_stock: (inv.data ?? []).filter((i: any) => Number(i.stock_actual) < Number(i.stock_minimo)).length,
+      reportes_borrador: (reps.data ?? []).filter((r: any) => r.estado === "borrador").length,
     };
   });
