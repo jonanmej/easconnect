@@ -622,6 +622,66 @@ export type Database = {
           },
         ]
       }
+      trabajo_aprobaciones: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          expira_at: string
+          firma_storage_path: string | null
+          firmado_at: string | null
+          firmante_nombre: string | null
+          firmante_rut: string | null
+          id: string
+          ip: string | null
+          token: string
+          trabajo_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          expira_at?: string
+          firma_storage_path?: string | null
+          firmado_at?: string | null
+          firmante_nombre?: string | null
+          firmante_rut?: string | null
+          id?: string
+          ip?: string | null
+          token: string
+          trabajo_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          expira_at?: string
+          firma_storage_path?: string | null
+          firmado_at?: string | null
+          firmante_nombre?: string | null
+          firmante_rut?: string | null
+          id?: string
+          ip?: string | null
+          token?: string
+          trabajo_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_aprobaciones_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_aprobaciones_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trabajo_evidencias: {
         Row: {
           created_at: string
@@ -821,6 +881,10 @@ export type Database = {
           estado: Database["public"]["Enums"]["trabajo_estado"]
           fecha_completado: string | null
           fecha_programada: string
+          firma_storage_path: string | null
+          firmado_at: string | null
+          firmado_por: string | null
+          firmado_rut: string | null
           folio: string
           id: string
           notas: string | null
@@ -837,6 +901,10 @@ export type Database = {
           estado?: Database["public"]["Enums"]["trabajo_estado"]
           fecha_completado?: string | null
           fecha_programada: string
+          firma_storage_path?: string | null
+          firmado_at?: string | null
+          firmado_por?: string | null
+          firmado_rut?: string | null
           folio?: string
           id?: string
           notas?: string | null
@@ -853,6 +921,10 @@ export type Database = {
           estado?: Database["public"]["Enums"]["trabajo_estado"]
           fecha_completado?: string | null
           fecha_programada?: string
+          firma_storage_path?: string | null
+          firmado_at?: string | null
+          firmado_por?: string | null
+          firmado_rut?: string | null
           folio?: string
           id?: string
           notas?: string | null
@@ -937,12 +1009,43 @@ export type Database = {
     }
     Functions: {
       current_cliente_id: { Args: never; Returns: string }
+      firmar_aprobacion: {
+        Args: {
+          _firma_storage_path: string
+          _firmante_nombre: string
+          _firmante_rut: string
+          _ip: string
+          _token: string
+          _user_agent: string
+        }
+        Returns: {
+          folio: string
+          trabajo_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      validar_token_aprobacion: {
+        Args: { _token: string }
+        Returns: {
+          aprobacion_id: string
+          cliente_nombre: string
+          expira_at: string
+          fecha_completado: string
+          fecha_programada: string
+          firmado_at: string
+          folio: string
+          notas: string
+          planta_nombre: string
+          servicio: string
+          tecnico_nombre: string
+          trabajo_id: string
+        }[]
       }
     }
     Enums: {
