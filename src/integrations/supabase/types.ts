@@ -360,6 +360,8 @@ export type Database = {
           eficiencia: number | null
           email_notificaciones: string | null
           id: string
+          latitud: number | null
+          longitud: number | null
           nombre: string
           notificaciones_completado: boolean
           paneles: number
@@ -376,6 +378,8 @@ export type Database = {
           eficiencia?: number | null
           email_notificaciones?: string | null
           id?: string
+          latitud?: number | null
+          longitud?: number | null
           nombre: string
           notificaciones_completado?: boolean
           paneles?: number
@@ -392,6 +396,8 @@ export type Database = {
           eficiencia?: number | null
           email_notificaciones?: string | null
           id?: string
+          latitud?: number | null
+          longitud?: number | null
           nombre?: string
           notificaciones_completado?: boolean
           paneles?: number
@@ -650,6 +656,155 @@ export type Database = {
             foreignKeyName: "trabajo_evidencias_trabajo_id_fkey"
             columns: ["trabajo_id"]
             isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_recursos: {
+        Row: {
+          cantidad: number
+          categoria: string
+          created_at: string
+          descripcion: string
+          devuelto: boolean
+          entregado: boolean
+          equipo_id: string | null
+          id: string
+          item_id: string | null
+          notas: string | null
+          trabajo_id: string
+          unidad: string | null
+          updated_at: string
+        }
+        Insert: {
+          cantidad?: number
+          categoria: string
+          created_at?: string
+          descripcion: string
+          devuelto?: boolean
+          entregado?: boolean
+          equipo_id?: string | null
+          id?: string
+          item_id?: string | null
+          notas?: string | null
+          trabajo_id: string
+          unidad?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cantidad?: number
+          categoria?: string
+          created_at?: string
+          descripcion?: string
+          devuelto?: boolean
+          entregado?: boolean
+          equipo_id?: string | null
+          id?: string
+          item_id?: string | null
+          notas?: string | null
+          trabajo_id?: string
+          unidad?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_recursos_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_recursos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventario_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_recursos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_recursos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_reportes: {
+        Row: {
+          cliente_firma_url: string | null
+          cliente_observaciones: string | null
+          cliente_recibe_cargo: string | null
+          cliente_recibe_nombre: string | null
+          condiciones_sitio: string | null
+          created_at: string
+          hallazgos: string | null
+          id: string
+          materiales_usados: string | null
+          mediciones: Json | null
+          recomendaciones: string | null
+          tecnico_firma_url: string | null
+          tecnico_nombre: string | null
+          trabajo_id: string
+          trabajo_realizado: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_firma_url?: string | null
+          cliente_observaciones?: string | null
+          cliente_recibe_cargo?: string | null
+          cliente_recibe_nombre?: string | null
+          condiciones_sitio?: string | null
+          created_at?: string
+          hallazgos?: string | null
+          id?: string
+          materiales_usados?: string | null
+          mediciones?: Json | null
+          recomendaciones?: string | null
+          tecnico_firma_url?: string | null
+          tecnico_nombre?: string | null
+          trabajo_id: string
+          trabajo_realizado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_firma_url?: string | null
+          cliente_observaciones?: string | null
+          cliente_recibe_cargo?: string | null
+          cliente_recibe_nombre?: string | null
+          condiciones_sitio?: string | null
+          created_at?: string
+          hallazgos?: string | null
+          id?: string
+          materiales_usados?: string | null
+          mediciones?: Json | null
+          recomendaciones?: string | null
+          tecnico_firma_url?: string | null
+          tecnico_nombre?: string | null
+          trabajo_id?: string
+          trabajo_realizado?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_reportes_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: true
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_reportes_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: true
             referencedRelation: "trabajos_sla"
             referencedColumns: ["id"]
           },

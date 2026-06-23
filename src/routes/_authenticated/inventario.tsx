@@ -79,7 +79,7 @@ function Inventario() {
     const f = new FormData(e.currentTarget);
     save.mutate({
       id: editing?.id,
-      sku: f.get("sku"),
+      sku: f.get("sku") || null,
       nombre: f.get("nombre"),
       categoria: f.get("categoria"),
       ubicacion: f.get("ubicacion") || null,
@@ -214,17 +214,33 @@ function Inventario() {
         error={save.error?.message}
         onSubmit={onSaveItem}
       >
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="SKU"><input name="sku" required defaultValue={editing?.sku ?? ""} className={inputCls} /></Field>
-          <Field label="Categoría">
-            <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
-              <option value="insumo">Insumo</option>
-              <option value="repuesto">Repuesto</option>
-              <option value="herramienta">Herramienta</option>
-              <option value="epp">EPP</option>
-            </select>
-          </Field>
-        </div>
+        {editing?.id ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="SKU"><input name="sku" defaultValue={editing?.sku ?? ""} className={inputCls + " font-mono bg-secondary"} readOnly /></Field>
+            <Field label="Categoría">
+              <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
+                <option value="insumo">Insumo</option>
+                <option value="repuesto">Repuesto</option>
+                <option value="herramienta">Herramienta</option>
+                <option value="epp">EPP</option>
+              </select>
+            </Field>
+          </div>
+        ) : (
+          <>
+            <Field label="Categoría">
+              <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
+                <option value="insumo">Insumo</option>
+                <option value="repuesto">Repuesto</option>
+                <option value="herramienta">Herramienta</option>
+                <option value="epp">EPP</option>
+              </select>
+            </Field>
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              El SKU se generará automáticamente como <span className="font-mono">INV-CAT-NNNNN</span> según la categoría.
+            </p>
+          </>
+        )}
         <Field label="Nombre"><input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} /></Field>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Ubicación"><input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="B-12" /></Field>

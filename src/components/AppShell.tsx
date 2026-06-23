@@ -64,7 +64,7 @@ const allGroups: NavGroup[] = [
     title: "Inteligencia",
     items: [
       { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
-      { to: "/reportes", label: "Reportes IA", icon: Sparkles },
+      { to: "/reportes", label: "Reportes", icon: Sparkles },
       { to: "/notificaciones", label: "Notificaciones", icon: Mail },
     ],
   },
