@@ -189,10 +189,21 @@ function Reportes() {
               <button onClick={() => setViewing(r.id)} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
                 <Eye className="size-3.5" /> Ver
               </button>
-              {canEdit && r.estado === "borrador" && (
-                <button onClick={() => send.mutate(r.id)} disabled={send.isPending}
+              <button onClick={() => descargarPdf(r.id, "ejecutivo")} disabled={downloadingId === r.id + "ejecutivo"}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50">
+                <FileDown className="size-3.5" /> {downloadingId === r.id + "ejecutivo" ? "Generando…" : "PDF Ejec."}
+              </button>
+              {canEdit && (
+                <button onClick={() => descargarPdf(r.id, "interno")} disabled={downloadingId === r.id + "interno"}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50">
-                  <Send className="size-3.5" /> Enviar
+                  <FileDown className="size-3.5" /> PDF Interno
+                </button>
+              )}
+              {canEdit && (
+                <button onClick={() => emailMut.mutate({ id: r.id, tipo: "reporte_ejecutivo" })} disabled={emailMut.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                  title="Enviar email al cliente">
+                  <Mail className="size-3.5" /> Enviar
                 </button>
               )}
             </div>
