@@ -14,7 +14,7 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
     "/", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
-    "/solicitudes", "/notificaciones",
+    "/solicitudes", "/notificaciones", "/auditoria",
   ],
   supervisor: [
     "/", "/programacion", "/trabajos", "/clientes", "/plantas",
