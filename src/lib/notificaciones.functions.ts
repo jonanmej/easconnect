@@ -95,7 +95,7 @@ async function ensureStaff(supabase: any, userId: string) {
   if (!a && !s && !t) throw new Error("Solo el staff puede enviar notificaciones");
 }
 
-const FROM = "EA Service Connect Proyectos <proyectos@easervice.app>";
+const FROM = "EA Service Connect <proyectos@easervice.app>";
 
 export const enviarNotificacionTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

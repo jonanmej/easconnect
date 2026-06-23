@@ -88,7 +88,7 @@ function Reportes() {
         modo,
         responsable: null,
         evidencias,
-      }, `EA Service Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
+      }, `EA-Service-Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
       toast.success("PDF descargado");
     } catch (e: any) {
       toast.error(e.message ?? "Error al generar PDF");
