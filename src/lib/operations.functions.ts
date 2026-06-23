@@ -218,6 +218,24 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const reprogramarTrabajo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      fecha_programada: z.string().min(1),
+      tecnico_id: z.string().uuid().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
+    if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
+    const { data: row, error } = await context.supabase
+      .from("trabajos").update(patch).eq("id", data.id).select().single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
 // ============ Dashboard KPIs ============
 
 export const dashboardStats = createServerFn({ method: "GET" })
