@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
-  const { theme, preference, setPreference } = useTheme();
+  const { preference, setPreference } = useTheme();
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
