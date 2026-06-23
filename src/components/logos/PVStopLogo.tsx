@@ -10,6 +10,8 @@ export function PVStopLogo({
   accentClassName = "text-primary",
   ...props
 }: SVGProps<SVGSVGElement> & { accentClassName?: string }) {
+  const DARK = "#111111";
+  const RED = "#E4322C";
   return (
     <svg
       viewBox="0 0 360 110"
@@ -20,7 +22,7 @@ export function PVStopLogo({
       {...props}
     >
       {/* Monograma: 4 rombos en disposición diamante */}
-      <g fill="currentColor" transform="translate(10 15)">
+      <g fill={DARK} transform="translate(10 15)">
         <rect x="28" y="-2" width="24" height="24" rx="3" transform="rotate(45 40 10)" />
         <rect x="6" y="20" width="24" height="24" rx="3" transform="rotate(45 18 32)" />
         <rect x="50" y="20" width="24" height="24" rx="3" transform="rotate(45 62 32)" />
@@ -34,15 +36,14 @@ export function PVStopLogo({
         fontSize="58"
         fontWeight="900"
         letterSpacing="0"
-        fill="currentColor"
+        fill={DARK}
       >
         PVST
       </text>
       {/* "O" como rombo rojo (accent) */}
       <g
-        className={accentClassName}
         fill="none"
-        stroke="currentColor"
+        stroke={RED}
         strokeWidth="6"
         strokeLinejoin="round"
         transform="translate(243 24)"
@@ -55,7 +56,7 @@ export function PVStopLogo({
         fontFamily="var(--font-sans, Inter, sans-serif)"
         fontSize="58"
         fontWeight="900"
-        fill="currentColor"
+        fill={DARK}
       >
         P
       </text>
@@ -67,7 +68,7 @@ export function PVStopLogo({
         fontSize="20"
         fontWeight="700"
         letterSpacing="3"
-        fill="currentColor"
+        fill={DARK}
       >
         EL SALVADOR
       </text>
