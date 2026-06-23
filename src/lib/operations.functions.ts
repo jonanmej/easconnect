@@ -61,7 +61,7 @@ export const listPlantas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("plantas")
-      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, clientes(nombre)")
+      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, latitud, longitud, clientes(nombre)")
       .order("nombre");
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
@@ -85,6 +85,8 @@ export const upsertPlanta = createServerFn({ method: "POST" })
       email_notificaciones: z.string().email().nullable().optional().or(z.literal("")),
       sla_horas_respuesta: z.coerce.number().int().min(0).nullable().optional(),
       sla_horas_resolucion: z.coerce.number().int().min(0).nullable().optional(),
+      latitud: z.coerce.number().min(-90).max(90).nullable().optional(),
+      longitud: z.coerce.number().min(-180).max(180).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -131,7 +133,7 @@ export const upsertEquipo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
-      codigo: z.string().min(1),
+      codigo: z.string().nullable().optional(),
       nombre: z.string().min(1),
       tipo: z.string().min(1),
       estado: EquipoEstado,
@@ -142,7 +144,11 @@ export const upsertEquipo = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { id, ...rest } = data;
-    const payload = { ...rest, planta_id: rest.planta_id || null };
+    const payload: any = { ...rest, planta_id: rest.planta_id || null };
+    if (!id && (!payload.codigo || payload.codigo === "")) {
+      delete payload.codigo; // dejar que el trigger lo autogenere
+    }
+    if (id && !payload.codigo) delete payload.codigo;
     const q = id
       ? context.supabase.from("equipos").update(payload).eq("id", id).select().single()
       : context.supabase.from("equipos").insert(payload).select().single();
