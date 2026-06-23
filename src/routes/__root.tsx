@@ -87,6 +87,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "EA Service Connect" },
+      { name: "twitter:description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
     ],
     links: [
       {
