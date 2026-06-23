@@ -9,6 +9,7 @@ type AuthCtx = {
   roles: AppRole[];
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshRoles: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -44,13 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }
 
+  async function refreshRoles() {
+    const { data: s } = await supabase.auth.getSession();
+    if (s.session?.user) await loadRoles(s.session.user.id);
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
   }
 
   return (
     <Ctx.Provider
-      value={{ user: session?.user ?? null, session, roles, loading, signOut }}
+      value={{ user: session?.user ?? null, session, roles, loading, signOut, refreshRoles }}
     >
       {children}
     </Ctx.Provider>
