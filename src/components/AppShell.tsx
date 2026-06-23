@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen w-full bg-background text-foreground">
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
         <Link to="/" className="p-6 flex items-center" aria-label="EA Service & Consulting">
-          <EALogo className="h-10 w-auto text-foreground" accentClassName="text-primary" />
+          <EALogo className="h-14 w-auto text-foreground" accentClassName="text-primary" />
         </Link>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
@@ -183,11 +183,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
             <div className="flex items-center gap-3 px-2">
               <ChemitekLogo
-                className="h-4 w-auto text-muted-foreground hover:text-foreground transition-colors"
+                className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors"
                 accentClassName="text-primary"
               />
               <PVStopLogo
-                className="h-4 w-auto text-muted-foreground hover:text-foreground transition-colors"
+                className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors"
                 accentClassName="text-primary"
               />
             </div>
