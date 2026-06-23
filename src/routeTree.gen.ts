@@ -28,6 +28,7 @@ import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as ApiPublicHooksNotificarProgramacionesRouteImport } from './routes/api/public/hooks/notificar-programaciones'
 import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 
 const AuthRoute = AuthRouteImport.update({
@@ -130,6 +131,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksNotificarProgramacionesRoute =
+  ApiPublicHooksNotificarProgramacionesRouteImport.update({
+    id: '/api/public/hooks/notificar-programaciones',
+    path: '/api/public/hooks/notificar-programaciones',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronRevisarFirmasRoute =
   ApiPublicCronRevisarFirmasRouteImport.update({
     id: '/api/public/cron/revisar-firmas',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
+  '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -178,6 +186,7 @@ export interface FileRoutesByTo {
   '/aprobar/$token': typeof AprobarTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
+  '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -201,6 +210,7 @@ export interface FileRoutesById {
   '/aprobar/$token': typeof AprobarTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
+  '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/aprobar/$token'
     | '/api/public/cron/revisar-firmas'
+    | '/api/public/hooks/notificar-programaciones'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/aprobar/$token'
     | '/'
     | '/api/public/cron/revisar-firmas'
+    | '/api/public/hooks/notificar-programaciones'
   id:
     | '__root__'
     | '/_authenticated'
@@ -267,6 +279,7 @@ export interface FileRouteTypes {
     | '/aprobar/$token'
     | '/_authenticated/'
     | '/api/public/cron/revisar-firmas'
+    | '/api/public/hooks/notificar-programaciones'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -274,6 +287,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   AprobarTokenRoute: typeof AprobarTokenRoute
   ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
+  ApiPublicHooksNotificarProgramacionesRoute: typeof ApiPublicHooksNotificarProgramacionesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -411,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/notificar-programaciones': {
+      id: '/api/public/hooks/notificar-programaciones'
+      path: '/api/public/hooks/notificar-programaciones'
+      fullPath: '/api/public/hooks/notificar-programaciones'
+      preLoaderRoute: typeof ApiPublicHooksNotificarProgramacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/revisar-firmas': {
       id: '/api/public/cron/revisar-firmas'
       path: '/api/public/cron/revisar-firmas'
@@ -467,6 +488,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   AprobarTokenRoute: AprobarTokenRoute,
   ApiPublicCronRevisarFirmasRoute: ApiPublicCronRevisarFirmasRoute,
+  ApiPublicHooksNotificarProgramacionesRoute:
+    ApiPublicHooksNotificarProgramacionesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
