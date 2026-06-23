@@ -14,16 +14,18 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
     "/", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
+    "/solicitudes", "/notificaciones",
   ],
   supervisor: [
     "/", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes",
+    "/solicitudes", "/notificaciones",
   ],
   tecnico: [
     "/", "/programacion", "/trabajos", "/equipos",
-    "/inventario", "/mantenimientos",
+    "/inventario", "/mantenimientos", "/notificaciones",
   ],
-  cliente: ["/", "/plantas", "/trabajos", "/reportes"],
+  cliente: ["/", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones"],
 };
 
 export function canAccess(roles: AppRole[], path: string): boolean {
