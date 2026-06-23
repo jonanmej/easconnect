@@ -8,9 +8,10 @@ import {
   inviteUser,
   setUserRole,
   deleteUser,
+  listRoleAudit,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus } from "lucide-react";
+import { Trash2, UserPlus, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -24,10 +25,16 @@ function UsersPage() {
   const fetchInvite = useServerFn(inviteUser);
   const fetchSetRole = useServerFn(setUserRole);
   const fetchDelete = useServerFn(deleteUser);
+  const fetchAudit = useServerFn(listRoleAudit);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers(),
+  });
+
+  const audit = useQuery({
+    queryKey: ["role-audit"],
+    queryFn: () => fetchAudit(),
   });
 
   const invite = useMutation({
@@ -38,7 +45,10 @@ function UsersPage() {
   const toggle = useMutation({
     mutationFn: (vars: { userId: string; role: AppRole; enabled: boolean }) =>
       fetchSetRole({ data: vars }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["role-audit"] });
+    },
   });
   const remove = useMutation({
     mutationFn: (userId: string) => fetchDelete({ data: { userId } }),
@@ -184,6 +194,55 @@ function UsersPage() {
                     <Trash2 className="size-4" />
                   </button>
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="border border-border rounded-lg bg-card overflow-hidden mt-8">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <History className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Bitácora de cambios de roles</h2>
+          <span className="text-[10px] text-muted-foreground ml-auto uppercase tracking-widest">
+            Últimos 100 eventos
+          </span>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr>
+              <th className="text-left p-3">Fecha</th>
+              <th className="text-left p-3">Acción</th>
+              <th className="text-left p-3">Rol</th>
+              <th className="text-left p-3">Usuario afectado</th>
+              <th className="text-left p-3">Realizado por</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.isLoading && (
+              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
+            )}
+            {audit.data?.length === 0 && (
+              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Sin eventos registrados.</td></tr>
+            )}
+            {audit.data?.map((l) => (
+              <tr key={l.id} className="border-t border-border">
+                <td className="p-3 text-xs text-muted-foreground font-mono">
+                  {new Date(l.created_at).toLocaleString()}
+                </td>
+                <td className="p-3">
+                  <span className={
+                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                    (l.action === "granted"
+                      ? "bg-accent/10 text-accent"
+                      : "bg-destructive/10 text-destructive")
+                  }>
+                    {l.action === "granted" ? "Asignado" : "Revocado"}
+                  </span>
+                </td>
+                <td className="p-3">{ROLE_LABEL[l.role as AppRole] ?? l.role}</td>
+                <td className="p-3 text-xs">{l.target_email}</td>
+                <td className="p-3 text-xs text-muted-foreground">{l.performed_by_email}</td>
               </tr>
             ))}
           </tbody>

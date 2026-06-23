@@ -37,18 +37,28 @@ function AuthPage() {
   async function signInWithGoogle() {
     setError(null);
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    setBusy(false);
-    if (result.error) {
-      setError("No se pudo iniciar sesión con Google. Intenta de nuevo.");
-      return;
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        const msg = (result.error as Error).message ?? "";
+        if (/cancel|closed|popup/i.test(msg)) {
+          setError("Inicio de sesión cancelado. Inténtalo de nuevo.");
+        } else if (/network|fetch/i.test(msg)) {
+          setError("Error de red al contactar a Google. Verifica tu conexión.");
+        } else {
+          setError(`No se pudo iniciar sesión con Google: ${msg || "error desconocido"}.`);
+        }
+        setBusy(false);
+        return;
+      }
+      if (result.redirected) return;
+      navigate({ to: "/" });
+    } catch (e) {
+      setError(`Fallo inesperado con Google: ${(e as Error).message}`);
+      setBusy(false);
     }
-    if (result.redirected) {
-      return;
-    }
-    navigate({ to: "/" });
   }
 
   return (
@@ -114,6 +124,9 @@ function AuthPage() {
             disabled={busy}
             className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 disabled:opacity-60 transition-colors"
           >
+            {busy ? (
+              <span className="size-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+            ) : (
             <svg className="size-4" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -132,7 +145,8 @@ function AuthPage() {
                 fill="#EA4335"
               />
             </svg>
-            Continuar con Google
+            )}
+            {busy ? "Conectando con Google…" : "Continuar con Google"}
           </button>
         </div>
 
