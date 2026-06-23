@@ -1,5 +1,7 @@
 # Fase 4 — Calendario operativo, evidencia visual y notificaciones
 
+Estado: **completado** (calendario + evidencia + base de notificaciones). El envío real de email queda condicionado a la configuración del dominio de Lovable Emails.
+
 Cierro los temas pendientes de la Fase 3 (`out of scope`): una **programación tipo calendario real**, **fotos adjuntas en trabajos** vía Storage, y **notificaciones por email** a clientes cuando se publica un reporte o se completa un trabajo. Con esto el ciclo operativo queda completo de punta a punta.
 
 ## 1. Programación tipo calendario
@@ -61,5 +63,9 @@ Cierro los temas pendientes de la Fase 3 (`out of scope`): una **programación t
 - Exportes PDF (queda para Fase 5 junto con branding del cliente).
 - App móvil nativa.
 - Push notifications.
+
+## Notas de implementación
+
+- Envío de email todavía no está conectado: se prepararon las columnas (`plantas.notificaciones_completado`, `plantas.email_notificaciones`, `reportes.enviado_a`, `reportes.enviado_at`) y la UI ya recoge el email del cliente. Falta configurar dominio de Lovable Emails para escribir las plantillas y conectar el trigger.
 
 ¿Procedo con Fase 4 así, o quieres ajustar prioridades (por ejemplo, hacer solo calendario + emails y dejar evidencia para después)?
