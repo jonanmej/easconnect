@@ -1056,7 +1056,14 @@ export type Database = {
         | "mantenimiento"
         | "disponible"
         | "fuera_servicio"
-      inventario_categoria: "insumo" | "repuesto" | "herramienta" | "epp"
+      inventario_categoria:
+        | "insumo"
+        | "repuesto"
+        | "herramienta"
+        | "epp"
+        | "equipo"
+        | "electrico"
+        | "quimico"
       mantenimiento_estado:
         | "programado"
         | "pendiente"
@@ -1201,7 +1208,15 @@ export const Constants = {
         "disponible",
         "fuera_servicio",
       ],
-      inventario_categoria: ["insumo", "repuesto", "herramienta", "epp"],
+      inventario_categoria: [
+        "insumo",
+        "repuesto",
+        "herramienta",
+        "epp",
+        "equipo",
+        "electrico",
+        "quimico",
+      ],
       mantenimiento_estado: [
         "programado",
         "pendiente",
