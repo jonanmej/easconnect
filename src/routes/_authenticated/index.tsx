@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Plus, Sparkles, TrendingUp } from "lucide-react";
-import { dashboardStats, listEquipos } from "@/lib/operations.functions";
+import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
+import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla } from "@/lib/dashboard.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useAuth } from "@/lib/auth-context";
+import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -25,6 +27,12 @@ export const Route = createFileRoute("/_authenticated/")({
 const COLORS = ["#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#64748B"];
 
 function Index() {
+  const { roles } = useAuth();
+  if (highestRole(roles) === "cliente") return <ClienteDashboard />;
+  return <StaffDashboard />;
+}
+
+function StaffDashboard() {
   const fetchStats = useServerFn(dashboardStats);
   const fetchEquipos = useServerFn(listEquipos);
   const fetchSeries = useServerFn(dashboardSeries);
