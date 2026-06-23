@@ -11,7 +11,7 @@ export const listClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("clientes")
-      .select("id, nombre, rut, contacto, capacidad, estado, created_at")
+      .select("id, nombre, rut, contacto, email, telefono, capacidad, estado, contrato_om, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
       .order("nombre");
     if (error) throw new Error(error.message);
     // include planta count
@@ -31,15 +31,25 @@ export const upsertCliente = createServerFn({ method: "POST" })
       nombre: z.string().min(1),
       rut: z.string().nullable().optional(),
       contacto: z.string().nullable().optional(),
+      email: z.string().email().nullable().optional().or(z.literal("")),
+      telefono: z.string().nullable().optional(),
       capacidad: z.string().nullable().optional(),
       estado: ClienteEstado,
+      contrato_om: z.coerce.boolean().optional(),
+      cuota_preventivos: z.coerce.number().int().min(0).optional(),
+      cuota_correctivos: z.coerce.number().int().min(0).optional(),
+      cuota_menores: z.coerce.number().int().min(0).optional(),
+      cuota_medios: z.coerce.number().int().min(0).optional(),
+      cuota_mayores: z.coerce.number().int().min(0).optional(),
+      cuota_limpiezas: z.coerce.number().int().min(0).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, ...rest } = data;
+    const { id, email, ...rest } = data;
+    const payload: any = { ...rest, email: email || null };
     const q = id
-      ? context.supabase.from("clientes").update(rest).eq("id", id).select().single()
-      : context.supabase.from("clientes").insert(rest).select().single();
+      ? context.supabase.from("clientes").update(payload).eq("id", id).select().single()
+      : context.supabase.from("clientes").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
