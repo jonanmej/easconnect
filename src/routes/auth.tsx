@@ -68,7 +68,7 @@ function AuthPage() {
           <div className="size-9 bg-foreground rounded grid place-items-center">
             <Sun className="size-5 text-primary" />
           </div>
-          <span className="font-semibold tracking-tight text-xl">SOLAROS</span>
+          <span className="font-semibold tracking-tight text-xl">EA Service Connect</span>
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">

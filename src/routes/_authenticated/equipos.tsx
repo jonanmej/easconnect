@@ -17,7 +17,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/equipos")({
   head: () => ({
-    meta: [{ title: "Equipos · SOLAROS" }, { name: "description", content: "Inventario operativo de robots, motores y herramientas." }],
+    meta: [{ title: "Equipos · EA Service Connect" }, { name: "description", content: "Inventario operativo de robots, motores y herramientas." }],
   }),
   component: Equipos,
   errorComponent: ({ error }) => (

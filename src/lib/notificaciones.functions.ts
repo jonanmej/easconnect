@@ -47,7 +47,7 @@ function renderHtml(opts: {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${card};border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
       <tr><td style="padding:24px 28px;background:#0f172a;color:#fff;">
         <div style="display:inline-block;width:30px;height:30px;background:${primary};border-radius:6px;vertical-align:middle;"></div>
-        <span style="font-weight:700;letter-spacing:.04em;font-size:18px;margin-left:10px;vertical-align:middle;">SOLAROS</span>
+        <span style="font-weight:700;letter-spacing:.04em;font-size:18px;margin-left:10px;vertical-align:middle;">EA Service Connect</span>
       </td></tr>
       <tr><td style="padding:28px;">
         <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;">${opts.titulo}</h1>
@@ -56,7 +56,7 @@ function renderHtml(opts: {
         ${opts.ctaUrl ? `<p style="margin:22px 0 0;"><a href="${opts.ctaUrl}" style="display:inline-block;background:${primary};color:#0f172a;text-decoration:none;font-weight:600;padding:12px 18px;border-radius:8px;font-size:14px;">${opts.ctaLabel ?? "Ver detalle"}</a></p>` : ""}
       </td></tr>
       <tr><td style="padding:18px 28px;background:#f8fafc;color:#94a3b8;font-size:11px;text-align:center;border-top:1px solid #e2e8f0;">
-        Este mensaje fue enviado automáticamente por SOLAROS · proyectos@easervice.app
+        Este mensaje fue enviado automáticamente por EA Service Connect · proyectos@easervice.app
       </td></tr>
     </table>
   </td></tr>
@@ -95,7 +95,7 @@ async function ensureStaff(supabase: any, userId: string) {
   if (!a && !s && !t) throw new Error("Solo el staff puede enviar notificaciones");
 }
 
-const FROM = "SOLAROS Proyectos <proyectos@easervice.app>";
+const FROM = "EA Service Connect <proyectos@easervice.app>";
 
 export const enviarNotificacionTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -120,7 +120,7 @@ export const enviarNotificacionTrabajo = createServerFn({ method: "POST" })
     const destinatario = data.destinatario_override || planta?.email_notificaciones;
     if (!destinatario) throw new Error("La planta no tiene email de notificaciones configurado");
     const fechaTxt = new Date((trabajo as any).fecha_programada).toLocaleString("es-CL", { dateStyle: "long", timeStyle: "short" });
-    const asunto = data.asunto_override ?? `SOLAROS · ${(trabajo as any).estado === "completado" ? "Trabajo completado" : "Notificación"}: ${(trabajo as any).folio}`;
+    const asunto = data.asunto_override ?? `EA Service Connect · ${(trabajo as any).estado === "completado" ? "Trabajo completado" : "Notificación"}: ${(trabajo as any).folio}`;
     const html = renderHtml({
       titulo: (trabajo as any).estado === "completado" ? "Trabajo completado en su planta" : "Actualización de trabajo",
       preheader: `${(trabajo as any).servicio} en ${planta?.nombre}`,
@@ -177,7 +177,7 @@ export const enviarNotificacionReporte = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const dest = data.destinatario_override || (rep as any).plantas?.email_notificaciones;
     if (!dest) throw new Error("Sin email de destino. Configúralo en la ficha de la planta.");
-    const asunto = `SOLAROS · Reporte ${data.tipo === "reporte_ejecutivo" ? "Ejecutivo" : "Interno"}: ${(rep as any).titulo}`;
+    const asunto = `EA Service Connect · Reporte ${data.tipo === "reporte_ejecutivo" ? "Ejecutivo" : "Interno"}: ${(rep as any).titulo}`;
     const html = renderHtml({
       titulo: (rep as any).titulo,
       preheader: `Reporte ${(rep as any).periodo}`,
@@ -185,7 +185,7 @@ export const enviarNotificacionReporte = createServerFn({ method: "POST" })
       bloques: [
         `Adjuntamos el reporte <b>${(rep as any).periodo}</b> correspondiente a ${(rep as any).plantas?.nombre ? `la planta <b>${(rep as any).plantas?.nombre}</b>` : `el cliente <b>${(rep as any).clientes?.nombre}</b>`}.`,
         (rep as any).insight_resumen ?? "",
-        `Para descargar el documento completo, inicie sesión en la plataforma SOLAROS.`,
+        `Para descargar el documento completo, inicie sesión en la plataforma EA Service Connect.`,
       ].filter(Boolean),
     });
     const raw = buildRawEmail({ from: FROM, to: dest, subject: asunto, html });

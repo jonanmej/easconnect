@@ -19,7 +19,7 @@ import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
-    meta: [{ title: "Trabajos · SOLAROS" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
+    meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
   }),
   component: Trabajos,
   errorComponent: ({ error }) => (

@@ -9,9 +9,9 @@ import { dashboardStats, listEquipos } from "@/lib/operations.functions";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Dashboard · SOLAROS" },
+      { title: "Dashboard · EA Service Connect" },
       { name: "description", content: "Panel operativo: trabajos, robots, eficiencia y reportes IA en tiempo real." },
-      { property: "og:title", content: "Dashboard · SOLAROS" },
+      { property: "og:title", content: "Dashboard · EA Service Connect" },
       { property: "og:description", content: "Panel operativo de mantenimiento solar y térmico." },
     ],
   }),

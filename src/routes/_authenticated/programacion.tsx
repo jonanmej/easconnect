@@ -14,7 +14,7 @@ import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
     meta: [
-      { title: "Programación · SOLAROS" },
+      { title: "Programación · EA Service Connect" },
       { name: "description", content: "Calendario operativo: arrastra trabajos entre días para reprogramar." },
     ],
   }),

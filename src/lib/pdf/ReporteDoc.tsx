@@ -73,7 +73,7 @@ export type ReporteData = {
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
   return (
     <View style={styles.header} fixed>
-      <Text style={styles.headerTitle}>SOLAROS · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
+      <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
       <Text style={styles.headerTitle}>{data.cliente} · {data.periodo}</Text>
     </View>
   );
@@ -82,7 +82,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
 function PageFooter() {
   return (
     <View style={styles.pageFooter} fixed>
-      <Text>SOLAROS · Gestión Operativa</Text>
+      <Text>EA SERVICE AND CONSULTING · Gestión Operativa</Text>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
   );
@@ -98,14 +98,14 @@ function estadoColor(s: string) {
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
   return (
-    <Document title={data.titulo} author="SOLAROS">
+    <Document title={data.titulo} author="EA SERVICE AND CONSULTING">
       {ejec && (
         <Page size="A4" style={styles.cover}>
           <View style={styles.coverBar} />
           <View style={styles.coverInner}>
             <View style={styles.brand}>
               <View style={styles.logoBox} />
-              <Text style={styles.brandText}>SOLAROS</Text>
+              <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
             </View>
             <Text style={styles.coverTag}>Reporte Ejecutivo · {data.periodo}</Text>
             <Text style={styles.coverTitle}>{data.titulo}</Text>
@@ -218,12 +218,12 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <PageHeader data={data} pageName="Cierre" />
           <Text style={styles.pageTitle}>Cierre y Firma</Text>
           <Text style={styles.paragraph}>
-            El presente reporte fue generado a partir de información operativa real registrada en la plataforma SOLAROS durante el periodo indicado. Los hallazgos y recomendaciones han sido elaborados con asistencia de inteligencia artificial sobre los datos provistos.
+            El presente reporte fue generado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos y recomendaciones han sido elaborados con asistencia de inteligencia artificial sobre los datos provistos.
           </Text>
           <View style={{ marginTop: 80, flexDirection: "row", justifyContent: "space-between" }}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo SOLAROS"}</Text>
+                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>Responsable Operativo</Text>
               </View>
             </View>

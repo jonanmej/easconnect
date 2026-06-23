@@ -17,7 +17,7 @@ import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
-    meta: [{ title: "Inventario · SOLAROS" }, { name: "description", content: "Stock de bodega con movimientos en tiempo real." }],
+    meta: [{ title: "Inventario · EA Service Connect" }, { name: "description", content: "Stock de bodega con movimientos en tiempo real." }],
   }),
   component: Inventario,
   errorComponent: ({ error }) => (
