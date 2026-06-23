@@ -14,7 +14,7 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -26,6 +26,7 @@ import {
   deleteTrabajoRecurso,
   toggleRecursoFlag,
 } from "@/lib/trabajo-detalle.functions";
+import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 
 const SERVICIOS_OT = [
   "Mantenimiento Preventivo",
