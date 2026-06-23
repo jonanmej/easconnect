@@ -121,7 +121,7 @@ export const generarReporte = createServerFn({ method: "POST" })
 
     let aiResult: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     try {
-      const { output } = await generateText({
+      const result = await generateText({
         model: gateway(MODEL),
         experimental_output: Output.object({
           schema: z.object({
@@ -131,11 +131,11 @@ export const generarReporte = createServerFn({ method: "POST" })
             hallazgos: z.array(z.string()),
             recomendaciones: z.array(z.string()),
           }),
-        }) as any,
+        }),
         system: "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.",
         prompt: `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}). Datos:\n\n${JSON.stringify(datasetCtx, null, 2)}\n\nResponde con: título atractivo, resumen ejecutivo (2-3 párrafos), 3-5 KPIs (label + value), 2-4 hallazgos clave y 2-4 recomendaciones priorizadas.`,
       });
-      aiResult = output as any;
+      aiResult = (result as any).experimental_output;
     } catch (e: any) {
       const msg = e?.message || String(e);
       if (/429|rate/i.test(msg)) throw new Error("Límite de uso de IA alcanzado. Reintenta en unos minutos.");
