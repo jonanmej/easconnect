@@ -21,7 +21,7 @@ export const upsertInventarioItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid().optional(),
-      sku: z.string().min(1),
+      sku: z.string().nullable().optional(),
       nombre: z.string().min(1),
       categoria: Categoria,
       ubicacion: z.string().nullable().optional(),
@@ -31,9 +31,12 @@ export const upsertInventarioItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { id, ...rest } = data;
+    const payload: any = { ...rest };
+    if (!id && (!payload.sku || payload.sku === "")) delete payload.sku;
+    if (id && !payload.sku) delete payload.sku;
     const q = id
-      ? context.supabase.from("inventario_items").update(rest).eq("id", id).select().single()
-      : context.supabase.from("inventario_items").insert(rest).select().single();
+      ? context.supabase.from("inventario_items").update(payload).eq("id", id).select().single()
+      : context.supabase.from("inventario_items").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
