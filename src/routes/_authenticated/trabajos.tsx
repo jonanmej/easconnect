@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { ExportButton } from "@/components/ExportButton";
+import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
@@ -111,14 +113,37 @@ function Trabajos() {
       <PageHeader
         title="Órdenes de Trabajo"
         description="Programa, ejecuta y cierra cada visita técnica."
-        actions={canEdit && (
-          <button
-            onClick={() => setEditing({ estado: "programado", fecha_programada: new Date().toISOString() })}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
-          >
-            <Plus className="size-3.5" /> Nuevo trabajo
-          </button>
-        )}
+        actions={
+          <>
+            <ExportButton onExport={async () => {
+              const rows = (list.data as any[] | undefined) ?? [];
+              await exportarExcel({
+                filename: `trabajos-${new Date().toISOString().slice(0,10)}.xlsx`,
+                hojas: [{
+                  nombre: "Trabajos",
+                  columnas: [
+                    { header: "Folio", key: "folio", width: 16 },
+                    { header: "Cliente", key: "cliente_nombre", width: 28 },
+                    { header: "Planta", key: "planta_nombre", width: 28 },
+                    { header: "Servicio", key: "servicio", width: 32 },
+                    { header: "Fecha programada", key: "fecha_programada", width: 22, fn: (r: any) => fmtFechaSV(r.fecha_programada) },
+                    { header: "Estado", key: "estado", width: 14 },
+                    { header: "Notas", key: "notas", width: 40 },
+                  ],
+                  filas: rows,
+                }],
+              });
+            }} />
+            {canEdit && (
+              <button
+                onClick={() => setEditing({ estado: "programado", fecha_programada: new Date().toISOString() })}
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+              >
+                <Plus className="size-3.5" /> Nuevo trabajo
+              </button>
+            )}
+          </>
+        }
       />
 
       <div className="bg-card border border-border rounded-lg overflow-x-auto">

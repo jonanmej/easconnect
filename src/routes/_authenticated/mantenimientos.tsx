@@ -10,6 +10,8 @@ import { listEquipos } from "@/lib/operations.functions";
 import { listMantenimientos, upsertMantenimiento, deleteMantenimiento } from "@/lib/mantenimientos.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { ExportButton } from "@/components/ExportButton";
+import { exportarExcel } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/mantenimientos")({
   head: () => ({
@@ -89,12 +91,34 @@ function Mantenimientos() {
       <PageHeader
         title="Bitácora de Mantenimientos"
         description="Historial preventivo, correctivo y predictivo ligado a cada equipo."
-        actions={canEdit && (
-          <button onClick={() => setEditing({ tipo: "preventivo", estado: "programado", fecha: new Date().toISOString().slice(0, 10) })}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
-            <Plus className="size-3.5" /> Registrar
-          </button>
-        )}
+        actions={
+          <>
+            <ExportButton onExport={async () => {
+              await exportarExcel({
+                filename: `mantenimientos-${new Date().toISOString().slice(0,10)}.xlsx`,
+                hojas: [{
+                  nombre: "Mantenimientos",
+                  columnas: [
+                    { header: "Fecha", key: "fecha", width: 14 },
+                    { header: "Equipo", key: "equipo_label", width: 30 },
+                    { header: "Tipo", key: "tipo", width: 14 },
+                    { header: "Estado", key: "estado", width: 14 },
+                    { header: "Horas", key: "horas", width: 10, format: "#,##0.0" },
+                    { header: "Notas", key: "notas", width: 40 },
+                  ],
+                  filas: rows as any[],
+                  total: ["horas"],
+                }],
+              });
+            }} />
+            {canEdit && (
+              <button onClick={() => setEditing({ tipo: "preventivo", estado: "programado", fecha: new Date().toISOString().slice(0, 10) })}
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+                <Plus className="size-3.5" /> Registrar
+              </button>
+            )}
+          </>
+        }
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
