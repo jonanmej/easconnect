@@ -23,6 +23,8 @@ import {
   Sun as SunIcon,
   Laptop,
   Settings,
+  HardHat,
+  Briefcase,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -53,6 +55,8 @@ const allGroups: NavGroup[] = [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/programacion", label: "Programación", icon: CalendarRange },
       { to: "/trabajos", label: "Trabajos", icon: ClipboardList },
+      { to: "/terreno", label: "Terreno", icon: HardHat },
+      { to: "/mis-trabajos", label: "Mis trabajos", icon: Briefcase },
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
     ],
   },

@@ -28,6 +28,7 @@ import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -129,6 +130,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicCronRevisarFirmasRoute =
+  ApiPublicCronRevisarFirmasRouteImport.update({
+    id: '/api/public/cron/revisar-firmas',
+    path: '/api/public/cron/revisar-firmas',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -169,6 +177,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,6 +200,7 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/trabajos'
     | '/usuarios'
     | '/aprobar/$token'
+    | '/api/public/cron/revisar-firmas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/aprobar/$token'
     | '/'
+    | '/api/public/cron/revisar-firmas'
   id:
     | '__root__'
     | '/_authenticated'
@@ -254,12 +266,14 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/aprobar/$token'
     | '/_authenticated/'
+    | '/api/public/cron/revisar-firmas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   AprobarTokenRoute: typeof AprobarTokenRoute
+  ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -397,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/cron/revisar-firmas': {
+      id: '/api/public/cron/revisar-firmas'
+      path: '/api/public/cron/revisar-firmas'
+      fullPath: '/api/public/cron/revisar-firmas'
+      preLoaderRoute: typeof ApiPublicCronRevisarFirmasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -445,6 +466,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   AprobarTokenRoute: AprobarTokenRoute,
+  ApiPublicCronRevisarFirmasRoute: ApiPublicCronRevisarFirmasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
