@@ -93,6 +93,10 @@ function AprobarPage() {
   }
   const t = q.data as any;
 
+  if (!t) {
+    return <Shell><ErrorCard message="El enlace de aprobación es inválido o ha expirado." /></Shell>;
+  }
+
   if (t?.firmado_at) {
     return (
       <Shell>
