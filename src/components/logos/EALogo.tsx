@@ -1,36 +1,54 @@
-import type { SVGProps } from "react";
+import { useId, type SVGProps } from "react";
 
 /**
- * Logo oficial EA Service & Consulting recreado como SVG vectorial,
- * basado en el isotipo original (triángulo "play" de dos tonos) más el
- * wordmark "EA" y tagline "Service and Consulting". Fondo transparente.
- * Usa `currentColor` para el cuerpo y `accentClassName` para el acento
- * (matiz claro del triángulo) de modo que adapte a temas claro y oscuro.
+ * Logo oficial EA Service & Consulting recreado como SVG vectorial.
+ * Mantiene legibilidad en modo claro y oscuro gracias al uso de
+ * `currentColor` + un degradado vinculado al token `--color-brand`.
+ * Incluye `<title>` y `<desc>` para tecnologías asistivas.
  */
 export function EALogo({
   className,
   accentClassName = "text-primary",
   showTagline = true,
+  title = "EA Service & Consulting",
+  description = "Logotipo de EA Service & Consulting",
   ...props
 }: SVGProps<SVGSVGElement> & {
   accentClassName?: string;
   showTagline?: boolean;
+  title?: string;
+  description?: string;
 }) {
+  const gid = useId();
+  const titleId = `${gid}-title`;
+  const descId = `${gid}-desc`;
   return (
     <svg
       viewBox="0 0 200 220"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="EA Service & Consulting"
+      aria-labelledby={`${titleId} ${descId}`}
       className={className}
       {...props}
     >
+      <title id={titleId}>{title}</title>
+      <desc id={descId}>{description}</desc>
+      <defs>
+        <linearGradient id={`${gid}-grad`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.7" />
+        </linearGradient>
+      </defs>
       {/* Triángulo "play" — dos tonos derivados del color de marca actual */}
       <g className={accentClassName} opacity="0.55">
         <path d="M40 10 L190 75 L110 75 Z" fill="currentColor" />
         <path d="M40 10 L40 140 L110 75 Z" fill="currentColor" />
       </g>
-      <path d="M110 75 L190 75 L40 140 Z" fill="currentColor" className={accentClassName} />
+      <path
+        d="M110 75 L190 75 L40 140 Z"
+        fill={`url(#${gid}-grad)`}
+        className={accentClassName}
+      />
       <text
         x="100"
         y="190"

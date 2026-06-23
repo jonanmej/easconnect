@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   Moon,
   Sun as SunIcon,
+  Laptop,
+  Settings,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -76,6 +78,7 @@ const allGroups: NavGroup[] = [
     items: [
       { to: "/usuarios", label: "Usuarios y Roles", icon: Users },
       { to: "/auditoria", label: "Auditoría", icon: History },
+      { to: "/configuracion", label: "Configuración", icon: Settings },
     ],
   },
 ];
@@ -84,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { preference, setPreference } = useTheme();
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -137,6 +140,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        Saltar al contenido
+      </a>
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
         <Link
           to="/"
@@ -146,7 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <EALogo className="h-24 w-auto text-brand" accentClassName="text-brand" />
         </Link>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
+        <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
           {groups.map((group) => (
             <div key={group.title}>
               <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4">
@@ -161,7 +170,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     to={item.to}
                     aria-current={active ? "page" : undefined}
                     className={
-                      "flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                      "flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
                       (active
                         ? "bg-primary/12 text-primary font-semibold shadow-[inset_3px_0_0_0_var(--color-primary)]"
                         : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground")
@@ -216,7 +225,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={handleSignOut}
               aria-label="Cerrar sesión"
-              className="size-8 grid place-items-center rounded-md hover:bg-secondary"
+              className="size-9 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
             >
               <LogOut className="size-4 text-muted-foreground" />
             </button>
@@ -225,7 +234,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50"
+            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           >
             <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
             Sincronizar permisos
@@ -241,7 +250,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="w-full bg-secondary border border-border rounded-md pl-9 pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors"
+                aria-label="Abrir búsqueda global (atajo: Ctrl/Cmd + K)"
+                className="w-full bg-secondary border border-border rounded-md pl-9 pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Buscar planta, cliente, trabajo…
                 <kbd className="absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground flex items-center font-mono">⌘K</kbd>
@@ -249,21 +259,40 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              className="size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <div
+              role="radiogroup"
+              aria-label="Modo de color"
+              className="hidden sm:flex items-center gap-0.5 p-0.5 rounded-md bg-secondary border border-border"
             >
-              {theme === "dark"
-                ? <SunIcon className="size-[18px] text-foreground" aria-hidden="true" />
-                : <Moon className="size-[18px] text-foreground" aria-hidden="true" />}
-            </button>
+              {([
+                { value: "light", icon: SunIcon, label: "Modo claro" },
+                { value: "system", icon: Laptop, label: "Modo automático (sigue el sistema)" },
+                { value: "dark", icon: Moon, label: "Modo oscuro" },
+              ] as const).map(({ value, icon: Icon, label }) => {
+                const selected = preference === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={label}
+                    title={label}
+                    onClick={() => setPreference(value)}
+                    className={
+                      "size-8 grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-secondary " +
+                      (selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
             {role !== "cliente" && (
               <Link
                 to="/trabajos"
-                className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label="Alertas"
                 title={`${totalAlertas} alertas activas`}
               >
@@ -284,7 +313,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {children}
+        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
+          {children}
+        </div>
       </main>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
