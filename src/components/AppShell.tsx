@@ -1,4 +1,4 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   CalendarRange,
@@ -11,8 +11,13 @@ import {
   Sparkles,
   Search,
   Bell,
+  LogOut,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 
 type NavItem = {
   to: string;
@@ -22,7 +27,7 @@ type NavItem = {
 
 type NavGroup = { title: string; items: NavItem[] };
 
-const groups: NavGroup[] = [
+const allGroups: NavGroup[] = [
   {
     title: "Operaciones",
     items: [
@@ -47,10 +52,33 @@ const groups: NavGroup[] = [
       { to: "/reportes", label: "Reportes IA", icon: Sparkles },
     ],
   },
+  {
+    title: "Administración",
+    items: [
+      { to: "/usuarios", label: "Usuarios y Roles", icon: Users },
+    ],
+  },
 ];
 
-export function AppShell() {
+export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, roles, signOut } = useAuth();
+  const navigate = useNavigate();
+  const role = highestRole(roles);
+
+  const groups = allGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => canAccess(roles, i.to)),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const initials = (user?.email ?? "??").slice(0, 2).toUpperCase();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
@@ -94,14 +122,23 @@ export function AppShell() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 p-2">
             <div className="size-8 rounded-full bg-secondary grid place-items-center text-xs font-bold">
-              JD
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">Javier Domínguez</p>
-              <p className="text-[10px] text-muted-foreground truncate uppercase">
-                Admin Principal
+              <p className="text-xs font-semibold truncate">{user?.email}</p>
+              <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
+                <ShieldCheck className="size-3" />
+                {role ? ROLE_LABEL[role] : "Sin rol asignado"}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label="Cerrar sesión"
+              className="size-8 grid place-items-center rounded-md hover:bg-secondary"
+            >
+              <LogOut className="size-4 text-muted-foreground" />
+            </button>
           </div>
         </div>
       </aside>
@@ -139,7 +176,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <Outlet />
+        {children}
       </main>
     </div>
   );

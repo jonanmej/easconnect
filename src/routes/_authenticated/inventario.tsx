@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { inventario } from "@/lib/mock-data";
 import { Plus, AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/inventario")({
+export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
     meta: [{ title: "Inventario · SOLAROS" }, { name: "description", content: "Stock de bodega: insumos, repuestos, herramientas y EPP." }],
   }),

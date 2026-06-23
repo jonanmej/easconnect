@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { trabajos, equipos } from "@/lib/mock-data";
 import { Plus, Filter } from "lucide-react";
 
-export const Route = createFileRoute("/programacion")({
+export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
     meta: [{ title: "Programación · SOLAROS" }, { name: "description", content: "Calendario semanal y disponibilidad de equipos." }],
   }),
