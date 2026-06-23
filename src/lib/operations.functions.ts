@@ -61,7 +61,7 @@ export const listPlantas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("plantas")
-      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, clientes(nombre)")
+      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, clientes(nombre)")
       .order("nombre");
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
@@ -83,6 +83,8 @@ export const upsertPlanta = createServerFn({ method: "POST" })
       eficiencia: z.coerce.number().min(0).max(100).nullable().optional(),
       notificaciones_completado: z.coerce.boolean().optional(),
       email_notificaciones: z.string().email().nullable().optional().or(z.literal("")),
+      sla_horas_respuesta: z.coerce.number().int().min(0).nullable().optional(),
+      sla_horas_resolucion: z.coerce.number().int().min(0).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {

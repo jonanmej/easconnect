@@ -14,6 +14,8 @@ import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { ExportButton } from "@/components/ExportButton";
+import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
@@ -132,12 +134,34 @@ function Reportes() {
       <PageHeader
         title="Reportes Ejecutivos IA"
         description="La IA analiza datos reales de trabajos, mantenimientos y equipos para generar un informe profesional por cliente."
-        actions={canEdit && (
-          <button onClick={() => setOpenGen(true)}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
-            <Wand2 className="size-3.5" /> Generar nuevo
-          </button>
-        )}
+        actions={
+          <>
+            <ExportButton onExport={async () => {
+              await exportarExcel({
+                filename: `reportes-${new Date().toISOString().slice(0,10)}.xlsx`,
+                hojas: [{
+                  nombre: "Reportes",
+                  columnas: [
+                    { header: "Fecha", key: "created_at", width: 22, fn: (r: any) => fmtFechaSV(r.created_at) },
+                    { header: "Cliente", key: "cliente_nombre", width: 28 },
+                    { header: "Planta", key: "planta_nombre", width: 28 },
+                    { header: "Periodo", key: "periodo", width: 18 },
+                    { header: "Título", key: "titulo", width: 40 },
+                    { header: "Estado", key: "estado", width: 14 },
+                    { header: "Modelo IA", key: "model_used", width: 24 },
+                  ],
+                  filas: items,
+                }],
+              });
+            }} />
+            {canEdit && (
+              <button onClick={() => setOpenGen(true)}
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+                <Wand2 className="size-3.5" /> Generar nuevo
+              </button>
+            )}
+          </>
+        }
       />
 
       <section className="relative overflow-hidden bg-slate-900 text-white rounded-xl p-6 md:p-8 mb-8">

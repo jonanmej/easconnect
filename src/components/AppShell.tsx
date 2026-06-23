@@ -17,15 +17,21 @@ import {
   RefreshCw,
   CalendarPlus,
   Mail,
+  History,
+  AlertTriangle,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { EALogo } from "@/components/logos/EALogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
+import { GlobalSearch } from "@/components/GlobalSearch";
+import { dashboardAlertas } from "@/lib/dashboard.functions";
 
 type NavItem = {
   to: string;
@@ -66,6 +72,7 @@ const allGroups: NavGroup[] = [
     title: "Administración",
     items: [
       { to: "/usuarios", label: "Usuarios y Roles", icon: Users },
+      { to: "/auditoria", label: "Auditoría", icon: History },
     ],
   },
 ];
@@ -76,6 +83,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const fAlertas = useServerFn(dashboardAlertas);
+  const alertas = useQuery({
+    queryKey: ["alertas-sidebar"],
+    queryFn: () => fAlertas(),
+    enabled: roles.length > 0 && role !== "cliente",
+    refetchInterval: 60_000,
+  });
+  const totalAlertas = ((alertas.data?.sla_vencidos ?? 0) + (alertas.data?.stock_critico ?? 0) + (alertas.data?.solicitudes_estancadas ?? 0));
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault(); setSearchOpen(true);
+      } else if (e.key === "/" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault(); setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const groups = allGroups
     .map((g) => ({
@@ -131,7 +159,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                   >
                     <Icon className="size-4" />
-                    <span>{item.label}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
+                      <span className="text-[10px] font-bold px-1.5 rounded bg-destructive/10 text-destructive">{alertas.data.sla_vencidos}</span>
+                    ) : null}
+                    {item.to === "/inventario" && alertas.data?.stock_critico ? (
+                      <span className="text-[10px] font-bold px-1.5 rounded bg-destructive/10 text-destructive">{alertas.data.stock_critico}</span>
+                    ) : null}
+                    {item.to === "/solicitudes" && alertas.data?.solicitudes_estancadas ? (
+                      <span className="text-[10px] font-bold px-1.5 rounded bg-primary/10 text-primary">{alertas.data.solicitudes_estancadas}</span>
+                    ) : null}
                   </Link>
                 );
               })}
@@ -192,25 +229,32 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-4 flex-1">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Buscar planta, cliente o equipo..."
-                className="w-full bg-secondary border border-border rounded-md pl-9 pr-10 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
-              />
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground flex items-center font-mono">
-                /
-              </kbd>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="w-full bg-secondary border border-border rounded-md pl-9 pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors"
+              >
+                Buscar planta, cliente, trabajo…
+                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground flex items-center font-mono">⌘K</kbd>
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="relative size-9 grid place-items-center rounded-md hover:bg-secondary transition-colors"
-              aria-label="Notificaciones"
-            >
-              <Bell className="size-4 text-muted-foreground" />
-              <span className="absolute top-2 right-2 size-1.5 rounded-full bg-primary" />
-            </button>
+            {role !== "cliente" && (
+              <Link
+                to="/trabajos"
+                className="relative size-9 grid place-items-center rounded-md hover:bg-secondary transition-colors"
+                aria-label="Alertas"
+                title={`${totalAlertas} alertas activas`}
+              >
+                {totalAlertas > 0
+                  ? <AlertTriangle className="size-4 text-destructive" />
+                  : <Bell className="size-4 text-muted-foreground" />}
+                {totalAlertas > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
+                )}
+              </Link>
+            )}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[10px] font-bold text-accent uppercase tracking-tight">
@@ -222,6 +266,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {children}
       </main>
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
 import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { ExportButton } from "@/components/ExportButton";
+import { exportarExcel } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
@@ -103,12 +105,36 @@ function Inventario() {
       <PageHeader
         title="Inventario de Bodega"
         description="Stock real con movimientos de ingreso, salida y ajuste."
-        actions={canEdit && (
-          <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
-            <Plus className="size-3.5" /> Nuevo SKU
-          </button>
-        )}
+        actions={
+          <>
+            <ExportButton onExport={async () => {
+              await exportarExcel({
+                filename: `inventario-${new Date().toISOString().slice(0,10)}.xlsx`,
+                hojas: [{
+                  nombre: "Inventario",
+                  columnas: [
+                    { header: "SKU", key: "sku", width: 16 },
+                    { header: "Item", key: "nombre", width: 32 },
+                    { header: "Categoría", key: "categoria", width: 16 },
+                    { header: "Ubicación", key: "ubicacion", width: 18 },
+                    { header: "Unidad", key: "unidad", width: 10 },
+                    { header: "Stock actual", key: "stock_actual", width: 14, format: "#,##0" },
+                    { header: "Stock mínimo", key: "stock_minimo", width: 14, format: "#,##0" },
+                    { header: "Costo unitario (USD)", key: "costo_unitario", width: 18, format: "[$$-409]#,##0.00" },
+                  ],
+                  filas: items as any[],
+                  total: ["stock_actual"],
+                }],
+              });
+            }} />
+            {canEdit && (
+              <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+                <Plus className="size-3.5" /> Nuevo SKU
+              </button>
+            )}
+          </>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

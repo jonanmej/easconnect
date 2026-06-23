@@ -10,6 +10,8 @@ import { listNotificaciones, reintentarNotificacion } from "@/lib/notificaciones
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { ExportButton } from "@/components/ExportButton";
+import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
   head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" }] }),
@@ -59,6 +61,25 @@ function Notificaciones() {
       <PageHeader
         title="Historial de Notificaciones"
         description="Auditoría de todos los correos enviados desde EA Service Connect (notificaciones automáticas y manuales)."
+        actions={
+          <ExportButton onExport={async () => {
+            await exportarExcel({
+              filename: `notificaciones-${new Date().toISOString().slice(0,10)}.xlsx`,
+              hojas: [{
+                nombre: "Notificaciones",
+                columnas: [
+                  { header: "Fecha", key: "enviado_at", width: 22, fn: (r: any) => fmtFechaSV(r.enviado_at) },
+                  { header: "Tipo", key: "tipo", width: 24 },
+                  { header: "Destinatario", key: "destinatario", width: 32 },
+                  { header: "Asunto", key: "asunto", width: 50 },
+                  { header: "Estado", key: "estado", width: 14 },
+                  { header: "Error", key: "error_mensaje", width: 40 },
+                ],
+                filas: items,
+              }],
+            });
+          }} />
+        }
       />
 
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -123,7 +144,7 @@ function Notificaciones() {
             {!list.isLoading && items.length === 0 && (<tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Sin notificaciones registradas con esos filtros.</td></tr>)}
             {items.map((n: any) => (
               <tr key={n.id} className="border-t border-border">
-                <td className="p-3 font-mono text-xs">{new Date(n.enviado_at).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}</td>
+                <td className="p-3 font-mono text-xs">{new Date(n.enviado_at).toLocaleString("es-SV", { dateStyle: "short", timeStyle: "short" })}</td>
                 <td className="p-3">
                   <p className="font-medium">{n.cliente_nombre}</p>
                   {n.planta_nombre && <p className="text-xs text-muted-foreground">{n.planta_nombre}</p>}

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      auditoria_log: {
+        Row: {
+          accion: string
+          actor: string | null
+          antes: Json | null
+          despues: Json | null
+          entidad: string
+          entidad_id: string | null
+          id: string
+          ts: string
+        }
+        Insert: {
+          accion: string
+          actor?: string | null
+          antes?: Json | null
+          despues?: Json | null
+          entidad: string
+          entidad_id?: string | null
+          id?: string
+          ts?: string
+        }
+        Update: {
+          accion?: string
+          actor?: string | null
+          antes?: Json | null
+          despues?: Json | null
+          entidad?: string
+          entidad_id?: string | null
+          id?: string
+          ts?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           capacidad: string | null
@@ -179,6 +212,13 @@ export type Database = {
             referencedRelation: "trabajos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventario_movimientos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mantenimientos: {
@@ -303,6 +343,13 @@ export type Database = {
             referencedRelation: "trabajos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notificaciones_log_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
         ]
       }
       plantas: {
@@ -316,6 +363,8 @@ export type Database = {
           nombre: string
           notificaciones_completado: boolean
           paneles: number
+          sla_horas_resolucion: number | null
+          sla_horas_respuesta: number | null
           ubicacion: string | null
           ultima_limpieza: string | null
           updated_at: string
@@ -330,6 +379,8 @@ export type Database = {
           nombre: string
           notificaciones_completado?: boolean
           paneles?: number
+          sla_horas_resolucion?: number | null
+          sla_horas_respuesta?: number | null
           ubicacion?: string | null
           ultima_limpieza?: string | null
           updated_at?: string
@@ -344,6 +395,8 @@ export type Database = {
           nombre?: string
           notificaciones_completado?: boolean
           paneles?: number
+          sla_horas_resolucion?: number | null
+          sla_horas_respuesta?: number | null
           ubicacion?: string | null
           ultima_limpieza?: string | null
           updated_at?: string
@@ -551,6 +604,13 @@ export type Database = {
             referencedRelation: "trabajos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "solicitudes_visita_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trabajo_evidencias: {
@@ -586,6 +646,13 @@ export type Database = {
             referencedRelation: "trabajos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trabajo_evidencias_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trabajos: {
@@ -594,6 +661,7 @@ export type Database = {
           duracion_dias: number
           equipo_id: string | null
           estado: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_completado: string | null
           fecha_programada: string
           folio: string
           id: string
@@ -609,6 +677,7 @@ export type Database = {
           duracion_dias?: number
           equipo_id?: string | null
           estado?: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_completado?: string | null
           fecha_programada: string
           folio?: string
           id?: string
@@ -624,6 +693,7 @@ export type Database = {
           duracion_dias?: number
           equipo_id?: string | null
           estado?: Database["public"]["Enums"]["trabajo_estado"]
+          fecha_completado?: string | null
           fecha_programada?: string
           folio?: string
           id?: string
@@ -674,7 +744,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trabajos_sla: {
+        Row: {
+          cliente_id: string | null
+          estado: Database["public"]["Enums"]["trabajo_estado"] | null
+          estado_sla: string | null
+          fecha_completado: string | null
+          fecha_programada: string | null
+          folio: string | null
+          horas_transcurridas: number | null
+          id: string | null
+          planta_id: string | null
+          servicio: string | null
+          sla_horas_resolucion: number | null
+          sla_horas_respuesta: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajos_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       current_cliente_id: { Args: never; Returns: string }
