@@ -2,7 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const Categoria = z.enum(["insumo", "repuesto", "herramienta", "epp"]);
+const Categoria = z.enum([
+  "insumo",
+  "repuesto",
+  "herramienta",
+  "epp",
+  "equipo",
+  "electrico",
+  "quimico",
+]);
 const MovTipo = z.enum(["ingreso", "salida", "ajuste"]);
 
 export const listInventario = createServerFn({ method: "GET" })

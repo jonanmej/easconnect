@@ -64,6 +64,7 @@ const SERVICIOS_OT = [
   "Mantenimiento de motores",
   "Instalación Fotovoltaica",
   "Limpieza Robotizada",
+  "Servicio Técnico de Drone",
 ] as const;
 
 const CAT_RECURSO = [
