@@ -13,7 +13,7 @@ import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/mantenimientos")({
   head: () => ({
-    meta: [{ title: "Mantenimientos · SOLAROS" }, { name: "description", content: "Bitácora de mantenimientos a equipos." }],
+    meta: [{ title: "Mantenimientos · EA Service Connect" }, { name: "description", content: "Bitácora de mantenimientos a equipos." }],
   }),
   component: Mantenimientos,
   errorComponent: ({ error }) => (

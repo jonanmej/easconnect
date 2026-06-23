@@ -17,7 +17,7 @@ import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
-    meta: [{ title: "Reportes IA · SOLAROS" }, { name: "description", content: "Reportes ejecutivos generados con IA para clientes." }],
+    meta: [{ title: "Reportes IA · EA Service Connect" }, { name: "description", content: "Reportes ejecutivos generados con IA para clientes." }],
   }),
   component: Reportes,
   errorComponent: ({ error }) => (
@@ -88,7 +88,7 @@ function Reportes() {
         modo,
         responsable: null,
         evidencias,
-      }, `SOLAROS-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
+      }, `EA Service Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
       toast.success("PDF descargado");
     } catch (e: any) {
       toast.error(e.message ?? "Error al generar PDF");

@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/solicitudes")({
-  head: () => ({ meta: [{ title: "Solicitudes de Visita · SOLAROS" }] }),
+  head: () => ({ meta: [{ title: "Solicitudes de Visita · EA Service Connect" }] }),
   component: Solicitudes,
   errorComponent: ({ error }) => (
     <div className="p-8 text-sm text-destructive">Error: {error.message}</div>

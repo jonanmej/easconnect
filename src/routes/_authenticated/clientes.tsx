@@ -16,7 +16,7 @@ import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
-    meta: [{ title: "Clientes · SOLAROS" }, { name: "description", content: "Cartera de clientes empresariales." }],
+    meta: [{ title: "Clientes · EA Service Connect" }, { name: "description", content: "Cartera de clientes empresariales." }],
   }),
   component: Clientes,
   errorComponent: ({ error }) => (
@@ -88,7 +88,7 @@ function Clientes() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Cartera de Clientes"
-        description="Empresas que confían en SOLAROS para sus operaciones solares y térmicas."
+        description="Empresas que confían en EA Service Connect para sus operaciones solares y térmicas."
         actions={canEdit && (
           <button
             onClick={() => setEditing({ estado: "activo" })}

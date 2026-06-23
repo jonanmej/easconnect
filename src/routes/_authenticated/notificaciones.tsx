@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
-  head: () => ({ meta: [{ title: "Historial de Notificaciones · SOLAROS" }] }),
+  head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" }] }),
   component: Notificaciones,
   errorComponent: ({ error }) => (
     <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
@@ -58,7 +58,7 @@ function Notificaciones() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Historial de Notificaciones"
-        description="Auditoría de todos los correos enviados desde SOLAROS (notificaciones automáticas y manuales)."
+        description="Auditoría de todos los correos enviados desde EA Service Connect (notificaciones automáticas y manuales)."
       />
 
       <div className="grid grid-cols-3 gap-3 mb-6">

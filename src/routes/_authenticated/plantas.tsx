@@ -17,7 +17,7 @@ import { Plus, MapPin, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
-    meta: [{ title: "Plantas · SOLAROS" }, { name: "description", content: "Instalaciones bajo gestión: solares y térmicas." }],
+    meta: [{ title: "Plantas · EA Service Connect" }, { name: "description", content: "Instalaciones bajo gestión: solares y térmicas." }],
   }),
   component: Plantas,
   errorComponent: ({ error }) => (
