@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
@@ -210,6 +211,12 @@ function Trabajos() {
         <Field label="Notas">
           <textarea name="notas" rows={3} defaultValue={editing?.notas ?? ""} className={inputCls} />
         </Field>
+        {editing?.id && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
+            <EvidenciaUploader trabajoId={editing.id} />
+          </div>
+        )}
       </RecordDialog>
     </div>
   );

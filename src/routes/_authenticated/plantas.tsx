@@ -69,6 +69,8 @@ function Plantas() {
       paneles: f.get("paneles") || 0,
       capacidad: f.get("capacidad") || null,
       eficiencia: f.get("eficiencia") || null,
+      notificaciones_completado: f.get("notificaciones_completado") === "on",
+      email_notificaciones: f.get("email_notificaciones") || "",
     });
   }
 
@@ -167,6 +169,27 @@ function Plantas() {
           </Field>
           <Field label="Eficiencia (%)">
             <input name="eficiencia" type="number" step="0.1" min="0" max="100" defaultValue={editing?.eficiencia ?? ""} className={inputCls} />
+          </Field>
+        </div>
+        <div className="pt-2 border-t border-border space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notificaciones al cliente</p>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              name="notificaciones_completado"
+              defaultChecked={!!editing?.notificaciones_completado}
+              className="size-4"
+            />
+            Avisar al cliente cuando un trabajo se complete
+          </label>
+          <Field label="Email del cliente">
+            <input
+              name="email_notificaciones"
+              type="email"
+              defaultValue={editing?.email_notificaciones ?? ""}
+              className={inputCls}
+              placeholder="cliente@empresa.com"
+            />
           </Field>
         </div>
       </RecordDialog>

@@ -234,8 +234,10 @@ export type Database = {
           cliente_id: string
           created_at: string
           eficiencia: number | null
+          email_notificaciones: string | null
           id: string
           nombre: string
+          notificaciones_completado: boolean
           paneles: number
           ubicacion: string | null
           ultima_limpieza: string | null
@@ -246,8 +248,10 @@ export type Database = {
           cliente_id: string
           created_at?: string
           eficiencia?: number | null
+          email_notificaciones?: string | null
           id?: string
           nombre: string
+          notificaciones_completado?: boolean
           paneles?: number
           ubicacion?: string | null
           ultima_limpieza?: string | null
@@ -258,8 +262,10 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           eficiencia?: number | null
+          email_notificaciones?: string | null
           id?: string
           nombre?: string
+          notificaciones_completado?: boolean
           paneles?: number
           ubicacion?: string | null
           ultima_limpieza?: string | null
@@ -312,6 +318,8 @@ export type Database = {
           cliente_id: string
           contenido_markdown: string
           created_at: string
+          enviado_a: string | null
+          enviado_at: string | null
           estado: Database["public"]["Enums"]["reporte_estado"]
           generado_por: string | null
           id: string
@@ -326,6 +334,8 @@ export type Database = {
           cliente_id: string
           contenido_markdown: string
           created_at?: string
+          enviado_a?: string | null
+          enviado_at?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
           id?: string
@@ -340,6 +350,8 @@ export type Database = {
           cliente_id?: string
           contenido_markdown?: string
           created_at?: string
+          enviado_a?: string | null
+          enviado_at?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
           id?: string
@@ -393,6 +405,41 @@ export type Database = {
           target_user_id?: string
         }
         Relationships: []
+      }
+      trabajo_evidencias: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          id: string
+          storage_path: string
+          subido_por: string | null
+          trabajo_id: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          storage_path: string
+          subido_por?: string | null
+          trabajo_id: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          storage_path?: string
+          subido_por?: string | null
+          trabajo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_evidencias_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trabajos: {
         Row: {
