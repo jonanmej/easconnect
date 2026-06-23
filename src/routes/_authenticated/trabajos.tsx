@@ -130,7 +130,7 @@ function Trabajos() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const [editing, setEditing] = useState<any | null>(null);
-  const [tab, setTab] = useState<"ot" | "reporte" | "recursos">("ot");
+  const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
@@ -304,6 +304,7 @@ function Trabajos() {
             {([
               { k: "ot", l: "Orden de trabajo" },
               { k: "reporte", l: "Reporte técnico" },
+              { k: "evidencias", l: "Evidencia fotográfica" },
               { k: "recursos", l: "Recursos de la visita" },
             ] as const).map((t) => (
               <button
@@ -403,16 +404,23 @@ function Trabajos() {
         <Field label="Notas">
           <textarea name="notas" rows={3} defaultValue={editing?.notas ?? ""} className={inputCls} />
         </Field>
-        {editing?.id && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
-            <EvidenciaUploader trabajoId={editing.id} />
-          </div>
-        )}
         </div>
 
         {editing?.id && tab === "reporte" && (
-          <ReporteBaseSection trabajoId={editing.id} canEdit={canEdit} />
+          <ReporteBaseSection
+            trabajoId={editing.id}
+            canEdit={canEdit}
+            duracionDias={editing?.duracion_dias ?? 1}
+            totalPaneles={(plantas.data as any[] | undefined)?.find((p) => p.id === editing.planta_id)?.paneles ?? null}
+          />
+        )}
+        {editing?.id && tab === "evidencias" && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Registro fotográfico secuencial
+            </p>
+            <EvidenciaUploader trabajoId={editing.id} />
+          </div>
         )}
         {editing?.id && tab === "recursos" && (
           <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
@@ -422,7 +430,7 @@ function Trabajos() {
   );
 }
 
-function ReporteBaseSection({ trabajoId, canEdit }: { trabajoId: string; canEdit: boolean }) {
+function ReporteBaseSection({ trabajoId, canEdit, duracionDias, totalPaneles }: { trabajoId: string; canEdit: boolean; duracionDias: number; totalPaneles: number | null }) {
   const qc = useQueryClient();
   const fGet = useServerFn(getTrabajoReporte);
   const fSave = useServerFn(upsertTrabajoReporte);
@@ -449,8 +457,13 @@ function ReporteBaseSection({ trabajoId, canEdit }: { trabajoId: string; canEdit
       cliente_recibe_nombre: f.get("cliente_recibe_nombre") || null,
       cliente_recibe_cargo: f.get("cliente_recibe_cargo") || null,
       cliente_observaciones: f.get("cliente_observaciones") || null,
+      paneles_limpiados: f.get("paneles_limpiados") ? Number(f.get("paneles_limpiados")) : null,
+      agua_galones: f.get("agua_galones") ? Number(f.get("agua_galones")) : null,
     });
   }
+  const paneles = r.paneles_limpiados ?? 0;
+  const metaDiaria = totalPaneles && duracionDias > 0 ? Math.ceil(totalPaneles / duracionDias) : null;
+  const avancePct = totalPaneles && totalPaneles > 0 ? Math.min(100, Math.round((paneles / totalPaneles) * 100)) : null;
   return (
     <div className="pt-2 border-t border-border">
       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Reporte base de la visita</p>
@@ -475,6 +488,50 @@ function ReporteBaseSection({ trabajoId, canEdit }: { trabajoId: string; canEdit
         <Field label="Materiales usados">
           <textarea name="materiales_usados" rows={2} defaultValue={r.materiales_usados ?? ""} className={inputCls} disabled={!canEdit} />
         </Field>
+        <div className="rounded-md border border-border bg-secondary/30 p-3 space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Limpieza de paneles · Consumo de agua
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={`Paneles limpiados${totalPaneles ? ` (de ${totalPaneles.toLocaleString()})` : ""}`}>
+              <input
+                name="paneles_limpiados"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={r.paneles_limpiados ?? ""}
+                className={inputCls}
+                disabled={!canEdit}
+              />
+              {metaDiaria != null && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Meta diaria estimada: <span className="font-mono">{metaDiaria}</span> paneles/día ({duracionDias} día{duracionDias === 1 ? "" : "s"}).
+                </p>
+              )}
+            </Field>
+            <Field label="Agua usada (galones)">
+              <input
+                name="agua_galones"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={r.agua_galones ?? ""}
+                className={inputCls}
+                disabled={!canEdit}
+              />
+            </Field>
+          </div>
+          {avancePct != null && (
+            <div>
+              <div className="h-2 rounded bg-secondary overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${avancePct}%` }} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                Avance: {avancePct}% · {paneles.toLocaleString()} / {totalPaneles?.toLocaleString()} paneles
+              </p>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Técnico responsable">
             <input name="tecnico_nombre" defaultValue={r.tecnico_nombre ?? ""} className={inputCls} disabled={!canEdit} />
