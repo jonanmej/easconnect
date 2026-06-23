@@ -73,7 +73,7 @@ function Equipos() {
     const f = new FormData(e.currentTarget);
     save.mutate({
       id: editing?.id,
-      codigo: f.get("codigo"),
+      codigo: f.get("codigo") || null,
       nombre: f.get("nombre"),
       tipo: f.get("tipo"),
       estado: f.get("estado"),
@@ -163,16 +163,27 @@ function Equipos() {
         error={save.error?.message}
         onSubmit={onSubmit}
       >
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Código">
-            <input name="codigo" required defaultValue={editing?.codigo ?? ""} className={inputCls} placeholder="SC1" />
-          </Field>
-          <div className="col-span-2">
+        {editing?.id ? (
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Código">
+              <input name="codigo" defaultValue={editing?.codigo ?? ""} className={inputCls + " font-mono bg-secondary"} readOnly />
+            </Field>
+            <div className="col-span-2">
+              <Field label="Nombre">
+                <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
+              </Field>
+            </div>
+          </div>
+        ) : (
+          <>
             <Field label="Nombre">
               <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
             </Field>
-          </div>
-        </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              El código se generará automáticamente como <span className="font-mono">EQP-TIPO-NNNNN</span> según el tipo.
+            </p>
+          </>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tipo">
             <input name="tipo" required defaultValue={editing?.tipo ?? ""} className={inputCls} placeholder="Robot de Limpieza" />
