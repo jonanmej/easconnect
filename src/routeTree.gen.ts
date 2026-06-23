@@ -13,13 +13,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
-import { Route as AuthenticatedTrabajosRouteImport } from './routes/_authenticated/trabajos'
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
-import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
-import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 
 const AuthRoute = AuthRouteImport.update({
@@ -41,11 +38,6 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedTrabajosRoute = AuthenticatedTrabajosRouteImport.update({
-  id: '/trabajos',
-  path: '/trabajos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedReportesRoute = AuthenticatedReportesRouteImport.update({
   id: '/reportes',
   path: '/reportes',
@@ -57,11 +49,6 @@ const AuthenticatedProgramacionRoute =
     path: '/programacion',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedPlantasRoute = AuthenticatedPlantasRouteImport.update({
-  id: '/plantas',
-  path: '/plantas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedMantenimientosRoute =
   AuthenticatedMantenimientosRouteImport.update({
     id: '/mantenimientos',
@@ -71,11 +58,6 @@ const AuthenticatedMantenimientosRoute =
 const AuthenticatedInventarioRoute = AuthenticatedInventarioRouteImport.update({
   id: '/inventario',
   path: '/inventario',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEquiposRoute = AuthenticatedEquiposRouteImport.update({
-  id: '/equipos',
-  path: '/equipos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
@@ -88,25 +70,19 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
-  '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
-  '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/clientes': typeof AuthenticatedClientesRoute
-  '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
-  '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
-  '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -115,13 +91,10 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
-  '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
-  '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
-  '/_authenticated/trabajos': typeof AuthenticatedTrabajosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
@@ -131,25 +104,19 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/clientes'
-    | '/equipos'
     | '/inventario'
     | '/mantenimientos'
-    | '/plantas'
     | '/programacion'
     | '/reportes'
-    | '/trabajos'
     | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/clientes'
-    | '/equipos'
     | '/inventario'
     | '/mantenimientos'
-    | '/plantas'
     | '/programacion'
     | '/reportes'
-    | '/trabajos'
     | '/usuarios'
     | '/'
   id:
@@ -157,13 +124,10 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/clientes'
-    | '/_authenticated/equipos'
     | '/_authenticated/inventario'
     | '/_authenticated/mantenimientos'
-    | '/_authenticated/plantas'
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
-    | '/_authenticated/trabajos'
     | '/_authenticated/usuarios'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -203,13 +167,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/trabajos': {
-      id: '/_authenticated/trabajos'
-      path: '/trabajos'
-      fullPath: '/trabajos'
-      preLoaderRoute: typeof AuthenticatedTrabajosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/reportes': {
       id: '/_authenticated/reportes'
       path: '/reportes'
@@ -222,13 +179,6 @@ declare module '@tanstack/react-router' {
       path: '/programacion'
       fullPath: '/programacion'
       preLoaderRoute: typeof AuthenticatedProgramacionRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/plantas': {
-      id: '/_authenticated/plantas'
-      path: '/plantas'
-      fullPath: '/plantas'
-      preLoaderRoute: typeof AuthenticatedPlantasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mantenimientos': {
@@ -245,13 +195,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInventarioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/equipos': {
-      id: '/_authenticated/equipos'
-      path: '/equipos'
-      fullPath: '/equipos'
-      preLoaderRoute: typeof AuthenticatedEquiposRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/clientes': {
       id: '/_authenticated/clientes'
       path: '/clientes'
@@ -264,26 +207,20 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
-  AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
-  AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
-  AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
-  AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
-  AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
-  AuthenticatedTrabajosRoute: AuthenticatedTrabajosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }

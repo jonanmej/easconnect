@@ -1,0 +1,175 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/PageHeader";
+import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import {
+  listClientes,
+  listPlantas,
+  upsertPlanta,
+  deletePlanta,
+} from "@/lib/operations.functions";
+import { useAuth } from "@/lib/auth-context";
+import { highestRole } from "@/lib/roles";
+import { Plus, MapPin, Pencil, Trash2 } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/plantas")({
+  head: () => ({
+    meta: [{ title: "Plantas · SOLAROS" }, { name: "description", content: "Instalaciones bajo gestión: solares y térmicas." }],
+  }),
+  component: Plantas,
+  errorComponent: ({ error }) => (
+    <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
+  ),
+});
+
+function Plantas() {
+  const qc = useQueryClient();
+  const fetchPlantas = useServerFn(listPlantas);
+  const fetchClientes = useServerFn(listClientes);
+  const fetchUpsert = useServerFn(upsertPlanta);
+  const fetchDelete = useServerFn(deletePlanta);
+  const { roles } = useAuth();
+  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+
+  const list = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
+  const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fetchClientes() });
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const save = useMutation({
+    mutationFn: (vars: any) => fetchUpsert({ data: vars }),
+    onSuccess: () => {
+      toast.success("Planta guardada");
+      qc.invalidateQueries({ queryKey: ["plantas"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => fetchDelete({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Planta eliminada");
+      qc.invalidateQueries({ queryKey: ["plantas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    save.mutate({
+      id: editing?.id,
+      nombre: f.get("nombre"),
+      cliente_id: f.get("cliente_id"),
+      ubicacion: f.get("ubicacion") || null,
+      paneles: f.get("paneles") || 0,
+      capacidad: f.get("capacidad") || null,
+      eficiencia: f.get("eficiencia") || null,
+    });
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <PageHeader
+        title="Plantas en Operación"
+        description="Cada planta enlaza su cliente, equipos asignados y bitácora de mantenimientos."
+        actions={canEdit && (
+          <button
+            onClick={() => setEditing({})}
+            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+          >
+            <Plus className="size-3.5" /> Nueva planta
+          </button>
+        )}
+      />
+
+      {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+
+      <div className="space-y-3">
+        {(list.data as any[] | undefined)?.map((p) => (
+          <div
+            key={p.id}
+            className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors"
+          >
+            <div className="size-12 rounded-lg bg-primary/10 text-primary grid place-items-center">
+              <MapPin className="size-5" />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <h3 className="text-base font-semibold tracking-tight">{p.nombre}</h3>
+              <p className="text-xs text-muted-foreground">
+                {p.cliente_nombre} · {p.ubicacion ?? "—"}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Paneles</p>
+                <p className="font-mono font-semibold">{p.paneles ? p.paneles.toLocaleString() : "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
+                <p className="font-medium">{p.capacidad ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Eficiencia</p>
+                <p className="font-mono font-semibold text-accent">{p.eficiencia ? `${p.eficiencia}%` : "—"}</p>
+              </div>
+            </div>
+            {canEdit && (
+              <div className="flex gap-1">
+                <button onClick={() => setEditing(p)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                  <Pencil className="size-3.5" />
+                </button>
+                <button
+                  onClick={() => { if (confirm(`Eliminar ${p.nombre}?`)) remove.mutate(p.id); }}
+                  className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <RecordDialog
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title={editing?.id ? "Editar planta" : "Nueva planta"}
+        busy={save.isPending}
+        error={save.error?.message}
+        onSubmit={onSubmit}
+      >
+        <Field label="Nombre">
+          <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
+        </Field>
+        <Field label="Cliente">
+          <select name="cliente_id" required defaultValue={editing?.cliente_id ?? ""} className={inputCls}>
+            <option value="">— Selecciona cliente —</option>
+            {(clientes.data as any[] | undefined)?.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Ubicación">
+          <input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="Antofagasta, CL" />
+        </Field>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Paneles">
+            <input name="paneles" type="number" min="0" defaultValue={editing?.paneles ?? 0} className={inputCls} />
+          </Field>
+          <Field label="Capacidad">
+            <input name="capacidad" defaultValue={editing?.capacidad ?? ""} className={inputCls} placeholder="32 MW" />
+          </Field>
+          <Field label="Eficiencia (%)">
+            <input name="eficiencia" type="number" step="0.1" min="0" max="100" defaultValue={editing?.eficiencia ?? ""} className={inputCls} />
+          </Field>
+        </div>
+      </RecordDialog>
+    </div>
+  );
+}
