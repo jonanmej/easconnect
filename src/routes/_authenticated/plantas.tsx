@@ -126,7 +126,7 @@ function Plantas() {
                     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.ubicacion)}`
                     : null;
                 const earthUrl = hasGeo
-                  ? `https://earth.google.com/web/search/${p.latitud},${p.longitud}`
+                  ? `https://earth.google.com/web/@${p.latitud},${p.longitud},150a,2000d,35y,0h,0t,0r`
                   : null;
                 return (
                   <div key={p.id} className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors">
