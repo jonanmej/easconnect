@@ -1,55 +1,113 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import { PageHeader } from "@/components/PageHeader";
-import { Sparkles, FileDown, Wand2 } from "lucide-react";
+import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import { Sparkles, Wand2, Send, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { listClientes, listPlantas } from "@/lib/operations.functions";
+import { listReportes, generarReporte, getReporte, marcarReporteEnviado } from "@/lib/reportes.functions";
+import { useAuth } from "@/lib/auth-context";
+import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
     meta: [{ title: "Reportes IA · SOLAROS" }, { name: "description", content: "Reportes ejecutivos generados con IA para clientes." }],
   }),
   component: Reportes,
+  errorComponent: ({ error }) => (
+    <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
+  ),
 });
 
-const reportes = [
-  {
-    cliente: "Energía Atacama",
-    planta: "Atacama III",
-    fecha: "23 Jun 2026",
-    periodo: "Q2 2026",
-    insight: "Limpieza robotizada elevó captación fotónica +12.4% vs. trimestre anterior.",
-    estado: "Listo para enviar",
-  },
-  {
-    cliente: "Hidromax S.A.",
-    planta: "Los Olivos",
-    fecha: "21 Jun 2026",
-    periodo: "Junio 2026",
-    insight: "Eficiencia se mantiene 94.1%. Recomendado adelantar próxima limpieza 5 días.",
-    estado: "Enviado",
-  },
-  {
-    cliente: "Genco Industrial",
-    planta: "Central Térmica Sur",
-    fecha: "20 Jun 2026",
-    periodo: "Mantenimiento motor S-42",
-    insight: "Vibración anómala detectada. Intervención correctiva exitosa, MTBF +320h.",
-    estado: "Enviado",
-  },
-];
+type R = {
+  id: string;
+  cliente_id: string;
+  cliente_nombre: string;
+  planta_id: string | null;
+  planta_nombre: string | null;
+  periodo: string;
+  titulo: string;
+  insight_resumen: string | null;
+  estado: "borrador" | "enviado";
+  model_used: string | null;
+  created_at: string;
+};
 
 function Reportes() {
+  const qc = useQueryClient();
+  const fList = useServerFn(listReportes);
+  const fClientes = useServerFn(listClientes);
+  const fPlantas = useServerFn(listPlantas);
+  const fGen = useServerFn(generarReporte);
+  const fGet = useServerFn(getReporte);
+  const fSend = useServerFn(marcarReporteEnviado);
+  const { roles } = useAuth();
+  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+
+  const list = useQuery({ queryKey: ["reportes"], queryFn: () => fList() });
+  const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fClientes() });
+  const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
+
+  const [openGen, setOpenGen] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState<string>("");
+  const [viewing, setViewing] = useState<string | null>(null);
+
+  const plantasFiltradas = useMemo(() => {
+    const all = (plantas.data as any[] | undefined) ?? [];
+    return selectedCliente ? all.filter((p) => p.cliente_id === selectedCliente) : all;
+  }, [plantas.data, selectedCliente]);
+
+  const gen = useMutation({
+    mutationFn: (v: any) => fGen({ data: v }),
+    onSuccess: () => { toast.success("Reporte generado"); qc.invalidateQueries({ queryKey: ["reportes"] }); setOpenGen(false); setSelectedCliente(""); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const send = useMutation({
+    mutationFn: (id: string) => fSend({ data: { id } }),
+    onSuccess: () => { toast.success("Marcado como enviado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const detail = useQuery({
+    queryKey: ["reporte", viewing],
+    queryFn: () => fGet({ data: { id: viewing! } }),
+    enabled: !!viewing,
+  });
+
+  function onGenSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const planta_id = f.get("planta_id") as string;
+    gen.mutate({
+      cliente_id: f.get("cliente_id"),
+      planta_id: planta_id || null,
+      periodo: f.get("periodo"),
+      desde: f.get("desde"),
+      hasta: f.get("hasta"),
+    });
+  }
+
+  const items = (list.data as R[] | undefined) ?? [];
+  const borradores = items.filter((r) => r.estado === "borrador").length;
+  const enviados = items.filter((r) => r.estado === "enviado").length;
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Reportes Ejecutivos IA"
-        description="La IA analiza datos de campo de técnicos y operadores y genera un informe profesional para cada cliente."
-        actions={
-          <button className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+        description="La IA analiza datos reales de trabajos, mantenimientos y equipos para generar un informe profesional por cliente."
+        actions={canEdit && (
+          <button onClick={() => setOpenGen(true)}
+            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
             <Wand2 className="size-3.5" /> Generar nuevo
           </button>
-        }
+        )}
       />
 
-      {/* AI panel hero */}
       <section className="relative overflow-hidden bg-slate-900 text-white rounded-xl p-6 md:p-8 mb-8">
         <div className="absolute top-0 left-0 w-full h-1 bg-primary/40" />
         <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
@@ -59,77 +117,122 @@ function Reportes() {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 mb-3 text-primary">
               <Sparkles className="size-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                Lovable AI · Gemini 3 Flash
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Lovable AI · Gemini 3 Flash</span>
             </div>
-            <h2 className="text-xl font-semibold mb-2">
-              Convierte bitácoras de campo en informes ejecutivos
-            </h2>
+            <h2 className="text-xl font-semibold mb-2">Convierte tus bitácoras en informes ejecutivos</h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Los técnicos suben notas, fotos y telemetría. La IA sintetiza KPIs, hallazgos y
-              recomendaciones en un PDF listo para el cliente, en menos de 60 segundos.
+              La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <p className="text-2xl font-mono font-semibold">42</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">
-                Generados
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <p className="text-2xl font-mono font-semibold text-primary">06</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">
-                Borradores
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <p className="text-2xl font-mono font-semibold text-accent">36</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">
-                Enviados
-              </p>
-            </div>
+            <Stat label="Generados" value={items.length} />
+            <Stat label="Borradores" value={borradores} tone="primary" />
+            <Stat label="Enviados" value={enviados} tone="accent" />
           </div>
         </div>
       </section>
 
+      {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+
       <div className="space-y-3">
-        {reportes.map((r, i) => (
-          <div
-            key={i}
-            className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors"
-          >
+        {items.map((r) => (
+          <div key={r.id} className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors">
             <div className="size-12 rounded-lg bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-5" />
             </div>
             <div className="flex-1 min-w-[240px]">
               <h3 className="text-base font-semibold tracking-tight">
-                {r.cliente} <span className="text-muted-foreground font-normal">· {r.planta}</span>
+                {r.titulo}
               </h3>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                {r.periodo} · {r.fecha}
+                {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString()}
               </p>
-              <p className="text-sm mt-2 text-foreground/80">{r.insight}</p>
+              {r.insight_resumen && <p className="text-sm mt-2 text-foreground/80 line-clamp-2">{r.insight_resumen}</p>}
             </div>
             <div className="flex items-center gap-3">
-              <span
-                className={
-                  "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
-                  (r.estado === "Enviado"
-                    ? "bg-accent/10 text-accent"
-                    : "bg-primary/10 text-primary")
-                }
-              >
+              <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
+                (r.estado === "enviado" ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary")}>
                 {r.estado}
               </span>
-              <button className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
-                <FileDown className="size-3.5" /> PDF
+              <button onClick={() => setViewing(r.id)} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
+                <Eye className="size-3.5" /> Ver
               </button>
+              {canEdit && r.estado === "borrador" && (
+                <button onClick={() => send.mutate(r.id)} disabled={send.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50">
+                  <Send className="size-3.5" /> Enviar
+                </button>
+              )}
             </div>
           </div>
         ))}
+        {!list.isLoading && items.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Aún no hay reportes. Genera el primero.</p>
+        )}
       </div>
+
+      <RecordDialog
+        open={openGen}
+        onOpenChange={(v) => { setOpenGen(v); if (!v) setSelectedCliente(""); }}
+        title="Generar reporte ejecutivo IA"
+        description="La IA puede tardar 20-60 segundos. No cierres la ventana."
+        submitLabel={gen.isPending ? "Generando con IA…" : "Generar"}
+        busy={gen.isPending}
+        error={gen.error?.message}
+        onSubmit={onGenSubmit}
+      >
+        <Field label="Cliente">
+          <select name="cliente_id" required value={selectedCliente} onChange={(e) => setSelectedCliente(e.target.value)} className={inputCls}>
+            <option value="" disabled>Selecciona…</option>
+            {(clientes.data as any[] | undefined)?.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Planta (opcional · todas si vacío)">
+          <select name="planta_id" defaultValue="" className={inputCls}>
+            <option value="">Todas las plantas del cliente</option>
+            {plantasFiltradas.map((p: any) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Etiqueta del periodo">
+          <input name="periodo" required placeholder="Q2 2026" className={inputCls} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Desde"><input name="desde" type="date" required className={inputCls} /></Field>
+          <Field label="Hasta"><input name="hasta" type="date" required className={inputCls} /></Field>
+        </div>
+      </RecordDialog>
+
+      <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{(detail.data as any)?.titulo ?? "Reporte"}</DialogTitle>
+            <DialogDescription>
+              {(detail.data as any)?.model_used ? `Modelo: ${(detail.data as any).model_used}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {detail.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+          {detail.data && (
+            <article className="prose prose-sm max-w-none">
+              <ReactMarkdown>{(detail.data as any).contenido_markdown}</ReactMarkdown>
+            </article>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: "primary" | "accent" }) {
+  return (
+    <div className="bg-white/5 rounded-lg p-3 border border-white/10 min-w-[80px]">
+      <p className={"text-2xl font-mono font-semibold " + (tone === "primary" ? "text-primary" : tone === "accent" ? "text-accent" : "")}>
+        {String(value).padStart(2, "0")}
+      </p>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">{label}</p>
     </div>
   );
 }
