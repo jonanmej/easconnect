@@ -37,6 +37,7 @@ function Plantas() {
   const list = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fetchClientes() });
   const [editing, setEditing] = useState<any | null>(null);
+  const [openMap, setOpenMap] = useState<string | null>(null);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -128,8 +129,18 @@ function Plantas() {
                 const earthUrl = hasGeo
                   ? `https://earth.google.com/web/@${p.latitud},${p.longitud},150a,2000d,35y,0h,0t,0r`
                   : null;
+                const embedQuery = hasGeo
+                  ? `${p.latitud},${p.longitud}`
+                  : p.ubicacion
+                    ? p.ubicacion
+                    : null;
+                const embedUrl = embedQuery
+                  ? `https://maps.google.com/maps?q=${encodeURIComponent(embedQuery)}&z=15&output=embed`
+                  : null;
+                const isOpen = openMap === p.id;
                 return (
-                  <div key={p.id} className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors">
+                  <div key={p.id} className="bg-card border border-border rounded-xl hover:border-primary/40 transition-colors overflow-hidden">
+                    <div className="p-5 flex flex-wrap items-center gap-6">
                     <div className="size-12 rounded-lg bg-primary/10 text-primary grid place-items-center">
                       <MapPin className="size-5" />
                     </div>
@@ -157,10 +168,15 @@ function Plantas() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      {mapsUrl && (
-                        <a href={mapsUrl} target="_blank" rel="noreferrer" className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" title="Abrir en Google Maps" aria-label="Google Maps">
+                      {embedUrl && (
+                        <button
+                          onClick={() => setOpenMap(isOpen ? null : p.id)}
+                          className={`size-8 grid place-items-center rounded-md hover:bg-secondary ${isOpen ? "text-primary bg-secondary" : "text-muted-foreground hover:text-foreground"}`}
+                          title={isOpen ? "Ocultar mapa" : "Ver mapa"}
+                          aria-label="Mapa"
+                        >
                           <MapIcon className="size-3.5" />
-                        </a>
+                        </button>
                       )}
                       {earthUrl && (
                         <a href={earthUrl} target="_blank" rel="noreferrer" className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" title="Abrir en Google Earth" aria-label="Google Earth">
@@ -182,6 +198,26 @@ function Plantas() {
                         </>
                       )}
                     </div>
+                    </div>
+                    {isOpen && embedUrl && (
+                      <div className="border-t border-border bg-background">
+                        <iframe
+                          title={`Mapa de ${p.nombre}`}
+                          src={embedUrl}
+                          className="w-full h-80 block"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                        <div className="px-4 py-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{hasGeo ? "Coordenadas exactas" : "Búsqueda por dirección"}</span>
+                          {mapsUrl && (
+                            <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                              Abrir en pestaña nueva ↗
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
