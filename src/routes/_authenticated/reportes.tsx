@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { Sparkles, Wand2, Send, Eye } from "lucide-react";
+import { Sparkles, Wand2, Send, Eye, FileDown, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
-import { listReportes, generarReporte, getReporte, marcarReporteEnviado } from "@/lib/reportes.functions";
+import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF } from "@/lib/reportes.functions";
+import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
+import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
@@ -45,6 +47,8 @@ function Reportes() {
   const fGen = useServerFn(generarReporte);
   const fGet = useServerFn(getReporte);
   const fSend = useServerFn(marcarReporteEnviado);
+  const fPdf = useServerFn(getReporteParaPDF);
+  const fEmail = useServerFn(enviarNotificacionReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
 
@@ -69,6 +73,34 @@ function Reportes() {
   const send = useMutation({
     mutationFn: (id: string) => fSend({ data: { id } }),
     onSuccess: () => { toast.success("Marcado como enviado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  async function descargarPdf(id: string, modo: "ejecutivo" | "interno") {
+    setDownloadingId(id + modo);
+    try {
+      const data: any = await fPdf({ data: { id } });
+      const evidencias = await buildEvidencias(data.evidencias);
+      await generarYDescargarPdf({
+        ...data,
+        modo,
+        responsable: null,
+        evidencias,
+      }, `SOLAROS-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al generar PDF");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  const emailMut = useMutation({
+    mutationFn: (vars: { id: string; tipo: "reporte_ejecutivo" | "reporte_interno" }) =>
+      fEmail({ data: { reporte_id: vars.id, tipo: vars.tipo } }),
+    onSuccess: () => { toast.success("Correo enviado al cliente"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
