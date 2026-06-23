@@ -16,8 +16,6 @@ export function EALogo({
   accentClassName?: string;
   showTagline?: boolean;
 }) {
-  const BRAND = "#5B85C2";
-  const BRAND_LIGHT = "#B6CCE4";
   return (
     <svg
       viewBox="0 0 200 220"
@@ -27,19 +25,21 @@ export function EALogo({
       className={className}
       {...props}
     >
-      {/* Isotipo "play" en dos tonos azules originales */}
-      <path d="M40 10 L190 75 L110 75 Z" fill={BRAND_LIGHT} />
-      <path d="M40 10 L40 140 L110 75 Z" fill={BRAND_LIGHT} />
-      <path d="M110 75 L190 75 L40 140 Z" fill={BRAND} />
+      {/* Triángulo "play" — dos tonos derivados del color de marca actual */}
+      <g className={accentClassName} opacity="0.55">
+        <path d="M40 10 L190 75 L110 75 Z" fill="currentColor" />
+        <path d="M40 10 L40 140 L110 75 Z" fill="currentColor" />
+      </g>
+      <path d="M110 75 L190 75 L40 140 Z" fill="currentColor" className={accentClassName} />
       <text
         x="100"
         y="190"
         textAnchor="middle"
-        fontFamily="var(--font-sans, Inter, sans-serif)"
+        fontFamily="var(--font-display, var(--font-sans, Inter, sans-serif))"
         fontSize="56"
         fontWeight="700"
         letterSpacing="6"
-        fill={BRAND}
+        fill="currentColor"
       >
         EA
       </text>
@@ -49,10 +49,11 @@ export function EALogo({
           y="212"
           textAnchor="middle"
           fontFamily="var(--font-sans, Inter, sans-serif)"
-          fontSize="14"
+          fontSize="13"
           fontWeight="600"
-          letterSpacing="0.5"
-          fill={BRAND}
+          letterSpacing="0.8"
+          fill="currentColor"
+          opacity="0.8"
         >
           Service and Consulting
         </text>
