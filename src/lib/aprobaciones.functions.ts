@@ -98,12 +98,12 @@ export const firmarAprobacion = createServerFn({ method: "POST" })
     if (upErr) throw new Error(`Subiendo firma: ${upErr.message}`);
 
     // 3. Marcar aprobación
-    const ip = getRequestIP({ xForwardedFor: true }) ?? null;
-    const ua = getRequestHeader("user-agent") ?? null;
+    const ip = getRequestIP({ xForwardedFor: true }) ?? "";
+    const ua = getRequestHeader("user-agent") ?? "";
     const { data: rows, error } = await supabaseAdmin.rpc("firmar_aprobacion", {
       _token: data.token,
       _firmante_nombre: data.firmante_nombre,
-      _firmante_rut: data.firmante_rut ?? null,
+      _firmante_rut: data.firmante_rut ?? "",
       _firma_storage_path: path,
       _ip: ip,
       _user_agent: ua,
