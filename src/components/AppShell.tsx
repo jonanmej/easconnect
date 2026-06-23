@@ -14,8 +14,11 @@ import {
   LogOut,
   ShieldCheck,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 
@@ -62,9 +65,10 @@ const allGroups: NavGroup[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user, roles, signOut } = useAuth();
+  const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const role = highestRole(roles);
+  const [refreshing, setRefreshing] = useState(false);
 
   const groups = allGroups
     .map((g) => ({
@@ -78,6 +82,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   async function handleSignOut() {
     await signOut();
     navigate({ to: "/auth", replace: true });
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await refreshRoles();
+      toast.success("Permisos actualizados");
+    } catch {
+      toast.error("No se pudieron actualizar los permisos");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return (
@@ -140,6 +156,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               <LogOut className="size-4 text-muted-foreground" />
             </button>
           </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50"
+          >
+            <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
+            Sincronizar permisos
+          </button>
         </div>
       </aside>
 
