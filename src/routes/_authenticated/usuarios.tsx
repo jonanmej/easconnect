@@ -105,8 +105,7 @@ function UsersPage() {
           />
           <input
             type="text"
-            required
-            placeholder="Contraseña inicial (min. 8)"
+            placeholder="Contraseña opcional (min. 8)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="bg-secondary border border-border rounded-md px-3 py-2 text-sm font-mono"
@@ -136,7 +135,7 @@ function UsersPage() {
           </p>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
-          La contraseña debe entregarse al usuario por un canal seguro. Podrá cambiarla luego.
+          Si dejas la contraseña en blanco, se enviará un correo de invitación para que el usuario fije la suya. Si la completas, deberás entregársela por un canal seguro (no se envía correo).
         </p>
       </section>
 
