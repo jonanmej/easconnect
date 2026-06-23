@@ -293,7 +293,7 @@ export const dashboardStats = createServerFn({ method: "GET" })
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
 
-    const [trabajosHoy, trabajosTotal, equipos, inv, reps] = await Promise.all([
+    const [trabajosHoy, trabajosTotal, equipos, inv, reps, repsLimpieza, anomalias, plantasPaneles] = await Promise.all([
       supabase.from("trabajos").select("id", { count: "exact", head: true })
         .gte("fecha_programada", todayStart.toISOString())
         .lt("fecha_programada", todayEnd.toISOString()),
@@ -301,6 +301,9 @@ export const dashboardStats = createServerFn({ method: "GET" })
       supabase.from("equipos").select("id, estado, salud"),
       supabase.from("inventario_items").select("stock_actual, stock_minimo"),
       supabase.from("reportes").select("id, estado"),
+      supabase.from("trabajo_reportes").select("paneles_limpiados, agua_galones"),
+      supabase.from("trabajo_evidencias").select("id", { count: "exact", head: true }).eq("categoria", "anomalia"),
+      supabase.from("plantas").select("paneles"),
     ]);
 
     const eqs = equipos.data ?? [];
@@ -311,6 +314,12 @@ export const dashboardStats = createServerFn({ method: "GET" })
       : "--";
     const alertas = eqs.filter((e) => e.estado === "mantenimiento" || e.estado === "fuera_servicio").length;
 
+    const repLimp = repsLimpieza.data ?? [];
+    const panelesLimpiados = repLimp.reduce((s: number, r: any) => s + Number(r.paneles_limpiados ?? 0), 0);
+    const aguaGalones = repLimp.reduce((s: number, r: any) => s + Number(r.agua_galones ?? 0), 0);
+    const panelesParque = (plantasPaneles.data ?? []).reduce((s: number, p: any) => s + Number(p.paneles ?? 0), 0);
+    const avanceLimpieza = panelesParque > 0 ? Math.min(100, Math.round((panelesLimpiados / panelesParque) * 100)) : 0;
+
     return {
       trabajos_hoy: trabajosHoy.count ?? 0,
       equipos_operativos: operativos,
@@ -320,5 +329,10 @@ export const dashboardStats = createServerFn({ method: "GET" })
       trabajos_total: trabajosTotal.count ?? 0,
       inv_bajo_stock: (inv.data ?? []).filter((i: any) => Number(i.stock_actual) < Number(i.stock_minimo)).length,
       reportes_borrador: (reps.data ?? []).filter((r: any) => r.estado === "borrador").length,
+      paneles_limpiados: panelesLimpiados,
+      paneles_parque: panelesParque,
+      avance_limpieza: avanceLimpieza,
+      agua_galones: Math.round(aguaGalones),
+      anomalias_detectadas: anomalias.count ?? 0,
     };
   });
