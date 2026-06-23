@@ -103,3 +103,30 @@ export const listTrabajosSla = createServerFn({ method: "GET" })
       cliente_nombre: nombres.get(r.planta_id)?.cliente ?? "—",
     }));
   });
+
+/** Galones de agua usados para limpieza, agrupados por planta. */
+export const aguaPorPlanta = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("trabajo_reportes")
+      .select("agua_galones, trabajos!inner(planta_id, plantas(nombre, clientes(nombre)))")
+      .not("agua_galones", "is", null);
+    if (error) throw new Error(error.message);
+    const map = new Map<string, { planta_id: string; nombre: string; cliente: string; galones: number }>();
+    (data ?? []).forEach((r: any) => {
+      const pid = r.trabajos?.planta_id;
+      if (!pid) return;
+      const cur = map.get(pid) ?? {
+        planta_id: pid,
+        nombre: r.trabajos?.plantas?.nombre ?? "—",
+        cliente: r.trabajos?.plantas?.clientes?.nombre ?? "—",
+        galones: 0,
+      };
+      cur.galones += Number(r.agua_galones ?? 0);
+      map.set(pid, cur);
+    });
+    const filas = Array.from(map.values()).sort((a, b) => b.galones - a.galones);
+    const total = filas.reduce((s, r) => s + r.galones, 0);
+    return { filas, total };
+  });
