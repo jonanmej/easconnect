@@ -1,51 +1,127 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { inventario } from "@/lib/mock-data";
-import { Plus, AlertTriangle } from "lucide-react";
+import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import {
+  listInventario,
+  upsertInventarioItem,
+  deleteInventarioItem,
+  registrarMovimiento,
+} from "@/lib/inventario.functions";
+import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
-    meta: [{ title: "Inventario · SOLAROS" }, { name: "description", content: "Stock de bodega: insumos, repuestos, herramientas y EPP." }],
+    meta: [{ title: "Inventario · SOLAROS" }, { name: "description", content: "Stock de bodega con movimientos en tiempo real." }],
   }),
   component: Inventario,
+  errorComponent: ({ error }) => (
+    <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
+  ),
 });
 
+type Item = {
+  id: string;
+  sku: string;
+  nombre: string;
+  categoria: "insumo" | "repuesto" | "herramienta" | "epp";
+  ubicacion: string | null;
+  unidad: string;
+  stock_actual: number;
+  stock_minimo: number;
+};
+
+const catLabel: Record<Item["categoria"], string> = {
+  insumo: "Insumo", repuesto: "Repuesto", herramienta: "Herramienta", epp: "EPP",
+};
+
 function Inventario() {
-  const critico = inventario.filter((i) => i.stock < i.min).length;
+  const qc = useQueryClient();
+  const fList = useServerFn(listInventario);
+  const fUpsert = useServerFn(upsertInventarioItem);
+  const fDelete = useServerFn(deleteInventarioItem);
+  const fMov = useServerFn(registrarMovimiento);
+  const { roles } = useAuth();
+  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+
+  const list = useQuery({ queryKey: ["inventario"], queryFn: () => fList() });
+  const items = (list.data as Item[] | undefined) ?? [];
+  const critico = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo)).length;
+
+  const [editing, setEditing] = useState<Partial<Item> | null>(null);
+  const [movFor, setMovFor] = useState<Item | null>(null);
+
+  const save = useMutation({
+    mutationFn: (v: any) => fUpsert({ data: v }),
+    onSuccess: () => { toast.success("SKU guardado"); qc.invalidateQueries({ queryKey: ["inventario"] }); setEditing(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => fDelete({ data: { id } }),
+    onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["inventario"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const mov = useMutation({
+    mutationFn: (v: any) => fMov({ data: v }),
+    onSuccess: () => { toast.success("Movimiento registrado"); qc.invalidateQueries({ queryKey: ["inventario"] }); setMovFor(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function onSaveItem(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    save.mutate({
+      id: editing?.id,
+      sku: f.get("sku"),
+      nombre: f.get("nombre"),
+      categoria: f.get("categoria"),
+      ubicacion: f.get("ubicacion") || null,
+      unidad: f.get("unidad") || "un",
+      stock_minimo: Number(f.get("stock_minimo") || 0),
+    });
+  }
+
+  function onMov(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!movFor) return;
+    const f = new FormData(e.currentTarget);
+    mov.mutate({
+      item_id: movFor.id,
+      tipo: f.get("tipo"),
+      cantidad: Number(f.get("cantidad")),
+      motivo: f.get("motivo") || null,
+    });
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Inventario de Bodega"
-        description="Insumos, repuestos, herramientas y EPP. Alertas automáticas bajo punto de pedido."
-        actions={
-          <button className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+        description="Stock real con movimientos de ingreso, salida y ajuste."
+        actions={canEdit && (
+          <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
+            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
             <Plus className="size-3.5" /> Nuevo SKU
           </button>
-        }
+        )}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">SKUs</p>
-          <p className="text-2xl font-mono font-semibold mt-1">{inventario.length}</p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Categorías</p>
-          <p className="text-2xl font-mono font-semibold mt-1">4</p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4 ring-2 ring-destructive/20">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-destructive">Bajo stock</p>
-          <p className="text-2xl font-mono font-semibold mt-1 text-destructive">{critico}</p>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ubicaciones</p>
-          <p className="text-2xl font-mono font-semibold mt-1">3</p>
-        </div>
+        <Kpi label="SKUs" value={items.length} />
+        <Kpi label="Categorías" value={new Set(items.map(i => i.categoria)).size} />
+        <Kpi label="Bajo stock" value={critico} danger />
+        <Kpi label="Ubicaciones" value={new Set(items.map(i => i.ubicacion).filter(Boolean)).size} />
       </div>
 
+      {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+
       <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[800px]">
+        <table className="w-full text-sm min-w-[900px]">
           <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
             <tr>
               <th className="px-4 py-3 text-left">SKU</th>
@@ -55,36 +131,113 @@ function Inventario() {
               <th className="px-4 py-3 text-right">Stock</th>
               <th className="px-4 py-3 text-right">Mínimo</th>
               <th className="px-4 py-3 text-center">Estado</th>
+              <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {inventario.map((i) => {
-              const low = i.stock < i.min;
+            {items.map((i) => {
+              const low = Number(i.stock_actual) < Number(i.stock_minimo);
               return (
-                <tr key={i.sku} className="hover:bg-secondary/50 transition-colors">
+                <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
                   <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
-                  <td className="px-4 py-4 font-medium">{i.item}</td>
-                  <td className="px-4 py-4 text-xs text-muted-foreground">{i.categoria}</td>
-                  <td className="px-4 py-4 text-xs font-mono text-muted-foreground">{i.ubic}</td>
-                  <td className="px-4 py-4 text-right font-mono font-semibold">{i.stock}</td>
-                  <td className="px-4 py-4 text-right font-mono text-muted-foreground">{i.min}</td>
+                  <td className="px-4 py-4 font-medium">{i.nombre}</td>
+                  <td className="px-4 py-4 text-xs text-muted-foreground">{catLabel[i.categoria]}</td>
+                  <td className="px-4 py-4 text-xs font-mono text-muted-foreground">{i.ubicacion ?? "—"}</td>
+                  <td className="px-4 py-4 text-right font-mono font-semibold">{i.stock_actual} {i.unidad}</td>
+                  <td className="px-4 py-4 text-right font-mono text-muted-foreground">{i.stock_minimo}</td>
                   <td className="px-4 py-4 text-center">
                     {low ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-destructive/10 text-destructive">
                         <AlertTriangle className="size-3" /> Pedir
                       </span>
                     ) : (
-                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-accent/10 text-accent">
-                        OK
-                      </span>
+                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-accent/10 text-accent">OK</span>
                     )}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="inline-flex gap-1">
+                      <button onClick={() => setMovFor(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Movimiento">
+                        <ArrowDownUp className="size-3.5" />
+                      </button>
+                      {canEdit && <>
+                        <button onClick={() => setEditing(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button onClick={() => { if (confirm(`Eliminar ${i.sku}?`)) remove.mutate(i.id); }}
+                          className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Eliminar">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </>}
+                    </div>
                   </td>
                 </tr>
               );
             })}
+            {!list.isLoading && items.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-xs text-muted-foreground">Aún no hay items en bodega.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      <RecordDialog
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title={editing?.id ? "Editar SKU" : "Nuevo SKU"}
+        busy={save.isPending}
+        error={save.error?.message}
+        onSubmit={onSaveItem}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="SKU"><input name="sku" required defaultValue={editing?.sku ?? ""} className={inputCls} /></Field>
+          <Field label="Categoría">
+            <select name="categoria" defaultValue={editing?.categoria ?? "insumo"} className={inputCls}>
+              <option value="insumo">Insumo</option>
+              <option value="repuesto">Repuesto</option>
+              <option value="herramienta">Herramienta</option>
+              <option value="epp">EPP</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Nombre"><input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} /></Field>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Ubicación"><input name="ubicacion" defaultValue={editing?.ubicacion ?? ""} className={inputCls} placeholder="B-12" /></Field>
+          <Field label="Unidad"><input name="unidad" defaultValue={editing?.unidad ?? "un"} className={inputCls} /></Field>
+          <Field label="Stock mínimo"><input name="stock_minimo" type="number" min="0" step="0.01" defaultValue={editing?.stock_minimo ?? 0} className={inputCls} /></Field>
+        </div>
+      </RecordDialog>
+
+      <RecordDialog
+        open={!!movFor}
+        onOpenChange={(v) => !v && setMovFor(null)}
+        title={`Movimiento · ${movFor?.sku ?? ""}`}
+        description={movFor ? `Stock actual: ${movFor.stock_actual} ${movFor.unidad}` : undefined}
+        submitLabel="Registrar"
+        busy={mov.isPending}
+        error={mov.error?.message}
+        onSubmit={onMov}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Tipo">
+            <select name="tipo" defaultValue="ingreso" className={inputCls}>
+              <option value="ingreso">Ingreso (+)</option>
+              <option value="salida">Salida (−)</option>
+              <option value="ajuste">Ajuste (=)</option>
+            </select>
+          </Field>
+          <Field label="Cantidad"><input name="cantidad" type="number" min="0.01" step="0.01" required className={inputCls} /></Field>
+        </div>
+        <Field label="Motivo"><input name="motivo" className={inputCls} placeholder="Compra OC-1024, consumo trabajo T-2026-..." /></Field>
+      </RecordDialog>
+    </div>
+  );
+}
+
+function Kpi({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+  return (
+    <div className={"bg-card border border-border rounded-lg p-4 " + (danger ? "ring-2 ring-destructive/20" : "")}>
+      <p className={"text-[10px] font-bold uppercase tracking-wider " + (danger ? "text-destructive" : "text-muted-foreground")}>{label}</p>
+      <p className={"text-2xl font-mono font-semibold mt-1 " + (danger ? "text-destructive" : "")}>{value}</p>
     </div>
   );
 }
