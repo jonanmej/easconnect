@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedTrabajosRouteImport } from './routes/_authenticated/trabajos'
+import { Route as AuthenticatedSolicitudesRouteImport } from './routes/_authenticated/solicitudes'
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
 import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
@@ -46,6 +47,12 @@ const AuthenticatedTrabajosRoute = AuthenticatedTrabajosRouteImport.update({
   path: '/trabajos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSolicitudesRoute =
+  AuthenticatedSolicitudesRouteImport.update({
+    id: '/solicitudes',
+    path: '/solicitudes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportesRoute = AuthenticatedReportesRouteImport.update({
   id: '/reportes',
   path: '/reportes',
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
+  '/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
 }
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
+  '/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/': typeof AuthenticatedIndexRoute
@@ -121,6 +130,7 @@ export interface FileRoutesById {
   '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
+  '/_authenticated/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/_authenticated/trabajos': typeof AuthenticatedTrabajosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/plantas'
     | '/programacion'
     | '/reportes'
+    | '/solicitudes'
     | '/trabajos'
     | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/plantas'
     | '/programacion'
     | '/reportes'
+    | '/solicitudes'
     | '/trabajos'
     | '/usuarios'
     | '/'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
     | '/_authenticated/plantas'
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
+    | '/_authenticated/solicitudes'
     | '/_authenticated/trabajos'
     | '/_authenticated/usuarios'
     | '/_authenticated/'
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/trabajos'
       fullPath: '/trabajos'
       preLoaderRoute: typeof AuthenticatedTrabajosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/solicitudes': {
+      id: '/_authenticated/solicitudes'
+      path: '/solicitudes'
+      fullPath: '/solicitudes'
+      preLoaderRoute: typeof AuthenticatedSolicitudesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reportes': {
@@ -270,6 +290,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
+  AuthenticatedSolicitudesRoute: typeof AuthenticatedSolicitudesRoute
   AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -283,6 +304,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
+  AuthenticatedSolicitudesRoute: AuthenticatedSolicitudesRoute,
   AuthenticatedTrabajosRoute: AuthenticatedTrabajosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
