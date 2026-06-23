@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
+import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus } from "lucide-react";
+import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -51,7 +53,10 @@ function sameDay(a: Date, b: Date) {
 function Programacion() {
   const qc = useQueryClient();
   const { roles } = useAuth();
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const role = highestRole(roles);
+  const canEdit = role === "admin" || role === "supervisor";
+  const isCliente = role === "cliente";
+  if (isCliente) return <ClienteCalendar />;
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));

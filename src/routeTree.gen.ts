@@ -18,6 +18,7 @@ import { Route as AuthenticatedSolicitudesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
 import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
+import { Route as AuthenticatedNotificacionesRouteImport } from './routes/_authenticated/notificaciones'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
@@ -69,6 +70,12 @@ const AuthenticatedPlantasRoute = AuthenticatedPlantasRouteImport.update({
   path: '/plantas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotificacionesRoute =
+  AuthenticatedNotificacionesRouteImport.update({
+    id: '/notificaciones',
+    path: '/notificaciones',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMantenimientosRoute =
   AuthenticatedMantenimientosRouteImport.update({
     id: '/mantenimientos',
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
@@ -127,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/_authenticated/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/notificaciones'
     | '/plantas'
     | '/programacion'
     | '/reportes'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/notificaciones'
     | '/plantas'
     | '/programacion'
     | '/reportes'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/equipos'
     | '/_authenticated/inventario'
     | '/_authenticated/mantenimientos'
+    | '/_authenticated/notificaciones'
     | '/_authenticated/plantas'
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlantasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notificaciones': {
+      id: '/_authenticated/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/notificaciones'
+      preLoaderRoute: typeof AuthenticatedNotificacionesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/mantenimientos': {
       id: '/_authenticated/mantenimientos'
       path: '/mantenimientos'
@@ -287,6 +307,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
+  AuthenticatedNotificacionesRoute: typeof AuthenticatedNotificacionesRoute
   AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
@@ -301,6 +322,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
+  AuthenticatedNotificacionesRoute: AuthenticatedNotificacionesRoute,
   AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
