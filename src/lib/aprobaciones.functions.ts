@@ -65,8 +65,7 @@ export const validarTokenAprobacion = createServerFn({ method: "POST" })
     const { data: rows, error } = await supabaseAdmin.rpc("validar_token_aprobacion", { _token: data.token });
     if (error) throw new Error(error.message);
     const row = (rows as any[] | null)?.[0];
-    if (!row) throw new Error("El enlace de aprobación es inválido o ha expirado.");
-    return row;
+    return row ?? null;
   });
 
 /** Vista pública: firma el trabajo. Recibe PNG base64. */
