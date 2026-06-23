@@ -29,6 +29,8 @@ type M = {
   equipo_label: string;
   tipo: "preventivo" | "correctivo" | "predictivo";
   fecha: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
   horas: number;
   estado: "programado" | "pendiente" | "completado" | "cancelado";
   notas: string | null;
@@ -79,7 +81,9 @@ function Mantenimientos() {
       id: editing?.id,
       equipo_id: f.get("equipo_id"),
       tipo: f.get("tipo"),
-      fecha: f.get("fecha"),
+      fecha: f.get("fecha_inicio") || f.get("fecha"),
+      fecha_inicio: f.get("fecha_inicio") || null,
+      fecha_fin: f.get("fecha_fin") || f.get("fecha_inicio") || null,
       horas: Number(f.get("horas") || 0),
       estado: f.get("estado"),
       notas: f.get("notas") || null,
@@ -144,7 +148,8 @@ function Mantenimientos() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3 capitalize">
-                {m.tipo} · {m.fecha}
+                {m.tipo} · {m.fecha_inicio ?? m.fecha}
+                {m.fecha_fin && m.fecha_fin !== (m.fecha_inicio ?? m.fecha) && ` → ${m.fecha_fin}`}
               </p>
               {m.notas && <p className="text-sm">{m.notas}</p>}
             </div>
@@ -186,7 +191,7 @@ function Mantenimientos() {
             ))}
           </select>
         </Field>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Field label="Tipo">
             <select name="tipo" defaultValue={editing?.tipo ?? "preventivo"} className={inputCls}>
               <option value="preventivo">Preventivo</option>
@@ -194,7 +199,8 @@ function Mantenimientos() {
               <option value="predictivo">Predictivo</option>
             </select>
           </Field>
-          <Field label="Fecha"><input name="fecha" type="date" required defaultValue={editing?.fecha ?? ""} className={inputCls} /></Field>
+          <Field label="Inicio"><input name="fecha_inicio" type="date" required defaultValue={editing?.fecha_inicio ?? editing?.fecha ?? ""} className={inputCls} /></Field>
+          <Field label="Fin"><input name="fecha_fin" type="date" defaultValue={editing?.fecha_fin ?? editing?.fecha ?? ""} className={inputCls} /></Field>
           <Field label="Horas"><input name="horas" type="number" min="0" step="0.25" defaultValue={editing?.horas ?? 0} className={inputCls} /></Field>
         </div>
         <Field label="Estado">
