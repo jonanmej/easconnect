@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
+import { AlertTriangle, Boxes, CalendarPlus, Camera, ClipboardList, Droplets, Plus, Sparkles, SunMedium, TrendingUp } from "lucide-react";
 import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
 import { ExportButton } from "@/components/ExportButton";
@@ -61,11 +61,13 @@ function StaffDashboard() {
 
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
+    { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString(), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString()}` : "acumulado", tone: "accent" as const },
+    { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
+    { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString(), delta: "galones", tone: "accent" as const },
+    { label: "Anomalías detectadas", value: String(stats.data?.anomalias_detectadas ?? 0).padStart(2, "0"), delta: "evidencias", tone: (stats.data?.anomalias_detectadas ?? 0) > 0 ? "danger" as const : "muted" as const },
     { label: "Equipos operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
-    { label: "Salud promedio", value: String(stats.data?.eficiencia ?? "--"), delta: "%", tone: "accent" as const },
     { label: "SLA vencidos", value: String(alertas.data?.sla_vencidos ?? 0).padStart(2, "0"), delta: "ver detalle", tone: alertas.data?.sla_vencidos ? "danger" as const : "muted" as const },
     { label: "Bajo stock", value: String(stats.data?.inv_bajo_stock ?? 0).padStart(2, "0"), delta: stats.data?.inv_bajo_stock ? "SKUs" : "OK", tone: stats.data?.inv_bajo_stock ? "danger" as const : "muted" as const },
-    { label: "Solicitudes >48h", value: String(alertas.data?.solicitudes_estancadas ?? 0).padStart(2, "0"), delta: "por aprobar", tone: alertas.data?.solicitudes_estancadas ? "danger" as const : "muted" as const },
   ];
 
   const hoy = new Date().toLocaleDateString("es-SV", { weekday: "long", day: "2-digit", month: "long" });
@@ -116,7 +118,7 @@ function StaffDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <div key={kpi.label}
             className={"animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
