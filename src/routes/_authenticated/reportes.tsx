@@ -216,7 +216,7 @@ function Reportes() {
           </DialogHeader>
           {detail.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
           {detail.data && (
-            <article className="prose prose-sm max-w-none">
+            <article className="text-sm leading-relaxed space-y-3 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-1 [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_strong]:font-semibold">
               <ReactMarkdown>{(detail.data as any).contenido_markdown}</ReactMarkdown>
             </article>
           )}
