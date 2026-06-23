@@ -35,11 +35,18 @@ export const getReporte = createServerFn({ method: "GET" })
 
 export const marcarReporteEnviado = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      enviado_a: z.string().email().nullable().optional(),
+    }).parse(d),
+  )
   .handler(async ({ context, data }) => {
+    const patch: any = { estado: "enviado", enviado_at: new Date().toISOString() };
+    if (data.enviado_a) patch.enviado_a = data.enviado_a;
     const { error } = await context.supabase
       .from("reportes")
-      .update({ estado: "enviado" })
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
