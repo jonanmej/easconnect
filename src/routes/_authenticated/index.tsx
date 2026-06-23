@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
+import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
-import { dashboardSeries, dashboardAlertas, listTrabajosSla } from "@/lib/dashboard.functions";
+import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -38,11 +38,13 @@ function StaffDashboard() {
   const fetchSeries = useServerFn(dashboardSeries);
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
+  const fetchAgua = useServerFn(aguaPorPlanta);
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const series = useQuery({ queryKey: ["dashboard-series"], queryFn: () => fetchSeries() });
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas() });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla() });
+  const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua() });
 
   const statusStyles: Record<string, string> = {
     operativo: "bg-accent/10 text-accent",
@@ -200,6 +202,36 @@ function StaffDashboard() {
         </section>
       </div>
 
+      <section className="bg-card border border-border rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+              <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Total acumulado: <span className="font-mono font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString()}</span> galones
+            </p>
+          </div>
+        </div>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={(agua.data?.filas ?? []).slice(0, 8)} layout="vertical" margin={{ left: 60 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
+              <Tooltip
+                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any) => [`${Math.round(Number(v)).toLocaleString()} gal`, "Agua"]}
+              />
+              <Bar dataKey="galones" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-3">Aún no se ha registrado consumo de agua en ningún reporte.</p>
+        )}
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <section className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-end">
@@ -291,8 +323,10 @@ function AlertaItem({ to, icon: Icon, label, count, tone = "danger" }: { to: str
 function ClienteDashboard() {
   const fetchPlantas = useServerFn(listPlantas);
   const fetchTrabajos = useServerFn(listTrabajos);
+  const fetchAgua = useServerFn(aguaPorPlanta);
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const trabajos = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos() });
+  const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua() });
 
   const rows = (plantas.data as any[] | undefined) ?? [];
   const ts = (trabajos.data as any[] | undefined) ?? [];
@@ -406,6 +440,23 @@ function ClienteDashboard() {
             {pendienteFirma.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Todo al día. ✓</li>}
           </ul>
         </div>
+      </section>
+
+      <section className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString()} gal
+        </h3>
+        <ul className="divide-y divide-border text-sm">
+          {(agua.data?.filas ?? []).slice(0, 8).map((r: any) => (
+            <li key={r.planta_id} className="flex items-center justify-between py-2">
+              <span className="truncate">{r.nombre}</span>
+              <span className="font-mono text-xs">{Math.round(r.galones).toLocaleString()} gal</span>
+            </li>
+          ))}
+          {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
+            <li className="text-xs text-muted-foreground text-center py-3">Sin registros de consumo de agua todavía.</li>
+          )}
+        </ul>
       </section>
     </div>
   );

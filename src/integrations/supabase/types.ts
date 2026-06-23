@@ -760,6 +760,7 @@ export type Database = {
       }
       trabajo_evidencias: {
         Row: {
+          categoria: string
           created_at: string
           descripcion: string | null
           id: string
@@ -768,6 +769,7 @@ export type Database = {
           trabajo_id: string
         }
         Insert: {
+          categoria?: string
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -776,6 +778,7 @@ export type Database = {
           trabajo_id: string
         }
         Update: {
+          categoria?: string
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -879,6 +882,7 @@ export type Database = {
       }
       trabajo_reportes: {
         Row: {
+          agua_galones: number | null
           cliente_firma_url: string | null
           cliente_observaciones: string | null
           cliente_recibe_cargo: string | null
@@ -889,6 +893,7 @@ export type Database = {
           id: string
           materiales_usados: string | null
           mediciones: Json | null
+          paneles_limpiados: number | null
           recomendaciones: string | null
           tecnico_firma_url: string | null
           tecnico_nombre: string | null
@@ -897,6 +902,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agua_galones?: number | null
           cliente_firma_url?: string | null
           cliente_observaciones?: string | null
           cliente_recibe_cargo?: string | null
@@ -907,6 +913,7 @@ export type Database = {
           id?: string
           materiales_usados?: string | null
           mediciones?: Json | null
+          paneles_limpiados?: number | null
           recomendaciones?: string | null
           tecnico_firma_url?: string | null
           tecnico_nombre?: string | null
@@ -915,6 +922,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agua_galones?: number | null
           cliente_firma_url?: string | null
           cliente_observaciones?: string | null
           cliente_recibe_cargo?: string | null
@@ -925,6 +933,7 @@ export type Database = {
           id?: string
           materiales_usados?: string | null
           mediciones?: Json | null
+          paneles_limpiados?: number | null
           recomendaciones?: string | null
           tecnico_firma_url?: string | null
           tecnico_nombre?: string | null
