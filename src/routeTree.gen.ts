@@ -12,19 +12,23 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AprobarTokenRouteImport } from './routes/aprobar.$token'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedTrabajosRouteImport } from './routes/_authenticated/trabajos'
+import { Route as AuthenticatedTerrenoRouteImport } from './routes/_authenticated/terreno'
 import { Route as AuthenticatedSolicitudesRouteImport } from './routes/_authenticated/solicitudes'
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
 import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
 import { Route as AuthenticatedNotificacionesRouteImport } from './routes/_authenticated/notificaciones'
+import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenticated/mis-trabajos'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
 import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -40,6 +44,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AprobarTokenRoute = AprobarTokenRouteImport.update({
+  id: '/aprobar/$token',
+  path: '/aprobar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -48,6 +57,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
 const AuthenticatedTrabajosRoute = AuthenticatedTrabajosRouteImport.update({
   id: '/trabajos',
   path: '/trabajos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTerrenoRoute = AuthenticatedTerrenoRouteImport.update({
+  id: '/terreno',
+  path: '/terreno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSolicitudesRoute =
@@ -76,6 +90,12 @@ const AuthenticatedNotificacionesRoute =
   AuthenticatedNotificacionesRouteImport.update({
     id: '/notificaciones',
     path: '/notificaciones',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMisTrabajosRoute =
+  AuthenticatedMisTrabajosRouteImport.update({
+    id: '/mis-trabajos',
+    path: '/mis-trabajos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMantenimientosRoute =
@@ -110,6 +130,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicCronRevisarFirmasRoute =
+  ApiPublicCronRevisarFirmasRouteImport.update({
+    id: '/api/public/cron/revisar-firmas',
+    path: '/api/public/cron/revisar-firmas',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -120,13 +146,17 @@ export interface FileRoutesByFullPath {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
   '/solicitudes': typeof AuthenticatedSolicitudesRoute
+  '/terreno': typeof AuthenticatedTerrenoRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/aprobar/$token': typeof AprobarTokenRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -136,14 +166,18 @@ export interface FileRoutesByTo {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
   '/solicitudes': typeof AuthenticatedSolicitudesRoute
+  '/terreno': typeof AuthenticatedTerrenoRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/aprobar/$token': typeof AprobarTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,14 +189,18 @@ export interface FileRoutesById {
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/_authenticated/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/_authenticated/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
   '/_authenticated/solicitudes': typeof AuthenticatedSolicitudesRoute
+  '/_authenticated/terreno': typeof AuthenticatedTerrenoRoute
   '/_authenticated/trabajos': typeof AuthenticatedTrabajosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/aprobar/$token': typeof AprobarTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,13 +213,17 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/mis-trabajos'
     | '/notificaciones'
     | '/plantas'
     | '/programacion'
     | '/reportes'
     | '/solicitudes'
+    | '/terreno'
     | '/trabajos'
     | '/usuarios'
+    | '/aprobar/$token'
+    | '/api/public/cron/revisar-firmas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -191,14 +233,18 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/mis-trabajos'
     | '/notificaciones'
     | '/plantas'
     | '/programacion'
     | '/reportes'
     | '/solicitudes'
+    | '/terreno'
     | '/trabajos'
     | '/usuarios'
+    | '/aprobar/$token'
     | '/'
+    | '/api/public/cron/revisar-firmas'
   id:
     | '__root__'
     | '/_authenticated'
@@ -209,19 +255,25 @@ export interface FileRouteTypes {
     | '/_authenticated/equipos'
     | '/_authenticated/inventario'
     | '/_authenticated/mantenimientos'
+    | '/_authenticated/mis-trabajos'
     | '/_authenticated/notificaciones'
     | '/_authenticated/plantas'
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
     | '/_authenticated/solicitudes'
+    | '/_authenticated/terreno'
     | '/_authenticated/trabajos'
     | '/_authenticated/usuarios'
+    | '/aprobar/$token'
     | '/_authenticated/'
+    | '/api/public/cron/revisar-firmas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AprobarTokenRoute: typeof AprobarTokenRoute
+  ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -247,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/aprobar/$token': {
+      id: '/aprobar/$token'
+      path: '/aprobar/$token'
+      fullPath: '/aprobar/$token'
+      preLoaderRoute: typeof AprobarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/usuarios': {
       id: '/_authenticated/usuarios'
       path: '/usuarios'
@@ -259,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/trabajos'
       fullPath: '/trabajos'
       preLoaderRoute: typeof AuthenticatedTrabajosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/terreno': {
+      id: '/_authenticated/terreno'
+      path: '/terreno'
+      fullPath: '/terreno'
+      preLoaderRoute: typeof AuthenticatedTerrenoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/solicitudes': {
@@ -294,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/notificaciones'
       fullPath: '/notificaciones'
       preLoaderRoute: typeof AuthenticatedNotificacionesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mis-trabajos': {
+      id: '/_authenticated/mis-trabajos'
+      path: '/mis-trabajos'
+      fullPath: '/mis-trabajos'
+      preLoaderRoute: typeof AuthenticatedMisTrabajosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mantenimientos': {
@@ -338,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/cron/revisar-firmas': {
+      id: '/api/public/cron/revisar-firmas'
+      path: '/api/public/cron/revisar-firmas'
+      fullPath: '/api/public/cron/revisar-firmas'
+      preLoaderRoute: typeof ApiPublicCronRevisarFirmasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -348,11 +428,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
+  AuthenticatedMisTrabajosRoute: typeof AuthenticatedMisTrabajosRoute
   AuthenticatedNotificacionesRoute: typeof AuthenticatedNotificacionesRoute
   AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
   AuthenticatedSolicitudesRoute: typeof AuthenticatedSolicitudesRoute
+  AuthenticatedTerrenoRoute: typeof AuthenticatedTerrenoRoute
   AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -365,11 +447,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
+  AuthenticatedMisTrabajosRoute: AuthenticatedMisTrabajosRoute,
   AuthenticatedNotificacionesRoute: AuthenticatedNotificacionesRoute,
   AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
   AuthenticatedSolicitudesRoute: AuthenticatedSolicitudesRoute,
+  AuthenticatedTerrenoRoute: AuthenticatedTerrenoRoute,
   AuthenticatedTrabajosRoute: AuthenticatedTrabajosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
@@ -381,6 +465,8 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AprobarTokenRoute: AprobarTokenRoute,
+  ApiPublicCronRevisarFirmasRoute: ApiPublicCronRevisarFirmasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

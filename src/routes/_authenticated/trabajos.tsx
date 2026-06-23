@@ -14,7 +14,7 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -26,6 +26,34 @@ import {
   deleteTrabajoRecurso,
   toggleRecursoFlag,
 } from "@/lib/trabajo-detalle.functions";
+import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
+
+function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: string }) {
+  const fSolicitar = useServerFn(solicitarAprobacion);
+  const m = useMutation({
+    mutationFn: () => fSolicitar({ data: { trabajo_id: trabajoId } }),
+    onSuccess: (r: any) => {
+      navigator.clipboard?.writeText(r.link).catch(() => {});
+      toast.success(`Enlace de firma copiado para ${folio}`, {
+        description: r.link,
+        duration: 8000,
+      });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => m.mutate()}
+      disabled={m.isPending}
+      title="Generar enlace de aprobación para el cliente"
+      aria-label="Solicitar firma del cliente"
+      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary disabled:opacity-50"
+    >
+      {m.isPending ? <Copy className="size-3.5 animate-pulse" /> : <FileSignature className="size-3.5" />}
+    </button>
+  );
+}
 
 const SERVICIOS_OT = [
   "Mantenimiento Preventivo",
@@ -209,6 +237,17 @@ function Trabajos() {
                 {canEdit && (
                   <td className="px-4 py-4 text-right">
                     <div className="inline-flex gap-1">
+                      {t.estado === "completado" && !t.firmado_at && (
+                        <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
+                      )}
+                      {t.firmado_at && (
+                        <span
+                          className="size-8 grid place-items-center rounded-md text-accent"
+                          title={`Firmado por ${t.firmado_por ?? "cliente"}`}
+                        >
+                          <FileSignature className="size-3.5" />
+                        </span>
+                      )}
                       <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                         <Pencil className="size-3.5" />
                       </button>
