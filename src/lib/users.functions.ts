@@ -105,3 +105,40 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const listRoleAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: logs, error } = await supabaseAdmin
+      .from("role_audit_log")
+      .select("id, target_user_id, role, action, performed_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    const ids = Array.from(
+      new Set(
+        (logs ?? []).flatMap((l: any) =>
+          [l.target_user_id, l.performed_by].filter(Boolean) as string[],
+        ),
+      ),
+    );
+    const emailById = new Map<string, string>();
+    await Promise.all(
+      ids.map(async (id) => {
+        const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+        if (data.user?.email) emailById.set(id, data.user.email);
+      }),
+    );
+    return (logs ?? []).map((l: any) => ({
+      id: l.id,
+      role: l.role,
+      action: l.action as "granted" | "revoked",
+      created_at: l.created_at,
+      target_email: emailById.get(l.target_user_id) ?? l.target_user_id.slice(0, 8),
+      performed_by_email: l.performed_by
+        ? emailById.get(l.performed_by) ?? l.performed_by.slice(0, 8)
+        : "sistema",
+    }));
+  });
