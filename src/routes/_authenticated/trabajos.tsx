@@ -48,6 +48,13 @@ function toLocalInput(value?: string) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function isWeekend(value: string) {
+  if (!value) return false;
+  const d = new Date(value);
+  const day = d.getDay();
+  return day === 0 || day === 6;
+}
+
 function Trabajos() {
   const qc = useQueryClient();
   const fetchList = useServerFn(listTrabajos);
@@ -82,12 +89,17 @@ function Trabajos() {
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    const fecha = String(f.get("fecha_programada") ?? "");
+    if (isWeekend(fecha)) {
+      toast.error("No se pueden programar trabajos en sábado o domingo.");
+      return;
+    }
     save.mutate({
       id: editing?.id,
       planta_id: f.get("planta_id"),
       equipo_id: f.get("equipo_id") || null,
       servicio: f.get("servicio"),
-      fecha_programada: f.get("fecha_programada"),
+      fecha_programada: fecha,
       estado: f.get("estado"),
       notas: f.get("notas") || null,
       duracion_dias: Number(f.get("duracion_dias") ?? 1),
@@ -190,7 +202,13 @@ function Trabajos() {
               required
               defaultValue={toLocalInput(editing?.fecha_programada)}
               className={inputCls}
+              onChange={(e) => {
+                if (isWeekend(e.currentTarget.value)) {
+                  toast.warning("Sábado y domingo no son días laborables.");
+                }
+              }}
             />
+            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes).</p>
           </Field>
           <Field label="Duración (días)">
             <input name="duracion_dias" type="number" min={1} max={60}
