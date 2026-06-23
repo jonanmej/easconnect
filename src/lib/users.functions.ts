@@ -49,7 +49,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        password: z.string().min(8),
+        password: z.string().min(8).optional().or(z.literal("")),
         role: RoleEnum,
       })
       .parse(d),
@@ -57,17 +57,33 @@ export const inviteUser = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-    });
-    if (error) throw new Error(error.message);
+    const usePassword = !!data.password && data.password.length >= 8;
+    let userId: string;
+    let userEmail: string | undefined;
+    if (usePassword) {
+      // Crea cuenta con contraseña inicial (admin la entrega por canal seguro, no se envía correo).
+      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true,
+      });
+      if (error) throw new Error(error.message);
+      userId = created.user!.id;
+      userEmail = created.user!.email ?? undefined;
+    } else {
+      // Envía correo de invitación oficial; el usuario fija su propia contraseña.
+      const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        data.email,
+      );
+      if (error) throw new Error(`No se pudo enviar la invitación: ${error.message}`);
+      userId = invited.user!.id;
+      userEmail = invited.user!.email ?? undefined;
+    }
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: created.user!.id, role: data.role });
+      .insert({ user_id: userId, role: data.role });
     if (roleErr) throw new Error(roleErr.message);
-    return { id: created.user!.id, email: created.user!.email };
+    return { id: userId, email: userEmail, invited: !usePassword };
   });
 
 export const setUserRole = createServerFn({ method: "POST" })
