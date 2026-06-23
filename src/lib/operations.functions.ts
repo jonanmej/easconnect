@@ -61,7 +61,7 @@ export const listPlantas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("plantas")
-      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, clientes(nombre)")
+      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, clientes(nombre)")
       .order("nombre");
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
@@ -81,13 +81,17 @@ export const upsertPlanta = createServerFn({ method: "POST" })
       paneles: z.coerce.number().int().min(0).default(0),
       capacidad: z.string().nullable().optional(),
       eficiencia: z.coerce.number().min(0).max(100).nullable().optional(),
+      notificaciones_completado: z.coerce.boolean().optional(),
+      email_notificaciones: z.string().email().nullable().optional().or(z.literal("")),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, ...rest } = data;
+    const { id, email_notificaciones, ...rest } = data;
+    const payload: any = { ...rest };
+    if (email_notificaciones !== undefined) payload.email_notificaciones = email_notificaciones || null;
     const q = id
-      ? context.supabase.from("plantas").update(rest).eq("id", id).select().single()
-      : context.supabase.from("plantas").insert(rest).select().single();
+      ? context.supabase.from("plantas").update(payload).eq("id", id).select().single()
+      : context.supabase.from("plantas").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
