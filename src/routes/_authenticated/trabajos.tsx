@@ -90,6 +90,7 @@ function Trabajos() {
       fecha_programada: f.get("fecha_programada"),
       estado: f.get("estado"),
       notas: f.get("notas") || null,
+      duracion_dias: Number(f.get("duracion_dias") ?? 1),
     });
   }
 
@@ -191,7 +192,12 @@ function Trabajos() {
               className={inputCls}
             />
           </Field>
-          <Field label="Estado">
+          <Field label="Duración (días)">
+            <input name="duracion_dias" type="number" min={1} max={60}
+              defaultValue={editing?.duracion_dias ?? 1} className={inputCls} />
+          </Field>
+        </div>
+        <Field label="Estado">
             <select name="estado" defaultValue={editing?.estado ?? "programado"} className={inputCls}>
               <option value="programado">Programado</option>
               <option value="en_progreso">En progreso</option>
@@ -199,7 +205,6 @@ function Trabajos() {
               <option value="cancelado">Cancelado</option>
             </select>
           </Field>
-        </div>
         <Field label="Equipo asignado (opcional)">
           <select name="equipo_id" defaultValue={editing?.equipo_id ?? ""} className={inputCls}>
             <option value="">— Sin equipo —</option>
