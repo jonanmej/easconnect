@@ -18,6 +18,34 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import {
+  getTrabajoReporte,
+  upsertTrabajoReporte,
+  listTrabajoRecursos,
+  upsertTrabajoRecurso,
+  deleteTrabajoRecurso,
+  toggleRecursoFlag,
+} from "@/lib/trabajo-detalle.functions";
+
+const SERVICIOS_OT = [
+  "Mantenimiento Preventivo",
+  "Mantenimiento Correctivo",
+  "Mantenimiento Menor",
+  "Mantenimiento Medio",
+  "Mantenimiento Mayor",
+  "Mantenimiento de motores",
+  "Instalación Fotovoltaica",
+  "Limpieza Robotizada",
+] as const;
+
+const CAT_RECURSO = [
+  { value: "herramienta", label: "Herramienta" },
+  { value: "equipo", label: "Equipo" },
+  { value: "epp", label: "EPP" },
+  { value: "insumo", label: "Insumo" },
+  { value: "repuesto", label: "Repuesto" },
+  { value: "otro", label: "Otro" },
+] as const;
 
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
@@ -217,7 +245,13 @@ function Trabajos() {
           </select>
         </Field>
         <Field label="Servicio">
-          <input name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls} placeholder="Limpieza Robotizada" />
+          <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}>
+            <option value="">— Selecciona servicio —</option>
+            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
+            {editing?.servicio && !SERVICIOS_OT.includes(editing.servicio) && (
+              <option value={editing.servicio}>{editing.servicio} (legado)</option>
+            )}
+          </select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Fecha y hora">
@@ -260,12 +294,217 @@ function Trabajos() {
           <textarea name="notas" rows={3} defaultValue={editing?.notas ?? ""} className={inputCls} />
         </Field>
         {editing?.id && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
-            <EvidenciaUploader trabajoId={editing.id} />
-          </div>
+          <>
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Evidencias</p>
+              <EvidenciaUploader trabajoId={editing.id} />
+            </div>
+            <ReporteBaseSection trabajoId={editing.id} canEdit={canEdit} />
+            <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
+          </>
         )}
       </RecordDialog>
+    </div>
+  );
+}
+
+function ReporteBaseSection({ trabajoId, canEdit }: { trabajoId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const fGet = useServerFn(getTrabajoReporte);
+  const fSave = useServerFn(upsertTrabajoReporte);
+  const q = useQuery({
+    queryKey: ["trabajo-reporte", trabajoId],
+    queryFn: () => fGet({ data: { trabajo_id: trabajoId } }),
+  });
+  const save = useMutation({
+    mutationFn: (v: any) => fSave({ data: { trabajo_id: trabajoId, ...v } }),
+    onSuccess: () => { toast.success("Reporte base guardado"); qc.invalidateQueries({ queryKey: ["trabajo-reporte", trabajoId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const r = (q.data as any) ?? {};
+  function onSave(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); e.stopPropagation();
+    const f = new FormData(e.currentTarget);
+    save.mutate({
+      condiciones_sitio: f.get("condiciones_sitio") || null,
+      trabajo_realizado: f.get("trabajo_realizado") || null,
+      hallazgos: f.get("hallazgos") || null,
+      recomendaciones: f.get("recomendaciones") || null,
+      materiales_usados: f.get("materiales_usados") || null,
+      tecnico_nombre: f.get("tecnico_nombre") || null,
+      cliente_recibe_nombre: f.get("cliente_recibe_nombre") || null,
+      cliente_recibe_cargo: f.get("cliente_recibe_cargo") || null,
+      cliente_observaciones: f.get("cliente_observaciones") || null,
+    });
+  }
+  return (
+    <div className="pt-2 border-t border-border">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Reporte base de la visita</p>
+      <p className="text-[10px] text-muted-foreground mb-3">
+        Estos datos alimentan los Reportes generados por IA. Llénalos al cerrar la OT.
+      </p>
+      <form onSubmit={onSave} className="space-y-3">
+        <Field label="Condiciones del sitio">
+          <textarea name="condiciones_sitio" rows={2} defaultValue={r.condiciones_sitio ?? ""} className={inputCls} disabled={!canEdit} />
+        </Field>
+        <Field label="Trabajo realizado">
+          <textarea name="trabajo_realizado" rows={3} defaultValue={r.trabajo_realizado ?? ""} className={inputCls} disabled={!canEdit} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Hallazgos">
+            <textarea name="hallazgos" rows={3} defaultValue={r.hallazgos ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+          <Field label="Recomendaciones">
+            <textarea name="recomendaciones" rows={3} defaultValue={r.recomendaciones ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+        </div>
+        <Field label="Materiales usados">
+          <textarea name="materiales_usados" rows={2} defaultValue={r.materiales_usados ?? ""} className={inputCls} disabled={!canEdit} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Técnico responsable">
+            <input name="tecnico_nombre" defaultValue={r.tecnico_nombre ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+          <Field label="Recibe (cliente)">
+            <input name="cliente_recibe_nombre" defaultValue={r.cliente_recibe_nombre ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Cargo del receptor">
+            <input name="cliente_recibe_cargo" defaultValue={r.cliente_recibe_cargo ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+          <Field label="Observaciones del cliente">
+            <input name="cliente_observaciones" defaultValue={r.cliente_observaciones ?? ""} className={inputCls} disabled={!canEdit} />
+          </Field>
+        </div>
+        {canEdit && (
+          <button type="submit" disabled={save.isPending}
+            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-50">
+            {save.isPending ? "Guardando…" : "Guardar reporte base"}
+          </button>
+        )}
+      </form>
+    </div>
+  );
+}
+
+function RecursosSection({ trabajoId, canEdit }: { trabajoId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const fList = useServerFn(listTrabajoRecursos);
+  const fUp = useServerFn(upsertTrabajoRecurso);
+  const fDel = useServerFn(deleteTrabajoRecurso);
+  const fToggle = useServerFn(toggleRecursoFlag);
+  const list = useQuery({
+    queryKey: ["trabajo-recursos", trabajoId],
+    queryFn: () => fList({ data: { trabajo_id: trabajoId } }),
+  });
+  const add = useMutation({
+    mutationFn: (v: any) => fUp({ data: { trabajo_id: trabajoId, ...v } }),
+    onSuccess: () => { toast.success("Recurso agregado"); qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: (id: string) => fDel({ data: { id } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }); },
+  });
+  const toggle = useMutation({
+    mutationFn: (v: any) => fToggle({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }),
+  });
+
+  function onAdd(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); e.stopPropagation();
+    const f = new FormData(e.currentTarget);
+    add.mutate({
+      categoria: f.get("categoria"),
+      descripcion: f.get("descripcion"),
+      cantidad: Number(f.get("cantidad") || 1),
+      unidad: f.get("unidad") || "un",
+      notas: f.get("notas") || null,
+    });
+    e.currentTarget.reset();
+  }
+
+  const rows = (list.data as any[] | undefined) ?? [];
+
+  return (
+    <div className="pt-2 border-t border-border">
+      <div className="flex items-baseline justify-between mb-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
+        <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-3">
+        Herramientas, EPP, equipos, insumos y repuestos que el técnico debe llevar a la empresa.
+      </p>
+      <div className="border border-border rounded-md overflow-x-auto mb-3">
+        <table className="w-full text-xs">
+          <thead className="bg-secondary text-[10px] uppercase text-muted-foreground">
+            <tr>
+              <th className="px-2 py-2 text-left">Cat.</th>
+              <th className="px-2 py-2 text-left">Descripción</th>
+              <th className="px-2 py-2 text-right">Cant.</th>
+              <th className="px-2 py-2 text-center">Entreg.</th>
+              <th className="px-2 py-2 text-center">Devuelto</th>
+              {canEdit && <th />}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td className="px-2 py-2 capitalize">{r.categoria}</td>
+                <td className="px-2 py-2">{r.descripcion}{r.notas && <span className="block text-[10px] text-muted-foreground">{r.notas}</span>}</td>
+                <td className="px-2 py-2 text-right font-mono">{r.cantidad} {r.unidad ?? ""}</td>
+                <td className="px-2 py-2 text-center">
+                  <input type="checkbox" checked={r.entregado} disabled={!canEdit}
+                    onChange={(e) => toggle.mutate({ id: r.id, campo: "entregado", valor: e.currentTarget.checked })} />
+                </td>
+                <td className="px-2 py-2 text-center">
+                  <input type="checkbox" checked={r.devuelto} disabled={!canEdit}
+                    onChange={(e) => toggle.mutate({ id: r.id, campo: "devuelto", valor: e.currentTarget.checked })} />
+                </td>
+                {canEdit && (
+                  <td className="px-2 py-2 text-right">
+                    <button type="button" onClick={() => del.mutate(r.id)}
+                      className="size-7 grid place-items-center rounded hover:bg-secondary text-muted-foreground hover:text-destructive">
+                      <Trash2 className="size-3" />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr><td colSpan={6} className="px-2 py-3 text-center text-muted-foreground">Sin recursos asignados.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {canEdit && (
+        <form onSubmit={onAdd} className="grid grid-cols-12 gap-2 items-end">
+          <div className="col-span-3">
+            <select name="categoria" required className={inputCls + " text-xs"} defaultValue="herramienta">
+              {CAT_RECURSO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="col-span-4">
+            <input name="descripcion" required placeholder="Descripción" className={inputCls + " text-xs"} />
+          </div>
+          <div className="col-span-2">
+            <input name="cantidad" type="number" min="0.01" step="0.01" defaultValue={1} className={inputCls + " text-xs"} />
+          </div>
+          <div className="col-span-2">
+            <input name="unidad" placeholder="un" className={inputCls + " text-xs"} />
+          </div>
+          <div className="col-span-1">
+            <button type="submit" disabled={add.isPending}
+              className="h-9 w-full grid place-items-center rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+          <div className="col-span-12">
+            <input name="notas" placeholder="Notas (opcional)" className={inputCls + " text-xs"} />
+          </div>
+        </form>
+      )}
     </div>
   );
 }
