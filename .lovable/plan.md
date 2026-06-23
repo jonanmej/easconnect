@@ -1,71 +1,94 @@
-# Fase 4 — Calendario operativo, evidencia visual y notificaciones
 
-Estado: **completado** (calendario + evidencia + base de notificaciones). El envío real de email queda condicionado a la configuración del dominio de Lovable Emails.
+## Fase 5 — Reportes PDF, Notificaciones reales y Calendario del cliente
 
-Cierro los temas pendientes de la Fase 3 (`out of scope`): una **programación tipo calendario real**, **fotos adjuntas en trabajos** vía Storage, y **notificaciones por email** a clientes cuando se publica un reporte o se completa un trabajo. Con esto el ciclo operativo queda completo de punta a punta.
+### 1. Generación y descarga de PDF ejecutivo
 
-## 1. Programación tipo calendario
+**Stack:** `@react-pdf/renderer` (puro JS, compatible con Worker SSR). Se genera del lado del cliente para evitar problemas con fuentes/imágenes en el runtime serverless.
 
-**UI `/programacion`**
-- Vista semanal y mensual con `react-day-picker` (ya instalado) + grilla custom de horarios.
-- Cada `trabajo` aparece como bloque, color por tipo (inspección / mantenimiento / reparación) y borde por estado.
-- Drag-and-drop entre días/franjas para reprogramar (actualiza `fecha_programada` del trabajo).
-- Drag entre filas de técnico para reasignar (`tecnico_id`).
-- Filtros por planta, técnico y tipo.
-- Click en bloque → diálogo de detalle / edición rápida.
+**Estructura del PDF ejecutivo:**
+- **Portada**: logo SOLAROS, nombre de planta, cliente, periodo, fecha de emisión, número de reporte.
+- **Índice** auto-generado.
+- **Resumen ejecutivo** (texto IA ya guardado en `reportes.contenido_md`).
+- **KPIs** (tabla + barras simples dibujadas en SVG con react-pdf): trabajos completados/pendientes, % cumplimiento, horas operación, alertas.
+- **Detalle de trabajos** del periodo (tabla con fecha, tipo, técnico, estado, observaciones).
+- **Evidencias**: una página por trabajo con hasta 4 fotos en grilla. Se descargan vía URLs firmadas y se embeben como base64.
+- **Pie de firma** (supervisor responsable + fecha).
 
-**Backend**
-- Nueva server fn `reprogramarTrabajo({ id, fecha_programada, tecnico_id? })` — admin / supervisor.
-- Reutiliza el RLS existente de `trabajos`.
+**Reporte interno**: misma plantilla, sin portada elaborada y sin sección ejecutiva — solo tablas crudas y todas las evidencias.
 
-## 2. Evidencia fotográfica de campo
+**Botones en `/reportes`**: "Descargar PDF Ejecutivo" y "Descargar PDF Interno" junto a cada reporte. Loading state mientras se ensambla.
 
-**Storage**
-- Bucket `trabajos-evidencia` (privado).
-- Política: técnico/admin/supervisor suben a `trabajos/{trabajo_id}/...`; cliente solo lee las de sus trabajos.
+### 2. Envío real de correos con Gmail (proyectos@easervice.app)
 
-**Tabla `trabajo_evidencias`**
-- `trabajo_id`, `storage_path`, `descripcion`, `subido_por`, `created_at`.
+**Decisión técnica:** No usaré Lovable Emails (requiere dominio propio delegado). Conectaré el connector **Gmail** que autentica esa cuenta Gmail del builder y envía vía Gmail API a través del gateway.
 
-**UI**
-- En el diálogo de detalle de un trabajo: zona de carga (drag-drop), galería con thumbnails y lightbox.
-- Visible en `/trabajos` para cliente (solo lectura) y en el detalle del reporte si la foto pertenece al periodo cubierto.
+**Pasos:**
+1. Conectar el connector `google_mail` con esa cuenta Gmail.
+2. Crear server fn `sendNotificacionCompletado({ trabajoId })` que:
+   - Verifica rol staff.
+   - Carga trabajo + planta + cliente.
+   - Si `plantas.notificaciones_completado=true` y hay `email_notificaciones`, construye email HTML (plantilla con branding SOLAROS) y lo envía vía `https://connector-gateway.lovable.dev/google_mail/gmail/v1/users/me/messages/send`.
+   - Registra el envío en tabla de auditoría (siguiente sección).
+3. Botón manual "Enviar al cliente" en detalle de trabajo y en `/reportes` (envío del PDF como link de descarga firmado de 7 días, no como attachment).
+4. Trigger automático: cuando un trabajo pasa a `completado` y la planta tiene notificaciones activas, encolar el envío vía server fn invocada desde el handler de update (no SQL trigger — Gmail necesita LOVABLE_API_KEY que solo existe en runtime de la app).
 
-## 3. Notificaciones por email
+### 3. Auditoría de envíos de notificaciones
 
-**Connector**
-- Usar el connector **Resend** vía Lovable Gateway (sin API key manual).
-- Si el usuario no lo tiene linkeado, lo pido al inicio de la fase.
+**Nueva tabla `notificaciones_log`:**
+- `id`, `trabajo_id`, `planta_id`, `cliente_id`, `reporte_id` (nullable)
+- `destinatario` (email), `asunto`, `tipo` (`completado` | `reporte_ejecutivo` | `reporte_interno` | `manual`)
+- `estado` (`enviado` | `error`), `error_mensaje` (nullable), `gmail_message_id` (nullable)
+- `enviado_por` (uuid del usuario que disparó), `enviado_at`
+- RLS: staff lee todo; cliente ve solo los suyos por `cliente_id = current_cliente_id()`.
 
-**Server fns / triggers**
-- `enviarReporteCliente(reporte_id)` — admin/supervisor. Renderiza el markdown a HTML inline, envía al email del contacto del cliente y marca el reporte como `enviado`.
-- Trigger en `trabajos`: cuando pasa a `completado` y la planta tiene `notificaciones_completado = true`, encola un email resumen al cliente (vía server route `/api/public/hooks/notify-trabajo` llamada desde un pg_net después del UPDATE).
+**Vista `/notificaciones` (nueva ruta `_authenticated/notificaciones.tsx`):**
+- Filtros: cliente (select), planta (cascada del cliente), rango de fechas (date picker), tipo y estado.
+- Tabla con paginación: fecha, planta, cliente, tipo, destinatario, estado, ver detalle.
+- Botón "Reintentar" para envíos en error.
+- Item en sidebar visible solo para staff.
 
-**UI**
-- Switch "Notificar al cliente al completar trabajos" en la ficha de `plantas`.
-- En `/reportes`, el botón "Marcar como enviado" pasa a "Enviar al cliente" cuando hay email configurado, con preview del HTML antes de enviar.
+### 4. Calendario para clientes — "Solicitar visita" con bloqueo por duración
 
-## 4. Dashboard
+**Cambios de modelo:**
+- Añadir a `trabajos`: `duracion_dias INT NOT NULL DEFAULT 1` (cuántos días consecutivos ocupa) y `origen TEXT DEFAULT 'staff'` (`staff` | `cliente`).
+- Nueva tabla `solicitudes_visita`:
+  - `id`, `cliente_id`, `planta_id`, `tipo` (mantenimiento/inspección/falla), `descripcion`, `fecha_preferida`, `duracion_dias_estimada`, `estado` (`pendiente` | `aprobada` | `rechazada` | `convertida`), `trabajo_id` (nullable cuando se convierte), `respuesta_supervisor` (text).
+- RLS: cliente CRUD solo sobre las suyas en estado `pendiente`; supervisor/admin gestionan todas.
 
-- Nuevo KPI "Trabajos reprogramados esta semana".
-- Card "Próximos 7 días" con mini-calendario que enlaza a `/programacion`.
+**Cálculo de disponibilidad:**
+- Server fn `getDisponibilidad({ desde, hasta })` que devuelve por día: `{ fecha, ocupada: boolean }`.
+- Ocupada = existe al menos un trabajo cuyo rango `[fecha_programada, fecha_programada + duracion_dias)` cubre ese día (regla: 1 trabajo simultáneo en la operación — capacidad global simple; si después se requiere por planta o técnico se amplía).
+- Si la respuesta es "no existe espacio", el cliente verá la fecha tachada en rojo con tooltip "No disponible" pero podrá pedir otra fecha; la confirmación final la hace el supervisor.
 
-## Detalles técnicos
+**UI:**
+- En `/programacion` para clientes (vista distinta): calendario mensual con días ocupados en rojo, libres en verde. Click en día libre abre diálogo "Solicitar visita" (planta, tipo, descripción, duración estimada). Cliente solo ve sus propias plantas.
+- En `/solicitudes` (nueva ruta) para staff: lista de solicitudes pendientes con acciones "Aprobar y crear trabajo" (abre modal de trabajo con datos prellenados) o "Rechazar" (con motivo).
+- En `/solicitudes` para cliente: ve el estado de las suyas.
 
-- **Migraciones (3):** `trabajo_evidencias` + bucket + policies, columnas nuevas en `plantas` (`notificaciones_completado`, `email_notificaciones`) y en `reportes` (`enviado_a`, `enviado_at`), trigger de notificación.
-- **Server functions nuevas:** `reprogramarTrabajo`, `subirEvidencia` (firma URL), `listarEvidencias`, `eliminarEvidencia`, `enviarReporteCliente`.
-- **Server route pública:** `/api/public/hooks/notify-trabajo` con verificación HMAC, llamada por `pg_net` desde el trigger.
-- **Componentes nuevos:** `CalendarioTrabajos`, `EvidenciaUploader`, `EvidenciaGallery`, `EmailPreviewDialog`.
-- **Sin cambios en `mock-data.ts`:** `agendaHoy` se reemplaza por una consulta real a `trabajos` del día.
+### 5. Migraciones y entregables
 
-## Fuera de alcance
+**SQL (una migración):**
+- `ALTER TABLE trabajos ADD duracion_dias`, `origen`.
+- `CREATE TABLE solicitudes_visita` + GRANTs + RLS + policies + trigger updated_at.
+- `CREATE TABLE notificaciones_log` + GRANTs + RLS + policies.
+- Función `public.dia_ocupado(fecha date)` security definer estable usada en el cálculo.
 
-- Exportes PDF (queda para Fase 5 junto con branding del cliente).
-- App móvil nativa.
-- Push notifications.
+**Código nuevo:**
+- `src/lib/pdf/ReporteEjecutivoDoc.tsx`, `ReporteInternoDoc.tsx` (componentes react-pdf).
+- `src/lib/pdf/exportar.ts` (helper para empaquetar evidencias en base64).
+- `src/lib/notificaciones.functions.ts` (sendNotificacionCompletado, listLogs, reintentar).
+- `src/lib/solicitudes.functions.ts` (CRUD solicitudes, aprobar, rechazar, getDisponibilidad).
+- `src/routes/_authenticated/notificaciones.tsx`.
+- `src/routes/_authenticated/solicitudes.tsx`.
+- Reescribir `src/routes/_authenticated/programacion.tsx` para diferenciar vista staff (la actual) vs vista cliente (calendario de solicitud).
 
-## Notas de implementación
+**Conector requerido del usuario:** te pediré conectar Gmail con la cuenta `proyectos@easervice.app` cuando llegue ese paso — la cuenta debe iniciar sesión y autorizar los scopes `gmail.send` (y opcionalmente `gmail.compose`).
 
-- Envío de email todavía no está conectado: se prepararon las columnas (`plantas.notificaciones_completado`, `plantas.email_notificaciones`, `reportes.enviado_a`, `reportes.enviado_at`) y la UI ya recoge el email del cliente. Falta configurar dominio de Lovable Emails para escribir las plantillas y conectar el trigger.
+### Lo que NO entra en esta fase
 
-¿Procedo con Fase 4 así, o quieres ajustar prioridades (por ejemplo, hacer solo calendario + emails y dejar evidencia para después)?
+- Adjuntar PDFs binarios al email (Gmail API lo soporta pero complica el flujo; se envía un enlace firmado en su lugar).
+- Capacidad por técnico o por planta — se deja capacidad global; ampliable luego.
+- Push notifications móviles.
+- Firma digital del cliente en evidencias.
+
+¿Procedo con esto, o ajustas algo (por ejemplo, capacidad por planta en lugar de global, o adjuntar el PDF al correo)?
