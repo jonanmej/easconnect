@@ -50,6 +50,8 @@ export const upsertTrabajoReporte = createServerFn({ method: "POST" })
       cliente_recibe_nombre: z.string().nullable().optional(),
       cliente_recibe_cargo: z.string().nullable().optional(),
       cliente_observaciones: z.string().nullable().optional(),
+      paneles_limpiados: z.coerce.number().int().nonnegative().nullable().optional(),
+      agua_galones: z.coerce.number().nonnegative().nullable().optional(),
       mediciones: z.record(z.string(), z.any()).optional(),
     }).parse(d),
   )

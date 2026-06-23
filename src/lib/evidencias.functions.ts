@@ -4,13 +4,15 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKET = "trabajos-evidencia";
 
+const CATEGORIAS = ["antes", "durante", "despues", "anomalia"] as const;
+
 export const listEvidencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { data: rows, error } = await context.supabase
       .from("trabajo_evidencias")
-      .select("id, trabajo_id, storage_path, descripcion, subido_por, created_at")
+      .select("id, trabajo_id, storage_path, descripcion, categoria, subido_por, created_at")
       .eq("trabajo_id", data.trabajo_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -30,6 +32,7 @@ export const recordEvidencia = createServerFn({ method: "POST" })
       trabajo_id: z.string().uuid(),
       storage_path: z.string().min(1),
       descripcion: z.string().nullable().optional(),
+      categoria: z.enum(CATEGORIAS).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -39,6 +42,7 @@ export const recordEvidencia = createServerFn({ method: "POST" })
         trabajo_id: data.trabajo_id,
         storage_path: data.storage_path,
         descripcion: data.descripcion ?? null,
+        categoria: data.categoria ?? "durante",
         subido_por: context.userId,
       })
       .select()
