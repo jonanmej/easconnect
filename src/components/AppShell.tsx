@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Users,
   RefreshCw,
+  CalendarPlus,
+  Mail,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useState } from "react";
@@ -37,6 +39,7 @@ const allGroups: NavGroup[] = [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/programacion", label: "Programación", icon: CalendarRange },
       { to: "/trabajos", label: "Trabajos", icon: ClipboardList },
+      { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
     ],
   },
   {
@@ -53,6 +56,7 @@ const allGroups: NavGroup[] = [
     items: [
       { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
       { to: "/reportes", label: "Reportes IA", icon: Sparkles },
+      { to: "/notificaciones", label: "Notificaciones", icon: Mail },
     ],
   },
   {
