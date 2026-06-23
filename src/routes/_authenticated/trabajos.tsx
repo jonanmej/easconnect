@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { trabajos } from "@/lib/mock-data";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/trabajos")({
+export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
     meta: [{ title: "Trabajos · SOLAROS" }, { name: "description", content: "Listado y seguimiento de órdenes de trabajo." }],
   }),

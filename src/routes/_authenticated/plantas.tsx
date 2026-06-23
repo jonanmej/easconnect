@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { plantas } from "@/lib/mock-data";
 import { Plus, MapPin } from "lucide-react";
 
-export const Route = createFileRoute("/plantas")({
+export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
     meta: [{ title: "Plantas · SOLAROS" }, { name: "description", content: "Instalaciones bajo gestión: solares y térmicas." }],
   }),

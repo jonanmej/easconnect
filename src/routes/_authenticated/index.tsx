@@ -4,7 +4,7 @@ import plantaIso from "@/assets/planta-iso.jpg";
 import { Link } from "@tanstack/react-router";
 import { Plus, FileDown } from "lucide-react";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Dashboard · SOLAROS" },

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { mantenimientos } from "@/lib/mock-data";
 import { Plus, Clock } from "lucide-react";
 
-export const Route = createFileRoute("/mantenimientos")({
+export const Route = createFileRoute("/_authenticated/mantenimientos")({
   head: () => ({
     meta: [{ title: "Mantenimientos · SOLAROS" }, { name: "description", content: "Bitácora de mantenimientos a equipos." }],
   }),

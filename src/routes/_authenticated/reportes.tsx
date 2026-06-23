@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Sparkles, FileDown, Wand2 } from "lucide-react";
 
-export const Route = createFileRoute("/reportes")({
+export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
     meta: [{ title: "Reportes IA · SOLAROS" }, { name: "description", content: "Reportes ejecutivos generados con IA para clientes." }],
   }),

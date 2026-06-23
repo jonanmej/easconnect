@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { clientes } from "@/lib/mock-data";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/clientes")({
+export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [{ title: "Clientes · SOLAROS" }, { name: "description", content: "Cartera de clientes empresariales." }],
   }),

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { equipos } from "@/lib/mock-data";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/equipos")({
+export const Route = createFileRoute("/_authenticated/equipos")({
   head: () => ({
     meta: [{ title: "Equipos · SOLAROS" }, { name: "description", content: "Flota de robots, motores y herramientas." }],
   }),
