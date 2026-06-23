@@ -19,7 +19,7 @@ import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
-    meta: [{ title: "Reportes IA · EA Service Connect" }, { name: "description", content: "Reportes ejecutivos generados con IA para clientes." }],
+    meta: [{ title: "Reportes · EA Service Connect" }, { name: "description", content: "Reportes ejecutivos generados para clientes." }],
   }),
   component: Reportes,
   errorComponent: ({ error }) => (
@@ -132,7 +132,7 @@ function Reportes() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
-        title="Reportes Ejecutivos IA"
+        title="Reportes Ejecutivos"
         description="La IA analiza datos reales de trabajos, mantenimientos y equipos para generar un informe profesional por cliente."
         actions={
           <>
