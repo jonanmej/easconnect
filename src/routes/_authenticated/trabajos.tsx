@@ -210,6 +210,17 @@ function Trabajos() {
                 {canEdit && (
                   <td className="px-4 py-4 text-right">
                     <div className="inline-flex gap-1">
+                      {t.estado === "completado" && !t.firmado_at && (
+                        <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
+                      )}
+                      {t.firmado_at && (
+                        <span
+                          className="size-8 grid place-items-center rounded-md text-accent"
+                          title={`Firmado por ${t.firmado_por ?? "cliente"}`}
+                        >
+                          <FileSignature className="size-3.5" />
+                        </span>
+                      )}
                       <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                         <Pencil className="size-3.5" />
                       </button>
