@@ -1,0 +1,194 @@
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
+import {
+  listUsers,
+  inviteUser,
+  setUserRole,
+  deleteUser,
+} from "@/lib/users.functions";
+import { ROLE_LABEL, type AppRole } from "@/lib/roles";
+import { Trash2, UserPlus } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/usuarios")({
+  component: UsersPage,
+});
+
+const ALL_ROLES: AppRole[] = ["admin", "supervisor", "tecnico", "cliente"];
+
+function UsersPage() {
+  const qc = useQueryClient();
+  const fetchUsers = useServerFn(listUsers);
+  const fetchInvite = useServerFn(inviteUser);
+  const fetchSetRole = useServerFn(setUserRole);
+  const fetchDelete = useServerFn(deleteUser);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => fetchUsers(),
+  });
+
+  const invite = useMutation({
+    mutationFn: (vars: { email: string; password: string; role: AppRole }) =>
+      fetchInvite({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const toggle = useMutation({
+    mutationFn: (vars: { userId: string; role: AppRole; enabled: boolean }) =>
+      fetchSetRole({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const remove = useMutation({
+    mutationFn: (userId: string) => fetchDelete({ data: { userId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<AppRole>("tecnico");
+
+  function onInvite(e: React.FormEvent) {
+    e.preventDefault();
+    invite.mutate(
+      { email, password, role },
+      {
+        onSuccess: () => {
+          setEmail("");
+          setPassword("");
+        },
+      },
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <p className="text-sm text-destructive">
+          No se pudo cargar la lista de usuarios: {(error as Error).message}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-8 max-w-6xl">
+      <PageHeader
+        title="Usuarios y Roles"
+        description="Invita miembros del equipo o clientes y controla sus permisos por rol."
+      />
+
+      <section className="border border-border rounded-lg bg-card p-5 mb-8">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <UserPlus className="size-4 text-primary" />
+          Invitar usuario
+        </h2>
+        <form onSubmit={onInvite} className="grid sm:grid-cols-4 gap-3 mt-4">
+          <input
+            type="email"
+            required
+            placeholder="correo@empresa.cl"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+          />
+          <input
+            type="text"
+            required
+            placeholder="Contraseña inicial (min. 8)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm font-mono"
+          />
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as AppRole)}
+            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+          >
+            {ALL_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={invite.isPending}
+            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+          >
+            {invite.isPending ? "Creando…" : "Crear cuenta"}
+          </button>
+        </form>
+        {invite.error && (
+          <p className="text-xs text-destructive mt-2">
+            {(invite.error as Error).message}
+          </p>
+        )}
+        <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
+          La contraseña debe entregarse al usuario por un canal seguro. Podrá cambiarla luego.
+        </p>
+      </section>
+
+      <section className="border border-border rounded-lg bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr>
+              <th className="text-left p-3">Email</th>
+              {ALL_ROLES.map((r) => (
+                <th key={r} className="text-center p-3">
+                  {ROLE_LABEL[r]}
+                </th>
+              ))}
+              <th className="p-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr>
+                <td colSpan={ALL_ROLES.length + 2} className="p-6 text-center text-xs text-muted-foreground">
+                  Cargando…
+                </td>
+              </tr>
+            )}
+            {data?.map((u) => (
+              <tr key={u.id} className="border-t border-border">
+                <td className="p-3">
+                  <div className="font-medium">{u.email}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}</div>
+                </td>
+                {ALL_ROLES.map((r) => {
+                  const enabled = u.roles.includes(r);
+                  return (
+                    <td key={r} className="p-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        disabled={toggle.isPending}
+                        onChange={(e) =>
+                          toggle.mutate({ userId: u.id, role: r, enabled: e.target.checked })
+                        }
+                        className="accent-primary size-4"
+                      />
+                    </td>
+                  );
+                })}
+                <td className="p-3 text-right">
+                  <button
+                    onClick={() => {
+                      if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
+                    }}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
