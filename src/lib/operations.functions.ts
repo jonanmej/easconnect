@@ -191,6 +191,8 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       estado: TrabajoEstado,
       tecnico_id: z.string().uuid().nullable().optional(),
       notas: z.string().nullable().optional(),
+      duracion_dias: z.coerce.number().int().min(1).max(60).optional(),
+      origen: z.enum(["staff", "cliente"]).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -201,11 +203,28 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
+    let estadoPrevio: string | null = null;
+    if (id) {
+      const { data: prev } = await context.supabase.from("trabajos").select("estado").eq("id", id).single();
+      estadoPrevio = (prev as any)?.estado ?? null;
+    }
     const q = id
       ? context.supabase.from("trabajos").update(payload).eq("id", id).select().single()
       : context.supabase.from("trabajos").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
+    // Notificación automática al cliente cuando un trabajo pasa a "completado"
+    if (id && rest.estado === "completado" && estadoPrevio !== "completado") {
+      try {
+        const { data: planta } = await context.supabase
+          .from("plantas").select("notificaciones_completado, email_notificaciones")
+          .eq("id", rest.planta_id).single();
+        if ((planta as any)?.notificaciones_completado && (planta as any)?.email_notificaciones) {
+          const { enviarNotificacionTrabajo } = await import("@/lib/notificaciones.functions");
+          await enviarNotificacionTrabajo({ data: { trabajo_id: id } } as any).catch(() => {});
+        }
+      } catch {/* silenciar errores de notificación para no bloquear el guardado */}
+    }
     return row;
   });
 

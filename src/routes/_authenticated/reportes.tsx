@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { Sparkles, Wand2, Send, Eye } from "lucide-react";
+import { Sparkles, Wand2, Eye, FileDown, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
-import { listReportes, generarReporte, getReporte, marcarReporteEnviado } from "@/lib/reportes.functions";
+import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF } from "@/lib/reportes.functions";
+import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
+import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
@@ -45,6 +47,8 @@ function Reportes() {
   const fGen = useServerFn(generarReporte);
   const fGet = useServerFn(getReporte);
   const fSend = useServerFn(marcarReporteEnviado);
+  const fPdf = useServerFn(getReporteParaPDF);
+  const fEmail = useServerFn(enviarNotificacionReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
 
@@ -69,6 +73,34 @@ function Reportes() {
   const send = useMutation({
     mutationFn: (id: string) => fSend({ data: { id } }),
     onSuccess: () => { toast.success("Marcado como enviado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  async function descargarPdf(id: string, modo: "ejecutivo" | "interno") {
+    setDownloadingId(id + modo);
+    try {
+      const data: any = await fPdf({ data: { id } });
+      const evidencias = await buildEvidencias(data.evidencias);
+      await generarYDescargarPdf({
+        ...data,
+        modo,
+        responsable: null,
+        evidencias,
+      }, `SOLAROS-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al generar PDF");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  const emailMut = useMutation({
+    mutationFn: (vars: { id: string; tipo: "reporte_ejecutivo" | "reporte_interno" }) =>
+      fEmail({ data: { reporte_id: vars.id, tipo: vars.tipo } }),
+    onSuccess: () => { toast.success("Correo enviado al cliente"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -157,10 +189,21 @@ function Reportes() {
               <button onClick={() => setViewing(r.id)} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
                 <Eye className="size-3.5" /> Ver
               </button>
-              {canEdit && r.estado === "borrador" && (
-                <button onClick={() => send.mutate(r.id)} disabled={send.isPending}
+              <button onClick={() => descargarPdf(r.id, "ejecutivo")} disabled={downloadingId === r.id + "ejecutivo"}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50">
+                <FileDown className="size-3.5" /> {downloadingId === r.id + "ejecutivo" ? "Generando…" : "PDF Ejec."}
+              </button>
+              {canEdit && (
+                <button onClick={() => descargarPdf(r.id, "interno")} disabled={downloadingId === r.id + "interno"}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50">
-                  <Send className="size-3.5" /> Enviar
+                  <FileDown className="size-3.5" /> PDF Interno
+                </button>
+              )}
+              {canEdit && (
+                <button onClick={() => emailMut.mutate({ id: r.id, tipo: "reporte_ejecutivo" })} disabled={emailMut.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                  title="Enviar email al cliente">
+                  <Mail className="size-3.5" /> Enviar
                 </button>
               )}
             </div>

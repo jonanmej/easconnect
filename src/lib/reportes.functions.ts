@@ -182,3 +182,94 @@ export const generarReporte = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+/** Devuelve el dataset completo necesario para armar el PDF (trabajos + evidencias firmadas). */
+export const getReporteParaPDF = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const supabase = context.supabase;
+    const { data: rep, error } = await supabase
+      .from("reportes")
+      .select("*, clientes(nombre, contacto), plantas(nombre)")
+      .eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+
+    // Parse KPIs/hallazgos del markdown
+    const md = (rep as any).contenido_markdown ?? "";
+    const section = (name: string) => {
+      const re = new RegExp(`## ${name}\\n([\\s\\S]*?)(\\n## |$)`);
+      return re.exec(md)?.[1]?.trim() ?? "";
+    };
+    const parseBullets = (s: string) => s.split("\n").map((l) => l.replace(/^[-*]\s+/, "").trim()).filter(Boolean);
+    const kpisRaw = parseBullets(section("KPIs"));
+    const kpis = kpisRaw.map((l) => {
+      const m = /\*\*(.+?):\*\*\s*(.+)/.exec(l) ?? /^([^:]+):\s*(.+)/.exec(l);
+      return m ? { label: m[1], value: m[2] } : { label: l, value: "" };
+    });
+    const hallazgos = parseBullets(section("Hallazgos"));
+    const recomendaciones = parseBullets(section("Recomendaciones"));
+    const resumen = section("Resumen ejecutivo");
+
+    // Trabajos del periodo
+    const desde = (rep as any).desde ?? null;
+    const hasta = (rep as any).hasta ?? null;
+    let plantasIds: string[] = [];
+    if ((rep as any).planta_id) plantasIds = [(rep as any).planta_id];
+    else {
+      const { data: ps } = await supabase.from("plantas").select("id").eq("cliente_id", (rep as any).cliente_id);
+      plantasIds = (ps ?? []).map((p) => p.id);
+    }
+    let qb = supabase.from("trabajos")
+      .select("id, folio, servicio, fecha_programada, estado, notas")
+      .in("planta_id", plantasIds)
+      .order("fecha_programada");
+    if (desde) qb = qb.gte("fecha_programada", desde);
+    if (hasta) qb = qb.lte("fecha_programada", hasta);
+    const { data: trabajos } = await qb;
+
+    const trabajoIds = (trabajos ?? []).map((t) => t.id);
+    let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
+    if (trabajoIds.length) {
+      const { data: evs } = await supabase
+        .from("trabajo_evidencias")
+        .select("trabajo_id, storage_path, descripcion")
+        .in("trabajo_id", trabajoIds)
+        .limit(40);
+      if (evs?.length) {
+        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const { data: signed } = await supabase.storage
+          .from("trabajos-evidencia")
+          .createSignedUrls(evs.map((e) => e.storage_path), 3600);
+        const urlByPath = new Map((signed ?? []).map((s) => [s.path!, s.signedUrl]));
+        evidencias = evs.map((e) => ({
+          trabajo: folioPorId.get(e.trabajo_id) ?? "—",
+          descripcion: e.descripcion ?? null,
+          url: urlByPath.get(e.storage_path) ?? "",
+        })).filter((e) => e.url);
+      }
+    }
+
+    return {
+      titulo: (rep as any).titulo,
+      cliente: (rep as any).clientes?.nombre ?? "—",
+      contacto: (rep as any).clientes?.contacto ?? null,
+      planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
+      periodo: (rep as any).periodo,
+      modelo: (rep as any).model_used,
+      emitido_at: new Date((rep as any).created_at).toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" }),
+      resumen,
+      kpis,
+      hallazgos,
+      recomendaciones,
+      trabajos: (trabajos ?? []).map((t) => ({
+        folio: t.folio,
+        servicio: t.servicio,
+        fecha: new Date(t.fecha_programada).toLocaleDateString("es-CL"),
+        estado: t.estado,
+        tecnico: null,
+        notas: t.notas,
+      })),
+      evidencias,
+    };
+  });

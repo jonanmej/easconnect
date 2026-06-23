@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
+import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus } from "lucide-react";
+import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -51,7 +53,10 @@ function sameDay(a: Date, b: Date) {
 function Programacion() {
   const qc = useQueryClient();
   const { roles } = useAuth();
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const role = highestRole(roles);
+  const canEdit = role === "admin" || role === "supervisor";
+  const isCliente = role === "cliente";
+  if (isCliente) return <ClienteCalendar />;
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
@@ -186,6 +191,175 @@ function Programacion() {
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// =============== Vista Cliente ===============
+
+function startOfMonth(d: Date) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
+function fmtMonth(d: Date) { return d.toLocaleDateString("es-CL", { month: "long", year: "numeric" }); }
+function toISODateLocal(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function ClienteCalendar() {
+  const qc = useQueryClient();
+  const fDisp = useServerFn(getDisponibilidad);
+  const fPlantas = useServerFn(listPlantas);
+  const fCrear = useServerFn(crearSolicitud);
+
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()));
+  const desde = useMemo(() => toISODateLocal(monthStart), [monthStart]);
+  const hasta = useMemo(() => {
+    const d = new Date(monthStart);
+    d.setMonth(d.getMonth() + 1); d.setDate(0);
+    return toISODateLocal(d);
+  }, [monthStart]);
+
+  const dispQ = useQuery({
+    queryKey: ["disponibilidad", desde, hasta],
+    queryFn: () => fDisp({ data: { desde, hasta } }),
+  });
+  const plantasQ = useQuery({ queryKey: ["mis-plantas"], queryFn: () => fPlantas() });
+
+  const [pickDate, setPickDate] = useState<string | null>(null);
+
+  const crear = useMutation({
+    mutationFn: (vars: any) => fCrear({ data: vars }),
+    onSuccess: () => {
+      toast.success("Solicitud enviada. Un supervisor la revisará.");
+      qc.invalidateQueries({ queryKey: ["disponibilidad"] });
+      qc.invalidateQueries({ queryKey: ["solicitudes"] });
+      setPickDate(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Build grid (lunes-domingo)
+  const cells = useMemo(() => {
+    const out: { fecha: string | null; ocupada?: boolean; today?: boolean }[] = [];
+    const first = new Date(monthStart);
+    const leading = (first.getDay() + 6) % 7;
+    for (let i = 0; i < leading; i++) out.push({ fecha: null });
+    const list = (dispQ.data as { fecha: string; ocupada: boolean }[] | undefined) ?? [];
+    const today = toISODateLocal(new Date());
+    list.forEach((d) => out.push({ fecha: d.fecha, ocupada: d.ocupada, today: d.fecha === today }));
+    while (out.length % 7 !== 0) out.push({ fecha: null });
+    return out;
+  }, [dispQ.data, monthStart]);
+
+  const plantas = (plantasQ.data as any[] | undefined) ?? [];
+
+  return (
+    <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
+      <PageHeader
+        title="Solicitar Visita"
+        description="Elija un día disponible en su calendario para pedir una visita técnica. Los días en rojo ya están ocupados."
+        actions={
+          <div className="inline-flex items-center gap-2">
+            <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(startOfMonth(d)); }}
+              className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Mes anterior">
+              <ChevronLeft className="size-3.5" />
+            </button>
+            <button onClick={() => setMonthStart(startOfMonth(new Date()))} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
+              <CalendarDays className="size-3.5" /> Hoy
+            </button>
+            <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() + 1); setMonthStart(startOfMonth(d)); }}
+              className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Mes siguiente">
+              <ChevronRight className="size-3.5" />
+            </button>
+          </div>
+        }
+      />
+
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="p-3 text-center font-semibold capitalize bg-secondary border-b border-border">{fmtMonth(monthStart)}</div>
+        <div className="grid grid-cols-7 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/50 border-b border-border">
+          {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
+            <div key={d} className="p-2 text-center">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {cells.map((c, i) => {
+            if (!c.fecha) return <div key={i} className="aspect-square border-t border-l border-border first:border-l-0 bg-muted/20" />;
+            const isPast = c.fecha < toISODateLocal(new Date());
+            return (
+              <button
+                key={i}
+                disabled={c.ocupada || isPast}
+                onClick={() => setPickDate(c.fecha!)}
+                className={
+                  "aspect-square border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors " +
+                  (c.ocupada
+                    ? "bg-destructive/10 text-destructive cursor-not-allowed"
+                    : isPast
+                      ? "bg-muted/30 text-muted-foreground/60 cursor-not-allowed"
+                      : "hover:bg-accent/10 cursor-pointer") +
+                  (c.today ? " ring-1 ring-primary" : "")
+                }
+                title={c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
+              >
+                <span className={"font-mono " + (c.today ? "text-primary font-bold" : "")}>{Number(c.fecha.slice(-2))}</span>
+                {c.ocupada && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest">Ocupado</span>}
+                {!c.ocupada && !isPast && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-end gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-accent/40 border border-accent/30" /> Disponible</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40 border border-destructive/30" /> Ocupado</span>
+      </div>
+
+      <RecordDialog
+        open={!!pickDate}
+        onOpenChange={(v) => !v && setPickDate(null)}
+        title={`Solicitar visita para el ${pickDate ? new Date(pickDate + "T00:00").toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long" }) : ""}`}
+        description="La solicitud quedará pendiente hasta que un supervisor la confirme. Recibirás un correo con el resultado."
+        submitLabel={crear.isPending ? "Enviando…" : <><CalendarPlus className="size-3.5 inline mr-1.5" /> Enviar solicitud</> as any}
+        busy={crear.isPending}
+        error={crear.error?.message}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const f = new FormData(e.currentTarget);
+          const planta_id = f.get("planta_id") as string;
+          const planta = plantas.find((p) => p.id === planta_id);
+          if (!planta) { toast.error("Selecciona una planta"); return; }
+          crear.mutate({
+            cliente_id: planta.cliente_id,
+            planta_id,
+            tipo: f.get("tipo"),
+            descripcion: f.get("descripcion"),
+            fecha_preferida: pickDate,
+            duracion_dias_estimada: Number(f.get("duracion_dias_estimada") ?? 1),
+          });
+        }}
+      >
+        <Field label="Planta">
+          <select name="planta_id" required className={inputCls} defaultValue="">
+            <option value="" disabled>Selecciona…</option>
+            {plantas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </Field>
+        <Field label="Tipo de visita">
+          <select name="tipo" required className={inputCls} defaultValue="Mantenimiento preventivo">
+            <option>Mantenimiento preventivo</option>
+            <option>Inspección</option>
+            <option>Falla / Emergencia</option>
+            <option>Limpieza</option>
+            <option>Otro</option>
+          </select>
+        </Field>
+        <Field label="Duración estimada (días)">
+          <input name="duracion_dias_estimada" type="number" min={1} max={30} defaultValue={1} className={inputCls} />
+        </Field>
+        <Field label="Descripción / motivo">
+          <textarea name="descripcion" rows={3} className={inputCls} placeholder="Describa brevemente el motivo de la visita…" />
+        </Field>
+      </RecordDialog>
     </div>
   );
 }

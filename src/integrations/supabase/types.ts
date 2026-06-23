@@ -228,6 +228,83 @@ export type Database = {
           },
         ]
       }
+      notificaciones_log: {
+        Row: {
+          asunto: string
+          cliente_id: string | null
+          destinatario: string
+          enviado_at: string
+          enviado_por: string | null
+          error_mensaje: string | null
+          estado: string
+          gmail_message_id: string | null
+          id: string
+          planta_id: string | null
+          reporte_id: string | null
+          tipo: string
+          trabajo_id: string | null
+        }
+        Insert: {
+          asunto: string
+          cliente_id?: string | null
+          destinatario: string
+          enviado_at?: string
+          enviado_por?: string | null
+          error_mensaje?: string | null
+          estado: string
+          gmail_message_id?: string | null
+          id?: string
+          planta_id?: string | null
+          reporte_id?: string | null
+          tipo: string
+          trabajo_id?: string | null
+        }
+        Update: {
+          asunto?: string
+          cliente_id?: string | null
+          destinatario?: string
+          enviado_at?: string
+          enviado_por?: string | null
+          error_mensaje?: string | null
+          estado?: string
+          gmail_message_id?: string | null
+          id?: string
+          planta_id?: string | null
+          reporte_id?: string | null
+          tipo?: string
+          trabajo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_log_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_log_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_log_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_log_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantas: {
         Row: {
           capacidad: string | null
@@ -406,6 +483,76 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitudes_visita: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descripcion: string | null
+          duracion_dias_estimada: number
+          estado: string
+          fecha_preferida: string
+          id: string
+          planta_id: string
+          respuesta_supervisor: string | null
+          solicitado_por: string
+          tipo: string
+          trabajo_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_dias_estimada?: number
+          estado?: string
+          fecha_preferida: string
+          id?: string
+          planta_id: string
+          respuesta_supervisor?: string | null
+          solicitado_por: string
+          tipo: string
+          trabajo_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_dias_estimada?: number
+          estado?: string
+          fecha_preferida?: string
+          id?: string
+          planta_id?: string
+          respuesta_supervisor?: string | null
+          solicitado_por?: string
+          tipo?: string
+          trabajo_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_visita_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_visita_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_visita_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trabajo_evidencias: {
         Row: {
           created_at: string
@@ -444,12 +591,14 @@ export type Database = {
       trabajos: {
         Row: {
           created_at: string
+          duracion_dias: number
           equipo_id: string | null
           estado: Database["public"]["Enums"]["trabajo_estado"]
           fecha_programada: string
           folio: string
           id: string
           notas: string | null
+          origen: string
           planta_id: string
           servicio: string
           tecnico_id: string | null
@@ -457,12 +606,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          duracion_dias?: number
           equipo_id?: string | null
           estado?: Database["public"]["Enums"]["trabajo_estado"]
           fecha_programada: string
           folio?: string
           id?: string
           notas?: string | null
+          origen?: string
           planta_id: string
           servicio: string
           tecnico_id?: string | null
@@ -470,12 +621,14 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          duracion_dias?: number
           equipo_id?: string | null
           estado?: Database["public"]["Enums"]["trabajo_estado"]
           fecha_programada?: string
           folio?: string
           id?: string
           notas?: string | null
+          origen?: string
           planta_id?: string
           servicio?: string
           tecnico_id?: string | null
