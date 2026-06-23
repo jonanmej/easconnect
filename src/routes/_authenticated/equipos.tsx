@@ -77,7 +77,7 @@ function Equipos() {
       nombre: f.get("nombre"),
       tipo: f.get("tipo"),
       estado: f.get("estado"),
-      salud: f.get("salud") || null,
+      salud: null,
       planta_id: f.get("planta_id") || null,
       ubicacion: f.get("ubicacion") || null,
     });
