@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { Sparkles, Wand2, Send, Eye, FileDown, Mail } from "lucide-react";
+import { Sparkles, Wand2, Eye, FileDown, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF } from "@/lib/reportes.functions";
