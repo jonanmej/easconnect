@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Subir firma de aprobación" ON storage.objects;
