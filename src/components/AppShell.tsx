@@ -134,8 +134,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
-        <Link to="/" className="p-6 flex items-center" aria-label="EA Service & Consulting">
-          <EALogo className="h-14 w-auto text-foreground" accentClassName="text-primary" />
+        <Link to="/" className="px-6 pt-6 pb-3 flex items-center justify-center" aria-label="EA Service & Consulting">
+          <EALogo className="h-24 w-auto text-foreground" accentClassName="text-primary" />
         </Link>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
