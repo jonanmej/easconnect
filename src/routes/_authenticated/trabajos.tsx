@@ -28,6 +28,33 @@ import {
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 
+function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: string }) {
+  const fSolicitar = useServerFn(solicitarAprobacion);
+  const m = useMutation({
+    mutationFn: () => fSolicitar({ data: { trabajo_id: trabajoId } }),
+    onSuccess: (r: any) => {
+      navigator.clipboard?.writeText(r.link).catch(() => {});
+      toast.success(`Enlace de firma copiado para ${folio}`, {
+        description: r.link,
+        duration: 8000,
+      });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => m.mutate()}
+      disabled={m.isPending}
+      title="Generar enlace de aprobación para el cliente"
+      aria-label="Solicitar firma del cliente"
+      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary disabled:opacity-50"
+    >
+      {m.isPending ? <Copy className="size-3.5 animate-pulse" /> : <FileSignature className="size-3.5" />}
+    </button>
+  );
+}
+
 const SERVICIOS_OT = [
   "Mantenimiento Preventivo",
   "Mantenimiento Correctivo",
