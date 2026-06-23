@@ -10,8 +10,8 @@ export const listMantenimientos = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("mantenimientos")
-      .select("id, equipo_id, tipo, fecha, horas, tecnico_id, estado, notas, created_at, equipos(codigo, nombre)")
-      .order("fecha", { ascending: false });
+      .select("id, equipo_id, tipo, fecha, fecha_inicio, fecha_fin, horas, tecnico_id, estado, notas, created_at, equipos(codigo, nombre)")
+      .order("fecha_inicio", { ascending: false, nullsFirst: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((m: any) => ({
       ...m,
@@ -27,6 +27,8 @@ export const upsertMantenimiento = createServerFn({ method: "POST" })
       equipo_id: z.string().uuid(),
       tipo: Tipo,
       fecha: z.string().min(1),
+      fecha_inicio: z.string().nullable().optional(),
+      fecha_fin: z.string().nullable().optional(),
       horas: z.coerce.number().min(0).default(0),
       tecnico_id: z.string().uuid().nullable().optional(),
       estado: Estado,
@@ -35,6 +37,9 @@ export const upsertMantenimiento = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { id, ...rest } = data;
+    // Default inicio/fin a `fecha` cuando no se especifican (compatibilidad)
+    if (!rest.fecha_inicio) rest.fecha_inicio = rest.fecha;
+    if (!rest.fecha_fin) rest.fecha_fin = rest.fecha_inicio;
     const q = id
       ? context.supabase.from("mantenimientos").update(rest).eq("id", id).select().single()
       : context.supabase.from("mantenimientos").insert(rest).select().single();
