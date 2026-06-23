@@ -1,0 +1,255 @@
+export const kpis = [
+  { label: "Trabajos Hoy", value: "14", delta: "+2", tone: "accent" as const },
+  { label: "Robots Operativos", value: "8/12", delta: "66%", tone: "muted" as const },
+  { label: "Eficiencia Promedio", value: "98.2", delta: "+0.4%", tone: "accent" as const },
+  { label: "Alertas Críticas", value: "03", delta: "Ver", tone: "danger" as const },
+];
+
+export const equipos = [
+  {
+    code: "SC1",
+    name: "SolarCleano X2",
+    type: "Robot de Limpieza",
+    status: "Operativo",
+    activity: "Hace 42m · Planta Norte",
+    health: "94%",
+  },
+  {
+    code: "MT4",
+    name: "Motor Cummins V8",
+    type: "Combustión Térmica",
+    status: "Mantenimiento",
+    activity: "Preventivo · Taller A",
+    health: "--",
+  },
+  {
+    code: "CE2",
+    name: "Cepillo Eléctrico Pro",
+    type: "Limpieza Manual",
+    status: "Operativo",
+    activity: "Asignado · Cuadrilla 3",
+    health: "88%",
+  },
+  {
+    code: "SC3",
+    name: "SolarCleano F1",
+    type: "Robot de Limpieza",
+    status: "Disponible",
+    activity: "Bodega Central",
+    health: "100%",
+  },
+  {
+    code: "MT2",
+    name: "Generador Perkins 1106",
+    type: "Combustión Térmica",
+    status: "Operativo",
+    activity: "Cliente Hidromax",
+    health: "82%",
+  },
+];
+
+export const agendaHoy = [
+  {
+    time: "08:30",
+    title: "Limpieza Preventiva",
+    place: "Parque Solar Los Olivos",
+    accent: "primary" as const,
+  },
+  {
+    time: "11:00",
+    title: "Calibración de Sensores",
+    place: "Central Térmica Sur",
+    accent: "muted" as const,
+  },
+  {
+    time: "14:45",
+    title: "Inspección con Drones",
+    place: "Valle Escondido",
+    accent: "accent" as const,
+  },
+  {
+    time: "16:30",
+    title: "Mantenimiento Motor",
+    place: "Genco Industrial - Planta 2",
+    accent: "primary" as const,
+  },
+];
+
+export const clientes = [
+  {
+    name: "Energía Atacama",
+    rut: "76.482.991-K",
+    plantas: 3,
+    contacto: "L. Espinoza",
+    capacidad: "48 MW",
+    estado: "Activo",
+  },
+  {
+    name: "Hidromax S.A.",
+    rut: "77.112.084-2",
+    plantas: 2,
+    contacto: "M. Caro",
+    capacidad: "22 MW",
+    estado: "Activo",
+  },
+  {
+    name: "Genco Industrial",
+    rut: "76.998.341-5",
+    plantas: 1,
+    contacto: "R. Bravo",
+    capacidad: "12 MW + 4 Motores",
+    estado: "Activo",
+  },
+  {
+    name: "AgroSolar Maipo",
+    rut: "78.221.770-9",
+    plantas: 4,
+    contacto: "P. Núñez",
+    capacidad: "61 MW",
+    estado: "En revisión",
+  },
+  {
+    name: "Cooperativa El Valle",
+    rut: "79.330.118-7",
+    plantas: 1,
+    contacto: "C. Ríos",
+    capacidad: "6 MW",
+    estado: "Pausado",
+  },
+];
+
+export const plantas = [
+  {
+    name: "Atacama III",
+    cliente: "Energía Atacama",
+    ubicacion: "Antofagasta, CL",
+    paneles: 14820,
+    capacidad: "32 MW",
+    ultimaLimpieza: "Hace 3 días",
+    eficiencia: "98.4%",
+  },
+  {
+    name: "Los Olivos",
+    cliente: "Hidromax S.A.",
+    ubicacion: "Maipú, CL",
+    paneles: 6210,
+    capacidad: "14 MW",
+    ultimaLimpieza: "Hace 11 días",
+    eficiencia: "94.1%",
+  },
+  {
+    name: "Valle Escondido",
+    cliente: "AgroSolar Maipo",
+    ubicacion: "Talca, CL",
+    paneles: 9450,
+    capacidad: "21 MW",
+    ultimaLimpieza: "Hace 5 días",
+    eficiencia: "96.7%",
+  },
+  {
+    name: "Central Térmica Sur",
+    cliente: "Genco Industrial",
+    ubicacion: "Concepción, CL",
+    paneles: 0,
+    capacidad: "4× Motores 1.2MW",
+    ultimaLimpieza: "N/A",
+    eficiencia: "91.0%",
+  },
+];
+
+export const inventario = [
+  { sku: "INS-EC01", item: "Agente Limpiador Eco-X 20L", categoria: "Insumo", stock: 12, min: 30, ubic: "B1-A3" },
+  { sku: "REP-CE07", item: "Cepillo de Repuesto F1", categoria: "Repuesto", stock: 24, min: 10, ubic: "B1-C2" },
+  { sku: "INS-AGD", item: "Agua Desmineralizada 200L", categoria: "Insumo", stock: 8, min: 15, ubic: "B2-A1" },
+  { sku: "REP-FAC", item: "Filtro Aceite Cummins V8", categoria: "Repuesto", stock: 32, min: 12, ubic: "B2-D5" },
+  { sku: "HER-LLI", item: "Llave Torque 1/2\"", categoria: "Herramienta", stock: 6, min: 4, ubic: "B3-H1" },
+  { sku: "EPP-CAS", item: "Casco Eléctrico Clase E", categoria: "EPP", stock: 18, min: 10, ubic: "B3-E1" },
+  { sku: "INS-LUB", item: "Lubricante Sintético 5W40", categoria: "Insumo", stock: 41, min: 20, ubic: "B2-B2" },
+];
+
+export const trabajos = [
+  {
+    folio: "T-2026-0418",
+    cliente: "Energía Atacama",
+    planta: "Atacama III",
+    servicio: "Limpieza Robotizada",
+    fecha: "23 Jun · 08:30",
+    tecnico: "C. Mendoza",
+    estado: "En Progreso",
+  },
+  {
+    folio: "T-2026-0417",
+    cliente: "Hidromax S.A.",
+    planta: "Los Olivos",
+    servicio: "Limpieza con Cepillo",
+    fecha: "23 Jun · 11:00",
+    tecnico: "L. Pereira",
+    estado: "Programado",
+  },
+  {
+    folio: "T-2026-0416",
+    cliente: "Genco Industrial",
+    planta: "Central Térmica Sur",
+    servicio: "Mantenimiento Motor",
+    fecha: "23 Jun · 16:30",
+    tecnico: "R. Bravo",
+    estado: "Programado",
+  },
+  {
+    folio: "T-2026-0415",
+    cliente: "AgroSolar Maipo",
+    planta: "Valle Escondido",
+    servicio: "Inspección Drones",
+    fecha: "22 Jun · 14:45",
+    tecnico: "Equipo Drone",
+    estado: "Completado",
+  },
+  {
+    folio: "T-2026-0414",
+    cliente: "Cooperativa El Valle",
+    planta: "El Valle 1",
+    servicio: "Instalación Paneles",
+    fecha: "20 Jun · Todo el día",
+    tecnico: "Cuadrilla 2",
+    estado: "Completado",
+  },
+];
+
+export const mantenimientos = [
+  {
+    equipo: "SolarCleano X2",
+    tipo: "Preventivo trimestral",
+    fecha: "20 Jun 2026",
+    tecnico: "C. Mendoza",
+    horas: 3,
+    notas: "Cambio de cepillos y revisión de baterías. Firmware actualizado.",
+    estado: "Completado",
+  },
+  {
+    equipo: "Motor Cummins V8",
+    tipo: "Preventivo 500h",
+    fecha: "24 Jun 2026",
+    tecnico: "R. Bravo",
+    horas: 6,
+    notas: "Cambio aceite, filtros y revisión de inyectores.",
+    estado: "Programado",
+  },
+  {
+    equipo: "Cepillo Eléctrico Pro",
+    tipo: "Correctivo",
+    fecha: "18 Jun 2026",
+    tecnico: "L. Pereira",
+    horas: 1.5,
+    notas: "Reemplazo de motor escobillas. Operativo.",
+    estado: "Completado",
+  },
+  {
+    equipo: "Generador Perkins 1106",
+    tipo: "Predictivo (vibración)",
+    fecha: "27 Jun 2026",
+    tecnico: "Por asignar",
+    horas: 4,
+    notas: "Anomalía detectada por IA en logs de consumo.",
+    estado: "Pendiente",
+  },
+];
