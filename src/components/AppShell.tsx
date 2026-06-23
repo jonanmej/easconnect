@@ -19,6 +19,8 @@ import {
   Mail,
   History,
   AlertTriangle,
+  Moon,
+  Sun as SunIcon,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -27,6 +29,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
+import { useTheme } from "@/lib/theme-context";
 import { EALogo } from "@/components/logos/EALogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
@@ -81,6 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -134,14 +138,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
-        <Link to="/" className="px-6 pt-6 pb-3 flex items-center justify-center" aria-label="EA Service & Consulting">
-          <EALogo className="h-24 w-auto text-foreground" accentClassName="text-primary" />
+        <Link
+          to="/"
+          className="px-6 pt-6 pb-3 flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+          aria-label="EA Service & Consulting — Ir al inicio"
+        >
+          <EALogo className="h-24 w-auto text-brand" accentClassName="text-brand" />
         </Link>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
           {groups.map((group) => (
             <div key={group.title}>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2 mt-4">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4">
                 {group.title}
               </div>
               {group.items.map((item) => {
@@ -151,23 +159,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link
                     key={item.to}
                     to={item.to}
+                    aria-current={active ? "page" : undefined}
                     className={
-                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors " +
+                      "flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                       (active
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground")
+                        ? "bg-primary/12 text-primary font-semibold shadow-[inset_3px_0_0_0_var(--color-primary)]"
+                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground")
                     }
                   >
-                    <Icon className="size-4" />
+                    <Icon className="size-[18px] shrink-0" aria-hidden="true" />
                     <span className="flex-1">{item.label}</span>
                     {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
-                      <span className="text-[10px] font-bold px-1.5 rounded bg-destructive/10 text-destructive">{alertas.data.sla_vencidos}</span>
+                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className="text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.sla_vencidos}</span>
                     ) : null}
                     {item.to === "/inventario" && alertas.data?.stock_critico ? (
-                      <span className="text-[10px] font-bold px-1.5 rounded bg-destructive/10 text-destructive">{alertas.data.stock_critico}</span>
+                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className="text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.stock_critico}</span>
                     ) : null}
                     {item.to === "/solicitudes" && alertas.data?.solicitudes_estancadas ? (
-                      <span className="text-[10px] font-bold px-1.5 rounded bg-primary/10 text-primary">{alertas.data.solicitudes_estancadas}</span>
+                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className="text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary">{alertas.data.solicitudes_estancadas}</span>
                     ) : null}
                   </Link>
                 );
@@ -240,24 +249,35 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              className="size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {theme === "dark"
+                ? <SunIcon className="size-[18px] text-foreground" aria-hidden="true" />
+                : <Moon className="size-[18px] text-foreground" aria-hidden="true" />}
+            </button>
             {role !== "cliente" && (
               <Link
                 to="/trabajos"
-                className="relative size-9 grid place-items-center rounded-md hover:bg-secondary transition-colors"
+                className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Alertas"
                 title={`${totalAlertas} alertas activas`}
               >
                 {totalAlertas > 0
-                  ? <AlertTriangle className="size-4 text-destructive" />
-                  : <Bell className="size-4 text-muted-foreground" />}
+                  ? <AlertTriangle className="size-[18px] text-destructive" aria-hidden="true" />
+                  : <Bell className="size-[18px] text-foreground" aria-hidden="true" />}
                 {totalAlertas > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
+                  <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
                 )}
               </Link>
             )}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-accent/15 rounded-full">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
-              <span className="text-[10px] font-bold text-accent uppercase tracking-tight">
+              <span className="text-[10px] font-bold text-accent uppercase tracking-wide">
                 Sistemas OK
               </span>
             </div>
