@@ -106,6 +106,19 @@ export const generarReporte = createServerFn({ method: "POST" })
     const saludVals = equipos.map((e: any) => e.salud).filter((s: any) => typeof s === "number");
     const saludProm = saludVals.length ? Math.round(saludVals.reduce((a: number, b: number) => a + b, 0) / saludVals.length) : null;
 
+    // Reportes base llenados por técnicos en cada OT
+    const trabajoIds = (trabajosRes.data ?? []).map((t: any) => t.folio ? t : null).filter(Boolean);
+    const { data: tIds } = plantasIds.length
+      ? await supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", data.desde).lte("fecha_programada", data.hasta)
+      : { data: [] as any[] };
+    const tIdsArr = (tIds ?? []).map((t: any) => t.id);
+    const folioPorId = new Map((tIds ?? []).map((t: any) => [t.id, t.folio]));
+    const { data: reportesBase } = tIdsArr.length
+      ? await supabase.from("trabajo_reportes")
+          .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, materiales_usados, cliente_observaciones")
+          .in("trabajo_id", tIdsArr)
+      : { data: [] as any[] };
+
     const datasetCtx = {
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
@@ -118,9 +131,19 @@ export const generarReporte = createServerFn({ method: "POST" })
         equipos: equipos.length,
         salud_promedio: saludProm,
         mantenimientos: (mantenimientos ?? []).length,
+        reportes_tecnicos: (reportesBase ?? []).length,
       },
       muestras_trabajos: trabajos.slice(0, 20),
       muestras_mantenimientos: (mantenimientos ?? []).slice(0, 20),
+      reportes_tecnicos: (reportesBase ?? []).slice(0, 20).map((r: any) => ({
+        folio: folioPorId.get(r.trabajo_id) ?? null,
+        condiciones_sitio: r.condiciones_sitio,
+        trabajo_realizado: r.trabajo_realizado,
+        hallazgos: r.hallazgos,
+        recomendaciones: r.recomendaciones,
+        materiales_usados: r.materiales_usados,
+        observaciones_cliente: r.cliente_observaciones,
+      })),
     };
 
     const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
