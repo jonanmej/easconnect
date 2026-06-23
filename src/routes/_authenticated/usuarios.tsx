@@ -8,9 +8,10 @@ import {
   inviteUser,
   setUserRole,
   deleteUser,
+  listRoleAudit,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus } from "lucide-react";
+import { Trash2, UserPlus, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -24,10 +25,16 @@ function UsersPage() {
   const fetchInvite = useServerFn(inviteUser);
   const fetchSetRole = useServerFn(setUserRole);
   const fetchDelete = useServerFn(deleteUser);
+  const fetchAudit = useServerFn(listRoleAudit);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers(),
+  });
+
+  const audit = useQuery({
+    queryKey: ["role-audit"],
+    queryFn: () => fetchAudit(),
   });
 
   const invite = useMutation({
@@ -38,7 +45,10 @@ function UsersPage() {
   const toggle = useMutation({
     mutationFn: (vars: { userId: string; role: AppRole; enabled: boolean }) =>
       fetchSetRole({ data: vars }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["role-audit"] });
+    },
   });
   const remove = useMutation({
     mutationFn: (userId: string) => fetchDelete({ data: { userId } }),
