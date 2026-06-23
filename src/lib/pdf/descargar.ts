@@ -28,7 +28,8 @@ export async function buildEvidencias(items: { trabajo: string; descripcion?: st
 }
 
 export async function generarYDescargarPdf(data: ReporteData, filename: string) {
-  const blob = await pdf(createElement(ReporteDoc, { data })).toBlob();
+  const element = createElement(ReporteDoc, { data }) as any;
+  const blob = await pdf(element).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
