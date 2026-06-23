@@ -482,25 +482,29 @@ function ClienteCalendar() {
           {cells.map((c, i) => {
             if (!c.fecha) return <div key={i} className="aspect-square border-t border-l border-border first:border-l-0 bg-muted/20" />;
             const isPast = c.fecha < toISODateLocal(new Date());
+            const dow = new Date(c.fecha + "T00:00").getDay();
+            const isWknd = dow === 0 || dow === 6;
             return (
               <button
                 key={i}
-                disabled={c.ocupada || isPast}
+                disabled={c.ocupada || isPast || isWknd}
                 onClick={() => setPickDate(c.fecha!)}
                 className={
                   "aspect-square border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors " +
-                  (c.ocupada
+                  (isWknd
+                    ? "bg-muted/40 text-muted-foreground/50 cursor-not-allowed"
+                    : c.ocupada
                     ? "bg-destructive/10 text-destructive cursor-not-allowed"
                     : isPast
                       ? "bg-muted/30 text-muted-foreground/60 cursor-not-allowed"
                       : "hover:bg-accent/10 cursor-pointer") +
                   (c.today ? " ring-1 ring-primary" : "")
                 }
-                title={c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
+                title={isWknd ? "Sin atención fin de semana" : c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
               >
                 <span className={"font-mono " + (c.today ? "text-primary font-bold" : "")}>{Number(c.fecha.slice(-2))}</span>
                 {c.ocupada && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest">Ocupado</span>}
-                {!c.ocupada && !isPast && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
+                {!c.ocupada && !isPast && !isWknd && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
               </button>
             );
           })}
