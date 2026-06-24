@@ -107,6 +107,53 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos_servicio: {
+        Row: {
+          activo: boolean
+          anio: number
+          cantidad_anual: number
+          created_at: string
+          duracion_dias_default: number
+          fecha_inicio: string
+          id: string
+          planta_id: string
+          servicio: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          anio?: number
+          cantidad_anual: number
+          created_at?: string
+          duracion_dias_default?: number
+          fecha_inicio?: string
+          id?: string
+          planta_id: string
+          servicio: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          anio?: number
+          cantidad_anual?: number
+          created_at?: string
+          duracion_dias_default?: number
+          fecha_inicio?: string
+          id?: string
+          planta_id?: string
+          servicio?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_servicio_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipos: {
         Row: {
           codigo: string
@@ -972,7 +1019,10 @@ export type Database = {
       }
       trabajos: {
         Row: {
+          auto_generado: boolean
           avisos_enviados: Json
+          ciclo_numero: number | null
+          contrato_id: string | null
           created_at: string
           duracion_dias: number
           equipo_id: string | null
@@ -993,7 +1043,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_generado?: boolean
           avisos_enviados?: Json
+          ciclo_numero?: number | null
+          contrato_id?: string | null
           created_at?: string
           duracion_dias?: number
           equipo_id?: string | null
@@ -1014,7 +1067,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_generado?: boolean
           avisos_enviados?: Json
+          ciclo_numero?: number | null
+          contrato_id?: string | null
           created_at?: string
           duracion_dias?: number
           equipo_id?: string | null
@@ -1035,6 +1091,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trabajos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_servicio"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trabajos_equipo_id_fkey"
             columns: ["equipo_id"]
@@ -1108,6 +1171,23 @@ export type Database = {
       }
     }
     Functions: {
+      contrato_cumplimiento: {
+        Args: { _anio: number }
+        Returns: {
+          cantidad_anual: number
+          cliente_id: string
+          cliente_nombre: string
+          completados: number
+          contrato_id: string
+          cumplimiento_pct: number
+          pendientes: number
+          planta_id: string
+          planta_nombre: string
+          programados: number
+          proxima_fecha: string
+          servicio: string
+        }[]
+      }
       current_cliente_id: { Args: never; Returns: string }
       dashboard_kpis_v1: { Args: never; Returns: Json }
       firmar_aprobacion: {
