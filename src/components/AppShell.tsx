@@ -237,6 +237,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <LogOut className="size-4 text-muted-foreground" />
             </button>
           </div>
+          <Link
+            to="/completar-perfil"
+            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+          >
+            <UserCheck className="size-3" />
+            Completar perfil
+          </Link>
           <button
             type="button"
             onClick={handleRefresh}
