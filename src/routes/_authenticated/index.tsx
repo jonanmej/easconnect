@@ -1,14 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+
+// Carga diferida de los gráficos pesados (recharts) — reduce tiempo de primer pintado.
+const StaffCharts = {
+  TrabajosSemanaChart: lazy(() => import("@/components/dashboard/StaffCharts").then((m) => ({ default: m.TrabajosSemanaChart }))),
+  DistribucionTipoChart: lazy(() => import("@/components/dashboard/StaffCharts").then((m) => ({ default: m.DistribucionTipoChart }))),
+  TopPlantasChart: lazy(() => import("@/components/dashboard/StaffCharts").then((m) => ({ default: m.TopPlantasChart }))),
+  AguaPlantaChart: lazy(() => import("@/components/dashboard/StaffCharts").then((m) => ({ default: m.AguaPlantaChart }))),
+};
+const ChartSkeleton = () => <Skeleton className="h-64 w-full" />;
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -24,8 +34,6 @@ export const Route = createFileRoute("/_authenticated/")({
   notFoundComponent: () => <div className="p-8 text-sm text-muted-foreground">No encontrado.</div>,
 });
 
-const COLORS = ["#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#64748B"];
-
 function Index() {
   const { roles } = useAuth();
   if (highestRole(roles) === "cliente") return <ClienteDashboard />;
@@ -39,12 +47,14 @@ function StaffDashboard() {
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
   const fetchAgua = useServerFn(aguaPorPlanta);
-  const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats() });
-  const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
-  const series = useQuery({ queryKey: ["dashboard-series"], queryFn: () => fetchSeries() });
-  const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas() });
-  const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla() });
-  const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua() });
+  // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
+  const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
+  const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
+  const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos(), ...qOpts });
+  const series = useQuery({ queryKey: ["dashboard-series"], queryFn: () => fetchSeries(), ...qOpts });
+  const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
+  const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
+  const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
 
   const statusStyles: Record<string, string> = {
     operativo: "bg-accent/10 text-accent",
@@ -141,53 +151,25 @@ function StaffDashboard() {
             </div>
             <TrendingUp className="size-4 text-muted-foreground" />
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={series.data?.weeks ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="semana" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="programado" stackId="a" fill="#3B82F6" name="Programados" />
-                <Bar dataKey="en_progreso" stackId="a" fill="#F59E0B" name="En progreso" />
-                <Bar dataKey="completado" stackId="a" fill="#10B981" name="Completados" />
-                <Bar dataKey="cancelado" stackId="a" fill="#94A3B8" name="Cancelados" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<ChartSkeleton />}>
+            {series.isLoading ? <ChartSkeleton /> : <StaffCharts.TrabajosSemanaChart data={series.data?.weeks ?? []} />}
+          </Suspense>
         </section>
 
         <section className="bg-card border border-border rounded-xl p-5">
           <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Distribución por tipo</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={series.data?.porTipo ?? []} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
-                  {(series.data?.porTipo ?? []).map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
-                </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<ChartSkeleton />}>
+            {series.isLoading ? <ChartSkeleton /> : <StaffCharts.DistribucionTipoChart data={series.data?.porTipo ?? []} />}
+          </Suspense>
         </section>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
           <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Top 5 plantas con más trabajos</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={series.data?.topPlantas ?? []} layout="vertical" margin={{ left: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="count" fill="#F59E0B" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<ChartSkeleton />}>
+            {series.isLoading ? <ChartSkeleton /> : <StaffCharts.TopPlantasChart data={series.data?.topPlantas ?? []} />}
+          </Suspense>
         </section>
 
         <section className="bg-card border border-border rounded-xl p-5">
@@ -215,20 +197,9 @@ function StaffDashboard() {
             </p>
           </div>
         </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={(agua.data?.filas ?? []).slice(0, 8)} layout="vertical" margin={{ left: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: any) => [`${Math.round(Number(v)).toLocaleString()} gal`, "Agua"]}
-              />
-              <Bar dataKey="galones" fill="#3B82F6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Suspense fallback={<ChartSkeleton />}>
+          {agua.isLoading ? <ChartSkeleton /> : <StaffCharts.AguaPlantaChart data={(agua.data?.filas ?? []).slice(0, 8)} />}
+        </Suspense>
         {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
           <p className="text-xs text-muted-foreground text-center py-3">Aún no se ha registrado consumo de agua en ningún reporte.</p>
         )}
