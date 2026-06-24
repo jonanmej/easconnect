@@ -43,11 +43,15 @@ function PerfilGate({ children }: { children: React.ReactNode }) {
       if (!u.user) return;
       const { data: p } = await supabase
         .from("profiles")
-        .select("perfil_completado")
+        .select("perfil_completado, nombres, apellidos, cargo")
         .eq("id", u.user.id)
         .maybeSingle();
       if (cancelled) return;
-      const completado = p?.perfil_completado ?? true;
+      const tieneDatos =
+        !!(p?.nombres && p.nombres.trim()) &&
+        !!(p?.apellidos && p.apellidos.trim()) &&
+        !!(p?.cargo && p.cargo.trim());
+      const completado = (p?.perfil_completado ?? false) && tieneDatos;
       if (!completado && location.pathname !== "/completar-perfil") {
         navigate({ to: "/completar-perfil", replace: true });
       } else {
