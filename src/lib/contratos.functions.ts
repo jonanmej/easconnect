@@ -280,6 +280,39 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
       .update({ fecha_programada: toIsoStartOfDay(data.nueva_fecha) })
       .eq("id", t.id);
     if (uErr) throw new Error(uErr.message);
+
+    // Notificar al cliente la nueva fecha (no bloqueante)
+    try {
+      const { data: planta } = await supabase
+        .from("plantas")
+        .select("nombre, clientes(nombre, email)")
+        .eq("id", t.planta_id)
+        .single();
+      const cliente = (planta as any)?.clientes;
+      if (cliente?.email) {
+        const { sendGmail, formatFechaEs, emailLayout } = await import("./notifications.server");
+        const ini = new Date(data.nueva_fecha + "T00:00:00Z");
+        const fin = addDaysDate(ini, dur - 1);
+        const html = emailLayout(
+          "Reprogramación confirmada",
+          `<p>Hola ${cliente.nombre},</p>
+           <p>Se ha reprogramado correctamente la visita del ciclo <strong>${t.ciclo_numero}/${c.cantidad_anual}</strong> en la planta <strong>${(planta as any).nombre}</strong>.</p>
+           <p style="background:#ecfdf5;border-left:4px solid #10b981;padding:12px 16px;margin:16px 0;">
+             <strong>Nueva fecha:</strong> ${formatFechaEs(ini)}${dur > 1 ? ` → ${formatFechaEs(fin)}` : ""}<br/>
+             <strong>Servicio:</strong> visita programada según contrato anual.
+           </p>
+           <p>Si necesitas otro ajuste, contacta a tu supervisor o solicítalo nuevamente desde tu panel.</p>`,
+        );
+        await sendGmail({
+          to: cliente.email,
+          subject: `[SOLAROS] Reprogramación confirmada - ${(planta as any).nombre}`,
+          html,
+        });
+      }
+    } catch (e) {
+      console.error("[contratos] Error notificando reprogramación", e);
+    }
+
     return { ok: true };
   });
 
