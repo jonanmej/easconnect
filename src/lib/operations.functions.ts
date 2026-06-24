@@ -11,7 +11,7 @@ export const listClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("clientes")
-      .select("id, nombre, rut, contacto, email, telefono, capacidad, estado, contrato_om, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
+      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
       .order("nombre");
     if (error) throw new Error(error.message);
     // include planta count

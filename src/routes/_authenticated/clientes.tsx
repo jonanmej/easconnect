@@ -27,7 +27,6 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 type ClienteRow = {
   id: string;
   nombre: string;
-  rut: string | null;
   contacto: string | null;
   email: string | null;
   telefono: string | null;
@@ -86,7 +85,6 @@ function Clientes() {
     save.mutate({
       id: editing?.id,
       nombre: f.get("nombre"),
-      rut: f.get("rut") || null,
       contacto: f.get("contacto") || null,
       email: f.get("email") || null,
       telefono: f.get("telefono") || null,
@@ -143,7 +141,6 @@ function Clientes() {
               </span>
             </div>
             <h3 className="text-base font-semibold tracking-tight">{c.nombre}</h3>
-            <p className="text-[10px] text-muted-foreground font-mono mb-4">{c.rut ?? "Sin RUT"}</p>
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
               <div>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Plantas</p>
@@ -187,18 +184,13 @@ function Clientes() {
         <Field label="Nombre">
           <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="RUT">
-            <input name="rut" defaultValue={editing?.rut ?? ""} className={inputCls} />
-          </Field>
-          <Field label="Estado">
-            <select name="estado" defaultValue={editing?.estado ?? "activo"} className={inputCls}>
-              <option value="activo">Activo</option>
-              <option value="revision">En revisión</option>
-              <option value="pausado">Pausado</option>
-            </select>
-          </Field>
-        </div>
+        <Field label="Estado">
+          <select name="estado" defaultValue={editing?.estado ?? "activo"} className={inputCls}>
+            <option value="activo">Activo</option>
+            <option value="revision">En revisión</option>
+            <option value="pausado">Pausado</option>
+          </select>
+        </Field>
         <Field label="Contacto principal">
           <input name="contacto" defaultValue={editing?.contacto ?? ""} className={inputCls} />
         </Field>

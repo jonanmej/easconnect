@@ -50,7 +50,6 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
                 {res.data.clientes.map((c: any) => (
                   <CommandItem key={c.id} onSelect={() => go("/clientes")}>
                     <Building2 className="size-4 mr-2" /> {c.nombre}
-                    <span className="ml-auto text-[10px] text-muted-foreground">{c.rut ?? ""}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
