@@ -349,6 +349,7 @@ function Trabajos() {
               { k: "reporte", l: "Reporte técnico" },
               { k: "evidencias", l: "Evidencia fotográfica" },
               { k: "recursos", l: "Recursos de la visita" },
+              { k: "historial", l: "Historial de asignaciones" },
             ] as const).map((t) => (
               <button
                 key={t.k}
@@ -484,7 +485,55 @@ function Trabajos() {
         {editing?.id && tab === "recursos" && (
           <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
         )}
+        {editing?.id && tab === "historial" && (
+          <HistorialAsignacionesSection trabajoId={editing.id} />
+        )}
       </RecordDialog>
+    </div>
+  );
+}
+
+function HistorialAsignacionesSection({ trabajoId }: { trabajoId: string }) {
+  const fLog = useServerFn(listAsignacionesLog);
+  const q = useQuery({
+    queryKey: ["asignaciones-log", trabajoId],
+    queryFn: () => fLog({ data: { trabajo_id: trabajoId } }),
+  });
+  const rows = (q.data as any[] | undefined) ?? [];
+  return (
+    <div className="pt-2 border-t border-border">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+        <History className="size-3.5" /> Historial de reasignaciones
+      </p>
+      {q.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
+      {!q.isLoading && rows.length === 0 && (
+        <p className="text-xs text-muted-foreground">Aún no se han registrado asignaciones para este trabajo.</p>
+      )}
+      {rows.length > 0 && (
+        <ol className="relative border-l border-border ml-2 space-y-3">
+          {rows.map((r) => (
+            <li key={r.id} className="ml-4">
+              <span className="absolute -left-1.5 mt-1 size-3 rounded-full bg-primary" />
+              <div className="text-xs">
+                {r.tecnico_anterior_nombre ? (
+                  <p>
+                    Reasignado de <strong>{r.tecnico_anterior_nombre}</strong> a{" "}
+                    <strong>{r.tecnico_nuevo_nombre}</strong>
+                  </p>
+                ) : (
+                  <p>Asignado a <strong>{r.tecnico_nuevo_nombre}</strong></p>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(r.created_at).toLocaleString("es-CL")} · por {r.asignado_por_nombre}
+                </p>
+                {r.motivo && (
+                  <p className="text-[10px] text-muted-foreground italic mt-0.5">"{r.motivo}"</p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
