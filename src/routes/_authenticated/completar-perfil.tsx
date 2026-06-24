@@ -36,11 +36,8 @@ function CompletarPerfilPage() {
       setNombres(profile.data.nombres ?? "");
       setApellidos(profile.data.apellidos ?? "");
       setCargo(profile.data.cargo ?? "");
-      if (profile.data.perfil_completado) {
-        navigate({ to: "/" });
-      }
     }
-  }, [profile.data, navigate]);
+  }, [profile.data]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
