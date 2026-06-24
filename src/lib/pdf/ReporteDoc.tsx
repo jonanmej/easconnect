@@ -102,7 +102,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
       <View>
         <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
         <Text style={[styles.headerTitle, { marginTop: 2 }]}>
-          Doc. {data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015
+          Doc. {data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015 · ISO 15489-1:2016
         </Text>
       </View>
       <Text style={styles.headerTitle}>{data.cliente} · {data.periodo}</Text>
@@ -120,7 +120,7 @@ function PageFooter({ data }: { data: ReporteData }) {
     <View style={styles.pageFooter} fixed>
       <View style={{ flexDirection: "column" }}>
         <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
-        <Text>{data.retencion ?? "Retención documental: 5 años (ISO 9001:2015 §7.5)"} · Responsable: {responsable}</Text>
+        <Text>{data.retencion ?? "Retención: 5 años · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9"} · Responsable: {responsable}</Text>
       </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
@@ -160,7 +160,7 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
   const fechaEmision = new Date();
-  const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", ejec ? "Ejecutivo" : "Interno"]
+  const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", "ISO 15489-1:2016", ejec ? "Ejecutivo" : "Interno"]
     .filter(Boolean).join(", ");
   return (
     <Document
@@ -169,7 +169,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       subject={`Reporte ${ejec ? "ejecutivo" : "interno"} · ${data.cliente} · ${data.periodo}`}
       keywords={keywords}
       creator="EA Service Connect"
-      producer="EA Service Connect — Cumplimiento ISO 9001:2015"
+      producer="EA Service Connect — Cumplimiento ISO 9001:2015 e ISO 15489-1:2016"
       creationDate={fechaEmision}
       modificationDate={fechaEmision}
     >
@@ -198,12 +198,12 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               )}
               <View style={styles.metaRow}><Text style={styles.metaLabel}>ID Doc.</Text><Text style={styles.metaValue}>{(data.documento_id ?? "").slice(0, 8).toUpperCase() || "—"}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Código</Text><Text style={styles.metaValue}>{data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"}</Text></View>
-              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015</Text></View>
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015 · ISO 15489-1:2016</Text></View>
             </View>
           </View>
           <View style={styles.coverFooter} fixed>
             <Text>Confidencial · Uso del Cliente</Text>
-            <Text>Sistema de Gestión de la Calidad · ISO 9001:2015</Text>
+            <Text>SGC ISO 9001:2015 · Gestión Documental ISO 15489-1:2016</Text>
           </View>
         </Page>
       )}
@@ -318,8 +318,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <Text style={styles.paragraph}>
             El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles, en conformidad con el Sistema de Gestión de la Calidad bajo ISO 9001:2015 (cláusulas 7.5 Información documentada, 8.5 Producción y prestación del servicio, 9.1 Seguimiento, medición, análisis y evaluación, y 10 Mejora).
           </Text>
+          <Text style={styles.paragraph}>
+            Asimismo, este documento es gestionado conforme a ISO 15489-1:2016 (Información y documentación — Gestión de documentos), garantizando los atributos de autenticidad, fiabilidad, integridad y disponibilidad mediante identificador único, código y versión controlados, sello de tiempo, firma del responsable, huella criptográfica SHA-256 y plan de retención documental.
+          </Text>
           <Text style={[styles.paragraph, { fontSize: 9, color: COL.muted }]}>
-            Documento controlado conforme a ISO 9001:2015 §7.5 (Información documentada). Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
+            Documento controlado · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9. Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
             Código: {data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}. Clasificación: {data.documento_clasificacion ?? "Uso interno"}.
             Integridad: SHA-256 {data.documento_hash ?? "—"}. {data.retencion ?? "Retención: 5 años."}
           </Text>
