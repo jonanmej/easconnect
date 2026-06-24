@@ -159,7 +159,15 @@ export const generarReporte = createServerFn({ method: "POST" })
       hallazgos: z.array(z.string()),
       recomendaciones: z.array(z.string()),
     });
-    const system = "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.";
+    const system = [
+      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
+      "Redactas reportes ejecutivos en español, formales y trazables, alineados con ISO 9001:2015 (cláusulas 7.5, 8.5, 9.1 y 10).",
+      "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
+      "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
+      "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
+      "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
+      "Tono profesional, conciso, accionable.",
+    ].join(" ");
     const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).
 
 Datos:
