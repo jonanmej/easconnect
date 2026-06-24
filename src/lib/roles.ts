@@ -12,20 +12,20 @@ export const ROLE_LABEL: Record<AppRole, string> = {
 /** Routes each role is allowed to access. */
 export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
-    "/", "/programacion", "/trabajos", "/clientes", "/plantas",
+    "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
     "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas",
   ],
   supervisor: [
-    "/", "/programacion", "/trabajos", "/clientes", "/plantas",
+    "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes",
     "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas",
   ],
   tecnico: [
-    "/", "/programacion", "/trabajos", "/equipos",
+    "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",
     "/inventario", "/mantenimientos", "/notificaciones", "/configuracion", "/terreno", "/rutas",
   ],
-  cliente: ["/", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos"],
+  cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos"],
 };
 
 export function canAccess(roles: AppRole[], path: string): boolean {
