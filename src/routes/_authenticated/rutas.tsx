@@ -377,3 +377,215 @@ function MapaRutas({ resultado, seleccion }: { resultado: ComputeRutasResult | n
 
   return <div ref={ref} className="w-full h-full" aria-label="Mapa de rutas" />;
 }
+
+const MODO_LABEL: Record<string, string> = {
+  DRIVE: "Vehículo",
+  TWO_WHEELER: "Motocicleta",
+  BICYCLE: "Bicicleta",
+  WALK: "Caminando",
+};
+
+const GMAPS_MODE: Record<string, string> = {
+  DRIVE: "driving",
+  TWO_WHEELER: "driving",
+  BICYCLE: "bicycling",
+  WALK: "walking",
+};
+
+function CompartirRuta({
+  resultado,
+  rutaActiva,
+  modo,
+  ot,
+  onClose,
+}: {
+  resultado: ComputeRutasResult;
+  rutaActiva: RutaAlternativa;
+  modo: "DRIVE" | "TWO_WHEELER" | "WALK" | "BICYCLE";
+  ot: DestinoOT | null;
+  onClose: () => void;
+}) {
+  const fnRecips = useServerFn(listRecipientesRuta);
+  const recipsQuery = useQuery({
+    queryKey: ["rutas", "recipientes", ot?.trabajoId ?? null],
+    queryFn: () => fnRecips({ data: { trabajoId: ot?.trabajoId } }),
+  });
+  const [sel, setSel] = useState<Set<string>>(new Set());
+
+  // Pre-seleccionar todos al cargar
+  useEffect(() => {
+    if (recipsQuery.data) setSel(new Set(recipsQuery.data.map((r) => r.userId)));
+  }, [recipsQuery.data]);
+
+  const gmapsUrl = useMemo(() => {
+    const o = `${resultado.origen.lat},${resultado.origen.lng}`;
+    const d = `${resultado.destino.lat},${resultado.destino.lng}`;
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(d)}&travelmode=${GMAPS_MODE[modo]}`;
+  }, [resultado, modo]);
+
+  const mensaje = useMemo(() => {
+    const lines: string[] = [];
+    lines.push("📍 Ruta EA Service Connect");
+    if (ot) {
+      lines.push(`OT ${ot.folio} — ${ot.servicio}`);
+      lines.push(`Cliente: ${ot.clienteNombre}`);
+      lines.push(`Planta: ${ot.plantaNombre}`);
+      if (ot.tecnicoNombre) lines.push(`Técnico asignado: ${ot.tecnicoNombre}`);
+    }
+    lines.push("");
+    lines.push(`Origen: ${resultado.origen.label}`);
+    lines.push(`Destino: ${resultado.destino.label}`);
+    lines.push(`Modo: ${MODO_LABEL[modo]}`);
+    lines.push(`Ruta: ${rutaActiva.resumen}`);
+    lines.push(`Tiempo estimado: ${rutaActiva.duracionTexto}`);
+    lines.push(`Distancia: ${rutaActiva.distanciaTexto}`);
+    lines.push("");
+    lines.push(`Abrir en Google Maps: ${gmapsUrl}`);
+    return lines.join("\n");
+  }, [resultado, rutaActiva, modo, ot, gmapsUrl]);
+
+  const seleccionados = (recipsQuery.data ?? []).filter((r) => sel.has(r.userId));
+  const emails = seleccionados.map((r) => r.email).filter(Boolean) as string[];
+
+  const mailto = `mailto:${emails.join(",")}?subject=${encodeURIComponent(
+    `Ruta${ot ? ` OT ${ot.folio}` : ""} — ${resultado.destino.label}`,
+  )}&body=${encodeURIComponent(mensaje)}`;
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(mensaje);
+      toast.success("Mensaje copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  }
+
+  function toggle(id: string) {
+    setSel((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="compartir-title"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 id="compartir-title" className="text-lg font-semibold inline-flex items-center gap-2">
+            <Share2 className="size-4" /> Compartir ruta
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="p-1 rounded-md hover:bg-secondary"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <section>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Destinatarios
+            </h3>
+            {recipsQuery.isLoading && (
+              <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                <Loader2 className="size-3.5 animate-spin" /> Cargando contactos…
+              </div>
+            )}
+            {recipsQuery.error && (
+              <div className="text-xs text-destructive">{(recipsQuery.error as Error).message}</div>
+            )}
+            {recipsQuery.data && recipsQuery.data.length === 0 && (
+              <div className="text-xs text-muted-foreground">
+                No hay contactos disponibles.
+              </div>
+            )}
+            <ul className="space-y-1.5">
+              {recipsQuery.data?.map((r: RecipienteRuta) => (
+                <li key={r.userId} className="flex items-center gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    id={`r-${r.userId}`}
+                    checked={sel.has(r.userId)}
+                    onChange={() => toggle(r.userId)}
+                    className="size-4"
+                  />
+                  <label htmlFor={`r-${r.userId}`} className="flex-1 cursor-pointer">
+                    <span className="font-medium">{r.nombre}</span>
+                    <span className="ml-2 text-[10px] uppercase tracking-wide bg-secondary border border-border rounded px-1.5 py-0.5 text-muted-foreground">
+                      {r.rol === "admin" ? "Admin" : r.rol === "supervisor" ? "Supervisor" : "Técnico"}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {r.email ?? "Sin correo"}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Mensaje
+            </h3>
+            <textarea
+              readOnly
+              value={mensaje}
+              rows={10}
+              className="w-full bg-background border border-border rounded-md p-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </section>
+
+          <section className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={copiar}
+              className="inline-flex items-center gap-2 bg-secondary border border-border rounded-md px-3 py-2 text-sm hover:bg-secondary/70"
+            >
+              <Copy className="size-4" /> Copiar mensaje
+            </button>
+            <a
+              href={mailto}
+              className={
+                "inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm hover:bg-primary/90 " +
+                (emails.length === 0 ? "pointer-events-none opacity-50" : "")
+              }
+            >
+              <Mail className="size-4" /> Enviar correo ({emails.length})
+            </a>
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white rounded-md px-3 py-2 text-sm hover:bg-emerald-700"
+            >
+              <MessageCircle className="size-4" /> WhatsApp
+            </a>
+            <a
+              href={gmapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-secondary border border-border rounded-md px-3 py-2 text-sm hover:bg-secondary/70 ml-auto"
+            >
+              <MapPin className="size-4" /> Abrir en Google Maps
+            </a>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
