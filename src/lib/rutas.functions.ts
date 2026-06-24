@@ -63,6 +63,7 @@ const inputSchema = z
   );
 
 export const computeRutas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<ComputeRutasResult> => {
     const { lovable, gmaps } = requireKeys();

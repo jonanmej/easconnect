@@ -57,7 +57,20 @@ function buildWhatsAppBody(opts: { folio: string; servicio: string; planta: stri
 export const Route = createFileRoute("/api/public/hooks/notificar-programaciones")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const expected = process.env.CRON_API_SECRET ?? "";
+        if (!expected) {
+          return new Response("Server misconfiguration", { status: 500 });
+        }
+        const auth = request.headers.get("authorization") ?? "";
+        const bearer = auth.toLowerCase().startsWith("bearer ")
+          ? auth.slice(7).trim()
+          : "";
+        const alt = request.headers.get("x-cron-secret") ?? "";
+        const provided = bearer || alt;
+        if (!provided || provided !== expected) {
+          return new Response("Unauthorized", { status: 401 });
+        }
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { sendEmail, sendWhatsApp } = await import("@/lib/notificaciones-channels.server");
