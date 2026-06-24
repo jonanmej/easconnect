@@ -413,6 +413,64 @@ export const listTecnicos = createServerFn({ method: "GET" })
     return out.sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
 
+/** Verifica si un técnico tiene conflicto en un rango. Devuelve [] si está libre. */
+export const verificarConflictoTecnico = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      tecnico_id: z.string().uuid(),
+      fecha: z.string().min(1),
+      duracion_dias: z.coerce.number().int().min(1).max(60).default(1),
+      excluir_trabajo_id: z.string().uuid().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+      _tecnico_id: data.tecnico_id,
+      _fecha: new Date(data.fecha).toISOString(),
+      _duracion_dias: data.duracion_dias,
+      _excluir_trabajo_id: data.excluir_trabajo_id ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as { id: string; folio: string; fecha_programada: string; duracion_dias: number }[];
+  });
+
+/** Historial de reasignaciones de un trabajo. */
+export const listAsignacionesLog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("trabajo_asignaciones_log")
+      .select("id, tecnico_anterior, tecnico_nuevo, asignado_por, motivo, created_at")
+      .eq("trabajo_id", data.trabajo_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = new Set<string>();
+    (rows ?? []).forEach((r: any) => {
+      if (r.tecnico_anterior) ids.add(r.tecnico_anterior);
+      if (r.tecnico_nuevo) ids.add(r.tecnico_nuevo);
+      if (r.asignado_por) ids.add(r.asignado_por);
+    });
+    let nameMap: Record<string, string> = {};
+    if (ids.size) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, display_name, nombres, apellidos")
+        .in("id", Array.from(ids));
+      (profs ?? []).forEach((p: any) => {
+        const full = [p.nombres, p.apellidos].filter(Boolean).join(" ").trim();
+        nameMap[p.id] = full || p.display_name || p.id.slice(0, 8);
+      });
+    }
+    return (rows ?? []).map((r: any) => ({
+      ...r,
+      tecnico_anterior_nombre: r.tecnico_anterior ? (nameMap[r.tecnico_anterior] ?? "—") : null,
+      tecnico_nuevo_nombre: r.tecnico_nuevo ? (nameMap[r.tecnico_nuevo] ?? "—") : "Sin asignar",
+      asignado_por_nombre: r.asignado_por ? (nameMap[r.asignado_por] ?? "—") : "Sistema",
+    }));
+  });
+
 export const reprogramarTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
