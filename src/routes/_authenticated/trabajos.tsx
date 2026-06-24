@@ -258,6 +258,15 @@ function Trabajos() {
                 <Plus className="size-3.5" /> Nuevo trabajo
               </button>
             )}
+            {canEdit && (
+              <button
+                onClick={() => setHistoricoOpen(true)}
+                title="Registrar un servicio ejecutado antes de usar la app"
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
+              >
+                <Archive className="size-3.5" /> Cargar histórico
+              </button>
+            )}
           </>
         }
       />
