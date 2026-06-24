@@ -12,9 +12,12 @@ import {
   listClientesAdmin,
   setUserCliente,
   purgeOrphanUsers,
+  resetPasswordUsuario,
+  listResetSolicitudes,
+  descartarResetSolicitud,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus, History, AlertTriangle, Eraser } from "lucide-react";
+import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -32,6 +35,9 @@ function UsersPage() {
   const fetchClientes = useServerFn(listClientesAdmin);
   const fetchSetCliente = useServerFn(setUserCliente);
   const fetchPurge = useServerFn(purgeOrphanUsers);
+  const fetchResetPass = useServerFn(resetPasswordUsuario);
+  const fetchResetSolicitudes = useServerFn(listResetSolicitudes);
+  const fetchDescartar = useServerFn(descartarResetSolicitud);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -46,6 +52,12 @@ function UsersPage() {
   const audit = useQuery({
     queryKey: ["role-audit"],
     queryFn: () => fetchAudit(),
+  });
+
+  const resets = useQuery({
+    queryKey: ["password-resets"],
+    queryFn: () => fetchResetSolicitudes(),
+    refetchInterval: 30_000,
   });
 
   const invite = useMutation({
@@ -82,24 +94,50 @@ function UsersPage() {
     onError: (e: any) => alert(`Error en limpieza: ${e?.message ?? e}`),
   });
 
+  const resetPass = useMutation({
+    mutationFn: (vars: { userId: string; solicitudId?: string }) =>
+      fetchResetPass({ data: vars }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["password-resets"] });
+      alert(`Contraseña restablecida y enviada por correo a ${res?.email ?? ""}.`);
+    },
+    onError: (e: any) => alert(`Error: ${e?.message ?? e}`),
+  });
+
+  const descartar = useMutation({
+    mutationFn: (id: string) => fetchDescartar({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["password-resets"] }),
+  });
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>("tecnico");
   const [inviteClienteId, setInviteClienteId] = useState<string>("");
+  const [enviarPorCorreo, setEnviarPorCorreo] = useState(false);
 
   function onInvite(e: React.FormEvent) {
     e.preventDefault();
+    if (enviarPorCorreo && (!password || password.length < 8)) {
+      alert("Para enviar la contraseña por correo debes definirla aquí (mínimo 8 caracteres).");
+      return;
+    }
     invite.mutate(
-      { email, password, role },
+      { email, password, role, enviar_por_correo: enviarPorCorreo },
       {
         onSuccess: (created: any) => {
           // Si es cliente y se eligió un cliente, asignarlo.
           if (role === "cliente" && inviteClienteId && created?.id) {
             setCliente.mutate({ userId: created.id, clienteId: inviteClienteId });
           }
+          if (created?.correo_enviado) {
+            alert(`Cuenta creada. Contraseña enviada por correo a ${created.email}.`);
+          } else if (enviarPorCorreo && created?.correo_error) {
+            alert(`Cuenta creada, pero el correo no se envió: ${created.correo_error}`);
+          }
           setEmail("");
           setPassword("");
           setInviteClienteId("");
+          setEnviarPorCorreo(false);
         },
       },
     );
@@ -181,9 +219,102 @@ function UsersPage() {
             {(invite.error as Error).message}
           </p>
         )}
+        <label className="mt-4 flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={enviarPorCorreo}
+            onChange={(e) => setEnviarPorCorreo(e.target.checked)}
+            className="accent-primary size-4"
+          />
+          <Mail className="size-3.5 text-primary" />
+          Enviar la contraseña por correo al usuario (requerirá cambiarla al ingresar)
+        </label>
         <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
           Si dejas la contraseña en blanco, se enviará un correo de invitación para que el usuario fije la suya. Si la completas, deberás entregársela por un canal seguro (no se envía correo).
         </p>
+      </section>
+
+      <section className="border border-border rounded-lg bg-card overflow-hidden mb-8">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <KeyRound className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Solicitudes de recuperación de contraseña</h2>
+          <span className="text-[10px] text-muted-foreground ml-auto uppercase tracking-widest">
+            {(resets.data ?? []).filter((s: any) => s.estado === "pendiente").length} pendientes
+          </span>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr>
+              <th className="text-left p-3">Fecha</th>
+              <th className="text-left p-3">Email</th>
+              <th className="text-left p-3">Mensaje</th>
+              <th className="text-left p-3">Estado</th>
+              <th className="p-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {resets.isLoading && (
+              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
+            )}
+            {resets.data?.length === 0 && (
+              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Sin solicitudes.</td></tr>
+            )}
+            {resets.data?.map((s: any) => (
+              <tr key={s.id} className="border-t border-border">
+                <td className="p-3 text-xs text-muted-foreground font-mono">
+                  {new Date(s.created_at).toLocaleString()}
+                </td>
+                <td className="p-3 text-xs">{s.email}</td>
+                <td className="p-3 text-xs text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
+                  {s.mensaje ?? "—"}
+                </td>
+                <td className="p-3">
+                  <span className={
+                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                    (s.estado === "pendiente"
+                      ? "bg-primary/15 text-primary"
+                      : s.estado === "atendida"
+                        ? "bg-accent/15 text-accent"
+                        : "bg-muted text-muted-foreground")
+                  }>
+                    {s.estado}
+                  </span>
+                </td>
+                <td className="p-3 text-right">
+                  {s.estado === "pendiente" && s.user_id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
+                          resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
+                        }
+                      }}
+                      disabled={resetPass.isPending}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 mr-2"
+                    >
+                      <Mail className="size-3.5" />
+                      Enviar nueva clave
+                    </button>
+                  )}
+                  {s.estado === "pendiente" && !s.user_id && (
+                    <span className="text-[10px] text-destructive mr-2">Email sin cuenta registrada</span>
+                  )}
+                  {s.estado === "pendiente" && (
+                    <button
+                      type="button"
+                      onClick={() => descartar.mutate(s.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                      title="Descartar"
+                      aria-label="Descartar"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">
@@ -270,6 +401,19 @@ function UsersPage() {
                   );
                 })}
                 <td className="p-3 text-right">
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
+                        resetPass.mutate({ userId: u.id });
+                      }
+                    }}
+                    disabled={resetPass.isPending}
+                    className="text-muted-foreground hover:text-primary mr-3"
+                    aria-label="Restablecer contraseña y enviar por correo"
+                    title="Restablecer contraseña y enviar por correo"
+                  >
+                    <KeyRound className="size-4" />
+                  </button>
                   <button
                     onClick={() => {
                       if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
