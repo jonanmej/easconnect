@@ -432,6 +432,54 @@ export type Database = {
           },
         ]
       }
+      notificaciones_usuario: {
+        Row: {
+          created_at: string
+          id: string
+          leida_at: string | null
+          mensaje: string
+          tipo: string
+          titulo: string
+          trabajo_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leida_at?: string | null
+          mensaje: string
+          tipo: string
+          titulo: string
+          trabajo_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leida_at?: string | null
+          mensaje?: string
+          tipo?: string
+          titulo?: string
+          trabajo_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_usuario_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_usuario_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantas: {
         Row: {
           capacidad: string | null
@@ -767,6 +815,51 @@ export type Database = {
           },
           {
             foreignKeyName: "trabajo_aprobaciones_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_asignaciones_log: {
+        Row: {
+          asignado_por: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          tecnico_anterior: string | null
+          tecnico_nuevo: string | null
+          trabajo_id: string
+        }
+        Insert: {
+          asignado_por?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          tecnico_anterior?: string | null
+          tecnico_nuevo?: string | null
+          trabajo_id: string
+        }
+        Update: {
+          asignado_por?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          tecnico_anterior?: string | null
+          tecnico_nuevo?: string | null
+          trabajo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_asignaciones_log_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_asignaciones_log_trabajo_id_fkey"
             columns: ["trabajo_id"]
             isOneToOne: false
             referencedRelation: "trabajos_sla"
@@ -1226,6 +1319,20 @@ export type Database = {
           servicio: string
           tecnico_nombre: string
           trabajo_id: string
+        }[]
+      }
+      verificar_conflicto_tecnico: {
+        Args: {
+          _duracion_dias: number
+          _excluir_trabajo_id?: string
+          _fecha: string
+          _tecnico_id: string
+        }
+        Returns: {
+          duracion_dias: number
+          fecha_programada: string
+          folio: string
+          id: string
         }[]
       }
     }

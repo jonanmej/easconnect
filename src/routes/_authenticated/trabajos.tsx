@@ -12,10 +12,11 @@ import {
   upsertTrabajo,
   deleteTrabajo,
   listTecnicos,
+  listAsignacionesLog,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -126,15 +127,19 @@ function Trabajos() {
   const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
   const fetchTecnicos = useServerFn(listTecnicos);
   const { roles } = useAuth();
+  const role = highestRole(roles);
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const isTecnico = role === "tecnico";
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
-  const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos">("ot");
+  const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
+  const [tecFilter, setTecFilter] = useState<string>("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("");
 
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
@@ -195,8 +200,10 @@ function Trabajos() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
-        title="Órdenes de Trabajo"
-        description="Programa, ejecuta y cierra cada visita técnica."
+        title={isTecnico ? "Mis trabajos asignados" : "Órdenes de Trabajo"}
+        description={isTecnico
+          ? "Visualiza las órdenes asignadas a ti y registra su avance."
+          : "Programa, ejecuta y cierra cada visita técnica."}
         actions={
           <>
             <ExportButton onExport={async () => {
@@ -230,6 +237,34 @@ function Trabajos() {
         }
       />
 
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <select
+          value={estadoFilter}
+          onChange={(e) => setEstadoFilter(e.target.value)}
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+        >
+          <option value="">Todos los estados</option>
+          <option value="programado">Programado</option>
+          <option value="en_progreso">En progreso</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        {canEdit && (
+          <select
+            value={tecFilter}
+            onChange={(e) => setTecFilter(e.target.value)}
+            className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          >
+            <option value="">Todos los técnicos</option>
+            <option value="__sin__">Sin asignar</option>
+            {(tecnicos.data as any[] | undefined)?.map((t) => (
+              <option key={t.id} value={t.id}>{t.nombre}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
       <div className="bg-card border border-border rounded-lg overflow-x-auto">
         <table className="w-full text-sm min-w-[820px]">
           <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
@@ -247,6 +282,9 @@ function Trabajos() {
               <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
             {(list.data as any[] | undefined)?.map((t) => (
+              ((!estadoFilter || t.estado === estadoFilter)
+                && (!tecFilter
+                    || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))) ? (
               <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
                 <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
                 <td className="px-4 py-4">
@@ -290,6 +328,7 @@ function Trabajos() {
                   </td>
                 )}
               </tr>
+              ) : null
             ))}
           </tbody>
         </table>
@@ -310,6 +349,7 @@ function Trabajos() {
               { k: "reporte", l: "Reporte técnico" },
               { k: "evidencias", l: "Evidencia fotográfica" },
               { k: "recursos", l: "Recursos de la visita" },
+              { k: "historial", l: "Historial de asignaciones" },
             ] as const).map((t) => (
               <button
                 key={t.k}
@@ -445,7 +485,55 @@ function Trabajos() {
         {editing?.id && tab === "recursos" && (
           <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
         )}
+        {editing?.id && tab === "historial" && (
+          <HistorialAsignacionesSection trabajoId={editing.id} />
+        )}
       </RecordDialog>
+    </div>
+  );
+}
+
+function HistorialAsignacionesSection({ trabajoId }: { trabajoId: string }) {
+  const fLog = useServerFn(listAsignacionesLog);
+  const q = useQuery({
+    queryKey: ["asignaciones-log", trabajoId],
+    queryFn: () => fLog({ data: { trabajo_id: trabajoId } }),
+  });
+  const rows = (q.data as any[] | undefined) ?? [];
+  return (
+    <div className="pt-2 border-t border-border">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+        <History className="size-3.5" /> Historial de reasignaciones
+      </p>
+      {q.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
+      {!q.isLoading && rows.length === 0 && (
+        <p className="text-xs text-muted-foreground">Aún no se han registrado asignaciones para este trabajo.</p>
+      )}
+      {rows.length > 0 && (
+        <ol className="relative border-l border-border ml-2 space-y-3">
+          {rows.map((r) => (
+            <li key={r.id} className="ml-4">
+              <span className="absolute -left-1.5 mt-1 size-3 rounded-full bg-primary" />
+              <div className="text-xs">
+                {r.tecnico_anterior_nombre ? (
+                  <p>
+                    Reasignado de <strong>{r.tecnico_anterior_nombre}</strong> a{" "}
+                    <strong>{r.tecnico_nuevo_nombre}</strong>
+                  </p>
+                ) : (
+                  <p>Asignado a <strong>{r.tecnico_nuevo_nombre}</strong></p>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(r.created_at).toLocaleString("es-CL")} · por {r.asignado_por_nombre}
+                </p>
+                {r.motivo && (
+                  <p className="text-[10px] text-muted-foreground italic mt-0.5">"{r.motivo}"</p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
