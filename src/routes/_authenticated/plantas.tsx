@@ -127,7 +127,7 @@ function Plantas() {
                     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.ubicacion)}`
                     : null;
                 const earthUrl = hasGeo
-                  ? `https://earth.google.com/web/@${p.latitud},${p.longitud},150a,2000d,35y,0h,0t,0r`
+                  ? `https://earth.google.com/web/search/${p.latitud},${p.longitud}`
                   : null;
                 const embedQuery = hasGeo
                   ? `${p.latitud},${p.longitud}`

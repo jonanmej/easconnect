@@ -218,6 +218,16 @@ function RutasPage() {
           Calcular rutas
         </button>
         {resultado && (
+          <a
+            href={`https://earth.google.com/web/search/${resultado.destino.lat},${resultado.destino.lng}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 bg-secondary border border-border text-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-secondary/70"
+          >
+            <Navigation className="size-4" /> Google Earth
+          </a>
+        )}
+        {resultado && (
           <button
             type="button"
             onClick={() => setCompartirAbierto(true)}
@@ -308,7 +318,8 @@ function MapaRutas({ resultado, seleccion }: { resultado: ComputeRutasResult | n
         mapRef.current = new g.maps.Map(ref.current, {
           center: { lat: OFICINA_ORIGEN.lat, lng: OFICINA_ORIGEN.lng },
           zoom: 12,
-          mapTypeControl: false,
+          mapTypeControl: true,
+          mapTypeId: g.maps.MapTypeId.ROADMAP,
           streetViewControl: false,
           fullscreenControl: true,
         });
