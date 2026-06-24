@@ -305,13 +305,18 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       {ejec && (
         <Page size="LETTER" style={styles.cover}>
           <View style={styles.coverBar} />
+          <View style={styles.coverSide} />
           <View style={styles.coverInner}>
             <View style={styles.brand}>
-              <View style={styles.logoBox} />
-              <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
+              <EALogoMark size={48} />
+              <View>
+                <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
+                <Text style={styles.brandSub}>Solar Operations · Quality Management</Text>
+              </View>
             </View>
             <Text style={styles.coverTag}>Reporte Ejecutivo · {data.periodo}</Text>
             <Text style={styles.coverTitle}>{data.titulo}</Text>
+            <View style={styles.coverRule} />
             <View style={styles.coverMeta}>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Cliente</Text><Text style={styles.metaValue}>{data.cliente}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Planta</Text><Text style={styles.metaValue}>{data.planta}</Text></View>
