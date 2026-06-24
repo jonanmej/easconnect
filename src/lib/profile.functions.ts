@@ -30,14 +30,14 @@ export const completarMiPerfil = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const display_name = `${data.nombres} ${data.apellidos}`.trim();
-    const update: Record<string, unknown> = {
+    const update = {
       nombres: data.nombres,
       apellidos: data.apellidos,
       cargo: data.cargo,
       display_name,
       perfil_completado: true,
+      ...(data.password_actualizada ? { debe_cambiar_password: false } : {}),
     };
-    if (data.password_actualizada) update.debe_cambiar_password = false;
     const { error } = await context.supabase
       .from("profiles")
       .update(update)
