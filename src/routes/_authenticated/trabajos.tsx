@@ -121,7 +121,7 @@ function Trabajos() {
   const fetchHistorico = useServerFn(crearTrabajoHistorico);
   const { roles } = useAuth();
   const role = highestRole(roles);
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const canEdit = ["admin", "supervisor", "tecnico"].includes(highestRole(roles) ?? "");
   const isTecnico = role === "tecnico";
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });

@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import {
   computeRutas, listDestinosOTs, listRecipientesRuta,
-  OFICINA_ORIGEN,
+  enviarRutaEmail, OFICINA_ORIGEN,
   type ComputeRutasResult, type RutaAlternativa, type DestinoOT, type RecipienteRuta,
 } from "@/lib/rutas.functions";
 
@@ -411,6 +411,18 @@ function CompartirRuta({
     queryKey: ["rutas", "recipientes", ot?.trabajoId ?? null],
     queryFn: () => fnRecips({ data: { trabajoId: ot?.trabajoId } }),
   });
+  const fnEnviar = useServerFn(enviarRutaEmail);
+  const enviarMut = useMutation({
+    mutationFn: (vars: any) => fnEnviar({ data: vars }),
+    onSuccess: (r: any) => {
+      toast.success(
+        r.fallidos > 0
+          ? `Correo enviado a ${r.enviados} contacto(s). ${r.fallidos} fallaron.`
+          : `Correo enviado a ${r.enviados} contacto(s).`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [sel, setSel] = useState<Set<string>>(new Set());
 
   // Pre-seleccionar todos al cargar
@@ -448,9 +460,7 @@ function CompartirRuta({
   const seleccionados = (recipsQuery.data ?? []).filter((r) => sel.has(r.userId));
   const emails = seleccionados.map((r) => r.email).filter(Boolean) as string[];
 
-  const mailto = `mailto:${emails.join(",")}?subject=${encodeURIComponent(
-    `Ruta${ot ? ` OT ${ot.folio}` : ""} — ${resultado.destino.label}`,
-  )}&body=${encodeURIComponent(mensaje)}`;
+  const asunto = `Ruta${ot ? ` OT ${ot.folio}` : ""} — ${resultado.destino.label}`;
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 
   async function copiar() {
@@ -559,15 +569,40 @@ function CompartirRuta({
             >
               <Copy className="size-4" /> Copiar mensaje
             </button>
-            <a
-              href={mailto}
-              className={
-                "inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm hover:bg-primary/90 " +
-                (emails.length === 0 ? "pointer-events-none opacity-50" : "")
+            <button
+              type="button"
+              disabled={emails.length === 0 || enviarMut.isPending}
+              onClick={() =>
+                enviarMut.mutate({
+                  destinatarios: emails,
+                  asunto,
+                  origenLabel: resultado.origen.label,
+                  destinoLabel: resultado.destino.label,
+                  modoLabel: MODO_LABEL[modo],
+                  rutaResumen: rutaActiva.resumen,
+                  duracionTexto: rutaActiva.duracionTexto,
+                  distanciaTexto: rutaActiva.distanciaTexto,
+                  gmapsUrl,
+                  ot: ot
+                    ? {
+                        folio: ot.folio,
+                        servicio: ot.servicio,
+                        clienteNombre: ot.clienteNombre,
+                        plantaNombre: ot.plantaNombre,
+                        tecnicoNombre: ot.tecnicoNombre,
+                      }
+                    : null,
+                })
               }
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm hover:bg-primary/90 disabled:opacity-50"
             >
-              <Mail className="size-4" /> Enviar correo ({emails.length})
-            </a>
+              {enviarMut.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Mail className="size-4" />
+              )}
+              {enviarMut.isPending ? "Enviando…" : `Enviar correo (${emails.length})`}
+            </button>
             <a
               href={whatsapp}
               target="_blank"

@@ -50,7 +50,7 @@ function Mantenimientos() {
   const fUpsert = useServerFn(upsertMantenimiento);
   const fDelete = useServerFn(deleteMantenimiento);
   const { roles } = useAuth();
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const canEdit = ["admin", "supervisor", "tecnico"].includes(highestRole(roles) ?? "");
 
   const list = useQuery({ queryKey: ["mantenimientos"], queryFn: () => fList() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fEquipos() });

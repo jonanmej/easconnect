@@ -46,7 +46,7 @@ function Equipos() {
   const fetchUpsert = useServerFn(upsertEquipo);
   const fetchDelete = useServerFn(deleteEquipo);
   const { roles } = useAuth();
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const canEdit = ["admin", "supervisor", "tecnico"].includes(highestRole(roles) ?? "");
 
   const list = useQuery({ queryKey: ["equipos"], queryFn: () => fetchList() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });

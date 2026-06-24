@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
-import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
+import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
@@ -109,7 +109,6 @@ function CumplimientoContratos() {
 
 function StaffDashboard() {
   const fetchStats = useServerFn(dashboardStats);
-  const fetchEquipos = useServerFn(listEquipos);
   const fetchSeries = useServerFn(dashboardSeries);
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
@@ -117,24 +116,10 @@ function StaffDashboard() {
   // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
   const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
-  const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos(), ...qOpts });
   const series = useQuery({ queryKey: ["dashboard-series"], queryFn: () => fetchSeries(), ...qOpts });
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
-
-  const statusStyles: Record<string, string> = {
-    operativo: "bg-accent/10 text-accent",
-    mantenimiento: "bg-amber-100 text-amber-700",
-    disponible: "bg-secondary text-foreground",
-    fuera_servicio: "bg-destructive/10 text-destructive",
-  };
-  const statusLabel: Record<string, string> = {
-    operativo: "Operativo",
-    mantenimiento: "Mantenimiento",
-    disponible: "Disponible",
-    fuera_servicio: "Fuera de servicio",
-  };
 
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
@@ -274,51 +259,7 @@ function StaffDashboard() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-end">
-            <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Equipos</h3>
-            <Link to="/equipos" className="text-xs text-primary hover:underline font-medium">Ver todos →</Link>
-          </div>
-          <div className="bg-card border border-border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3 text-left">Equipo</th>
-                  <th className="px-4 py-3 text-left">Estado</th>
-                  <th className="px-4 py-3 text-left">Ubicación</th>
-                  <th className="px-4 py-3 text-right">Salud</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(equipos.data as any[] | undefined)?.slice(0, 5).map((e) => (
-                  <tr key={e.id} className="hover:bg-secondary/50 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 bg-secondary rounded grid place-items-center text-[10px] font-bold text-muted-foreground">{e.codigo}</div>
-                        <div>
-                          <p className="font-medium">{e.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground">{e.tipo}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={"inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (statusStyles[e.estado] ?? "bg-secondary")}>
-                        {statusLabel[e.estado] ?? e.estado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-xs text-muted-foreground">{e.planta_nombre ?? e.ubicacion ?? "—"}</td>
-                    <td className="px-4 py-4 text-right font-mono">{e.salud != null ? `${e.salud}%` : "—"}</td>
-                  </tr>
-                ))}
-                {!equipos.isLoading && (equipos.data as any[] | undefined)?.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-muted-foreground">Aún no hay equipos registrados.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
+      <div className="grid grid-cols-1 gap-8">
         <aside className="space-y-6">
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Trabajos con SLA en riesgo</h3>
