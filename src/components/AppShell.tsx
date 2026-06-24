@@ -156,7 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
         <Link
           to="/"
-          className="px-6 pt-6 pb-3 flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+          className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           aria-label="EA Service & Consulting — Ir al inicio"
         >
           <EALogo className="h-24 w-auto text-brand" accentClassName="text-brand" />
