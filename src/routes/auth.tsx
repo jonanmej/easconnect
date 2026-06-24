@@ -75,7 +75,7 @@ function AuthPage() {
           />
           <div className="flex items-center gap-2">
             <div className="size-7 bg-foreground rounded grid place-items-center">
-              <Sun className="size-4 text-primary" />
+              <Triangle className="size-4 text-primary" />
             </div>
             <span className="font-semibold tracking-tight text-lg">EA Service Connect</span>
           </div>
