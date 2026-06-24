@@ -350,9 +350,30 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
     let estadoPrevio: string | null = null;
+    let tecnicoPrevio: string | null = null;
     if (id) {
-      const { data: prev } = await context.supabase.from("trabajos").select("estado").eq("id", id).single();
+      const { data: prev } = await context.supabase
+        .from("trabajos").select("estado, tecnico_id").eq("id", id).single();
       estadoPrevio = (prev as any)?.estado ?? null;
+      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
+    }
+    // Validar conflicto de técnico (no permitir solapamientos con otros trabajos del mismo técnico)
+    if (payload.tecnico_id) {
+      const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
+      const { data: conflictos, error: cErr } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+        _tecnico_id: payload.tecnico_id,
+        _fecha: payload.fecha_programada,
+        _duracion_dias: dur,
+        _excluir_trabajo_id: id ?? null,
+      });
+      if (cErr) throw new Error(cErr.message);
+      if ((conflictos ?? []).length > 0) {
+        const c = (conflictos as any[])[0];
+        const f = new Date(c.fecha_programada).toLocaleDateString("es-CL");
+        throw new Error(
+          `El técnico ya tiene asignado el trabajo ${c.folio} el ${f} (${c.duracion_dias} día${c.duracion_dias === 1 ? "" : "s"}). Elige otra fecha o cambia el técnico.`,
+        );
+      }
     }
     const q = id
       ? context.supabase.from("trabajos").update(payload).eq("id", id).select().single()
@@ -380,6 +401,18 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
           await enviarNotificacionTrabajo({ data: { trabajo_id: id } } as any).catch(() => {});
         }
       } catch {/* silenciar errores de notificación para no bloquear el guardado */}
+    }
+    // Notificación al técnico cuando se le asigna o reasigna un trabajo
+    if (payload.tecnico_id && payload.tecnico_id !== tecnicoPrevio) {
+      try {
+        const { notificarAsignacionTecnico } = await import("@/lib/notificaciones-tecnico.server");
+        await notificarAsignacionTecnico({
+          tecnicoId: payload.tecnico_id,
+          trabajoId: (row as any).id,
+          reasignacion: !!tecnicoPrevio,
+          asignadoPor: context.userId,
+        }).catch(() => {});
+      } catch { /* silenciar */ }
     }
     return row;
   });
