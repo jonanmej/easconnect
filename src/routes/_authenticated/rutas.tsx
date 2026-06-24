@@ -308,7 +308,8 @@ function MapaRutas({ resultado, seleccion }: { resultado: ComputeRutasResult | n
         mapRef.current = new g.maps.Map(ref.current, {
           center: { lat: OFICINA_ORIGEN.lat, lng: OFICINA_ORIGEN.lng },
           zoom: 12,
-          mapTypeControl: false,
+          mapTypeControl: true,
+          mapTypeId: g.maps.MapTypeId.ROADMAP,
           streetViewControl: false,
           fullscreenControl: true,
         });
