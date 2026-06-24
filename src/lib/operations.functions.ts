@@ -425,20 +425,25 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
 export const listTecnicos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data: roles, error } = await context.supabase
       .from("user_roles")
-      .select("user_id, profiles(id, display_name, nombres, apellidos)")
+      .select("user_id, role")
       .in("role", ["tecnico", "supervisor"]);
     if (error) throw new Error(error.message);
-    const seen = new Set<string>();
-    const out: { id: string; nombre: string }[] = [];
-    for (const r of (data ?? []) as any[]) {
-      const p = r.profiles;
-      if (!p || seen.has(p.id)) continue;
-      seen.add(p.id);
-      const full = [p.nombres, p.apellidos].filter(Boolean).join(" ").trim();
-      out.push({ id: p.id, nombre: full || p.display_name || "Sin nombre" });
-    }
+    const userIds = Array.from(new Set((roles ?? []).map((r: any) => r.user_id)));
+    if (userIds.length === 0) return [];
+    const { data: profs, error: pErr } = await context.supabase
+      .from("profiles")
+      .select("id, display_name, nombres, apellidos")
+      .in("id", userIds);
+    if (pErr) throw new Error(pErr.message);
+    const profMap = new Map<string, any>();
+    (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    const out: { id: string; nombre: string }[] = userIds.map((id) => {
+      const p = profMap.get(id);
+      const full = p ? [p.nombres, p.apellidos].filter(Boolean).join(" ").trim() : "";
+      return { id, nombre: full || p?.display_name || id.slice(0, 8) };
+    });
     return out.sort((a, b) => a.nombre.localeCompare(b.nombre));
   });
 
