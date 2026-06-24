@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { parseConflictoError, formatConflictoRango, formatConflictoMensaje } from "@/lib/conflict-format";
+import { parseConflictoError, formatConflictoMensaje } from "@/lib/conflict-format";
 import {
   listTrabajos,
   listPlantas,
