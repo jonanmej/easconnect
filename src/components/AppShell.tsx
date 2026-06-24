@@ -26,6 +26,7 @@ import {
   HardHat,
   Briefcase,
   Map as MapIcon,
+  UserCheck,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
