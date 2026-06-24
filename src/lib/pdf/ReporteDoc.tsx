@@ -116,19 +116,6 @@ const styles = StyleSheet.create({
   chartBar: { height: "100%", backgroundColor: COL.primary },
   chartValue: { width: 60, textAlign: "right", fontSize: 9, color: COL.text, fontFamily: "Courier" },
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
-  // Política documental y checklist ISO 15489
-  policyGrid: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
-  policyRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
-  policyRowLast: { flexDirection: "row" },
-  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
-  policyValue: { flex: 1, padding: 6, fontSize: 9, color: COL.text, textAlign: "justify" },
-  checkRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.3, borderBottomColor: COL.border },
-  checkBox: { width: 12, height: 12, borderWidth: 1, borderColor: COL.ok, backgroundColor: COL.ok, marginRight: 8, marginTop: 1, alignItems: "center", justifyContent: "center" },
-  checkMark: { color: "#fff", fontSize: 9, fontFamily: FONT_BOLD, lineHeight: 1 },
-  checkBody: { flex: 1 },
-  checkTitle: { fontSize: 10, fontFamily: FONT_BOLD, marginBottom: 2, color: COL.bg },
-  checkText: { fontSize: 9, color: COL.text, textAlign: "justify", marginBottom: 2 },
-  checkEvidence: { fontSize: 8, color: COL.muted, fontFamily: FONT_OBL },
 });
 
 export type ReporteData = {
@@ -158,11 +145,6 @@ export type ReporteData = {
   documento_version?: string;
   documento_clasificacion?: string;
   documento_hash?: string;
-  retencion?: string;
-  acceso?: string;
-  disposicion_final?: string;
-  custodio?: string;
-  base_legal?: string;
   modo: "ejecutivo" | "interno";
 };
 
@@ -176,7 +158,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
         <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
           <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
           <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
-          <Text style={styles.headerSub}>ISO 9001:2015 · ISO 15489-1:2016</Text>
+          <Text style={styles.headerSub}>ISO 9001:2015</Text>
         </View>
       </View>
       <View style={styles.headerRight}>
@@ -199,7 +181,7 @@ function PageFooter({ data }: { data: ReporteData }) {
     <View style={styles.pageFooter} fixed>
       <View style={{ flexDirection: "column" }}>
         <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
-        <Text>{data.retencion ?? "Retención: 5 años · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9"} · Responsable: {responsable}</Text>
+        <Text>Retención: 5 años · ISO 9001:2015 §7.5 · Responsable: {responsable}</Text>
       </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
@@ -236,68 +218,11 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
   );
 }
 
-function ChecklistItem({
-  title,
-  text,
-  evidencia,
-}: {
-  title: string;
-  text: string;
-  evidencia: string;
-}) {
-  return (
-    <View style={styles.checkRow} wrap={false}>
-      <View style={styles.checkBox}>
-        <Text style={styles.checkMark}>✓</Text>
-      </View>
-      <View style={styles.checkBody}>
-        <Text style={styles.checkTitle}>{title}</Text>
-        <Text style={styles.checkText}>{text}</Text>
-        <Text style={styles.checkEvidence}>Evidencia en este documento: {evidencia}</Text>
-      </View>
-    </View>
-  );
-}
-
-function ChecklistISO15489({ data }: { data: ReporteData }) {
-  const docId = (data.documento_id ?? "").toUpperCase() || "—";
-  const hash = data.documento_hash ? `${data.documento_hash.slice(0, 16)}…` : "—";
-  const responsable = data.responsable ?? "Equipo EA SERVICE AND CONSULTING";
-  const codigo = `${data.documento_codigo ?? "REP"} v${data.documento_version ?? "1.0"}`;
-  return (
-    <View wrap={false}>
-      <Text style={styles.sectionTitle}>Checklist de Cumplimiento · ISO 15489-1:2016</Text>
-      <Text style={[styles.paragraph, { fontSize: 9, marginBottom: 8 }]}>
-        Verificación de los cuatro atributos esenciales que ISO 15489-1:2016 (§5.2) exige a todo documento de archivo.
-      </Text>
-      <ChecklistItem
-        title="Autenticidad (§5.2.2)"
-        text="El documento puede demostrar que es lo que pretende ser, fue creado por quien dice haberlo creado y en el momento declarado."
-        evidencia={`Autor identificado: ${responsable} · Código ${codigo} · ID único ${docId} · Sello de tiempo en metadatos PDF`}
-      />
-      <ChecklistItem
-        title="Fiabilidad (§5.2.3)"
-        text="Su contenido representa de forma completa y precisa las operaciones a las que se refiere y puede ser utilizado como prueba."
-        evidencia="Datos extraídos directamente de los registros operativos (trabajos, mantenimientos, evidencias, reportes técnicos) sin manipulación intermedia; las gráficas declaran su tabla origen."
-      />
-      <ChecklistItem
-        title="Integridad (§5.2.4)"
-        text="El documento está completo e inalterado; cualquier modificación posterior es controlada y trazable."
-        evidencia={`Huella criptográfica SHA-256 ${hash} embebida en pie y página de cierre; versionado controlado (${codigo}); cambios registrados en bitácora de auditoría.`}
-      />
-      <ChecklistItem
-        title="Disponibilidad (§5.2.5)"
-        text="El documento puede localizarse, recuperarse, presentarse e interpretarse durante todo su período de retención."
-        evidencia={`Almacenado en formato PDF/A-compatible, indexado por ID ${docId}, cliente, planta y periodo; recuperable desde la plataforma EA Service Connect durante toda su vigencia.`}
-      />
-    </View>
-  );
-}
 
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
   const fechaEmision = new Date();
-  const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", "ISO 15489-1:2016", ejec ? "Ejecutivo" : "Interno"]
+  const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", ejec ? "Ejecutivo" : "Interno"]
     .filter(Boolean).join(", ");
   return (
     <Document
@@ -306,7 +231,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       subject={`Reporte ${ejec ? "ejecutivo" : "interno"} · ${data.cliente} · ${data.periodo}`}
       keywords={keywords}
       creator="EA Service Connect"
-      producer="EA Service Connect — Cumplimiento ISO 9001:2015 e ISO 15489-1:2016"
+      producer="EA Service Connect — Cumplimiento ISO 9001:2015"
       creationDate={fechaEmision}
       modificationDate={fechaEmision}
     >
@@ -340,12 +265,12 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               )}
               <View style={styles.metaRow}><Text style={styles.metaLabel}>ID Doc.</Text><Text style={styles.metaValue}>{(data.documento_id ?? "").slice(0, 8).toUpperCase() || "—"}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Código</Text><Text style={styles.metaValue}>{data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"}</Text></View>
-              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015 · ISO 15489-1:2016</Text></View>
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015</Text></View>
             </View>
           </View>
           <View style={styles.coverFooter} fixed>
             <Text>Confidencial · Uso del Cliente</Text>
-            <Text>SGC ISO 9001:2015 · Gestión Documental ISO 15489-1:2016</Text>
+            <Text>SGC ISO 9001:2015</Text>
           </View>
         </Page>
       )}
@@ -463,43 +388,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           </Text>
         )}
 
-        <Text style={styles.sectionTitle}>Política de Retención, Acceso y Disposición Final · ISO 15489-1:2016</Text>
-        <Text style={[styles.paragraph, { fontSize: 9 }]}>
-          De acuerdo con ISO 15489-1:2016 (§5.3 y §9.9), todo documento de archivo debe contar con reglas explícitas de conservación, control de acceso y disposición final, definidas antes de su captura y aplicadas durante todo su ciclo de vida.
-        </Text>
-        <View style={styles.policyGrid}>
-          <View style={styles.policyRow}>
-            <Text style={styles.policyLabel}>Custodio del documento</Text>
-            <Text style={styles.policyValue}>{data.custodio ?? "EA SERVICE AND CONSULTING — Coordinación de Gestión de la Calidad"}</Text>
-          </View>
-          <View style={styles.policyRow}>
-            <Text style={styles.policyLabel}>Periodo de retención</Text>
-            <Text style={styles.policyValue}>{data.retencion ?? "5 años contados a partir de la fecha de emisión (alineado a ISO 9001:2015 §7.5 e ISO 15489-1:2016 §9.9)."}</Text>
-          </View>
-          <View style={styles.policyRow}>
-            <Text style={styles.policyLabel}>Política de acceso</Text>
-            <Text style={styles.policyValue}>
-              {data.acceso ?? `Acceso restringido bajo clasificación "${data.documento_clasificacion ?? "Uso interno"}". Personal autorizado: administradores y supervisores de EA SERVICE AND CONSULTING, y representantes acreditados del cliente ${data.cliente}. Toda consulta queda registrada en la bitácora de auditoría (auditoria_log) con usuario, fecha y acción.`}
-            </Text>
-          </View>
-          <View style={styles.policyRow}>
-            <Text style={styles.policyLabel}>Base legal y normativa</Text>
-            <Text style={styles.policyValue}>
-              {data.base_legal ?? "ISO 9001:2015 · ISO 15489-1:2016 · Contrato de prestación de servicios vigente con el cliente · Normativa local aplicable de protección de datos."}
-            </Text>
-          </View>
-          <View style={styles.policyRowLast}>
-            <Text style={styles.policyLabel}>Disposición final</Text>
-            <Text style={styles.policyValue}>
-              {data.disposicion_final ?? "Al término del periodo de retención: revisión por el Comité de Calidad. Resultados posibles: (a) conservación permanente si el documento posee valor histórico, evidencial o legal; (b) eliminación segura mediante borrado criptográfico irreversible del archivo y registro del acta de eliminación; (c) transferencia al cliente cuando contractualmente corresponda. En todos los casos se conserva el metadato del documento eliminado (ID, código, hash, fecha de disposición y autorización) para fines de trazabilidad."}
-            </Text>
-          </View>
-        </View>
 
-        <ChecklistISO15489 data={data} />
+        
 
         <Text style={[styles.paragraph, { fontSize: 8, color: COL.muted, marginTop: 10 }]}>
-          Documento controlado · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9. Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
+          Documento controlado · ISO 9001:2015 §7.5. Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
           Código: {data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}. Clasificación: {data.documento_clasificacion ?? "Uso interno"}.
           Integridad: SHA-256 {data.documento_hash ?? "—"}.
         </Text>
