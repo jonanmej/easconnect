@@ -308,9 +308,17 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
       actor: context.userId,
     });
     if (!r?.ok) {
-      throw new Error(
-        `La contraseña fue restablecida, pero el correo no se envió: ${(r as any)?.error ?? "envío omitido"}. Comparte la clave manualmente: ${password}`,
-      );
+      console.error("[resetPasswordUsuario] correo no enviado", {
+        userId: data.userId,
+        error: (r as any)?.error ?? "envío omitido",
+      });
+      return {
+        ok: true,
+        email: u.user.email,
+        email_failed: true,
+        message:
+          "La contraseña fue restablecida, pero el correo no se pudo enviar. Vuelve a intentar el reenvío desde Solicitudes.",
+      };
     }
     return { ok: true, email: u.user.email };
   });
@@ -379,9 +387,17 @@ export const reenviarPasswordTemporal = createServerFn({ method: "POST" })
       actor: context.userId,
     });
     if (!r?.ok) {
-      throw new Error(
-        `Contraseña regenerada, pero el correo falló: ${(r as any)?.error ?? "envío omitido"}. Clave: ${password}`,
-      );
+      console.error("[reenviarPasswordTemporal] correo no enviado", {
+        solicitudId: sol.id,
+        error: (r as any)?.error ?? "envío omitido",
+      });
+      return {
+        ok: true,
+        email: target.email,
+        email_failed: true,
+        message:
+          "La contraseña fue regenerada, pero el correo no se pudo enviar. Intenta el reenvío nuevamente en unos minutos.",
+      };
     }
     return { ok: true, email: target.email };
   });
