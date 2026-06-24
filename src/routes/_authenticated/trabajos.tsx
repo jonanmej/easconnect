@@ -523,6 +523,46 @@ function Trabajos() {
           <HistorialAsignacionesSection trabajoId={editing.id} />
         )}
       </RecordDialog>
+
+      <RecordDialog
+        open={historicoOpen}
+        onOpenChange={(v) => !v && setHistoricoOpen(false)}
+        title="Cargar trabajo histórico"
+        busy={saveHistorico.isPending}
+        error={saveHistorico.error ? saveHistorico.error.message : null}
+        onSubmit={onSubmitHistorico}
+      >
+        <p className="text-[11px] text-muted-foreground -mt-1 mb-1">
+          Registra un servicio ejecutado antes de la puesta en marcha de la app.
+          Se guarda como <strong>completado</strong> y se marca con el prefijo
+          <code className="mx-1">[HISTÓRICO]</code> en las notas.
+        </p>
+        <Field label="Planta">
+          <select name="planta_id" required className={inputCls} defaultValue="">
+            <option value="">— Selecciona planta —</option>
+            {(plantas.data as any[] | undefined)?.map((p) => (
+              <option key={p.id} value={p.id}>{p.cliente_nombre} · {p.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Servicio">
+          <select name="servicio" required className={inputCls} defaultValue="">
+            <option value="">— Selecciona servicio —</option>
+            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Fecha de ejecución">
+          <input name="fecha" type="date" required className={inputCls}
+            max={new Date().toISOString().slice(0, 10)} />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Debe ser una fecha pasada (anterior a hoy).
+          </p>
+        </Field>
+        <Field label="Notas">
+          <textarea name="notas" rows={3} className={inputCls}
+            placeholder="Detalle del servicio realizado, observaciones, etc." />
+        </Field>
+      </RecordDialog>
     </div>
   );
 }
