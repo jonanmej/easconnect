@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, upsertTrabajo } from "@/lib/operations.functions";
+import { listTrabajos, upsertTrabajo, listTecnicos } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
-import { Camera, Play, CheckCircle2, RefreshCw, WifiOff, Wifi } from "lucide-react";
+import { Camera, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon } from "lucide-react";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/_authenticated/terreno")({
@@ -23,15 +23,21 @@ export const Route = createFileRoute("/_authenticated/terreno")({
 });
 
 function Terreno() {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const isStaff = roles.includes("admin") || roles.includes("supervisor");
   const fList = useServerFn(listTrabajos);
   const fSave = useServerFn(upsertTrabajo);
+  const fTecnicos = useServerFn(listTecnicos);
   const qc = useQueryClient();
 
   const trabajos = useQuery({ queryKey: ["terreno-trabajos"], queryFn: () => fList() });
+  const tecnicos = useQuery({ queryKey: ["terreno-tecnicos"], queryFn: () => fTecnicos() });
+  const tecMap = new Map<string, string>(
+    (tecnicos.data ?? []).map((t: any) => [t.id, t.nombre]),
+  );
 
   const mEstado = useMutation({
-    mutationFn: (v: { id: string; estado: string; planta_id: string; servicio: string; fecha_programada: string }) =>
+    mutationFn: (v: { id: string; estado: string; planta_id: string; servicio: string; fecha_programada: string; tecnico_id: string | null }) =>
       fSave({ data: v as any }),
     onSuccess: () => {
       toast.success("Estado actualizado");
@@ -64,7 +70,7 @@ function Terreno() {
   }, []);
 
   const list = ((trabajos.data as any[] | undefined) ?? [])
-    .filter((t) => t.tecnico_id === user?.id || !user)
+    .filter((t) => (isStaff ? true : t.tecnico_id === user?.id))
     .filter((t) => t.estado !== "completado" && t.estado !== "cancelado")
     .slice(0, 50);
 
@@ -99,18 +105,20 @@ function Terreno() {
       <div className="space-y-3">
         {list.length === 0 && (
           <p className="text-sm text-muted-foreground p-4 border border-dashed border-border rounded-md text-center">
-            No tienes trabajos pendientes asignados.
+            {isStaff ? "No hay trabajos asignados pendientes." : "No tienes trabajos pendientes asignados."}
           </p>
         )}
         {list.map((t) => (
           <TrabajoCard
             key={t.id}
             trabajo={t}
+            tecnicoNombre={t.tecnico_id ? (tecMap.get(t.tecnico_id) ?? "Técnico desconocido") : "Sin asignar"}
+            soloLectura={isStaff && t.tecnico_id !== user?.id}
             onIniciar={() =>
-              mEstado.mutate({ id: t.id, estado: "en_progreso", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada })
+              mEstado.mutate({ id: t.id, estado: "en_progreso", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada, tecnico_id: t.tecnico_id ?? null })
             }
             onCompletar={() =>
-              mEstado.mutate({ id: t.id, estado: "completado", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada })
+              mEstado.mutate({ id: t.id, estado: "completado", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada, tecnico_id: t.tecnico_id ?? null })
             }
             online={online}
           />
@@ -122,11 +130,15 @@ function Terreno() {
 
 function TrabajoCard({
   trabajo,
+  tecnicoNombre,
+  soloLectura,
   onIniciar,
   onCompletar,
   online,
 }: {
   trabajo: any;
+  tecnicoNombre: string;
+  soloLectura: boolean;
   onIniciar: () => void;
   onCompletar: () => void;
   online: boolean;
@@ -170,11 +182,17 @@ function TrabajoCard({
       <div className="text-xs text-muted-foreground">
         {new Date(trabajo.fecha_programada).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" })}
       </div>
+      <div className="flex items-center gap-1.5 text-xs">
+        <UserIcon className="size-3.5 text-muted-foreground" />
+        <span className={trabajo.tecnico_id ? "text-foreground" : "text-muted-foreground italic"}>
+          {tecnicoNombre}
+        </span>
+      </div>
 
       <div className="grid grid-cols-3 gap-2 pt-2">
         <button
           type="button"
-          disabled={inProgress}
+          disabled={inProgress || soloLectura}
           onClick={onIniciar}
           className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
         >
@@ -184,7 +202,8 @@ function TrabajoCard({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold"
+          disabled={soloLectura}
+          className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold disabled:opacity-50"
         >
           <Camera className="size-4 mb-0.5" />
           Evidencia
@@ -192,7 +211,8 @@ function TrabajoCard({
         <button
           type="button"
           onClick={onCompletar}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold"
+          disabled={soloLectura}
+          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold disabled:opacity-50"
         >
           <CheckCircle2 className="size-4 mb-0.5" />
           Completar
