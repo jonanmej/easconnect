@@ -50,7 +50,7 @@ function Inventario() {
   const fDelete = useServerFn(deleteInventarioItem);
   const fMov = useServerFn(registrarMovimiento);
   const { roles } = useAuth();
-  const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const canEdit = ["admin", "supervisor", "tecnico"].includes(highestRole(roles) ?? "");
 
   const list = useQuery({ queryKey: ["inventario"], queryFn: () => fList() });
   const items = (list.data as Item[] | undefined) ?? [];
