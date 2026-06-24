@@ -294,5 +294,24 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         notas: t.notas,
       })),
       evidencias,
+      responsable_id: (rep as any).generado_por ?? null,
+      reporte_id: (rep as any).id,
     };
+  });
+
+/** Devuelve el nombre completo + cargo del usuario que generó el reporte (firma ejecutiva). */
+export const getResponsableReporte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ reporte_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rep } = await context.supabase
+      .from("reportes").select("generado_por").eq("id", data.reporte_id).single();
+    const uid = (rep as any)?.generado_por ?? context.userId;
+    const { data: p } = await context.supabase
+      .from("profiles").select("display_name, nombres, apellidos, cargo")
+      .eq("id", uid).maybeSingle();
+    const nombre = p?.nombres && p?.apellidos
+      ? `${p.nombres} ${p.apellidos}`.trim()
+      : p?.display_name ?? "Equipo EA Service and Consulting";
+    return { nombre, cargo: p?.cargo ?? "Responsable Operativo" };
   });
