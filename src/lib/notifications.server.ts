@@ -65,30 +65,46 @@ export function formatFechaEs(d: Date) {
   return d.toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-const LOGO_URL =
+const LOGO_LIGHT =
+  "https://easconnect.lovable.app/__l5e/assets-v1/ce7174da-fe38-403c-b5cf-5828b21ac9ad/ea-service-connect-logo-light.png";
+const LOGO_DARK =
   "https://easconnect.lovable.app/__l5e/assets-v1/c67d929c-4ade-469e-9577-738073147367/ea-service-connect-logo-transparent.png";
 
 export function emailLayout(title: string, bodyHtml: string) {
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,sans-serif;color:#1f2937;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <tr><td style="background:#0f172a;padding:18px 24px;">
-          <table cellpadding="0" cellspacing="0"><tr>
-            <td style="vertical-align:middle;padding-right:12px;">
-              <img src="${LOGO_URL}" alt="EA Service Connect" width="40" height="40" style="display:block;border:0;outline:none;text-decoration:none;" />
-            </td>
-            <td style="vertical-align:middle;color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:0.3px;">EA Service Connect</td>
-          </tr></table>
-        </td></tr>
-        <tr><td style="padding:24px;">
-          <h2 style="margin:0 0 16px;font-size:20px;color:#0f172a;">${title}</h2>
-          ${bodyHtml}
-        </td></tr>
-        <tr><td style="padding:16px 24px;background:#f8fafc;color:#64748b;font-size:12px;">
-          Este es un correo automático de EA Service Connect. Si tienes consultas, contacta a tu supervisor asignado.
-        </td></tr>
-      </table>
-    </td></tr>
-  </table></body></html>`;
+  const bg = "#0F172A";
+  const card = "#FFFFFF";
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
+<style>
+.logo-dark{display:none !important;}
+.logo-light{display:block !important;}
+@media (prefers-color-scheme: dark){
+  .logo-light{display:none !important;}
+  .logo-dark{display:block !important;}
+}
+[data-ogsc] .logo-light{display:none !important;}
+[data-ogsc] .logo-dark{display:block !important;}
+</style></head>
+<body style="margin:0;padding:0;background:${bg};font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#0f172a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${card};border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
+      <tr><td style="padding:24px 28px;">
+        <!--[if !mso]><!-->
+        <img class="logo-light" src="${LOGO_LIGHT}" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
+        <img class="logo-dark" src="${LOGO_DARK}" alt="EA Service Connect" width="160" style="display:none;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
+        <!--<![endif]-->
+        <!--[if mso]>
+        <img src="${LOGO_LIGHT}" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
+        <![endif]-->
+      </td></tr>
+      <tr><td style="padding:8px 28px 28px;">
+        <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;color:#0f172a;">${title}</h1>
+        <div style="font-size:14px;line-height:1.55;color:#1f2937;">${bodyHtml}</div>
+      </td></tr>
+      <tr><td style="padding:18px 28px;background:#f8fafc;color:#94a3b8;font-size:11px;text-align:center;border-top:1px solid #e2e8f0;">
+        Este mensaje fue enviado automáticamente por EA Service Connect · proyectos@easervice.app
+      </td></tr>
+    </table>
+  </td></tr>
+</table></body></html>`;
 }
