@@ -54,6 +54,7 @@ function Reportes() {
   const fEmail = useServerFn(enviarNotificacionReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
+  const isCliente = highestRole(roles) === "cliente";
 
   const list = useQuery({ queryKey: ["reportes"], queryFn: () => fList() });
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fClientes() });
@@ -139,9 +140,14 @@ function Reportes() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Reportes Ejecutivos"
-        description="La IA analiza datos reales de trabajos, mantenimientos y equipos para generar un informe profesional por cliente."
+        description={
+          isCliente
+            ? "Informes ejecutivos del periodo con KPIs, hallazgos y recomendaciones."
+            : "La IA analiza datos reales de trabajos, mantenimientos y equipos para generar un informe profesional por cliente."
+        }
         actions={
           <>
+            {!isCliente && (
             <ExportButton onExport={async () => {
               await exportarExcel({
                 filename: `reportes-${new Date().toISOString().slice(0,10)}.xlsx`,
@@ -160,6 +166,7 @@ function Reportes() {
                 }],
               });
             }} />
+            )}
             {canEdit && (
               <button onClick={() => setOpenGen(true)}
                 className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
@@ -286,7 +293,9 @@ function Reportes() {
           <DialogHeader>
             <DialogTitle>{(detail.data as any)?.titulo ?? "Reporte"}</DialogTitle>
             <DialogDescription>
-              {(detail.data as any)?.model_used ? `Modelo: ${(detail.data as any).model_used}` : ""}
+              {!isCliente && (detail.data as any)?.model_used
+                ? `Modelo: ${(detail.data as any).model_used}`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           {detail.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
