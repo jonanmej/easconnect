@@ -516,9 +516,44 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
+    // Validar conflicto si hay técnico (existente o nuevo)
+    const { data: trabajoActual } = await context.supabase
+      .from("trabajos").select("tecnico_id, duracion_dias").eq("id", data.id).single();
+    const tecnicoFinal = data.tecnico_id !== undefined
+      ? (data.tecnico_id || null)
+      : ((trabajoActual as any)?.tecnico_id ?? null);
+    if (tecnicoFinal) {
+      const dur = Math.max(1, Number((trabajoActual as any)?.duracion_dias ?? 1));
+      const { data: conflictos } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+        _tecnico_id: tecnicoFinal,
+        _fecha: patch.fecha_programada,
+        _duracion_dias: dur,
+        _excluir_trabajo_id: data.id,
+      });
+      if ((conflictos ?? []).length > 0) {
+        const c = (conflictos as any[])[0];
+        const f = new Date(c.fecha_programada).toLocaleDateString("es-CL");
+        throw new Error(
+          `El técnico ya tiene asignado el trabajo ${c.folio} el ${f}. Elige otra fecha o cambia el técnico.`,
+        );
+      }
+    }
     const { data: row, error } = await context.supabase
       .from("trabajos").update(patch).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
+    // Notificar si hubo cambio de técnico
+    const tecnicoPrev = (trabajoActual as any)?.tecnico_id ?? null;
+    if (tecnicoFinal && tecnicoFinal !== tecnicoPrev) {
+      try {
+        const { notificarAsignacionTecnico } = await import("@/lib/notificaciones-tecnico.server");
+        await notificarAsignacionTecnico({
+          tecnicoId: tecnicoFinal,
+          trabajoId: data.id,
+          reasignacion: !!tecnicoPrev,
+          asignadoPor: context.userId,
+        }).catch(() => {});
+      } catch { /* silenciar */ }
+    }
     return row;
   });
 
