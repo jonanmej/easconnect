@@ -259,51 +259,7 @@ function StaffDashboard() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-end">
-            <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Equipos</h3>
-            <Link to="/equipos" className="text-xs text-primary hover:underline font-medium">Ver todos →</Link>
-          </div>
-          <div className="bg-card border border-border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3 text-left">Equipo</th>
-                  <th className="px-4 py-3 text-left">Estado</th>
-                  <th className="px-4 py-3 text-left">Ubicación</th>
-                  <th className="px-4 py-3 text-right">Salud</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(equipos.data as any[] | undefined)?.slice(0, 5).map((e) => (
-                  <tr key={e.id} className="hover:bg-secondary/50 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 bg-secondary rounded grid place-items-center text-[10px] font-bold text-muted-foreground">{e.codigo}</div>
-                        <div>
-                          <p className="font-medium">{e.nombre}</p>
-                          <p className="text-[10px] text-muted-foreground">{e.tipo}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={"inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (statusStyles[e.estado] ?? "bg-secondary")}>
-                        {statusLabel[e.estado] ?? e.estado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-xs text-muted-foreground">{e.planta_nombre ?? e.ubicacion ?? "—"}</td>
-                    <td className="px-4 py-4 text-right font-mono">{e.salud != null ? `${e.salud}%` : "—"}</td>
-                  </tr>
-                ))}
-                {!equipos.isLoading && (equipos.data as any[] | undefined)?.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-muted-foreground">Aún no hay equipos registrados.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
+      <div className="grid grid-cols-1 gap-8">
         <aside className="space-y-6">
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Trabajos con SLA en riesgo</h3>
