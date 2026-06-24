@@ -1,0 +1,272 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+function toIsoStartOfDay(dateStr: string) {
+  // dateStr YYYY-MM-DD
+  const d = new Date(dateStr + "T08:00:00Z");
+  return d.toISOString();
+}
+
+function addDaysDate(d: Date, n: number) {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x;
+}
+
+/** Lista contratos visibles para el usuario (RLS). */
+export const listContratos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const anio = new Date().getFullYear();
+    const { data, error } = await context.supabase
+      .from("contratos_servicio")
+      .select("id, planta_id, servicio, cantidad_anual, anio, fecha_inicio, duracion_dias_default, activo, plantas(nombre, clientes(nombre))")
+      .eq("anio", anio)
+      .order("servicio");
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      ...r,
+      planta_nombre: r.plantas?.nombre ?? "—",
+      cliente_nombre: r.plantas?.clientes?.nombre ?? "—",
+    }));
+  });
+
+/** Crea o actualiza un contrato (staff). */
+export const upsertContrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      planta_id: z.string().uuid(),
+      servicio: z.string().min(1).max(120),
+      cantidad_anual: z.coerce.number().int().min(1).max(365),
+      anio: z.coerce.number().int().min(2020).max(2100).optional(),
+      fecha_inicio: z.string().min(1),
+      duracion_dias_default: z.coerce.number().int().min(1).max(60).optional(),
+      activo: z.boolean().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      planta_id: data.planta_id,
+      servicio: data.servicio,
+      cantidad_anual: data.cantidad_anual,
+      anio: data.anio ?? new Date().getFullYear(),
+      fecha_inicio: data.fecha_inicio,
+      duracion_dias_default: data.duracion_dias_default ?? 1,
+      activo: data.activo ?? true,
+    };
+    const q = data.id
+      ? context.supabase.from("contratos_servicio").update(payload).eq("id", data.id).select().single()
+      : context.supabase.from("contratos_servicio").insert(payload).select().single();
+    const { data: row, error } = await q;
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const eliminarContrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase.from("contratos_servicio").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Devuelve los días ocupados globalmente (todas las plantas) en un rango. */
+async function diasOcupadosGlobales(supabase: any, desde: Date, hasta: Date, excluirTrabajoId?: string) {
+  const { data, error } = await supabase
+    .from("trabajos")
+    .select("id, fecha_programada, duracion_dias")
+    .gte("fecha_programada", desde.toISOString())
+    .lte("fecha_programada", addDaysDate(hasta, 1).toISOString())
+    .neq("estado", "cancelado");
+  if (error) throw new Error(error.message);
+  const ocupados = new Set<string>();
+  (data ?? []).forEach((t: any) => {
+    if (excluirTrabajoId && t.id === excluirTrabajoId) return;
+    const start = new Date(t.fecha_programada);
+    const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+    for (let i = 0; i < dur; i++) {
+      const day = new Date(start);
+      day.setUTCHours(0, 0, 0, 0);
+      day.setUTCDate(day.getUTCDate() + i);
+      ocupados.add(day.toISOString().slice(0, 10));
+    }
+  });
+  return ocupados;
+}
+
+function siguienteLibre(fechaIso: string, durDias: number, ocupados: Set<string>, limiteDias = 365): string {
+  const base = new Date(fechaIso);
+  for (let offset = 0; offset < limiteDias; offset++) {
+    const cand = new Date(base);
+    cand.setUTCDate(cand.getUTCDate() + offset);
+    let libre = true;
+    for (let i = 0; i < durDias; i++) {
+      const d = new Date(cand);
+      d.setUTCHours(0, 0, 0, 0);
+      d.setUTCDate(d.getUTCDate() + i);
+      if (ocupados.has(d.toISOString().slice(0, 10))) { libre = false; break; }
+    }
+    if (libre) return cand.toISOString().slice(0, 10);
+  }
+  return fechaIso.slice(0, 10);
+}
+
+/** Genera la programación anual de un contrato (staff). Idempotente. */
+export const generarProgramacionAnual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      contrato_id: z.string().uuid(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const supabase = context.supabase;
+    const { data: contrato, error: cErr } = await supabase
+      .from("contratos_servicio")
+      .select("id, planta_id, servicio, cantidad_anual, anio, fecha_inicio, duracion_dias_default")
+      .eq("id", data.contrato_id)
+      .single();
+    if (cErr || !contrato) throw new Error(cErr?.message ?? "Contrato no encontrado");
+    const c = contrato as any;
+
+    const { data: existentes } = await supabase
+      .from("trabajos")
+      .select("ciclo_numero")
+      .eq("contrato_id", c.id);
+    const ciclosExistentes = new Set<number>((existentes ?? []).map((r: any) => r.ciclo_numero).filter((n: any) => n != null));
+
+    const paso = Math.max(1, Math.round(365 / c.cantidad_anual));
+    const inicio = new Date(c.fecha_inicio + "T08:00:00Z");
+    const finAnio = new Date(c.anio + 1 + "-01-01T00:00:00Z");
+
+    // Cargar ocupación global del año una sola vez (para distribuir generaciones)
+    const ocupados = await diasOcupadosGlobales(supabase, inicio, finAnio);
+    const dur = Math.max(1, Number(c.duracion_dias_default ?? 1));
+
+    const nuevos: any[] = [];
+    for (let i = 0; i < c.cantidad_anual; i++) {
+      const ciclo = i + 1;
+      if (ciclosExistentes.has(ciclo)) continue;
+      const fechaIdeal = addDaysDate(inicio, i * paso);
+      const fechaLibre = siguienteLibre(fechaIdeal.toISOString(), dur, ocupados);
+      // marcar esta fecha como ocupada para el resto del bucle
+      for (let k = 0; k < dur; k++) {
+        const dx = new Date(fechaLibre + "T00:00:00Z");
+        dx.setUTCDate(dx.getUTCDate() + k);
+        ocupados.add(dx.toISOString().slice(0, 10));
+      }
+      const folio = "T-" + Math.floor(100000 + Math.random() * 900000);
+      nuevos.push({
+        folio,
+        planta_id: c.planta_id,
+        servicio: c.servicio,
+        fecha_programada: toIsoStartOfDay(fechaLibre),
+        duracion_dias: dur,
+        estado: "programado",
+        origen: "staff",
+        contrato_id: c.id,
+        ciclo_numero: ciclo,
+        auto_generado: true,
+        notas: `Auto-programado (ciclo ${ciclo}/${c.cantidad_anual})`,
+      });
+    }
+
+    if (nuevos.length > 0) {
+      const { error: iErr } = await supabase.from("trabajos").insert(nuevos);
+      if (iErr) throw new Error(iErr.message);
+    }
+    return { creados: nuevos.length, ciclos_existentes: ciclosExistentes.size };
+  });
+
+/** Reprogramación de un trabajo auto-generado por parte del cliente. */
+export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      trabajo_id: z.string().uuid(),
+      nueva_fecha: z.string().min(1), // YYYY-MM-DD
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const supabase = context.supabase;
+    const { data: trabajo, error: tErr } = await supabase
+      .from("trabajos")
+      .select("id, planta_id, contrato_id, ciclo_numero, auto_generado, estado, duracion_dias")
+      .eq("id", data.trabajo_id)
+      .single();
+    if (tErr || !trabajo) throw new Error(tErr?.message ?? "Trabajo no encontrado");
+    const t = trabajo as any;
+    if (!t.auto_generado || !t.contrato_id) throw new Error("Solo se pueden reprogramar trabajos auto-generados");
+    if (t.estado !== "programado") throw new Error("Solo trabajos en estado 'programado' se pueden reprogramar");
+
+    const { data: contrato, error: cErr } = await supabase
+      .from("contratos_servicio")
+      .select("cantidad_anual, fecha_inicio, anio")
+      .eq("id", t.contrato_id)
+      .single();
+    if (cErr || !contrato) throw new Error("Contrato no encontrado");
+    const c = contrato as any;
+
+    // Ventana del ciclo
+    const paso = Math.max(1, Math.round(365 / c.cantidad_anual));
+    const inicio = new Date(c.fecha_inicio + "T00:00:00Z");
+    const inicioCiclo = addDaysDate(inicio, (t.ciclo_numero - 1) * paso);
+    const finCiclo = addDaysDate(inicioCiclo, paso - 1);
+    const nueva = new Date(data.nueva_fecha + "T00:00:00Z");
+    if (nueva < inicioCiclo || nueva > finCiclo) {
+      throw new Error(
+        `La fecha debe estar entre ${inicioCiclo.toISOString().slice(0, 10)} y ${finCiclo.toISOString().slice(0, 10)} (ciclo ${t.ciclo_numero}/${c.cantidad_anual}).`,
+      );
+    }
+
+    // Verificar disponibilidad global
+    const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+    const ocupados = await diasOcupadosGlobales(supabase, addDaysDate(nueva, -1), addDaysDate(nueva, dur + 1), t.id);
+    for (let i = 0; i < dur; i++) {
+      const d = new Date(nueva);
+      d.setUTCHours(0, 0, 0, 0);
+      d.setUTCDate(d.getUTCDate() + i);
+      if (ocupados.has(d.toISOString().slice(0, 10))) {
+        throw new Error("La fecha seleccionada ya está ocupada por otro trabajo. Elige un día libre.");
+      }
+    }
+
+    const { error: uErr } = await supabase
+      .from("trabajos")
+      .update({ fecha_programada: toIsoStartOfDay(data.nueva_fecha) })
+      .eq("id", t.id);
+    if (uErr) throw new Error(uErr.message);
+    return { ok: true };
+  });
+
+/** Disponibilidad global por día en un rango (para el calendario del cliente). */
+export const disponibilidadGlobal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ desde: z.string(), hasta: z.string(), excluir_trabajo_id: z.string().uuid().optional() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const desde = new Date(data.desde + "T00:00:00Z");
+    const hasta = new Date(data.hasta + "T00:00:00Z");
+    const ocupados = await diasOcupadosGlobales(context.supabase, desde, hasta, data.excluir_trabajo_id);
+    return Array.from(ocupados.values());
+  });
+
+/** Cumplimiento anual de contratos (filtrado por RLS de plantas). */
+export const cumplimientoAnual = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const anio = new Date().getFullYear();
+    const { data, error } = await context.supabase.rpc("contrato_cumplimiento" as any, { _anio: anio });
+    if (error) throw new Error(error.message);
+    const filas = (data ?? []) as any[];
+    const total_contratado = filas.reduce((s, r) => s + (r.cantidad_anual ?? 0), 0);
+    const total_completado = filas.reduce((s, r) => s + (r.completados ?? 0), 0);
+    const total_programado = filas.reduce((s, r) => s + (r.programados ?? 0), 0);
+    const pct = total_contratado > 0 ? Math.round((total_completado / total_contratado) * 1000) / 10 : 0;
+    return { anio, filas, total_contratado, total_completado, total_programado, cumplimiento_pct: pct };
+  });

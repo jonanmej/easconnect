@@ -26,6 +26,7 @@ import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
+import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
 import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
 import { Route as AuthenticatedCompletarPerfilRouteImport } from './routes/_authenticated/completar-perfil'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -122,6 +123,11 @@ const AuthenticatedEquiposRoute = AuthenticatedEquiposRouteImport.update({
   path: '/equipos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
+  id: '/contratos',
+  path: '/contratos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConfiguracionRoute =
   AuthenticatedConfiguracionRouteImport.update({
     id: '/configuracion',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/configuracion': typeof AuthenticatedConfiguracionRoute
+  '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/configuracion': typeof AuthenticatedConfiguracionRoute
+  '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/_authenticated/configuracion': typeof AuthenticatedConfiguracionRoute
+  '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/completar-perfil'
     | '/configuracion'
+    | '/contratos'
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/completar-perfil'
     | '/configuracion'
+    | '/contratos'
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/completar-perfil'
     | '/_authenticated/configuracion'
+    | '/_authenticated/contratos'
     | '/_authenticated/equipos'
     | '/_authenticated/inventario'
     | '/_authenticated/mantenimientos'
@@ -436,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEquiposRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contratos': {
+      id: '/_authenticated/contratos'
+      path: '/contratos'
+      fullPath: '/contratos'
+      preLoaderRoute: typeof AuthenticatedContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracion': {
       id: '/_authenticated/configuracion'
       path: '/configuracion'
@@ -486,6 +505,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedCompletarPerfilRoute: typeof AuthenticatedCompletarPerfilRoute
   AuthenticatedConfiguracionRoute: typeof AuthenticatedConfiguracionRoute
+  AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
@@ -507,6 +527,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedCompletarPerfilRoute: AuthenticatedCompletarPerfilRoute,
   AuthenticatedConfiguracionRoute: AuthenticatedConfiguracionRoute,
+  AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,

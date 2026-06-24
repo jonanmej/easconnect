@@ -14,18 +14,18 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
-    "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas",
+    "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos",
   ],
   supervisor: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes",
-    "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas",
+    "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",
     "/inventario", "/mantenimientos", "/notificaciones", "/configuracion", "/terreno", "/rutas",
   ],
-  cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos"],
+  cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos", "/contratos"],
 };
 
 export function canAccess(roles: AppRole[], path: string): boolean {

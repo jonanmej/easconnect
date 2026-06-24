@@ -5,6 +5,7 @@ import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
+import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,72 @@ function Index() {
   const { roles } = useAuth();
   if (highestRole(roles) === "cliente") return <ClienteDashboard />;
   return <StaffDashboard />;
+}
+
+function CumplimientoContratos() {
+  const fCump = useServerFn(cumplimientoAnual);
+  const cump = useQuery({ queryKey: ["cumplimiento-anual"], queryFn: () => fCump(), staleTime: 60_000 });
+  const data = cump.data;
+  const filas = (data?.filas as any[] | undefined) ?? [];
+  return (
+    <section className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-wider">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-mono font-semibold">{data?.cumplimiento_pct ?? 0}%</p>
+        </div>
+      </div>
+      <div className="h-2 bg-secondary rounded-full overflow-hidden mb-4">
+        <div className="h-full bg-accent transition-all" style={{ width: `${Math.min(100, data?.cumplimiento_pct ?? 0)}%` }} />
+      </div>
+      {filas.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-3">Aún no hay contratos definidos para el año en curso.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead className="text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Planta</th>
+                <th className="px-3 py-2 text-left">Servicio</th>
+                <th className="px-3 py-2 text-right">Contratados</th>
+                <th className="px-3 py-2 text-right">Completados</th>
+                <th className="px-3 py-2 text-right">Programados</th>
+                <th className="px-3 py-2 text-right">Cumplimiento</th>
+                <th className="px-3 py-2 text-left">Próxima</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filas.map((f) => (
+                <tr key={f.contrato_id}>
+                  <td className="px-3 py-2">{f.planta_nombre}</td>
+                  <td className="px-3 py-2">{f.servicio}</td>
+                  <td className="px-3 py-2 text-right font-mono">{f.cantidad_anual}</td>
+                  <td className="px-3 py-2 text-right font-mono text-accent">{f.completados}</td>
+                  <td className="px-3 py-2 text-right font-mono">{f.programados}</td>
+                  <td className="px-3 py-2 text-right">
+                    <span className={"inline-flex items-center gap-2"}>
+                      <span className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <span className="block h-full bg-accent" style={{ width: `${Math.min(100, Number(f.cumplimiento_pct))}%` }} />
+                      </span>
+                      <span className="font-mono text-xs">{Number(f.cumplimiento_pct)}%</span>
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-CL") : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
 }
 
 function StaffDashboard() {
@@ -141,6 +208,8 @@ function StaffDashboard() {
           </div>
         ))}
       </div>
+
+      <CumplimientoContratos />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
@@ -334,6 +403,8 @@ function ClienteDashboard() {
           </div>
         ))}
       </div>
+
+      <CumplimientoContratos />
 
       <section>
         <div className="flex items-center justify-between mb-3">

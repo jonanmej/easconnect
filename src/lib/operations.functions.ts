@@ -313,7 +313,7 @@ export const listTrabajos = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("trabajos")
       .select(
-        "id, folio, servicio, fecha_programada, fecha_completado, estado, notas, planta_id, equipo_id, tecnico_id, firmado_at, firmado_por, plantas(nombre, clientes(nombre))",
+        "id, folio, servicio, fecha_programada, fecha_completado, estado, notas, planta_id, equipo_id, tecnico_id, firmado_at, firmado_por, auto_generado, contrato_id, ciclo_numero, duracion_dias, plantas(nombre, clientes(nombre))",
       )
       .order("fecha_programada", { ascending: false });
     if (error) throw new Error(error.message);
