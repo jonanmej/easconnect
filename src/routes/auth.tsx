@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { EALogo } from "@/components/logos/EALogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
 
@@ -66,7 +67,7 @@ function AuthPage() {
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 bg-amber-500 rounded-md flex-shrink-0" aria-hidden="true" />
+          <EALogo className="h-10 w-auto text-brand" showTagline={false} />
           <span className="text-xl font-bold tracking-tight text-foreground">
             EA Service Connect
           </span>
