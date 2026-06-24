@@ -162,7 +162,12 @@ export const computeRutas = createServerFn({ method: "POST" })
       });
 
     if (!rutas.length) {
-      throw new Error("No se encontraron rutas para el destino indicado");
+      throw new Error(
+        `No se encontraron rutas ${
+          data.modo === "DRIVE" || data.modo === "TWO_WHEELER" ? "terrestres" : ""
+        } desde la oficina hacia "${destLabel}" en modo ${data.modo}. ` +
+        "Verifica que el destino sea accesible desde El Salvador por el medio de transporte elegido.",
+      );
     }
 
     return {
