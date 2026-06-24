@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect, Defs, LinearGradient, Stop } from "@react-pdf/renderer";
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
@@ -14,16 +14,20 @@ Font.registerHyphenationCallback((word) => [word]);
  * Reproduce el triángulo "play" con dos tonos de naranja sobre navy,
  * fiel a la identidad de marca utilizada en la app (EALogo.tsx).
  */
-function EALogoMark({ size = 28, withWordmark = false }: { size?: number; withWordmark?: boolean }) {
-  const w = withWordmark ? size * 4.2 : size;
-  const h = size;
+function EALogoMark({ size = 28 }: { size?: number }) {
   return (
-    <Svg width={w} height={h} viewBox="0 0 200 110">
-      {/* Triángulo "play" en degradado naranja */}
+    <Svg width={size} height={size} viewBox="0 0 200 150">
+      <Defs>
+        <LinearGradient id="ea-grad" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0%" stopColor={COL.primary} stopOpacity={0.95} />
+          <Stop offset="100%" stopColor={COL.primary} stopOpacity={0.7} />
+        </LinearGradient>
+      </Defs>
+      {/* Triángulo "play" fiel al original EALogo.tsx */}
       <G>
         <Path d="M40 10 L190 75 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
-        <Path d="M40 10 L40 100 L110 75 Z" fill={COL.primary} fillOpacity={0.75} />
-        <Path d="M110 75 L190 75 L40 100 Z" fill={COL.primaryDeep} />
+        <Path d="M40 10 L40 140 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
+        <Path d="M110 75 L190 75 L40 140 Z" fill="url(#ea-grad)" />
       </G>
     </Svg>
   );
