@@ -4,6 +4,8 @@ import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL = "google/gemini-2.5-flash";
+const MODEL_FALLBACK = "google/gemini-2.5-flash-lite";
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
