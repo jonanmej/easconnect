@@ -341,3 +341,89 @@ export const listRecipientesRuta = createServerFn({ method: "POST" })
       rol: rolMap.get(id) ?? "tecnico",
     }));
   });
+
+// =============================================================
+// Enviar ruta por correo (Gmail del workspace, plantilla EA)
+// =============================================================
+
+export const enviarRutaEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      destinatarios: z.array(z.string().email()).min(1).max(20),
+      asunto: z.string().min(3).max(200),
+      origenLabel: z.string().min(1),
+      destinoLabel: z.string().min(1),
+      modoLabel: z.string().min(1),
+      rutaResumen: z.string().min(1),
+      duracionTexto: z.string().min(1),
+      distanciaTexto: z.string().min(1),
+      gmapsUrl: z.string().url(),
+      ot: z
+        .object({
+          folio: z.string(),
+          servicio: z.string(),
+          clienteNombre: z.string(),
+          plantaNombre: z.string(),
+          tecnicoNombre: z.string().nullable().optional(),
+        })
+        .nullable()
+        .optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    // Solo admin/supervisor/tecnico pueden enviar
+    const [{ data: isAdmin }, { data: isSup }, { data: isTec }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "tecnico" }),
+    ]);
+    if (!isAdmin && !isSup && !isTec) throw new Error("No autorizado");
+
+    const { sendGmail, emailLayout } = await import("./notifications.server");
+
+    const otBlock = data.ot
+      ? `
+        <table cellpadding="0" cellspacing="0" style="margin:0 0 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px;width:100%;">
+          <tr><td style="font-size:13px;color:#0f172a;">
+            <p style="margin:0 0 4px;"><strong>OT ${data.ot.folio}</strong> — ${data.ot.servicio}</p>
+            <p style="margin:0;color:#475569;">Cliente: ${data.ot.clienteNombre}</p>
+            <p style="margin:0;color:#475569;">Planta: ${data.ot.plantaNombre}</p>
+            ${data.ot.tecnicoNombre ? `<p style="margin:0;color:#475569;">Técnico asignado: ${data.ot.tecnicoNombre}</p>` : ""}
+          </td></tr>
+        </table>`
+      : "";
+
+    const html = emailLayout(
+      "Ruta de trabajo asignada",
+      `
+        <p style="margin:0 0 12px;font-size:14px;color:#0f172a;">
+          Te compartimos la ruta sugerida para esta visita técnica.
+        </p>
+        ${otBlock}
+        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:13px;color:#0f172a;margin:0 0 16px;">
+          <tr><td style="color:#64748b;">Origen</td><td>${data.origenLabel}</td></tr>
+          <tr><td style="color:#64748b;">Destino</td><td>${data.destinoLabel}</td></tr>
+          <tr><td style="color:#64748b;">Modo</td><td>${data.modoLabel}</td></tr>
+          <tr><td style="color:#64748b;">Ruta</td><td>${data.rutaResumen}</td></tr>
+          <tr><td style="color:#64748b;">Tiempo</td><td>${data.duracionTexto}</td></tr>
+          <tr><td style="color:#64748b;">Distancia</td><td>${data.distanciaTexto}</td></tr>
+        </table>
+        <p style="margin:16px 0;">
+          <a href="${data.gmapsUrl}" style="background:#0f172a;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;display:inline-block;">
+            Abrir en Google Maps
+          </a>
+        </p>
+      `,
+    );
+
+    const resultados = await Promise.all(
+      data.destinatarios.map((to) => sendGmail({ to, subject: data.asunto, html })),
+    );
+    const enviados = resultados.filter((r) => r.ok).length;
+    const fallidos = resultados.length - enviados;
+    if (enviados === 0) {
+      throw new Error("No se pudo enviar el correo. Revisa la configuración de Gmail.");
+    }
+    return { enviados, fallidos };
+  });
