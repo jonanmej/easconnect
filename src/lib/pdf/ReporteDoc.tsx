@@ -61,15 +61,15 @@ const styles = StyleSheet.create({
   coverSide: { position: "absolute", top: 0, bottom: 0, left: 0, width: 14, backgroundColor: COL.bg },
   coverInner: { paddingTop: 90, paddingLeft: 95, paddingRight: 60 },
   brand: { flexDirection: "row", alignItems: "center", marginBottom: 90 },
-  brandText: { fontSize: 15, fontWeight: "bold", letterSpacing: 1, color: COL.bg, marginLeft: 14 },
+  brandText: { fontSize: 15, fontFamily: FONT_BOLD, letterSpacing: 1, color: COL.bg, marginLeft: 14 },
   brandSub: { fontSize: 8, color: COL.muted, letterSpacing: 2, marginLeft: 14, marginTop: 2, textTransform: "uppercase" },
-  coverTag: { fontSize: 9, color: COL.primaryDeep, letterSpacing: 2, marginBottom: 10, textTransform: "uppercase", fontWeight: "bold" },
-  coverTitle: { fontSize: 28, fontWeight: "bold", lineHeight: 1.25, marginBottom: 18, color: COL.bg, maxWidth: 430 },
+  coverTag: { fontSize: 9, color: COL.primaryDeep, letterSpacing: 2, marginBottom: 10, textTransform: "uppercase", fontFamily: FONT_BOLD },
+  coverTitle: { fontSize: 28, fontFamily: FONT_BOLD, lineHeight: 1.25, marginBottom: 18, color: COL.bg, maxWidth: 430 },
   coverRule: { width: 60, height: 3, backgroundColor: COL.primary, marginBottom: 24 },
   coverMeta: { marginTop: 60, borderTopWidth: 1, borderTopColor: COL.border, paddingTop: 18 },
   metaRow: { flexDirection: "row", marginBottom: 6 },
   metaLabel: { width: 110, fontSize: 8.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 },
-  metaValue: { flex: 1, fontSize: 10.5, fontWeight: "bold", color: COL.text },
+  metaValue: { flex: 1, fontSize: 10.5, fontFamily: FONT_BOLD, color: COL.text },
   coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
@@ -77,25 +77,25 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1 },
   headerRight: { width: 150, alignItems: "flex-end" },
-  headerTitle: { fontSize: 7.5, color: COL.bg, textTransform: "uppercase", letterSpacing: 1, fontWeight: "bold" },
+  headerTitle: { fontSize: 7.5, color: COL.bg, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT_BOLD },
   headerSub: { fontSize: 7, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 },
-  headerRightTop: { fontSize: 8, color: COL.text, fontWeight: "bold", textAlign: "right" },
+  headerRightTop: { fontSize: 8, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
   headerRightBot: { fontSize: 7.5, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
-  pageTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12, color: COL.bg },
+  pageTitle: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 12, color: COL.bg },
   pageTitleRule: { width: 40, height: 2.5, backgroundColor: COL.primary, marginBottom: 14, marginTop: -8 },
-  sectionTitle: { fontSize: 11.5, fontWeight: "bold", marginTop: 16, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
+  sectionTitle: { fontSize: 11.5, fontFamily: FONT_BOLD, marginTop: 16, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
   paragraph: { fontSize: 10, lineHeight: 1.55, marginBottom: 8, color: "#1f2937", textAlign: "justify" },
   bullet: { flexDirection: "row", marginBottom: 5 },
-  bulletDot: { width: 12, fontSize: 10, color: COL.primary, fontWeight: "bold" },
+  bulletDot: { width: 12, fontSize: 10, color: COL.primary, fontFamily: FONT_BOLD },
   bulletText: { flex: 1, fontSize: 10, lineHeight: 1.5, textAlign: "justify" },
   kpiRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
   kpiCard: { width: "48%", padding: 10, borderWidth: 0.75, borderColor: COL.border, borderLeftWidth: 3, borderLeftColor: COL.primary, borderRadius: 3, backgroundColor: COL.panel },
-  kpiLabel: { fontSize: 7.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontWeight: "bold" },
-  kpiValue: { fontSize: 16, fontWeight: "bold", color: COL.bg },
+  kpiLabel: { fontSize: 7.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT_BOLD },
+  kpiValue: { fontSize: 16, fontFamily: FONT_BOLD, color: COL.bg },
   table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   trLast: { flexDirection: "row" },
-  th: { padding: 6, fontSize: 8, fontWeight: "bold", color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
   td: { padding: 6, fontSize: 9 },
   pageFooter: { position: "absolute", bottom: 24, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
@@ -103,27 +103,27 @@ const styles = StyleSheet.create({
   badge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, alignSelf: "flex-start", color: "#fff", marginBottom: 4 },
   // Gráficas
   chartBlock: { marginBottom: 14, padding: 10, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel },
-  chartTitle: { fontSize: 10, fontWeight: "bold", marginBottom: 2, color: COL.bg },
-  chartCaption: { fontSize: 8, color: COL.muted, marginBottom: 8, fontStyle: "italic" },
+  chartTitle: { fontSize: 10, fontFamily: FONT_BOLD, marginBottom: 2, color: COL.bg },
+  chartCaption: { fontSize: 8, color: COL.muted, marginBottom: 8, fontFamily: FONT_OBL },
   chartRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   chartLabel: { width: 110, fontSize: 9, color: COL.text },
   chartTrack: { flex: 1, height: 10, backgroundColor: "#fff", borderWidth: 0.5, borderColor: COL.border, borderRadius: 2, overflow: "hidden" },
   chartBar: { height: "100%", backgroundColor: COL.primary },
   chartValue: { width: 60, textAlign: "right", fontSize: 9, color: COL.text, fontFamily: "Courier" },
-  chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontStyle: "italic" },
+  chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
   // Política documental y checklist ISO 15489
   policyGrid: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   policyRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   policyRowLast: { flexDirection: "row" },
-  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontWeight: "bold", color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
   policyValue: { flex: 1, padding: 6, fontSize: 9, color: COL.text, textAlign: "justify" },
   checkRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.3, borderBottomColor: COL.border },
   checkBox: { width: 12, height: 12, borderWidth: 1, borderColor: COL.ok, backgroundColor: COL.ok, marginRight: 8, marginTop: 1, alignItems: "center", justifyContent: "center" },
-  checkMark: { color: "#fff", fontSize: 9, fontWeight: "bold", lineHeight: 1 },
+  checkMark: { color: "#fff", fontSize: 9, fontFamily: FONT_BOLD, lineHeight: 1 },
   checkBody: { flex: 1 },
-  checkTitle: { fontSize: 10, fontWeight: "bold", marginBottom: 2, color: COL.bg },
+  checkTitle: { fontSize: 10, fontFamily: FONT_BOLD, marginBottom: 2, color: COL.bg },
   checkText: { fontSize: 9, color: COL.text, textAlign: "justify", marginBottom: 2 },
-  checkEvidence: { fontSize: 8, color: COL.muted, fontStyle: "italic" },
+  checkEvidence: { fontSize: 8, color: COL.muted, fontFamily: FONT_OBL },
 });
 
 export type ReporteData = {
@@ -386,7 +386,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         {ejec && data.responsable && (
           <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
             <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
-            <Text style={{ fontSize: 11, fontWeight: "bold", marginTop: 2 }}>{data.responsable}</Text>
+            <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
             {data.responsable_cargo && (
               <Text style={{ fontSize: 10, color: COL.muted }}>{data.responsable_cargo}</Text>
             )}
@@ -407,13 +407,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>
           </View>
           {data.trabajos.length === 0 ? (
-            <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontStyle: "italic" }]}>Sin trabajos registrados en este periodo.</Text></View>
+            <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL }]}>Sin trabajos registrados en este periodo.</Text></View>
           ) : data.trabajos.map((t, i) => (
             <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr}>
               <Text style={[styles.td, { width: "14%", fontFamily: "Courier" }]}>{t.folio}</Text>
               <Text style={[styles.td, { width: "30%" }]}>{t.servicio}</Text>
               <Text style={[styles.td, { width: "18%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontWeight: "bold" }]}>{t.estado}</Text>
+              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
               <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
             </View>
           ))}
@@ -423,7 +423,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <Text style={styles.sectionTitle}>Notas de Campo</Text>
             {data.trabajos.filter((t) => t.notas).map((t, i) => (
               <View key={i} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize: 9, fontWeight: "bold" }}>{t.folio} · {t.servicio}</Text>
+                <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
                 <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
               </View>
             ))}
@@ -503,13 +503,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: "bold" }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>{data.responsable_cargo ?? "Responsable Operativo"}</Text>
               </View>
             </View>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: "bold" }}>{data.cliente}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.cliente}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>Recepción Cliente</Text>
               </View>
             </View>
