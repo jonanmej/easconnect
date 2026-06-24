@@ -59,17 +59,7 @@ function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: 
   );
 }
 
-const SERVICIOS_OT = [
-  "Mantenimiento Preventivo",
-  "Mantenimiento Correctivo",
-  "Mantenimiento Menor",
-  "Mantenimiento Medio",
-  "Mantenimiento Mayor",
-  "Mantenimiento de motores",
-  "Instalación Fotovoltaica",
-  "Limpieza Robotizada",
-  "Servicio Técnico de Drone",
-] as const;
+import { SERVICIOS_OT } from "@/lib/servicios";
 
 const CAT_RECURSO = [
   { value: "herramienta", label: "Herramienta" },
