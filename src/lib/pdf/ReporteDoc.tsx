@@ -36,14 +36,15 @@ const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
 
-// Paleta oficial EA Service & Consulting: naranja de marca + navy profundo.
+// Paleta oficial EA Service & Consulting tomada del logotipo original
+// (triángulo "play" en degradado azul cornflower sobre wordmark azul).
 const COL = {
-  bg: "#0F172A",          // Navy corporativo (titulares, cabeceras de tabla)
-  bgSoft: "#1E293B",      // Navy intermedio para acentos sobrios
-  primary: "#F59E0B",     // Naranja EA (triángulo del logotipo)
-  primaryDeep: "#B45309", // Naranja profundo para bordes/acentos formales
-  primarySoft: "#FEF3C7",
-  text: "#0f172a",
+  bg: "#2E4A87",          // Azul EA profundo (titulares, cabeceras de tabla)
+  bgSoft: "#5B7FBF",      // Azul medio del triángulo
+  primary: "#5B7FBF",     // Azul corporativo principal del logo EA
+  primaryDeep: "#3B5EA8", // Azul profundo para bordes/acentos formales
+  primarySoft: "#DDE6F4", // Azul muy claro (tono del triángulo claro)
+  text: "#1f2937",
   muted: "#64748b",
   border: "#e2e8f0",
   panel: "#f8fafc",
@@ -95,8 +96,8 @@ const styles = StyleSheet.create({
   table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   trLast: { flexDirection: "row" },
-  th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
-  td: { padding: 6, fontSize: 9 },
+  th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
+  td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
   pageFooter: { position: "absolute", bottom: 24, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   evidImg: { width: "48%", height: 200, objectFit: "cover", borderRadius: 3 },
@@ -400,20 +401,20 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <Text style={styles.pageTitle}>Detalle de Trabajos del Periodo</Text>
         <View style={styles.table}>
           <View style={styles.tr}>
-            <Text style={[styles.th, { width: "14%" }]}>Folio</Text>
-            <Text style={[styles.th, { width: "30%" }]}>Servicio</Text>
-            <Text style={[styles.th, { width: "18%" }]}>Fecha</Text>
-            <Text style={[styles.th, { width: "16%" }]}>Estado</Text>
+            <Text style={[styles.th, { width: "24%" }]}>Folio</Text>
+            <Text style={[styles.th, { width: "26%" }]}>Servicio</Text>
+            <Text style={[styles.th, { width: "14%" }]}>Fecha</Text>
+            <Text style={[styles.th, { width: "14%" }]}>Estado</Text>
             <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>
           </View>
           {data.trabajos.length === 0 ? (
             <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL }]}>Sin trabajos registrados en este periodo.</Text></View>
           ) : data.trabajos.map((t, i) => (
-            <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr}>
-              <Text style={[styles.td, { width: "14%", fontFamily: "Courier" }]}>{t.folio}</Text>
-              <Text style={[styles.td, { width: "30%" }]}>{t.servicio}</Text>
-              <Text style={[styles.td, { width: "18%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
+            <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+              <Text style={[styles.td, { width: "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
+              <Text style={[styles.td, { width: "26%" }]}>{t.servicio}</Text>
+              <Text style={[styles.td, { width: "14%" }]}>{t.fecha}</Text>
+              <Text style={[styles.td, { width: "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
               <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
             </View>
           ))}
