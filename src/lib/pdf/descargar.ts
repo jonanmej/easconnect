@@ -52,7 +52,7 @@ export async function buildEvidencias(items: { trabajo: string; descripcion?: st
 }
 
 /**
- * Genera y descarga el PDF cumpliendo ISO 15489:
+ * Genera y descarga el PDF con trazabilidad:
  * - Identificador único de documento (UUID)
  * - Código de documento + versión + clasificación
  * - Metadatos embebidos (autor, asunto, palabras clave, fechas)
@@ -64,7 +64,7 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
     data.documento_codigo ?? `EA-${data.modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}`;
   const documento_version = data.documento_version ?? "1.0";
   const documento_clasificacion = data.documento_clasificacion ?? "Uso interno";
-  const retencion = data.retencion ?? "Retención documental: 5 años (ISO 15489-1)";
+  const retencion = "Retención documental: 5 años";
 
   // Render inicial para calcular hash sobre el contenido base
   const base: ReporteData = {
@@ -73,7 +73,6 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
     documento_codigo,
     documento_version,
     documento_clasificacion,
-    retencion,
     documento_hash: undefined,
   };
   const initialBlob = await pdf(createElement(ReporteDoc, { data: base }) as any).toBlob();
