@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import { parseConflictoError, formatConflictoRango, formatConflictoMensaje } from "@/lib/conflict-format";
 import {
   listTrabajos,
   listPlantas,
@@ -166,7 +167,17 @@ function Trabajos() {
       qc.invalidateQueries({ queryKey: ["trabajo-equipos"] });
       setEditing(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const conflictos = parseConflictoError(e.message);
+      if (conflictos) {
+        toast.error("Conflicto de asignación", {
+          description: formatConflictoMensaje(e.message),
+          duration: 8000,
+        });
+      } else {
+        toast.error(e.message);
+      }
+    },
   });
 
   const remove = useMutation({
