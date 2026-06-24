@@ -210,7 +210,7 @@ export const generarProgramacionAnual = createServerFn({ method: "POST" })
           );
           await sendGmail({
             to: cliente.email,
-            subject: `[SOLAROS] Programación ${c.servicio} ${c.anio} - ${(planta as any).nombre}`,
+            subject: `[EA Service Connect] Programación ${c.servicio} ${c.anio} - ${(planta as any).nombre}`,
             html,
           });
         }
@@ -305,7 +305,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
         );
         await sendGmail({
           to: cliente.email,
-          subject: `[SOLAROS] Reprogramación confirmada - ${(planta as any).nombre}`,
+          subject: `[EA Service Connect] Reprogramación confirmada - ${(planta as any).nombre}`,
           html,
         });
       }

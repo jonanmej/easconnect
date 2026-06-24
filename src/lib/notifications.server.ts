@@ -13,7 +13,7 @@ function toBase64Url(str: string) {
     .replace(/=+$/, "");
 }
 
-function buildRfc2822(to: string, subject: string, html: string, fromName = "SOLAROS Notificaciones") {
+function buildRfc2822(to: string, subject: string, html: string, fromName = "EA Service Connect") {
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
   return [
     `To: ${to}`,
@@ -65,18 +65,28 @@ export function formatFechaEs(d: Date) {
   return d.toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+const LOGO_URL =
+  "https://easconnect.lovable.app/__l5e/assets-v1/c67d929c-4ade-469e-9577-738073147367/ea-service-connect-logo-transparent.png";
+
 export function emailLayout(title: string, bodyHtml: string) {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,sans-serif;color:#1f2937;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 0;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <tr><td style="background:#0f766e;padding:20px 24px;color:#ffffff;font-size:18px;font-weight:bold;">SOLAROS</td></tr>
+        <tr><td style="background:#0f172a;padding:18px 24px;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="vertical-align:middle;padding-right:12px;">
+              <img src="${LOGO_URL}" alt="EA Service Connect" width="40" height="40" style="display:block;border:0;outline:none;text-decoration:none;" />
+            </td>
+            <td style="vertical-align:middle;color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:0.3px;">EA Service Connect</td>
+          </tr></table>
+        </td></tr>
         <tr><td style="padding:24px;">
           <h2 style="margin:0 0 16px;font-size:20px;color:#0f172a;">${title}</h2>
           ${bodyHtml}
         </td></tr>
         <tr><td style="padding:16px 24px;background:#f8fafc;color:#64748b;font-size:12px;">
-          Este es un correo automático de SOLAROS. Si tienes consultas, contacta a tu supervisor asignado.
+          Este es un correo automático de EA Service Connect. Si tienes consultas, contacta a tu supervisor asignado.
         </td></tr>
       </table>
     </td></tr>
