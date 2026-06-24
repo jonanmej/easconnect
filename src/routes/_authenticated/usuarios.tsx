@@ -15,9 +15,10 @@ import {
   resetPasswordUsuario,
   listResetSolicitudes,
   descartarResetSolicitud,
+  reenviarPasswordTemporal,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X } from "lucide-react";
+import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -38,6 +39,7 @@ function UsersPage() {
   const fetchResetPass = useServerFn(resetPasswordUsuario);
   const fetchResetSolicitudes = useServerFn(listResetSolicitudes);
   const fetchDescartar = useServerFn(descartarResetSolicitud);
+  const fetchReenviar = useServerFn(reenviarPasswordTemporal);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -107,6 +109,15 @@ function UsersPage() {
   const descartar = useMutation({
     mutationFn: (id: string) => fetchDescartar({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["password-resets"] }),
+  });
+
+  const reenviar = useMutation({
+    mutationFn: (solicitudId: string) => fetchReenviar({ data: { solicitudId } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["password-resets"] });
+      alert(`Nueva contraseña temporal reenviada a ${res?.email ?? ""}.`);
+    },
+    onError: (e: Error) => alert(`Error al reenviar: ${e.message}`),
   });
 
   const [email, setEmail] = useState("");
