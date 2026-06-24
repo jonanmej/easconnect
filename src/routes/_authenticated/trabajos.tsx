@@ -14,10 +14,11 @@ import {
   deleteTrabajo,
   listTecnicos,
   listAsignacionesLog,
+  crearTrabajoHistorico,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
