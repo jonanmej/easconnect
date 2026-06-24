@@ -120,6 +120,133 @@ export const deletePlanta = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============ Importación masiva de plantas (CSV) ============
+
+const PlantaImportRow = z.object({
+  cliente: z.string().trim().min(1, "cliente requerido").max(200),
+  planta: z.string().trim().min(1, "planta requerida").max(200),
+  ubicacion: z.string().trim().max(300).optional().nullable(),
+  paneles: z.coerce.number().int().min(0).max(10_000_000).optional().nullable(),
+  capacidad: z.string().trim().max(50).optional().nullable(),
+  email_notificaciones: z
+    .string()
+    .trim()
+    .email("email inválido")
+    .max(255)
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+});
+
+export const importPlantasCSV = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      rows: z.array(z.record(z.string(), z.unknown())).min(1).max(2000),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    // Solo staff (admin / supervisor) puede importar
+    const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+    ]);
+    if (!isAdmin && !isSup) throw new Error("Solo admin o supervisor pueden importar plantas");
+
+    const { data: clientes, error: ec } = await context.supabase
+      .from("clientes")
+      .select("id, nombre");
+    if (ec) throw new Error(ec.message);
+    const clientesByName = new Map<string, string>();
+    (clientes ?? []).forEach((c) => clientesByName.set(c.nombre.trim().toLowerCase(), c.id));
+
+    const { data: plantasExist, error: ep } = await context.supabase
+      .from("plantas")
+      .select("id, nombre, cliente_id");
+    if (ep) throw new Error(ep.message);
+    const plantaKey = (cliente_id: string, nombre: string) =>
+      `${cliente_id}::${nombre.trim().toLowerCase()}`;
+    const plantasMap = new Map<string, string>();
+    (plantasExist ?? []).forEach((p: any) =>
+      plantasMap.set(plantaKey(p.cliente_id, p.nombre), p.id),
+    );
+
+    const errores: { fila: number; error: string }[] = [];
+    const insertar: any[] = [];
+    const actualizar: { id: string; payload: any }[] = [];
+
+    data.rows.forEach((raw, idx) => {
+      const fila = idx + 2; // +1 header, +1 base-1
+      // Normaliza claves (case-insensitive, sin acentos)
+      const norm: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        norm[k.trim().toLowerCase()] = typeof v === "string" ? v.trim() : v;
+      }
+      const parsed = PlantaImportRow.safeParse({
+        cliente: norm["cliente"],
+        planta: norm["planta"],
+        ubicacion: norm["ubicacion"] || null,
+        paneles: norm["paneles"] === "" || norm["paneles"] == null ? null : norm["paneles"],
+        capacidad: norm["capacidad"] || null,
+        email_notificaciones: norm["email_notificaciones"] || norm["email"] || null,
+      });
+      if (!parsed.success) {
+        errores.push({ fila, error: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
+        return;
+      }
+      const row = parsed.data;
+      const cliId = clientesByName.get(row.cliente.toLowerCase());
+      if (!cliId) {
+        errores.push({ fila, error: `Cliente no encontrado: "${row.cliente}"` });
+        return;
+      }
+      const existId = plantasMap.get(plantaKey(cliId, row.planta));
+      const payload: any = {
+        nombre: row.planta,
+        cliente_id: cliId,
+        ubicacion: row.ubicacion || null,
+        paneles: row.paneles ?? 0,
+        capacidad: row.capacidad || null,
+        email_notificaciones: row.email_notificaciones || null,
+      };
+      if (existId) {
+        actualizar.push({ id: existId, payload });
+      } else {
+        insertar.push(payload);
+      }
+    });
+
+    let creadas = 0;
+    let actualizadas = 0;
+
+    if (insertar.length) {
+      const { error: ei, data: ins } = await context.supabase
+        .from("plantas")
+        .insert(insertar)
+        .select("id");
+      if (ei) throw new Error(`Error al insertar: ${ei.message}`);
+      creadas = ins?.length ?? insertar.length;
+    }
+    for (const u of actualizar) {
+      const { error: eu } = await context.supabase
+        .from("plantas")
+        .update(u.payload)
+        .eq("id", u.id);
+      if (eu) {
+        errores.push({ fila: 0, error: `Update ${u.id}: ${eu.message}` });
+      } else {
+        actualizadas++;
+      }
+    }
+
+    return {
+      total: data.rows.length,
+      creadas,
+      actualizadas,
+      errores,
+    };
+  });
+
 // ============ Equipos ============
 
 const EquipoEstado = z.enum(["operativo", "mantenimiento", "disponible", "fuera_servicio"]);
