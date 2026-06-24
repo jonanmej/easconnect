@@ -14,6 +14,13 @@ export const listAuditoria = createServerFn({ method: "POST" })
     }).parse(d ?? {}),
   )
   .handler(async ({ context, data }) => {
+    // Defensa en profundidad: solo staff (admin/supervisor) puede leer auditoría.
+    const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+    ]);
+    if (!isAdmin && !isSup) throw new Error("No autorizado");
+
     let q = context.supabase
       .from("auditoria_log")
       .select("id, entidad, entidad_id, accion, antes, despues, actor, ts")
