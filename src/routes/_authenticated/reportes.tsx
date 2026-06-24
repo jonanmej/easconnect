@@ -9,7 +9,7 @@ import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { Sparkles, Wand2, Eye, FileDown, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
-import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF } from "@/lib/reportes.functions";
+import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte } from "@/lib/reportes.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
@@ -50,6 +50,7 @@ function Reportes() {
   const fGet = useServerFn(getReporte);
   const fSend = useServerFn(marcarReporteEnviado);
   const fPdf = useServerFn(getReporteParaPDF);
+  const fResp = useServerFn(getResponsableReporte);
   const fEmail = useServerFn(enviarNotificacionReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
@@ -85,10 +86,15 @@ function Reportes() {
     try {
       const data: any = await fPdf({ data: { id } });
       const evidencias = await buildEvidencias(data.evidencias);
+      const firma = await fResp({ data: { reporte_id: id } }).catch(() => null);
       await generarYDescargarPdf({
         ...data,
         modo,
-        responsable: null,
+        responsable: firma?.nombre ?? null,
+        responsable_cargo: firma?.cargo ?? null,
+        documento_codigo: `EA-${modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}-${(data.periodo ?? "").toString().slice(0, 10).replace(/\s+/g, "")}`,
+        documento_version: "1.0",
+        documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
         evidencias,
       }, `EA-Service-Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
       toast.success("PDF descargado");
