@@ -13,7 +13,7 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, MapPin, Pencil, Trash2, Map as MapIcon, Navigation } from "lucide-react";
+import { Plus, MapPin, Pencil, Trash2, Map as MapIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
@@ -126,9 +126,6 @@ function Plantas() {
                   : p.ubicacion
                     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.ubicacion)}`
                     : null;
-                const earthUrl = hasGeo
-                  ? `https://www.google.com/maps/@?api=1&map_action=map&center=${p.latitud},${p.longitud}&zoom=18&basemap=satellite`
-                  : null;
                 const embedQuery = hasGeo
                   ? `${p.latitud},${p.longitud}`
                   : p.ubicacion
@@ -177,11 +174,6 @@ function Plantas() {
                         >
                           <MapIcon className="size-3.5" />
                         </button>
-                      )}
-                      {earthUrl && (
-                        <a href={earthUrl} target="_blank" rel="noreferrer" className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" title="Abrir vista satélite en Google Maps" aria-label="Vista satélite">
-                          <Navigation className="size-3.5" />
-                        </a>
                       )}
                       {canEdit && (
                         <>
