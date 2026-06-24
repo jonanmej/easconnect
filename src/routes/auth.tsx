@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { EALogo } from "@/components/logos/EALogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
 
@@ -66,11 +65,12 @@ function AuthPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-3 mb-8">
-          <EALogo className="h-10 w-auto text-brand" showTagline={false} />
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            EA Service Connect
-          </span>
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <svg viewBox="0 0 200 140" className="h-20 w-auto text-primary" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EA Service">
+            <path d="M40 10 L190 75 L110 75 Z" fill="currentColor" opacity="0.55" />
+            <path d="M40 10 L40 140 L110 75 Z" fill="currentColor" opacity="0.55" />
+            <path d="M110 75 L190 75 L40 140 Z" fill="currentColor" opacity="0.9" />
+          </svg>
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">
