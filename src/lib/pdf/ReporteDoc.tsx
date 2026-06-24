@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect, Defs, LinearGradient, Stop } from "@react-pdf/renderer";
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
