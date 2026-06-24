@@ -9,6 +9,26 @@ import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect
 // ---------------------------------------------------------------------------
 Font.registerHyphenationCallback((word) => [word]);
 
+/**
+ * Logo EA Service & Consulting reproducido vectorial en PDF.
+ * Reproduce el triángulo "play" con dos tonos de naranja sobre navy,
+ * fiel a la identidad de marca utilizada en la app (EALogo.tsx).
+ */
+function EALogoMark({ size = 28, withWordmark = false }: { size?: number; withWordmark?: boolean }) {
+  const w = withWordmark ? size * 4.2 : size;
+  const h = size;
+  return (
+    <Svg width={w} height={h} viewBox="0 0 200 110">
+      {/* Triángulo "play" en degradado naranja */}
+      <G>
+        <Path d="M40 10 L190 75 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
+        <Path d="M40 10 L40 100 L110 75 Z" fill={COL.primary} fillOpacity={0.75} />
+        <Path d="M110 75 L190 75 L40 100 Z" fill={COL.primaryDeep} />
+      </G>
+    </Svg>
+  );
+}
+
 const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
