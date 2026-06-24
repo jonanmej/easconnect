@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
 
@@ -169,4 +170,169 @@ export const computeRutas = createServerFn({ method: "POST" })
       destino: { lat: destLat, lng: destLng, label: destLabel },
       rutas,
     };
+  });
+
+// =============================================================
+// Destinos a partir de OTs en estado "en_progreso"
+// =============================================================
+
+export type DestinoOT = {
+  trabajoId: string;
+  folio: string;
+  servicio: string;
+  plantaId: string;
+  plantaNombre: string;
+  ubicacion: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  clienteId: string;
+  clienteNombre: string;
+  tecnicoId: string | null;
+  tecnicoNombre: string | null;
+};
+
+export const listDestinosOTs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<DestinoOT[]> => {
+    const { data, error } = await context.supabase
+      .from("trabajos")
+      .select(
+        "id, folio, servicio, tecnico_id, plantas!inner(id, nombre, ubicacion, latitud, longitud, clientes!inner(id, nombre))"
+      )
+      .eq("estado", "en_progreso")
+      .order("fecha_programada", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const tecnicoIds = Array.from(
+      new Set((data ?? []).map((r: any) => r.tecnico_id).filter(Boolean) as string[]),
+    );
+    const tecnicos = new Map<string, string>();
+    if (tecnicoIds.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, display_name, nombres, apellidos")
+        .in("id", tecnicoIds);
+      (profs ?? []).forEach((p: any) => {
+        const nombre =
+          [p.nombres, p.apellidos].filter(Boolean).join(" ").trim() || p.display_name || "";
+        tecnicos.set(p.id, nombre);
+      });
+    }
+
+    return (data ?? []).map((r: any) => ({
+      trabajoId: r.id,
+      folio: r.folio,
+      servicio: r.servicio,
+      plantaId: r.plantas.id,
+      plantaNombre: r.plantas.nombre,
+      ubicacion: r.plantas.ubicacion,
+      latitud: r.plantas.latitud != null ? Number(r.plantas.latitud) : null,
+      longitud: r.plantas.longitud != null ? Number(r.plantas.longitud) : null,
+      clienteId: r.plantas.clientes.id,
+      clienteNombre: r.plantas.clientes.nombre,
+      tecnicoId: r.tecnico_id,
+      tecnicoNombre: r.tecnico_id ? tecnicos.get(r.tecnico_id) ?? null : null,
+    }));
+  });
+
+// =============================================================
+// Destinatarios para compartir una ruta (técnico asignado + supervisores + admins)
+// =============================================================
+
+export type RecipienteRuta = {
+  userId: string;
+  nombre: string;
+  email: string | null;
+  rol: "tecnico" | "supervisor" | "admin";
+};
+
+export const listRecipientesRuta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ trabajoId: z.string().uuid().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<RecipienteRuta[]> => {
+    // Solo admin/supervisor pueden listar destinatarios (incluye emails)
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    const { data: isSup } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "supervisor",
+    });
+    const { data: isTec } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "tecnico",
+    });
+    if (!isAdmin && !isSup && !isTec) throw new Error("No autorizado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Roles relevantes
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", ["admin", "supervisor"]);
+    if (roleErr) throw new Error(roleErr.message);
+
+    const ids = new Set<string>((roleRows ?? []).map((r: any) => r.user_id));
+    const rolMap = new Map<string, "admin" | "supervisor" | "tecnico">();
+    (roleRows ?? []).forEach((r: any) => {
+      // Admin gana sobre supervisor
+      const prev = rolMap.get(r.user_id);
+      if (!prev || (prev === "supervisor" && r.role === "admin")) {
+        rolMap.set(r.user_id, r.role);
+      }
+    });
+
+    // Técnico asignado a esta OT
+    let tecnicoId: string | null = null;
+    if (data.trabajoId) {
+      const { data: t } = await context.supabase
+        .from("trabajos")
+        .select("tecnico_id")
+        .eq("id", data.trabajoId)
+        .maybeSingle();
+      tecnicoId = (t?.tecnico_id as string | null) ?? null;
+      if (tecnicoId && !rolMap.has(tecnicoId)) {
+        rolMap.set(tecnicoId, "tecnico");
+        ids.add(tecnicoId);
+      }
+    }
+
+    if (!ids.size) return [];
+
+    // Nombres desde profiles
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, display_name, nombres, apellidos")
+      .in("id", Array.from(ids));
+    const nombreMap = new Map<string, string>();
+    (profs ?? []).forEach((p: any) => {
+      const n =
+        [p.nombres, p.apellidos].filter(Boolean).join(" ").trim() || p.display_name || "";
+      nombreMap.set(p.id, n);
+    });
+
+    // Emails desde auth.users (paginado)
+    const emailMap = new Map<string, string>();
+    let page = 1;
+    for (;;) {
+      const { data: u, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      u.users.forEach((usr) => {
+        if (ids.has(usr.id) && usr.email) emailMap.set(usr.id, usr.email);
+      });
+      if (u.users.length < 200) break;
+      page++;
+      if (page > 20) break;
+    }
+
+    return Array.from(ids).map((id) => ({
+      userId: id,
+      nombre: nombreMap.get(id) || "(sin nombre)",
+      email: emailMap.get(id) ?? null,
+      rol: rolMap.get(id) ?? "tecnico",
+    }));
   });
