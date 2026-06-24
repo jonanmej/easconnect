@@ -15,6 +15,55 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: requiere rol admin");
 }
 
+function generarPasswordTemporal() {
+  // 12 chars: letras + dígitos, sin caracteres ambiguos
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  const arr = new Uint8Array(12);
+  crypto.getRandomValues(arr);
+  for (const n of arr) out += chars[n % chars.length];
+  return out;
+}
+
+async function enviarCorreoCredenciales(opts: {
+  email: string;
+  password: string;
+  motivo: "nueva_cuenta" | "reseteo";
+}) {
+  const { sendGmail, emailLayout } = await import("@/lib/notifications.server");
+  const titulo =
+    opts.motivo === "nueva_cuenta"
+      ? "Tu cuenta en EA Service Connect está lista"
+      : "Hemos restablecido tu contraseña";
+  const subject =
+    opts.motivo === "nueva_cuenta"
+      ? "EA Service Connect · Acceso a tu cuenta"
+      : "EA Service Connect · Nueva contraseña de acceso";
+  const intro =
+    opts.motivo === "nueva_cuenta"
+      ? "Un administrador ha creado tu cuenta en EA Service Connect. Usa estas credenciales para iniciar sesión por primera vez."
+      : "Atendimos tu solicitud de recuperación de contraseña. Usa esta clave temporal para ingresar.";
+  const html = emailLayout(
+    titulo,
+    `
+    <p style="margin:0 0 14px;font-size:14px;color:#1f2937;">${intro}</p>
+    <table cellpadding="0" cellspacing="0" style="margin:18px 0;background:#f1f5f9;border-radius:8px;">
+      <tr><td style="padding:14px 18px;font-size:13px;color:#475569;">
+        <div><b>Correo:</b> ${opts.email}</div>
+        <div style="margin-top:6px;"><b>Contraseña temporal:</b> <span style="font-family:monospace;background:#fff;padding:2px 8px;border-radius:4px;border:1px solid #e2e8f0;">${opts.password}</span></div>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 10px;font-size:13px;color:#475569;">
+      Por seguridad, al ingresar te pediremos definir una nueva contraseña personal.
+    </p>
+    <p style="margin:14px 0 0;font-size:13px;">
+      <a href="https://easconnect.lovable.app/auth" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 16px;border-radius:6px;font-size:13px;">Iniciar sesión</a>
+    </p>
+  `,
+  );
+  return sendGmail({ to: opts.email, subject, html });
+}
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -106,6 +155,7 @@ export const inviteUser = createServerFn({ method: "POST" })
         email: z.string().email(),
         password: z.string().min(8).optional().or(z.literal("")),
         role: RoleEnum,
+        enviar_por_correo: z.boolean().optional().default(false),
       })
       .parse(d),
   )
@@ -138,7 +188,116 @@ export const inviteUser = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: userId, role: data.role });
     if (roleErr) throw new Error(roleErr.message);
-    return { id: userId, email: userEmail, invited: !usePassword };
+    // Si admin pidió enviar credenciales por correo y se asignó contraseña → enviar y marcar cambio obligatorio
+    let correo_enviado = false;
+    let correo_error: string | null = null;
+    if (usePassword && data.enviar_por_correo && userEmail) {
+      await supabaseAdmin
+        .from("profiles")
+        .upsert(
+          { id: userId, debe_cambiar_password: true },
+          { onConflict: "id" },
+        );
+      const r = await enviarCorreoCredenciales({
+        email: userEmail,
+        password: data.password!,
+        motivo: "nueva_cuenta",
+      });
+      correo_enviado = !!r?.ok;
+      if (!r?.ok) correo_error = (r as any)?.error ?? "Envío omitido";
+    }
+    return { id: userId, email: userEmail, invited: !usePassword, correo_enviado, correo_error };
+  });
+
+/** Genera una nueva contraseña temporal para un usuario y la envía por correo. */
+export const resetPasswordUsuario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        solicitudId: z.string().uuid().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: u, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (uErr || !u.user?.email) throw new Error("Usuario no encontrado");
+    const password = generarPasswordTemporal();
+    const { error: pErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
+    if (pErr) throw new Error(pErr.message);
+    await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        { id: data.userId, debe_cambiar_password: true },
+        { onConflict: "id" },
+      );
+    const r = await enviarCorreoCredenciales({
+      email: u.user.email,
+      password,
+      motivo: "reseteo",
+    });
+    if (data.solicitudId) {
+      await supabaseAdmin
+        .from("password_reset_solicitudes")
+        .update({
+          estado: "atendida",
+          atendida_at: new Date().toISOString(),
+          atendida_por: context.userId,
+        })
+        .eq("id", data.solicitudId);
+    }
+    if (!r?.ok) {
+      throw new Error(
+        `La contraseña fue restablecida, pero el correo no se envió: ${(r as any)?.error ?? "envío omitido"}. Comparte la clave manualmente: ${password}`,
+      );
+    }
+    return { ok: true, email: u.user.email };
+  });
+
+/** Lista solicitudes de reseteo de contraseña (admin). */
+export const listResetSolicitudes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .select("id, email, mensaje, estado, created_at, atendida_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    // Buscar el userId para cada email (puede no existir)
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const idByEmail = new Map<string, string>();
+    (users?.users ?? []).forEach((u) => {
+      if (u.email) idByEmail.set(u.email.toLowerCase(), u.id);
+    });
+    return (data ?? []).map((s: any) => ({
+      ...s,
+      user_id: idByEmail.get(String(s.email).toLowerCase()) ?? null,
+    }));
+  });
+
+/** Marca una solicitud como descartada (admin). */
+export const descartarResetSolicitud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .update({
+        estado: "descartada",
+        atendida_at: new Date().toISOString(),
+        atendida_por: context.userId,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const setUserRole = createServerFn({ method: "POST" })

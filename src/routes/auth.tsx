@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
+import { useServerFn } from "@tanstack/react-start";
+import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -15,6 +17,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotResult, setForgotResult] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const fSolicitar = useServerFn(solicitarResetPassword);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -33,6 +42,25 @@ function AuthPage() {
       return;
     }
     navigate({ to: "/" });
+  }
+
+  async function onForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotResult(null);
+    setForgotBusy(true);
+    try {
+      await fSolicitar({ data: { email: forgotEmail, mensaje: forgotMsg } });
+      setForgotResult(
+        "Tu solicitud fue enviada. Un administrador te enviará una nueva contraseña a tu correo.",
+      );
+      setForgotEmail("");
+      setForgotMsg("");
+    } catch (err) {
+      setForgotError((err as Error).message ?? "No se pudo enviar la solicitud.");
+    } finally {
+      setForgotBusy(false);
+    }
   }
 
   async function signInWithGoogle() {
@@ -118,6 +146,70 @@ function AuthPage() {
               {busy ? "Ingresando…" : "Ingresar"}
             </button>
           </form>
+
+          <div className="text-right mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setForgotOpen((v) => !v);
+                setForgotEmail(email);
+                setForgotResult(null);
+                setForgotError(null);
+              }}
+              className="text-xs text-primary hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          {forgotOpen && (
+            <form
+              onSubmit={onForgotSubmit}
+              className="mt-4 p-4 rounded-md border border-border bg-secondary/40 space-y-3"
+            >
+              <p className="text-xs text-muted-foreground">
+                Ingresa tu correo y, opcionalmente, un mensaje. Un administrador recibirá tu
+                solicitud y te enviará una nueva contraseña temporal.
+              </p>
+              <div>
+                <label className="text-xs font-medium block mb-1">Correo</label>
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1">Mensaje (opcional)</label>
+                <textarea
+                  rows={2}
+                  value={forgotMsg}
+                  onChange={(e) => setForgotMsg(e.target.value)}
+                  placeholder="Detalla brevemente tu situación si lo deseas"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              {forgotError && (
+                <p className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+                  {forgotError}
+                </p>
+              )}
+              {forgotResult && (
+                <p className="text-xs text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2">
+                  {forgotResult}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={forgotBusy}
+                className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              >
+                {forgotBusy ? "Enviando…" : "Enviar solicitud al administrador"}
+              </button>
+            </form>
+          )}
 
           <div className="flex items-center gap-3 my-5">
             <div className="h-px flex-1 bg-border" />

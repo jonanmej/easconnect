@@ -480,6 +480,39 @@ export type Database = {
           },
         ]
       }
+      password_reset_solicitudes: {
+        Row: {
+          atendida_at: string | null
+          atendida_por: string | null
+          created_at: string
+          email: string
+          estado: string
+          id: string
+          mensaje: string | null
+          notas_admin: string | null
+        }
+        Insert: {
+          atendida_at?: string | null
+          atendida_por?: string | null
+          created_at?: string
+          email: string
+          estado?: string
+          id?: string
+          mensaje?: string | null
+          notas_admin?: string | null
+        }
+        Update: {
+          atendida_at?: string | null
+          atendida_por?: string | null
+          created_at?: string
+          email?: string
+          estado?: string
+          id?: string
+          mensaje?: string | null
+          notas_admin?: string | null
+        }
+        Relationships: []
+      }
       plantas: {
         Row: {
           capacidad: string | null
@@ -551,6 +584,7 @@ export type Database = {
           cargo: string | null
           cliente_id: string | null
           created_at: string
+          debe_cambiar_password: boolean
           display_name: string | null
           id: string
           nombres: string | null
@@ -563,6 +597,7 @@ export type Database = {
           cargo?: string | null
           cliente_id?: string | null
           created_at?: string
+          debe_cambiar_password?: boolean
           display_name?: string | null
           id: string
           nombres?: string | null
@@ -575,6 +610,7 @@ export type Database = {
           cargo?: string | null
           cliente_id?: string | null
           created_at?: string
+          debe_cambiar_password?: boolean
           display_name?: string | null
           id?: string
           nombres?: string | null
