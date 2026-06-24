@@ -245,6 +245,8 @@ export const listNotificaciones = createServerFn({ method: "POST" })
     }).parse(d ?? {}),
   )
   .handler(async ({ context, data }) => {
+    // Solo staff puede consultar el historial/auditoría de notificaciones.
+    await ensureStaff(context.supabase, context.userId);
     let q = context.supabase
       .from("notificaciones_log")
       .select("id, destinatario, asunto, tipo, estado, error_mensaje, gmail_message_id, enviado_at, cliente_id, planta_id, trabajo_id, reporte_id, clientes(nombre), plantas(nombre)")
