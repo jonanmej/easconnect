@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { DEFAULT_PASSWORD_POLICY, PasswordPolicySchema, type PasswordPolicy } from "@/lib/system-config.functions";
 
 const RoleEnum = z.enum(["admin", "supervisor", "tecnico", "cliente"]);
 
@@ -15,34 +16,78 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: requiere rol admin");
 }
 
-function generarPasswordTemporal() {
-  // 12 chars: letras + dígitos, sin caracteres ambiguos
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  let out = "";
-  const arr = new Uint8Array(12);
+async function obtenerPolitica(): Promise<PasswordPolicy> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("system_config")
+    .select("value")
+    .eq("key", "password_policy")
+    .maybeSingle();
+  const parsed = PasswordPolicySchema.safeParse(data?.value);
+  return parsed.success ? parsed.data : DEFAULT_PASSWORD_POLICY;
+}
+
+function pickRandom(pool: string): string {
+  const arr = new Uint8Array(1);
   crypto.getRandomValues(arr);
-  for (const n of arr) out += chars[n % chars.length];
-  return out;
+  return pool[arr[0] % pool.length];
+}
+
+function generarPasswordSegunPolitica(pol: PasswordPolicy): string {
+  const MAY_FULL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const MIN_FULL = "abcdefghijklmnopqrstuvwxyz";
+  const DIG_FULL = "0123456789";
+  const SYM = "!@#$%&*?+-";
+  const MAY = pol.excluir_ambiguos ? "ABCDEFGHJKLMNPQRSTUVWXYZ" : MAY_FULL;
+  const MIN = pol.excluir_ambiguos ? "abcdefghijkmnpqrstuvwxyz" : MIN_FULL;
+  const DIG = pol.excluir_ambiguos ? "23456789" : DIG_FULL;
+
+  const required: string[] = [];
+  let pool = "";
+  if (pol.requiere_mayusculas) { required.push(pickRandom(MAY)); pool += MAY; }
+  if (pol.requiere_minusculas) { required.push(pickRandom(MIN)); pool += MIN; }
+  if (pol.requiere_digitos)    { required.push(pickRandom(DIG)); pool += DIG; }
+  if (pol.requiere_simbolos)   { required.push(pickRandom(SYM)); pool += SYM; }
+  if (!pool) pool = MAY + MIN + DIG;
+
+  const longitud = Math.max(pol.longitud, required.length);
+  const out: string[] = [...required];
+  while (out.length < longitud) out.push(pickRandom(pool));
+
+  // Mezcla (Fisher–Yates) usando aleatorios criptográficos
+  for (let i = out.length - 1; i > 0; i--) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const j = arr[0] % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.join("");
 }
 
 async function enviarCorreoCredenciales(opts: {
   email: string;
   password: string;
-  motivo: "nueva_cuenta" | "reseteo";
+  motivo: "nueva_cuenta" | "reseteo" | "reenvio";
 }) {
   const { sendGmail, emailLayout } = await import("@/lib/notifications.server");
   const titulo =
     opts.motivo === "nueva_cuenta"
       ? "Tu cuenta en EA Service Connect está lista"
-      : "Hemos restablecido tu contraseña";
+      : opts.motivo === "reseteo"
+        ? "Hemos restablecido tu contraseña"
+        : "Reenvío de tu contraseña temporal";
   const subject =
     opts.motivo === "nueva_cuenta"
       ? "EA Service Connect · Acceso a tu cuenta"
-      : "EA Service Connect · Nueva contraseña de acceso";
+      : opts.motivo === "reseteo"
+        ? "EA Service Connect · Nueva contraseña de acceso"
+        : "EA Service Connect · Reenvío de contraseña temporal";
   const intro =
     opts.motivo === "nueva_cuenta"
       ? "Un administrador ha creado tu cuenta en EA Service Connect. Usa estas credenciales para iniciar sesión por primera vez."
-      : "Atendimos tu solicitud de recuperación de contraseña. Usa esta clave temporal para ingresar.";
+      : opts.motivo === "reseteo"
+        ? "Atendimos tu solicitud de recuperación de contraseña. Usa esta clave temporal para ingresar."
+        : "Reenvío de la contraseña temporal previamente emitida. Si ya la cambiaste, ignora este mensaje.";
   const html = emailLayout(
     titulo,
     `
@@ -225,7 +270,8 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: u, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (uErr || !u.user?.email) throw new Error("Usuario no encontrado");
-    const password = generarPasswordTemporal();
+    const politica = await obtenerPolitica();
+    const password = generarPasswordSegunPolitica(politica);
     const { error: pErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
     if (pErr) throw new Error(pErr.message);
     await supabaseAdmin
@@ -249,6 +295,18 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
         })
         .eq("id", data.solicitudId);
     }
+    // Auditoría: nueva contraseña enviada
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "password_reset_solicitudes",
+      entidad_id: data.solicitudId ?? null,
+      accion: "password_reseteado",
+      despues: {
+        usuario_afectado: data.userId,
+        email: u.user.email,
+        correo_enviado: !!r?.ok,
+      } as any,
+      actor: context.userId,
+    });
     if (!r?.ok) {
       throw new Error(
         `La contraseña fue restablecida, pero el correo no se envió: ${(r as any)?.error ?? "envío omitido"}. Comparte la clave manualmente: ${password}`,
@@ -257,15 +315,92 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
     return { ok: true, email: u.user.email };
   });
 
+/**
+ * Reenvía una nueva contraseña temporal a un usuario asociado a una solicitud
+ * (caso "no me llegó el correo"). Genera una nueva clave y actualiza contador.
+ */
+export const reenviarPasswordTemporal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        solicitudId: z.string().uuid(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sol, error: sErr } = await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .select("id, email, reenvios")
+      .eq("id", data.solicitudId)
+      .maybeSingle();
+    if (sErr || !sol) throw new Error("Solicitud no encontrada");
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const target = (users?.users ?? []).find(
+      (u) => u.email?.toLowerCase() === String(sol.email).toLowerCase(),
+    );
+    if (!target?.email) throw new Error("No existe una cuenta con ese email");
+    const politica = await obtenerPolitica();
+    const password = generarPasswordSegunPolitica(politica);
+    const { error: pErr } = await supabaseAdmin.auth.admin.updateUserById(target.id, { password });
+    if (pErr) throw new Error(pErr.message);
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: target.id, debe_cambiar_password: true }, { onConflict: "id" });
+    const r = await enviarCorreoCredenciales({
+      email: target.email,
+      password,
+      motivo: "reenvio",
+    });
+    await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .update({
+        estado: "atendida",
+        atendida_at: new Date().toISOString(),
+        atendida_por: context.userId,
+        reenvios: (sol.reenvios ?? 0) + 1,
+        reenviado_at: new Date().toISOString(),
+      })
+      .eq("id", sol.id);
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "password_reset_solicitudes",
+      entidad_id: sol.id,
+      accion: "password_reenviado",
+      despues: {
+        usuario_afectado: target.id,
+        email: target.email,
+        correo_enviado: !!r?.ok,
+      } as any,
+      actor: context.userId,
+    });
+    if (!r?.ok) {
+      throw new Error(
+        `Contraseña regenerada, pero el correo falló: ${(r as any)?.error ?? "envío omitido"}. Clave: ${password}`,
+      );
+    }
+    return { ok: true, email: target.email };
+  });
+
 /** Lista solicitudes de reseteo de contraseña (admin). */
 export const listResetSolicitudes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Marca como 'caducada' las pendientes ya expiradas
+    await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .update({ estado: "caducada" })
+      .eq("estado", "pendiente")
+      .lt("expira_at", new Date().toISOString());
     const { data, error } = await supabaseAdmin
       .from("password_reset_solicitudes")
-      .select("id, email, mensaje, estado, created_at, atendida_at")
+      .select("id, email, mensaje, estado, created_at, atendida_at, expira_at, ip, reenvios, reenviado_at")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);

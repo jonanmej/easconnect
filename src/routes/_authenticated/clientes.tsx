@@ -10,9 +10,16 @@ import {
   upsertCliente,
   deleteCliente,
 } from "@/lib/operations.functions";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  listUsuariosCliente,
+  listUsuariosAsignables,
+  asignarUsuarioCliente,
+  quitarUsuarioCliente,
+} from "@/lib/clientes-usuarios.functions";
+import { Plus, Pencil, Trash2, UserCog, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -58,6 +65,7 @@ function Clientes() {
 
   const list = useQuery({ queryKey: ["clientes"], queryFn: () => fetchList() });
   const [editing, setEditing] = useState<Partial<ClienteRow> | null>(null);
+  const [managing, setManaging] = useState<ClienteRow | null>(null);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -157,6 +165,14 @@ function Clientes() {
             </div>
             {canEdit && (
               <div className="mt-4 pt-3 border-t border-border flex gap-2 justify-end">
+                <button
+                  onClick={() => setManaging(c)}
+                  className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary"
+                  aria-label="Gestionar encargados"
+                  title="Gestionar encargados"
+                >
+                  <UserCog className="size-3.5" />
+                </button>
                 <button onClick={() => setEditing(c)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                   <Pencil className="size-3.5" />
                 </button>
@@ -233,6 +249,154 @@ function Clientes() {
           </div>
         </div>
       </RecordDialog>
+
+      <EncargadosDialog
+        cliente={managing}
+        onClose={() => setManaging(null)}
+      />
     </div>
+  );
+}
+
+function EncargadosDialog({
+  cliente,
+  onClose,
+}: {
+  cliente: ClienteRow | null;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const fList = useServerFn(listUsuariosCliente);
+  const fAsignables = useServerFn(listUsuariosAsignables);
+  const fAsignar = useServerFn(asignarUsuarioCliente);
+  const fQuitar = useServerFn(quitarUsuarioCliente);
+  const open = !!cliente;
+
+  const encargados = useQuery({
+    queryKey: ["cliente-encargados", cliente?.id],
+    queryFn: () => fList({ data: { clienteId: cliente!.id } }),
+    enabled: open,
+  });
+  const asignables = useQuery({
+    queryKey: ["usuarios-asignables-cliente"],
+    queryFn: () => fAsignables(),
+    enabled: open,
+  });
+
+  const [selUserId, setSelUserId] = useState("");
+
+  const asignar = useMutation({
+    mutationFn: (userId: string) => fAsignar({ data: { userId, clienteId: cliente!.id } }),
+    onSuccess: () => {
+      toast.success("Encargado asignado al cliente");
+      qc.invalidateQueries({ queryKey: ["cliente-encargados", cliente!.id] });
+      qc.invalidateQueries({ queryKey: ["usuarios-asignables-cliente"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      setSelUserId("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const quitar = useMutation({
+    mutationFn: (userId: string) => fQuitar({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Encargado desvinculado");
+      qc.invalidateQueries({ queryKey: ["cliente-encargados", cliente!.id] });
+      qc.invalidateQueries({ queryKey: ["usuarios-asignables-cliente"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Sólo permitir asignar usuarios "cliente" que no estén ya asignados a este cliente
+  const disponibles = (asignables.data ?? []).filter(
+    (u: any) => u.cliente_id !== cliente?.id,
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Encargados de {cliente?.nombre}</DialogTitle>
+          <DialogDescription>
+            Asigna o cambia los usuarios responsables del cliente. Útil cuando hay un cambio
+            de encargado por parte del cliente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Usuarios actuales
+            </p>
+            {encargados.isLoading && (
+              <p className="text-xs text-muted-foreground">Cargando…</p>
+            )}
+            {encargados.data?.length === 0 && (
+              <p className="text-xs text-muted-foreground">Sin encargados asignados.</p>
+            )}
+            <ul className="space-y-2">
+              {encargados.data?.map((u: any) => (
+                <li
+                  key={u.id}
+                  className="flex items-center justify-between border border-border rounded-md px-3 py-2 bg-secondary/40"
+                >
+                  <div>
+                    <div className="text-sm font-medium">
+                      {u.display_name ?? u.email}
+                    </div>
+                    {u.display_name && (
+                      <div className="text-[10px] text-muted-foreground">{u.email}</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿Quitar a ${u.email} como encargado?`)) quitar.mutate(u.id);
+                    }}
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Quitar"
+                    aria-label="Quitar"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="pt-3 border-t border-border">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Asignar nuevo encargado
+            </p>
+            <div className="flex gap-2">
+              <select
+                value={selUserId}
+                onChange={(e) => setSelUserId(e.target.value)}
+                className={inputCls + " flex-1"}
+              >
+                <option value="">— Selecciona un usuario con rol cliente —</option>
+                {disponibles.map((u: any) => (
+                  <option key={u.id} value={u.id}>
+                    {u.email}
+                    {u.cliente_id ? " (ya en otro cliente)" : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!selUserId || asignar.isPending}
+                onClick={() => asignar.mutate(selUserId)}
+                className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              >
+                Asignar
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Para crear una cuenta nueva, ve a Usuarios → Invitar usuario con rol "cliente".
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

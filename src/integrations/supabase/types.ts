@@ -487,9 +487,13 @@ export type Database = {
           created_at: string
           email: string
           estado: string
+          expira_at: string
           id: string
+          ip: string | null
           mensaje: string | null
           notas_admin: string | null
+          reenviado_at: string | null
+          reenvios: number
         }
         Insert: {
           atendida_at?: string | null
@@ -497,9 +501,13 @@ export type Database = {
           created_at?: string
           email: string
           estado?: string
+          expira_at?: string
           id?: string
+          ip?: string | null
           mensaje?: string | null
           notas_admin?: string | null
+          reenviado_at?: string | null
+          reenvios?: number
         }
         Update: {
           atendida_at?: string | null
@@ -507,9 +515,13 @@ export type Database = {
           created_at?: string
           email?: string
           estado?: string
+          expira_at?: string
           id?: string
+          ip?: string | null
           mensaje?: string | null
           notas_admin?: string | null
+          reenviado_at?: string | null
+          reenvios?: number
         }
         Relationships: []
       }
@@ -797,6 +809,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_config: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
       }
       trabajo_aprobaciones: {
         Row: {

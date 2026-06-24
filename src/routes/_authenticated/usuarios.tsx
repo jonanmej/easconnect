@@ -15,9 +15,10 @@ import {
   resetPasswordUsuario,
   listResetSolicitudes,
   descartarResetSolicitud,
+  reenviarPasswordTemporal,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X } from "lucide-react";
+import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -38,6 +39,7 @@ function UsersPage() {
   const fetchResetPass = useServerFn(resetPasswordUsuario);
   const fetchResetSolicitudes = useServerFn(listResetSolicitudes);
   const fetchDescartar = useServerFn(descartarResetSolicitud);
+  const fetchReenviar = useServerFn(reenviarPasswordTemporal);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -107,6 +109,15 @@ function UsersPage() {
   const descartar = useMutation({
     mutationFn: (id: string) => fetchDescartar({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["password-resets"] }),
+  });
+
+  const reenviar = useMutation({
+    mutationFn: (solicitudId: string) => fetchReenviar({ data: { solicitudId } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["password-resets"] });
+      alert(`Nueva contraseña temporal reenviada a ${res?.email ?? ""}.`);
+    },
+    onError: (e: Error) => alert(`Error al reenviar: ${e.message}`),
   });
 
   const [email, setEmail] = useState("");
@@ -247,17 +258,18 @@ function UsersPage() {
             <tr>
               <th className="text-left p-3">Fecha</th>
               <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Mensaje</th>
+              <th className="text-left p-3">Mensaje / IP</th>
+              <th className="text-left p-3">Expira</th>
               <th className="text-left p-3">Estado</th>
               <th className="p-3" />
             </tr>
           </thead>
           <tbody>
             {resets.isLoading && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
             {resets.data?.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Sin solicitudes.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin solicitudes.</td></tr>
             )}
             {resets.data?.map((s: any) => (
               <tr key={s.id} className="border-t border-border">
@@ -266,7 +278,14 @@ function UsersPage() {
                 </td>
                 <td className="p-3 text-xs">{s.email}</td>
                 <td className="p-3 text-xs text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
-                  {s.mensaje ?? "—"}
+                  <div className="truncate">{s.mensaje ?? "—"}</div>
+                  {s.ip && <div className="text-[10px] font-mono">IP: {s.ip}</div>}
+                  {(s.reenvios ?? 0) > 0 && (
+                    <div className="text-[10px] text-primary">Reenviada {s.reenvios}×</div>
+                  )}
+                </td>
+                <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                  {s.expira_at ? new Date(s.expira_at).toLocaleString() : "—"}
                 </td>
                 <td className="p-3">
                   <span className={
@@ -275,7 +294,9 @@ function UsersPage() {
                       ? "bg-primary/15 text-primary"
                       : s.estado === "atendida"
                         ? "bg-accent/15 text-accent"
-                        : "bg-muted text-muted-foreground")
+                        : s.estado === "caducada"
+                          ? "bg-destructive/15 text-destructive"
+                          : "bg-muted text-muted-foreground")
                   }>
                     {s.estado}
                   </span>
@@ -294,6 +315,22 @@ function UsersPage() {
                     >
                       <Mail className="size-3.5" />
                       Enviar nueva clave
+                    </button>
+                  )}
+                  {s.estado === "atendida" && s.user_id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
+                          reenviar.mutate(s.id);
+                        }
+                      }}
+                      disabled={reenviar.isPending}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60 mr-2"
+                      title="Regenera la clave temporal y reenvía el correo"
+                    >
+                      <Send className="size-3.5" />
+                      Reenviar
                     </button>
                   )}
                   {s.estado === "pendiente" && !s.user_id && (
