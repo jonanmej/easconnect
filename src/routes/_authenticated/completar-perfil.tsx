@@ -42,6 +42,11 @@ function CompletarPerfilPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const debeCambiar = !!(profile.data as any)?.debe_cambiar_password;
+    if (debeCambiar && !password) {
+      setError("Debes definir una nueva contraseña personal para continuar.");
+      return;
+    }
     if (password && password !== confirm) {
       setError("Las contraseñas no coinciden.");
       return;
@@ -52,11 +57,13 @@ function CompletarPerfilPage() {
     }
     setBusy(true);
     try {
-      await saveProfile({ data: { nombres, apellidos, cargo } });
       if (password) {
         const { error: pwErr } = await supabase.auth.updateUser({ password });
         if (pwErr) throw new Error(pwErr.message);
       }
+      await saveProfile({
+        data: { nombres, apellidos, cargo, password_actualizada: !!password },
+      });
       navigate({ to: "/" });
     } catch (e) {
       setError((e as Error).message);
@@ -64,6 +71,8 @@ function CompletarPerfilPage() {
       setBusy(false);
     }
   }
+
+  const debeCambiar = !!(profile.data as any)?.debe_cambiar_password;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] grid place-items-center p-4">
@@ -80,6 +89,11 @@ function CompletarPerfilPage() {
             <UserCheck className="size-5 text-primary" />
             <h1 className="text-lg font-semibold">Completa tu perfil</h1>
           </div>
+          {debeCambiar && (
+            <div className="mb-4 text-xs bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2">
+              Por seguridad, define una nueva contraseña personal. Esta acción es obligatoria antes de continuar.
+            </div>
+          )}
           <p className="text-xs text-muted-foreground mb-6">
             Para continuar, ingresa tus datos personales y, si lo deseas, asigna una nueva contraseña.
             Sesión activa: <span className="font-mono">{user?.email}</span>
@@ -107,18 +121,23 @@ function CompletarPerfilPage() {
 
             <div className="pt-2 border-t border-border">
               <p className="text-xs font-medium text-muted-foreground mb-2">
-                Asignación de nueva contraseña <span className="text-muted-foreground/70">(opcional, recomendado en el primer ingreso)</span>
+                Asignación de nueva contraseña{" "}
+                <span className="text-muted-foreground/70">
+                  {debeCambiar ? "(obligatoria)" : "(opcional, recomendado en el primer ingreso)"}
+                </span>
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium block mb-1">Nueva contraseña</label>
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    required={debeCambiar}
                     minLength={8} autoComplete="new-password"
                     className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40" />
                 </div>
                 <div>
                   <label className="text-xs font-medium block mb-1">Confirmar contraseña</label>
                   <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                    required={debeCambiar}
                     minLength={8} autoComplete="new-password"
                     className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40" />
                 </div>
