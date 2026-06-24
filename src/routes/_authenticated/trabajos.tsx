@@ -118,6 +118,7 @@ function Trabajos() {
   const fetchDelete = useServerFn(deleteTrabajo);
   const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
   const fetchTecnicos = useServerFn(listTecnicos);
+  const fetchHistorico = useServerFn(crearTrabajoHistorico);
   const { roles } = useAuth();
   const role = highestRole(roles);
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
@@ -128,6 +129,7 @@ function Trabajos() {
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
@@ -176,6 +178,27 @@ function Trabajos() {
     onSuccess: () => { toast.success("Trabajo eliminado"); qc.invalidateQueries({ queryKey: ["trabajos"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const saveHistorico = useMutation({
+    mutationFn: (vars: any) => fetchHistorico({ data: vars }),
+    onSuccess: () => {
+      toast.success("Trabajo histórico registrado");
+      qc.invalidateQueries({ queryKey: ["trabajos"] });
+      setHistoricoOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function onSubmitHistorico(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    saveHistorico.mutate({
+      planta_id: f.get("planta_id"),
+      servicio: f.get("servicio"),
+      fecha: f.get("fecha"),
+      notas: (f.get("notas") as string) || null,
+    });
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
