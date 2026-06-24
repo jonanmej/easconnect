@@ -65,16 +65,10 @@ function AuthPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-4 mb-8">
-          <svg viewBox="0 0 200 140" className="h-16 w-auto text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EA Service">
-            <path d="M40 10 L190 75 L110 75 Z" fill="currentColor" opacity="0.55" />
-            <path d="M40 10 L40 140 L110 75 Z" fill="currentColor" opacity="0.55" />
-            <path d="M110 75 L190 75 L40 140 Z" fill="currentColor" opacity="0.9" />
-          </svg>
-          <span className="text-2xl font-bold tracking-tight text-foreground leading-tight">
-            EA Service
-            <br />
-            <span className="text-lg font-medium text-muted-foreground">Connect</span>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="h-10 w-10 bg-amber-500 rounded-md flex-shrink-0" aria-hidden="true" />
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            EA Service Connect
           </span>
         </div>
 
