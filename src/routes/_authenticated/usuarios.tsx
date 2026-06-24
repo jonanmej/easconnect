@@ -9,9 +9,11 @@ import {
   setUserRole,
   deleteUser,
   listRoleAudit,
+  listClientesAdmin,
+  setUserCliente,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus, History } from "lucide-react";
+import { Trash2, UserPlus, History, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -26,10 +28,17 @@ function UsersPage() {
   const fetchSetRole = useServerFn(setUserRole);
   const fetchDelete = useServerFn(deleteUser);
   const fetchAudit = useServerFn(listRoleAudit);
+  const fetchClientes = useServerFn(listClientesAdmin);
+  const fetchSetCliente = useServerFn(setUserCliente);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchUsers(),
+  });
+
+  const clientes = useQuery({
+    queryKey: ["admin-clientes"],
+    queryFn: () => fetchClientes(),
   });
 
   const audit = useQuery({
@@ -52,6 +61,11 @@ function UsersPage() {
   });
   const remove = useMutation({
     mutationFn: (userId: string) => fetchDelete({ data: { userId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const setCliente = useMutation({
+    mutationFn: (vars: { userId: string; clienteId: string | null }) =>
+      fetchSetCliente({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
@@ -144,6 +158,7 @@ function UsersPage() {
           <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="text-left p-3">Email</th>
+              <th className="text-left p-3">Cliente</th>
               {ALL_ROLES.map((r) => (
                 <th key={r} className="text-center p-3">
                   {ROLE_LABEL[r]}
@@ -155,16 +170,49 @@ function UsersPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={ALL_ROLES.length + 2} className="p-6 text-center text-xs text-muted-foreground">
+                <td colSpan={ALL_ROLES.length + 3} className="p-6 text-center text-xs text-muted-foreground">
                   Cargando…
                 </td>
               </tr>
             )}
-            {data?.map((u) => (
+            {data?.map((u) => {
+              const isCliente = u.roles.includes("cliente");
+              const missingCliente = isCliente && !u.cliente_id;
+              return (
               <tr key={u.id} className="border-t border-border">
                 <td className="p-3">
                   <div className="font-medium">{u.email}</div>
                   <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}</div>
+                </td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={u.cliente_id ?? ""}
+                      disabled={setCliente.isPending || clientes.isLoading}
+                      onChange={(e) =>
+                        setCliente.mutate({
+                          userId: u.id,
+                          clienteId: e.target.value || null,
+                        })
+                      }
+                      className={
+                        "bg-secondary border rounded-md px-2 py-1.5 text-xs min-w-[180px] " +
+                        (missingCliente ? "border-destructive" : "border-border")
+                      }
+                    >
+                      <option value="">— Sin cliente —</option>
+                      {clientes.data?.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    {missingCliente && (
+                      <span title="Usuario con rol cliente sin cliente asignado: no podrá ver sus plantas.">
+                        <AlertTriangle className="size-4 text-destructive" />
+                      </span>
+                    )}
+                  </div>
                 </td>
                 {ALL_ROLES.map((r) => {
                   const enabled = u.roles.includes(r);
@@ -194,9 +242,15 @@ function UsersPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
+        {setCliente.error && (
+          <p className="text-xs text-destructive px-5 py-3 border-t border-border">
+            {(setCliente.error as Error).message}
+          </p>
+        )}
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden mt-8">
