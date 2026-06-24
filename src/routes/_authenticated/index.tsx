@@ -404,6 +404,8 @@ function ClienteDashboard() {
         ))}
       </div>
 
+      <CumplimientoContratos />
+
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold uppercase tracking-wider">Mis plantas solares</h2>
