@@ -452,26 +452,38 @@ export type Database = {
       }
       profiles: {
         Row: {
+          apellidos: string | null
+          cargo: string | null
           cliente_id: string | null
           created_at: string
           display_name: string | null
           id: string
+          nombres: string | null
+          perfil_completado: boolean
           theme_preference: string
           updated_at: string
         }
         Insert: {
+          apellidos?: string | null
+          cargo?: string | null
           cliente_id?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          nombres?: string | null
+          perfil_completado?: boolean
           theme_preference?: string
           updated_at?: string
         }
         Update: {
+          apellidos?: string | null
+          cargo?: string | null
           cliente_id?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          nombres?: string | null
+          perfil_completado?: boolean
           theme_preference?: string
           updated_at?: string
         }
@@ -1097,6 +1109,7 @@ export type Database = {
     }
     Functions: {
       current_cliente_id: { Args: never; Returns: string }
+      dashboard_kpis_v1: { Args: never; Returns: Json }
       firmar_aprobacion: {
         Args: {
           _firma_storage_path: string
