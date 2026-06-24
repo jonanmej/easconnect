@@ -36,14 +36,15 @@ const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
 
-// Paleta oficial EA Service & Consulting: naranja de marca + navy profundo.
+// Paleta oficial EA Service & Consulting tomada del logotipo original
+// (triángulo "play" en degradado azul cornflower sobre wordmark azul).
 const COL = {
-  bg: "#0F172A",          // Navy corporativo (titulares, cabeceras de tabla)
-  bgSoft: "#1E293B",      // Navy intermedio para acentos sobrios
-  primary: "#F59E0B",     // Naranja EA (triángulo del logotipo)
-  primaryDeep: "#B45309", // Naranja profundo para bordes/acentos formales
-  primarySoft: "#FEF3C7",
-  text: "#0f172a",
+  bg: "#2E4A87",          // Azul EA profundo (titulares, cabeceras de tabla)
+  bgSoft: "#5B7FBF",      // Azul medio del triángulo
+  primary: "#5B7FBF",     // Azul corporativo principal del logo EA
+  primaryDeep: "#3B5EA8", // Azul profundo para bordes/acentos formales
+  primarySoft: "#DDE6F4", // Azul muy claro (tono del triángulo claro)
+  text: "#1f2937",
   muted: "#64748b",
   border: "#e2e8f0",
   panel: "#f8fafc",
