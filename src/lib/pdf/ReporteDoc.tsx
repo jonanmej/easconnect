@@ -29,9 +29,23 @@ function EALogoMark({ size = 28, withWordmark = false }: { size?: number; withWo
   );
 }
 
-const FONT_REG = "Helvetica";
-const FONT_BOLD = "Helvetica-Bold";
-const FONT_OBL = "Helvetica-Oblique";
+// Registramos Inter (libre, soporte completo de español) como tipografía
+// oficial del PDF. El Helvetica embebido de PDF se renderiza con artefactos
+// de letra doblada en varios visores; Inter sale nítida en todos.
+try {
+  Font.register({
+    family: "Inter",
+    fonts: [
+      { src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.ttf", fontWeight: "normal" },
+      { src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7W0Q5n-wU.ttf", fontWeight: "bold" },
+    ],
+  });
+} catch {
+  /* registro idempotente */
+}
+const FONT_REG = "Inter";
+const FONT_BOLD = "Inter";
+const FONT_OBL = "Inter";
 
 // Paleta oficial EA Service & Consulting: naranja de marca + navy profundo.
 const COL = {
