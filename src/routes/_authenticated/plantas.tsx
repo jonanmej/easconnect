@@ -13,7 +13,8 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, MapPin, Pencil, Trash2, Map as MapIcon } from "lucide-react";
+import { Plus, MapPin, Pencil, Trash2, Map as MapIcon, Upload } from "lucide-react";
+import { ImportPlantasCSV } from "@/components/ImportPlantasCSV";
 
 export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
@@ -38,6 +39,7 @@ function Plantas() {
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fetchClientes() });
   const [editing, setEditing] = useState<any | null>(null);
   const [openMap, setOpenMap] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -96,14 +98,24 @@ function Plantas() {
         title="Plantas en Operación"
         description="Cada planta enlaza su cliente, equipos asignados y bitácora de mantenimientos."
         actions={canEdit && (
-          <button
-            onClick={() => setEditing({})}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
-          >
-            <Plus className="size-3.5" /> Nueva planta
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setImportOpen(true)}
+              className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+            >
+              <Upload className="size-3.5" /> Importar CSV
+            </button>
+            <button
+              onClick={() => setEditing({})}
+              className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+            >
+              <Plus className="size-3.5" /> Nueva planta
+            </button>
+          </div>
         )}
       />
+
+      {importOpen && <ImportPlantasCSV onClose={() => setImportOpen(false)} />}
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
