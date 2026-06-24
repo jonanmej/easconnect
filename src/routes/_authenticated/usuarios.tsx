@@ -11,9 +11,10 @@ import {
   listRoleAudit,
   listClientesAdmin,
   setUserCliente,
+  purgeOrphanUsers,
 } from "@/lib/users.functions";
 import { ROLE_LABEL, type AppRole } from "@/lib/roles";
-import { Trash2, UserPlus, History, AlertTriangle } from "lucide-react";
+import { Trash2, UserPlus, History, AlertTriangle, Eraser } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsersPage,
@@ -30,6 +31,7 @@ function UsersPage() {
   const fetchAudit = useServerFn(listRoleAudit);
   const fetchClientes = useServerFn(listClientesAdmin);
   const fetchSetCliente = useServerFn(setUserCliente);
+  const fetchPurge = useServerFn(purgeOrphanUsers);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -68,19 +70,36 @@ function UsersPage() {
       fetchSetCliente({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
+  const purge = useMutation({
+    mutationFn: () => fetchPurge(),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["role-audit"] });
+      alert(
+        `Limpieza completa.\nRoles huérfanos eliminados: ${res?.rolesEliminados ?? 0}\nPerfiles huérfanos eliminados: ${res?.perfilesEliminados ?? 0}`,
+      );
+    },
+    onError: (e: any) => alert(`Error en limpieza: ${e?.message ?? e}`),
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>("tecnico");
+  const [inviteClienteId, setInviteClienteId] = useState<string>("");
 
   function onInvite(e: React.FormEvent) {
     e.preventDefault();
     invite.mutate(
       { email, password, role },
       {
-        onSuccess: () => {
+        onSuccess: (created: any) => {
+          // Si es cliente y se eligió un cliente, asignarlo.
+          if (role === "cliente" && inviteClienteId && created?.id) {
+            setCliente.mutate({ userId: created.id, clienteId: inviteClienteId });
+          }
           setEmail("");
           setPassword("");
+          setInviteClienteId("");
         },
       },
     );
@@ -142,6 +161,20 @@ function UsersPage() {
           >
             {invite.isPending ? "Creando…" : "Crear cuenta"}
           </button>
+          {role === "cliente" && (
+            <select
+              value={inviteClienteId}
+              onChange={(e) => setInviteClienteId(e.target.value)}
+              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm sm:col-span-4"
+            >
+              <option value="">— Selecciona el cliente al que pertenece —</option>
+              {clientes.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </form>
         {invite.error && (
           <p className="text-xs text-destructive mt-2">
@@ -186,7 +219,9 @@ function UsersPage() {
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-2">
-                    <select
+                    {isCliente ? (
+                      <>
+                      <select
                       value={u.cliente_id ?? ""}
                       disabled={setCliente.isPending || clientes.isLoading}
                       onChange={(e) =>
@@ -211,6 +246,10 @@ function UsersPage() {
                       <span title="Usuario con rol cliente sin cliente asignado: no podrá ver sus plantas.">
                         <AlertTriangle className="size-4 text-destructive" />
                       </span>
+                    )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                 </td>
