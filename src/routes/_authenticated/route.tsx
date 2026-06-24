@@ -43,7 +43,7 @@ function PerfilGate({ children }: { children: React.ReactNode }) {
       if (!u.user) return;
       const { data: p } = await supabase
         .from("profiles")
-        .select("perfil_completado, nombres, apellidos, cargo")
+        .select("perfil_completado, nombres, apellidos, cargo, debe_cambiar_password")
         .eq("id", u.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -51,7 +51,8 @@ function PerfilGate({ children }: { children: React.ReactNode }) {
         !!(p?.nombres && p.nombres.trim()) &&
         !!(p?.apellidos && p.apellidos.trim()) &&
         !!(p?.cargo && p.cargo.trim());
-      const completado = (p?.perfil_completado ?? false) && tieneDatos;
+      const debeCambiarPass = !!p?.debe_cambiar_password;
+      const completado = (p?.perfil_completado ?? false) && tieneDatos && !debeCambiarPass;
       if (!completado && location.pathname !== "/completar-perfil") {
         navigate({ to: "/completar-perfil", replace: true });
       } else {
