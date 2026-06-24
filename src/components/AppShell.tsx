@@ -25,6 +25,7 @@ import {
   Settings,
   HardHat,
   Briefcase,
+  Map as MapIcon,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -58,6 +59,7 @@ const allGroups: NavGroup[] = [
       { to: "/terreno", label: "Terreno", icon: HardHat },
       { to: "/mis-trabajos", label: "Mis trabajos", icon: Briefcase },
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
+      { to: "/rutas", label: "Rutas", icon: MapIcon },
     ],
   },
   {
