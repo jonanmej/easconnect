@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL = "google/gemini-2.5-flash";
@@ -152,17 +152,36 @@ export const generarReporte = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(apiKey);
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
-    const schema = Output.object({
-      schema: z.object({
-        titulo: z.string(),
-        resumen: z.string(),
-        kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-        hallazgos: z.array(z.string()),
-        recomendaciones: z.array(z.string()),
-      }),
+    const ZReporte = z.object({
+      titulo: z.string(),
+      resumen: z.string(),
+      kpis: z.array(z.object({ label: z.string(), value: z.string() })),
+      hallazgos: z.array(z.string()),
+      recomendaciones: z.array(z.string()),
     });
     const system = "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.";
-    const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}). Datos:\n\n${JSON.stringify(datasetCtx, null, 2)}\n\nResponde con: título atractivo, resumen ejecutivo (2-3 párrafos), 3-5 KPIs (label + value), 2-4 hallazgos clave y 2-4 recomendaciones priorizadas.`;
+    const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).
+
+Datos:
+${JSON.stringify(datasetCtx, null, 2)}
+
+Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, sin texto adicional) con esta forma exacta:
+{
+  "titulo": "string (título atractivo)",
+  "resumen": "string (resumen ejecutivo de 2-3 párrafos)",
+  "kpis": [{"label": "string", "value": "string"}],  // 3 a 5 elementos
+  "hallazgos": ["string"],                           // 2 a 4 elementos
+  "recomendaciones": ["string"]                      // 2 a 4 elementos
+}`;
+
+    const parseJson = (raw: string): unknown => {
+      let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+      const start = s.search(/[\{\[]/);
+      const end = s.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
+      s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
+      return JSON.parse(s);
+    };
 
     const attempts: Array<{ model: string; wait: number }> = [
       { model: MODEL, wait: 0 },
@@ -175,15 +194,15 @@ export const generarReporte = createServerFn({ method: "POST" })
     for (const a of attempts) {
       if (a.wait) await sleep(a.wait);
       try {
-        const result = await generateText({ model: gateway(a.model), experimental_output: schema, system, prompt });
-        aiResult = (result as any).experimental_output;
+        const result = await generateText({ model: gateway(a.model), system, prompt });
+        aiResult = ZReporte.parse(parseJson(result.text));
         ok = true;
         break;
       } catch (e: any) {
         lastErr = e;
         const msg = e?.message || String(e);
         if (/402|credit/i.test(msg)) throw new Error("Créditos de IA agotados. Recarga créditos en Ajustes para continuar.");
-        if (!/429|rate|503|temporar/i.test(msg)) throw new Error(`Fallo al generar con IA: ${msg}`);
+        // Reintentar también en errores de schema/parse o saturación
       }
     }
     if (!ok) {
