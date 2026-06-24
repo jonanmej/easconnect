@@ -127,7 +127,7 @@ function Plantas() {
                     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.ubicacion)}`
                     : null;
                 const earthUrl = hasGeo
-                  ? `https://earth.google.com/web/search/${p.latitud},${p.longitud}`
+                  ? `https://www.google.com/maps/@?api=1&map_action=map&center=${p.latitud},${p.longitud}&zoom=18&basemap=satellite`
                   : null;
                 const embedQuery = hasGeo
                   ? `${p.latitud},${p.longitud}`
@@ -179,7 +179,7 @@ function Plantas() {
                         </button>
                       )}
                       {earthUrl && (
-                        <a href={earthUrl} target="_blank" rel="noreferrer" className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" title="Abrir en Google Earth" aria-label="Google Earth">
+                        <a href={earthUrl} target="_blank" rel="noreferrer" className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" title="Abrir vista satélite en Google Maps" aria-label="Vista satélite">
                           <Navigation className="size-3.5" />
                         </a>
                       )}
