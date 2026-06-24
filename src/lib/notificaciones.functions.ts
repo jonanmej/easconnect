@@ -46,8 +46,7 @@ function renderHtml(opts: {
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${card};border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
       <tr><td style="padding:24px 28px;background:#0f172a;color:#fff;">
-        <div style="display:inline-block;width:30px;height:30px;background:${primary};border-radius:6px;vertical-align:middle;"></div>
-        <span style="font-weight:700;letter-spacing:.04em;font-size:18px;margin-left:10px;vertical-align:middle;">EA Service Connect</span>
+        <img src="https://easconnect.lovable.app/__l5e/assets-v1/16fcfac4-bba2-45b9-8fe8-2aa60f6e51f5/ea-service-connect-logo.png" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
       </td></tr>
       <tr><td style="padding:28px;">
         <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;">${opts.titulo}</h1>
