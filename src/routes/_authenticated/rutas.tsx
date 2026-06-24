@@ -2,10 +2,17 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation } from "@tanstack/react-query";
-import { MapPin, Navigation, Loader2, Clock, Route as RouteIcon, AlertTriangle } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  MapPin, Navigation, Loader2, Clock, Route as RouteIcon, AlertTriangle,
+  Share2, Copy, Mail, MessageCircle, X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { computeRutas, OFICINA_ORIGEN, type ComputeRutasResult, type RutaAlternativa } from "@/lib/rutas.functions";
+import {
+  computeRutas, listDestinosOTs, listRecipientesRuta,
+  OFICINA_ORIGEN,
+  type ComputeRutasResult, type RutaAlternativa, type DestinoOT, type RecipienteRuta,
+} from "@/lib/rutas.functions";
 
 export const Route = createFileRoute("/_authenticated/rutas")({
   component: RutasPage,
@@ -70,10 +77,23 @@ function RutasPage() {
   const [modo, setModo] = useState<"DRIVE" | "TWO_WHEELER" | "WALK" | "BICYCLE">("DRIVE");
   const [resultado, setResultado] = useState<ComputeRutasResult | null>(null);
   const [seleccion, setSeleccion] = useState<number>(0);
+  const [otSeleccionada, setOtSeleccionada] = useState<DestinoOT | null>(null);
+  const [compartirAbierto, setCompartirAbierto] = useState(false);
 
   const fnCompute = useServerFn(computeRutas);
+  const fnDestinos = useServerFn(listDestinosOTs);
+  const destinosQuery = useQuery({
+    queryKey: ["rutas", "destinos-ots"],
+    queryFn: () => fnDestinos(),
+    staleTime: 30_000,
+  });
+
   const mutation = useMutation({
-    mutationFn: (input: { destinoTexto: string; modo: typeof modo }) => fnCompute({ data: input }),
+    mutationFn: (
+      input:
+        | { destinoTexto: string; modo: typeof modo }
+        | { destinoLat: number; destinoLng: number; destinoTexto?: string; modo: typeof modo },
+    ) => fnCompute({ data: input as any }),
     onSuccess: (r) => {
       setResultado(r);
       setSeleccion(0);
@@ -87,7 +107,26 @@ function RutasPage() {
       toast.error("Ingresa una dirección o lugar de destino");
       return;
     }
+    setOtSeleccionada(null);
     mutation.mutate({ destinoTexto: destino.trim(), modo });
+  }
+
+  function onSelectOT(ot: DestinoOT) {
+    setOtSeleccionada(ot);
+    const label = `${ot.clienteNombre} — ${ot.plantaNombre} (OT ${ot.folio})`;
+    setDestino(ot.ubicacion ?? label);
+    if (ot.latitud != null && ot.longitud != null) {
+      mutation.mutate({
+        destinoLat: ot.latitud,
+        destinoLng: ot.longitud,
+        destinoTexto: label,
+        modo,
+      });
+    } else if (ot.ubicacion) {
+      mutation.mutate({ destinoTexto: ot.ubicacion, modo });
+    } else {
+      toast.error("Esta planta no tiene ubicación registrada");
+    }
   }
 
   return (
@@ -110,9 +149,42 @@ function RutasPage() {
         </div>
       </header>
 
+      <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+        <label htmlFor="ot-destino" className="block text-xs font-medium">
+          Destino desde OTs en progreso
+        </label>
+        <select
+          id="ot-destino"
+          value={otSeleccionada?.trabajoId ?? ""}
+          onChange={(e) => {
+            const ot = destinosQuery.data?.find((d) => d.trabajoId === e.target.value);
+            if (ot) onSelectOT(ot);
+          }}
+          disabled={destinosQuery.isLoading || mutation.isPending}
+          className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">
+            {destinosQuery.isLoading
+              ? "Cargando OTs en progreso…"
+              : (destinosQuery.data?.length ?? 0) === 0
+                ? "No hay OTs en progreso"
+                : "Seleccionar planta de una OT en progreso…"}
+          </option>
+          {destinosQuery.data?.map((d) => (
+            <option key={d.trabajoId} value={d.trabajoId}>
+              {d.clienteNombre} — {d.plantaNombre} · OT {d.folio}
+              {d.latitud == null ? " (sin coords)" : ""}
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-muted-foreground">
+          Selecciona una planta con OT activa para trazar la ruta y compartirla con el técnico, supervisor y administrador.
+        </p>
+      </div>
+
       <form onSubmit={onSubmit} className="flex flex-wrap gap-3 items-end bg-card border border-border rounded-lg p-4">
         <div className="flex-1 min-w-[240px]">
-          <label htmlFor="destino" className="block text-xs font-medium mb-1.5">Destino</label>
+          <label htmlFor="destino" className="block text-xs font-medium mb-1.5">Destino manual</label>
           <input
             id="destino"
             type="text"
@@ -145,6 +217,15 @@ function RutasPage() {
           {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Navigation className="size-4" />}
           Calcular rutas
         </button>
+        {resultado && (
+          <button
+            type="button"
+            onClick={() => setCompartirAbierto(true)}
+            className="inline-flex items-center gap-2 bg-secondary border border-border text-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-secondary/70"
+          >
+            <Share2 className="size-4" /> Compartir ruta
+          </button>
+        )}
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4">
@@ -169,6 +250,16 @@ function RutasPage() {
           <MapaRutas resultado={resultado} seleccion={seleccion} />
         </div>
       </div>
+
+      {compartirAbierto && resultado && (
+        <CompartirRuta
+          resultado={resultado}
+          rutaActiva={resultado.rutas[seleccion] ?? resultado.rutas[0]}
+          modo={modo}
+          ot={otSeleccionada}
+          onClose={() => setCompartirAbierto(false)}
+        />
+      )}
     </div>
   );
 }
