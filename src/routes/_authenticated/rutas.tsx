@@ -413,7 +413,7 @@ function CompartirRuta({
   });
   const fnEnviar = useServerFn(enviarRutaEmail);
   const enviarMut = useMutation({
-    mutationFn: (vars: Parameters<typeof fnEnviar>[0]["data"]) => fnEnviar({ data: vars }),
+    mutationFn: (vars: any) => fnEnviar({ data: vars }),
     onSuccess: (r: any) => {
       toast.success(
         r.fallidos > 0
