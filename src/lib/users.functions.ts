@@ -213,3 +213,52 @@ export const listRoleAudit = createServerFn({ method: "GET" })
         : "sistema",
     }));
   });
+
+/**
+ * Limpia referencias huérfanas: roles y perfiles cuyo usuario ya no existe en auth.users.
+ * Solo admin. Devuelve los conteos eliminados.
+ */
+export const purgeOrphanUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: list, error: lErr } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (lErr) throw new Error(lErr.message);
+    const validIds = new Set((list?.users ?? []).map((u) => u.id));
+
+    // Roles huérfanos
+    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id");
+    const orphanRoleIds = Array.from(
+      new Set((roles ?? []).map((r: any) => r.user_id).filter((id) => !validIds.has(id))),
+    );
+    let rolesEliminados = 0;
+    if (orphanRoleIds.length) {
+      const { error, count } = await supabaseAdmin
+        .from("user_roles")
+        .delete({ count: "exact" })
+        .in("user_id", orphanRoleIds);
+      if (error) throw new Error(error.message);
+      rolesEliminados = count ?? orphanRoleIds.length;
+    }
+
+    // Perfiles huérfanos
+    const { data: profiles } = await supabaseAdmin.from("profiles").select("id");
+    const orphanProfileIds = (profiles ?? [])
+      .map((p: any) => p.id)
+      .filter((id) => !validIds.has(id));
+    let perfilesEliminados = 0;
+    if (orphanProfileIds.length) {
+      const { error, count } = await supabaseAdmin
+        .from("profiles")
+        .delete({ count: "exact" })
+        .in("id", orphanProfileIds);
+      if (error) throw new Error(error.message);
+      perfilesEliminados = count ?? orphanProfileIds.length;
+    }
+
+    return { rolesEliminados, perfilesEliminados };
+  });
