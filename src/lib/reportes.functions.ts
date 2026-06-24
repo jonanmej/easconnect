@@ -4,6 +4,8 @@ import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL = "google/gemini-2.5-flash";
+const MODEL_FALLBACK = "google/gemini-2.5-flash-lite";
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -149,28 +151,44 @@ export const generarReporte = createServerFn({ method: "POST" })
     const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(apiKey);
 
-    let aiResult: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
-    try {
-      const result = await generateText({
-        model: gateway(MODEL),
-        experimental_output: Output.object({
-          schema: z.object({
-            titulo: z.string(),
-            resumen: z.string(),
-            kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-            hallazgos: z.array(z.string()),
-            recomendaciones: z.array(z.string()),
-          }),
-        }),
-        system: "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.",
-        prompt: `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}). Datos:\n\n${JSON.stringify(datasetCtx, null, 2)}\n\nResponde con: título atractivo, resumen ejecutivo (2-3 párrafos), 3-5 KPIs (label + value), 2-4 hallazgos clave y 2-4 recomendaciones priorizadas.`,
-      });
-      aiResult = (result as any).experimental_output;
-    } catch (e: any) {
-      const msg = e?.message || String(e);
-      if (/429|rate/i.test(msg)) throw new Error("Límite de uso de IA alcanzado. Reintenta en unos minutos.");
-      if (/402|credit/i.test(msg)) throw new Error("Créditos de IA agotados. Recarga créditos en Ajustes para continuar.");
-      throw new Error(`Fallo al generar con IA: ${msg}`);
+    let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
+    const schema = Output.object({
+      schema: z.object({
+        titulo: z.string(),
+        resumen: z.string(),
+        kpis: z.array(z.object({ label: z.string(), value: z.string() })),
+        hallazgos: z.array(z.string()),
+        recomendaciones: z.array(z.string()),
+      }),
+    });
+    const system = "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.";
+    const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}). Datos:\n\n${JSON.stringify(datasetCtx, null, 2)}\n\nResponde con: título atractivo, resumen ejecutivo (2-3 párrafos), 3-5 KPIs (label + value), 2-4 hallazgos clave y 2-4 recomendaciones priorizadas.`;
+
+    const attempts: Array<{ model: string; wait: number }> = [
+      { model: MODEL, wait: 0 },
+      { model: MODEL, wait: 1500 },
+      { model: MODEL_FALLBACK, wait: 2500 },
+      { model: MODEL_FALLBACK, wait: 5000 },
+    ];
+    let lastErr: any = null;
+    let ok = false;
+    for (const a of attempts) {
+      if (a.wait) await sleep(a.wait);
+      try {
+        const result = await generateText({ model: gateway(a.model), experimental_output: schema, system, prompt });
+        aiResult = (result as any).experimental_output;
+        ok = true;
+        break;
+      } catch (e: any) {
+        lastErr = e;
+        const msg = e?.message || String(e);
+        if (/402|credit/i.test(msg)) throw new Error("Créditos de IA agotados. Recarga créditos en Ajustes para continuar.");
+        if (!/429|rate|503|temporar/i.test(msg)) throw new Error(`Fallo al generar con IA: ${msg}`);
+      }
+    }
+    if (!ok) {
+      const msg = lastErr?.message || String(lastErr);
+      throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${msg})`);
     }
 
     const markdown = [
