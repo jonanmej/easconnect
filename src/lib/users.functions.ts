@@ -34,13 +34,68 @@ export const listUsers = createServerFn({ method: "GET" })
       arr.push(r.role);
       byUser.set(r.user_id, arr);
     });
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, cliente_id");
+    const clienteByUser = new Map<string, string | null>();
+    (profiles ?? []).forEach((p: any) => {
+      clienteByUser.set(p.id, p.cliente_id ?? null);
+    });
     return users.users.map((u) => ({
       id: u.id,
       email: u.email ?? "",
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       roles: byUser.get(u.id) ?? [],
+      cliente_id: clienteByUser.get(u.id) ?? null,
     }));
+  });
+
+export const listClientesAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("clientes")
+      .select("id, nombre")
+      .order("nombre", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as { id: string; nombre: string }[];
+  });
+
+export const setUserCliente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        clienteId: z.string().uuid().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Asegura que el perfil existe (puede no haberse creado aún si el usuario nunca inició sesión)
+    const { data: existing } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (!existing) {
+      const { error: insErr } = await supabaseAdmin
+        .from("profiles")
+        .insert({ id: data.userId, cliente_id: data.clienteId });
+      if (insErr) throw new Error(insErr.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ cliente_id: data.clienteId })
+        .eq("id", data.userId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });
 
 export const inviteUser = createServerFn({ method: "POST" })
