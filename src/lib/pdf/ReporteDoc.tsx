@@ -67,22 +67,42 @@ export type ReporteData = {
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
   evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string }[];
   responsable?: string | null;
+  responsable_cargo?: string | null;
+  documento_id?: string;
+  documento_codigo?: string;
+  documento_version?: string;
+  documento_clasificacion?: string;
+  documento_hash?: string;
+  retencion?: string;
   modo: "ejecutivo" | "interno";
 };
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
   return (
     <View style={styles.header} fixed>
-      <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
+      <View>
+        <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
+        <Text style={[styles.headerTitle, { marginTop: 2 }]}>
+          Doc. {data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"} · ISO 15489
+        </Text>
+      </View>
       <Text style={styles.headerTitle}>{data.cliente} · {data.periodo}</Text>
     </View>
   );
 }
 
-function PageFooter() {
+function PageFooter({ data }: { data: ReporteData }) {
+  const responsable = data.responsable
+    ? `${data.responsable}${data.responsable_cargo ? ` · ${data.responsable_cargo}` : ""}`
+    : "Equipo EA Service and Consulting";
+  const docId = data.documento_id ? data.documento_id.slice(0, 8).toUpperCase() : "—";
+  const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
   return (
     <View style={styles.pageFooter} fixed>
-      <Text>EA SERVICE AND CONSULTING · Gestión Operativa</Text>
+      <View style={{ flexDirection: "column" }}>
+        <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
+        <Text>{data.retencion ?? "Retención documental: 5 años (ISO 15489-1)"} · Responsable: {responsable}</Text>
+      </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
   );
@@ -97,8 +117,20 @@ function estadoColor(s: string) {
 
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
+  const fechaEmision = new Date();
+  const keywords = [data.cliente, data.planta, data.periodo, "ISO 15489", ejec ? "Ejecutivo" : "Interno"]
+    .filter(Boolean).join(", ");
   return (
-    <Document title={data.titulo} author="EA SERVICE AND CONSULTING">
+    <Document
+      title={data.titulo}
+      author={data.responsable ?? "EA SERVICE AND CONSULTING"}
+      subject={`Reporte ${ejec ? "ejecutivo" : "interno"} · ${data.cliente} · ${data.periodo}`}
+      keywords={keywords}
+      creator="EA Service Connect"
+      producer="EA Service Connect — Cumplimiento ISO 15489"
+      creationDate={fechaEmision}
+      modificationDate={fechaEmision}
+    >
       {ejec && (
         <Page size="A4" style={styles.cover}>
           <View style={styles.coverBar} />
@@ -115,8 +147,16 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Periodo</Text><Text style={styles.metaValue}>{data.periodo}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Emitido</Text><Text style={styles.metaValue}>{data.emitido_at}</Text></View>
               {data.responsable && (
-                <View style={styles.metaRow}><Text style={styles.metaLabel}>Responsable</Text><Text style={styles.metaValue}>{data.responsable}</Text></View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Responsable</Text>
+                  <Text style={styles.metaValue}>
+                    {data.responsable}{data.responsable_cargo ? ` — ${data.responsable_cargo}` : ""}
+                  </Text>
+                </View>
               )}
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>ID Doc.</Text><Text style={styles.metaValue}>{(data.documento_id ?? "").slice(0, 8).toUpperCase() || "—"}</Text></View>
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>Código</Text><Text style={styles.metaValue}>{data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"}</Text></View>
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 15489</Text></View>
             </View>
           </View>
           <View style={styles.coverFooter} fixed>
@@ -157,7 +197,16 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             ))}
           </>
         )}
-        <PageFooter />
+        {ejec && data.responsable && (
+          <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
+            <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
+            <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>{data.responsable}</Text>
+            {data.responsable_cargo && (
+              <Text style={{ fontSize: 10, color: COL.muted }}>{data.responsable_cargo}</Text>
+            )}
+          </View>
+        )}
+        <PageFooter data={data} />
       </Page>
 
       <Page size="A4" style={styles.page}>
@@ -194,7 +243,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             ))}
           </>
         )}
-        <PageFooter />
+        <PageFooter data={data} />
       </Page>
 
       {data.evidencias.length > 0 && (
@@ -209,7 +258,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </View>
             ))}
           </View>
-          <PageFooter />
+          <PageFooter data={data} />
         </Page>
       )}
 
@@ -220,11 +269,16 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <Text style={styles.paragraph}>
             El presente reporte fue generado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos y recomendaciones han sido elaborados con asistencia de inteligencia artificial sobre los datos provistos.
           </Text>
+          <Text style={[styles.paragraph, { fontSize: 9, color: COL.muted }]}>
+            Documento gestionado conforme a ISO 15489 (Gestión de Documentos). Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
+            Código: {data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}. Clasificación: {data.documento_clasificacion ?? "Uso interno"}.
+            Integridad: SHA-256 {data.documento_hash ?? "—"}. {data.retencion ?? "Retención: 5 años."}
+          </Text>
           <View style={{ marginTop: 80, flexDirection: "row", justifyContent: "space-between" }}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
                 <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
-                <Text style={{ fontSize: 9, color: COL.muted }}>Responsable Operativo</Text>
+                <Text style={{ fontSize: 9, color: COL.muted }}>{data.responsable_cargo ?? "Responsable Operativo"}</Text>
               </View>
             </View>
             <View style={{ width: "45%" }}>
@@ -234,7 +288,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </View>
             </View>
           </View>
-          <PageFooter />
+          <PageFooter data={data} />
         </Page>
       )}
     </Document>
