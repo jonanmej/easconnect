@@ -299,6 +299,24 @@ function UsersPage() {
           <span className="text-[10px] text-muted-foreground ml-auto uppercase tracking-widest">
             Últimos 100 eventos
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  "¿Limpiar usuarios desvinculados?\nSe eliminarán roles y perfiles huérfanos (usuarios que ya no existen en el sistema de autenticación). Esta acción no se puede deshacer.",
+                )
+              ) {
+                purge.mutate();
+              }
+            }}
+            disabled={purge.isPending}
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
+            title="Elimina roles y perfiles de usuarios desvinculados de la app"
+          >
+            <Eraser className="size-3.5" />
+            {purge.isPending ? "Limpiando…" : "Limpiar desvinculados"}
+          </button>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
