@@ -383,7 +383,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         {ejec && data.responsable && (
           <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
             <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
-            <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>{data.responsable}</Text>
+            <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
             {data.responsable_cargo && (
               <Text style={{ fontSize: 10, color: COL.muted }}>{data.responsable_cargo}</Text>
             )}
@@ -410,7 +410,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={[styles.td, { width: "14%", fontFamily: "Courier" }]}>{t.folio}</Text>
               <Text style={[styles.td, { width: "30%" }]}>{t.servicio}</Text>
               <Text style={[styles.td, { width: "18%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontWeight: 700 }]}>{t.estado}</Text>
+              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
               <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
             </View>
           ))}
@@ -420,7 +420,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <Text style={styles.sectionTitle}>Notas de Campo</Text>
             {data.trabajos.filter((t) => t.notas).map((t, i) => (
               <View key={i} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize: 9, fontWeight: 700 }}>{t.folio} · {t.servicio}</Text>
+                <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
                 <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
               </View>
             ))}
@@ -500,13 +500,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>{data.responsable_cargo ?? "Responsable Operativo"}</Text>
               </View>
             </View>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.cliente}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.cliente}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>Recepción Cliente</Text>
               </View>
             </View>
