@@ -46,11 +46,7 @@ function renderHtml(opts: {
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${card};border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
       <tr><td style="padding:24px 28px;background:#0f172a;color:#fff;">
-        <svg viewBox="0 0 200 140" style="display:inline-block;width:34px;height:24px;vertical-align:middle;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EA Service">
-          <path d="M40 10 L190 75 L110 75 Z" fill="#60a5fa" opacity="0.55" />
-          <path d="M40 10 L40 140 L110 75 Z" fill="#60a5fa" opacity="0.55" />
-          <path d="M110 75 L190 75 L40 140 Z" fill="#60a5fa" opacity="0.9" />
-        </svg>
+        <div style="display:inline-block;width:30px;height:30px;background:${primary};border-radius:6px;vertical-align:middle;"></div>
         <span style="font-weight:700;letter-spacing:.04em;font-size:18px;margin-left:10px;vertical-align:middle;">EA Service Connect</span>
       </td></tr>
       <tr><td style="padding:28px;">
