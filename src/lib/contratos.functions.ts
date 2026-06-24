@@ -179,6 +179,46 @@ export const generarProgramacionAnual = createServerFn({ method: "POST" })
       const { error: iErr } = await supabase.from("trabajos").insert(nuevos);
       if (iErr) throw new Error(iErr.message);
     }
+
+    // Notificar al cliente (no bloqueante)
+    if (nuevos.length > 0) {
+      try {
+        const { data: planta } = await supabase
+          .from("plantas")
+          .select("nombre, clientes(nombre, email)")
+          .eq("id", c.planta_id)
+          .single();
+        const cliente = (planta as any)?.clientes;
+        if (cliente?.email) {
+          const { sendGmail, formatFechaEs, emailLayout } = await import("./notifications.server");
+          const fechas = nuevos
+            .slice()
+            .sort((a, b) => a.fecha_programada.localeCompare(b.fecha_programada))
+            .map((n) => {
+              const ini = new Date(n.fecha_programada);
+              const fin = addDaysDate(ini, dur - 1);
+              return `<li style="margin:4px 0;">Ciclo ${n.ciclo_numero}/${c.cantidad_anual}: <strong>${formatFechaEs(ini)}</strong>${dur > 1 ? ` → ${formatFechaEs(fin)}` : ""}</li>`;
+            })
+            .join("");
+          const html = emailLayout(
+            `Programación anual de ${c.servicio}`,
+            `<p>Hola ${cliente.nombre},</p>
+             <p>Se ha generado la programación automática del servicio <strong>${c.servicio}</strong> para la planta <strong>${(planta as any).nombre}</strong> durante ${c.anio}.</p>
+             <p><strong>${nuevos.length}</strong> visita${nuevos.length === 1 ? "" : "s"} programada${nuevos.length === 1 ? "" : "s"} (${c.cantidad_anual} contratada${c.cantidad_anual === 1 ? "" : "s"} al año):</p>
+             <ul style="padding-left:20px;">${fechas}</ul>
+             <p>Puedes solicitar reprogramación de cualquier visita desde tu panel.</p>`,
+          );
+          await sendGmail({
+            to: cliente.email,
+            subject: `[SOLAROS] Programación ${c.servicio} ${c.anio} - ${(planta as any).nombre}`,
+            html,
+          });
+        }
+      } catch (e) {
+        console.error("[contratos] Error notificando programación", e);
+      }
+    }
+
     return { creados: nuevos.length, ciclos_existentes: ciclosExistentes.size };
   });
 
