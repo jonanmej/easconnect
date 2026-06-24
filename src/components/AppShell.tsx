@@ -19,6 +19,7 @@ import {
   Mail,
   History,
   AlertTriangle,
+  FileSignature,
   Moon,
   Sun as SunIcon,
   Laptop,
