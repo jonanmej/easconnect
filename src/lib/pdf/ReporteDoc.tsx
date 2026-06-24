@@ -139,15 +139,24 @@ export type ReporteData = {
 };
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
+  const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
+  const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
     <View style={styles.header} fixed>
-      <View>
-        <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
-        <Text style={[styles.headerTitle, { marginTop: 2 }]}>
-          Doc. {data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015 · ISO 15489-1:2016
-        </Text>
+      <View style={styles.headerLeft}>
+        <EALogoMark size={22} />
+        <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
+          <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
+          <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
+          <Text style={styles.headerSub}>ISO 9001:2015 · ISO 15489-1:2016</Text>
+        </View>
       </View>
-      <Text style={styles.headerTitle}>{data.cliente} · {data.periodo}</Text>
+      <View style={styles.headerRight}>
+        <Text style={styles.headerRightTop}>{data.cliente}</Text>
+        <Text style={styles.headerRightBot}>{data.periodo}</Text>
+        <Text style={styles.headerRightBot}>{codigo}</Text>
+        <Text style={styles.headerRightBot}>{clasif}</Text>
+      </View>
     </View>
   );
 }
