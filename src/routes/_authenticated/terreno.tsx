@@ -88,6 +88,11 @@ function Terreno() {
     <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
       <PageHeader title="Terreno" description="Mis trabajos asignados hoy y mañana." />
 
+      {isStaff ? (
+        <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
+          Vista de monitoreo: admin y supervisores visualizan los trabajos y técnicos asignados, sin ejecutar acciones de campo.
+        </p>
+      ) : (
       <div className="flex items-center justify-between text-xs">
         <div className={"inline-flex items-center gap-1.5 px-2 py-1 rounded-full " + (online ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive")}>
           {online ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
@@ -101,6 +106,7 @@ function Terreno() {
           {queueCount > 0 ? `Sincronizar (${queueCount})` : "Sincronizar"}
         </button>
       </div>
+      )}
 
       <div className="space-y-3">
         {list.length === 0 && (
@@ -113,7 +119,7 @@ function Terreno() {
             key={t.id}
             trabajo={t}
             tecnicoNombre={t.tecnico_id ? (tecMap.get(t.tecnico_id) ?? "Técnico desconocido") : "Sin asignar"}
-            soloLectura={isStaff && t.tecnico_id !== user?.id}
+            soloLectura={isStaff}
             onIniciar={() =>
               mEstado.mutate({ id: t.id, estado: "en_progreso", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada, tecnico_id: t.tecnico_id ?? null })
             }
@@ -189,10 +195,11 @@ function TrabajoCard({
         </span>
       </div>
 
+      {soloLectura ? null : (
       <div className="grid grid-cols-3 gap-2 pt-2">
         <button
           type="button"
-          disabled={inProgress || soloLectura}
+          disabled={inProgress}
           onClick={onIniciar}
           className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
         >
@@ -202,8 +209,7 @@ function TrabajoCard({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          disabled={soloLectura}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold disabled:opacity-50"
+          className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold"
         >
           <Camera className="size-4 mb-0.5" />
           Evidencia
@@ -211,8 +217,7 @@ function TrabajoCard({
         <button
           type="button"
           onClick={onCompletar}
-          disabled={soloLectura}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold disabled:opacity-50"
+          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold"
         >
           <CheckCircle2 className="size-4 mb-0.5" />
           Completar
@@ -226,6 +231,7 @@ function TrabajoCard({
           onChange={onPickFile}
         />
       </div>
+      )}
 
       <Link
         to="/trabajos"
