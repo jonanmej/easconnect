@@ -289,50 +289,28 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
 export const dashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const supabase = context.supabase;
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const [trabajosHoy, trabajosTotal, equipos, inv, reps, repsLimpieza, anomalias, plantasPaneles] = await Promise.all([
-      supabase.from("trabajos").select("id", { count: "exact", head: true })
-        .gte("fecha_programada", todayStart.toISOString())
-        .lt("fecha_programada", todayEnd.toISOString()),
-      supabase.from("trabajos").select("id, estado", { count: "exact" }),
-      supabase.from("equipos").select("id, estado, salud"),
-      supabase.from("inventario_items").select("stock_actual, stock_minimo"),
-      supabase.from("reportes").select("id, estado"),
-      supabase.from("trabajo_reportes").select("paneles_limpiados, agua_galones"),
-      supabase.from("trabajo_evidencias").select("id", { count: "exact", head: true }).eq("categoria", "anomalia"),
-      supabase.from("plantas").select("paneles"),
-    ]);
-
-    const eqs = equipos.data ?? [];
-    const operativos = eqs.filter((e) => e.estado === "operativo").length;
-    const saludValores = eqs.map((e) => e.salud).filter((s): s is number => typeof s === "number");
-    const eficiencia = saludValores.length
-      ? (saludValores.reduce((a, b) => a + b, 0) / saludValores.length).toFixed(1)
-      : "--";
-    const alertas = eqs.filter((e) => e.estado === "mantenimiento" || e.estado === "fuera_servicio").length;
-
-    const repLimp = repsLimpieza.data ?? [];
-    const panelesLimpiados = repLimp.reduce((s: number, r: any) => s + Number(r.paneles_limpiados ?? 0), 0);
-    const aguaGalones = repLimp.reduce((s: number, r: any) => s + Number(r.agua_galones ?? 0), 0);
-    const panelesParque = (plantasPaneles.data ?? []).reduce((s: number, p: any) => s + Number(p.paneles ?? 0), 0);
-    const avanceLimpieza = panelesParque > 0 ? Math.min(100, Math.round((panelesLimpiados / panelesParque) * 100)) : 0;
-
+    // Una sola ida y vuelta a la base de datos (RPC agregada) — mucho más rápido cuando hay muchas OTs.
+    const { data, error } = await context.supabase.rpc("dashboard_kpis_v1" as any);
+    if (error) throw new Error(error.message);
+    const k: any = data ?? {};
+    const paneles_parque = Number(k.paneles_parque ?? 0);
+    const paneles_limpiados = Number(k.paneles_limpiados ?? 0);
+    const avance_limpieza = paneles_parque > 0
+      ? Math.min(100, Math.round((paneles_limpiados / paneles_parque) * 100))
+      : 0;
     return {
-      trabajos_hoy: trabajosHoy.count ?? 0,
-      equipos_operativos: operativos,
-      equipos_total: eqs.length,
-      eficiencia,
-      alertas,
-      trabajos_total: trabajosTotal.count ?? 0,
-      inv_bajo_stock: (inv.data ?? []).filter((i: any) => Number(i.stock_actual) < Number(i.stock_minimo)).length,
-      reportes_borrador: (reps.data ?? []).filter((r: any) => r.estado === "borrador").length,
-      paneles_limpiados: panelesLimpiados,
-      paneles_parque: panelesParque,
-      avance_limpieza: avanceLimpieza,
-      agua_galones: Math.round(aguaGalones),
-      anomalias_detectadas: anomalias.count ?? 0,
+      trabajos_hoy: Number(k.trabajos_hoy ?? 0),
+      equipos_operativos: Number(k.equipos_operativos ?? 0),
+      equipos_total: Number(k.equipos_total ?? 0),
+      eficiencia: String(k.eficiencia ?? "--"),
+      alertas: Number(k.alertas ?? 0),
+      trabajos_total: Number(k.trabajos_total ?? 0),
+      inv_bajo_stock: Number(k.inv_bajo_stock ?? 0),
+      reportes_borrador: Number(k.reportes_borrador ?? 0),
+      paneles_limpiados,
+      paneles_parque,
+      avance_limpieza,
+      agua_galones: Number(k.agua_galones ?? 0),
+      anomalias_detectadas: Number(k.anomalias_detectadas ?? 0),
     };
   });

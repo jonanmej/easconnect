@@ -2,6 +2,30 @@ import { pdf } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { ReporteDoc, type ReporteData } from "./ReporteDoc";
 
+function uuidV4() {
+  // Compatible con todos los navegadores; randomUUID() requiere contexto seguro.
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return (crypto as any).randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+async function sha256Hex(blob: Blob) {
+  try {
+    const buf = await blob.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return "";
+  }
+}
+
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url);
@@ -27,9 +51,38 @@ export async function buildEvidencias(items: { trabajo: string; descripcion?: st
   return out;
 }
 
+/**
+ * Genera y descarga el PDF cumpliendo ISO 15489:
+ * - Identificador único de documento (UUID)
+ * - Código de documento + versión + clasificación
+ * - Metadatos embebidos (autor, asunto, palabras clave, fechas)
+ * - Hash SHA-256 visible en pie y cierre para garantizar integridad
+ */
 export async function generarYDescargarPdf(data: ReporteData, filename: string) {
-  const element = createElement(ReporteDoc, { data }) as any;
-  const blob = await pdf(element).toBlob();
+  const documento_id = data.documento_id ?? uuidV4();
+  const documento_codigo =
+    data.documento_codigo ?? `EA-${data.modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}`;
+  const documento_version = data.documento_version ?? "1.0";
+  const documento_clasificacion = data.documento_clasificacion ?? "Uso interno";
+  const retencion = data.retencion ?? "Retención documental: 5 años (ISO 15489-1)";
+
+  // Render inicial para calcular hash sobre el contenido base
+  const base: ReporteData = {
+    ...data,
+    documento_id,
+    documento_codigo,
+    documento_version,
+    documento_clasificacion,
+    retencion,
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(ReporteDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+
+  // Render final con hash embebido para trazabilidad
+  const finalData: ReporteData = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(ReporteDoc, { data: finalData }) as any).toBlob();
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -38,4 +91,5 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
 }

@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Sun } from "lucide-react";
+import { EALogo } from "@/components/logos/EALogo";
+import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
+import { PVStopLogo } from "@/components/logos/PVStopLogo";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -64,11 +67,18 @@ function AuthPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="size-9 bg-foreground rounded grid place-items-center">
-            <Sun className="size-5 text-primary" />
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <EALogo
+            className="h-20 w-auto text-foreground"
+            accentClassName="text-primary"
+            showTagline={false}
+          />
+          <div className="flex items-center gap-2">
+            <div className="size-7 bg-foreground rounded grid place-items-center">
+              <Sun className="size-4 text-primary" />
+            </div>
+            <span className="font-semibold tracking-tight text-lg">EA Service Connect</span>
           </div>
-          <span className="font-semibold tracking-tight text-xl">EA Service Connect</span>
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">
@@ -150,7 +160,18 @@ function AuthPage() {
           </button>
         </div>
 
-        <p className="text-[10px] text-muted-foreground text-center mt-4 uppercase tracking-widest">
+        <div className="mt-6 pt-5 border-t border-border/60">
+          <p className="text-[10px] text-muted-foreground text-center uppercase tracking-[0.18em] mb-3">
+            Aliados estratégicos
+          </p>
+          <div className="flex items-center justify-center gap-6 opacity-80">
+            <ChemitekLogo className="h-6 w-auto" />
+            <span className="h-5 w-px bg-border" aria-hidden />
+            <PVStopLogo className="h-7 w-auto text-foreground" />
+          </div>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground text-center mt-6 uppercase tracking-widest">
           Sistema de Operaciones Solares
         </p>
       </div>
