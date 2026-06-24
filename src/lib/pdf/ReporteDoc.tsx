@@ -1,8 +1,47 @@
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect } from "@react-pdf/renderer";
 
+// ---------------------------------------------------------------------------
+// Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
+// un "fake bold" que en algunos visores produce letras dobladas/separadas
+// ("EA SERVIICE", "Halllazgos"). Forzamos la familia Helvetica-Bold real
+// para todo texto en negrita y desactivamos la hifenación que partía
+// palabras como "Man- tenimiento".
+// ---------------------------------------------------------------------------
+Font.registerHyphenationCallback((word) => [word]);
+
+/**
+ * Logo EA Service & Consulting reproducido vectorial en PDF.
+ * Reproduce el triángulo "play" con dos tonos de naranja sobre navy,
+ * fiel a la identidad de marca utilizada en la app (EALogo.tsx).
+ */
+function EALogoMark({ size = 28, withWordmark = false }: { size?: number; withWordmark?: boolean }) {
+  const w = withWordmark ? size * 4.2 : size;
+  const h = size;
+  return (
+    <Svg width={w} height={h} viewBox="0 0 200 110">
+      {/* Triángulo "play" en degradado naranja */}
+      <G>
+        <Path d="M40 10 L190 75 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
+        <Path d="M40 10 L40 100 L110 75 Z" fill={COL.primary} fillOpacity={0.75} />
+        <Path d="M110 75 L190 75 L40 100 Z" fill={COL.primaryDeep} />
+      </G>
+    </Svg>
+  );
+}
+
+// Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
+// no negrita sintética). Esto garantiza nitidez en Acrobat, Chrome, Safari,
+// Preview y visores móviles sin dependencias de red.
+const FONT_REG = "Helvetica";
+const FONT_BOLD = "Helvetica-Bold";
+const FONT_OBL = "Helvetica-Oblique";
+
+// Paleta oficial EA Service & Consulting: naranja de marca + navy profundo.
 const COL = {
-  bg: "#0F172A",
-  primary: "#F59E0B",
+  bg: "#0F172A",          // Navy corporativo (titulares, cabeceras de tabla)
+  bgSoft: "#1E293B",      // Navy intermedio para acentos sobrios
+  primary: "#F59E0B",     // Naranja EA (triángulo del logotipo)
+  primaryDeep: "#B45309", // Naranja profundo para bordes/acentos formales
   primarySoft: "#FEF3C7",
   text: "#0f172a",
   muted: "#64748b",
@@ -15,67 +54,76 @@ const COL = {
 const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  page: { paddingTop: 54, paddingBottom: 64, paddingLeft: 85, paddingRight: 40, fontSize: 10, color: COL.text, fontFamily: "Helvetica" },
+  page: { paddingTop: 64, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
-  coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 8, backgroundColor: COL.primary },
-  coverInner: { paddingTop: 90, paddingLeft: 85, paddingRight: 56 },
-  brand: { flexDirection: "row", alignItems: "center", marginBottom: 80 },
-  logoBox: { width: 28, height: 28, backgroundColor: COL.primary, marginRight: 10 },
-  brandText: { fontSize: 16, fontWeight: 700, letterSpacing: 1 },
-  coverTag: { fontSize: 9, color: COL.muted, letterSpacing: 2, marginBottom: 8, textTransform: "uppercase" },
-  coverTitle: { fontSize: 32, fontWeight: 700, lineHeight: 1.2, marginBottom: 16, maxWidth: 420 },
+  coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
+  coverSide: { position: "absolute", top: 0, bottom: 0, left: 0, width: 14, backgroundColor: COL.bg },
+  coverInner: { paddingTop: 90, paddingLeft: 95, paddingRight: 60 },
+  brand: { flexDirection: "row", alignItems: "center", marginBottom: 90 },
+  brandText: { fontSize: 15, fontFamily: FONT_BOLD, letterSpacing: 1, color: COL.bg, marginLeft: 14 },
+  brandSub: { fontSize: 8, color: COL.muted, letterSpacing: 2, marginLeft: 14, marginTop: 2, textTransform: "uppercase" },
+  coverTag: { fontSize: 9, color: COL.primaryDeep, letterSpacing: 2, marginBottom: 10, textTransform: "uppercase", fontFamily: FONT_BOLD },
+  coverTitle: { fontSize: 28, fontFamily: FONT_BOLD, lineHeight: 1.25, marginBottom: 18, color: COL.bg, maxWidth: 430 },
+  coverRule: { width: 60, height: 3, backgroundColor: COL.primary, marginBottom: 24 },
   coverMeta: { marginTop: 60, borderTopWidth: 1, borderTopColor: COL.border, paddingTop: 18 },
   metaRow: { flexDirection: "row", marginBottom: 6 },
-  metaLabel: { width: 110, fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 },
-  metaValue: { flex: 1, fontSize: 11, fontWeight: 600 },
-  coverFooter: { position: "absolute", bottom: 48, left: 85, right: 56, flexDirection: "row", justifyContent: "space-between", fontSize: 9, color: COL.muted },
+  metaLabel: { width: 110, fontSize: 8.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 },
+  metaValue: { flex: 1, fontSize: 10.5, fontFamily: FONT_BOLD, color: COL.text },
+  coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: COL.border },
-  headerTitle: { fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 },
-  pageTitle: { fontSize: 18, fontWeight: 700, marginBottom: 12 },
-  sectionTitle: { fontSize: 12, fontWeight: 700, marginTop: 16, marginBottom: 8, color: COL.text, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: COL.border },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
+  headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
+  headerLeftText: { flex: 1 },
+  headerRight: { width: 150, alignItems: "flex-end" },
+  headerTitle: { fontSize: 7.5, color: COL.bg, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT_BOLD },
+  headerSub: { fontSize: 7, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 },
+  headerRightTop: { fontSize: 8, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
+  headerRightBot: { fontSize: 7.5, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
+  pageTitle: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 12, color: COL.bg },
+  pageTitleRule: { width: 40, height: 2.5, backgroundColor: COL.primary, marginBottom: 14, marginTop: -8 },
+  sectionTitle: { fontSize: 11.5, fontFamily: FONT_BOLD, marginTop: 16, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
   paragraph: { fontSize: 10, lineHeight: 1.55, marginBottom: 8, color: "#1f2937", textAlign: "justify" },
-  bullet: { flexDirection: "row", marginBottom: 4 },
-  bulletDot: { width: 10, fontSize: 10, color: COL.primary, fontWeight: 700 },
+  bullet: { flexDirection: "row", marginBottom: 5 },
+  bulletDot: { width: 12, fontSize: 10, color: COL.primary, fontFamily: FONT_BOLD },
   bulletText: { flex: 1, fontSize: 10, lineHeight: 1.5, textAlign: "justify" },
   kpiRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  kpiCard: { width: "48%", padding: 10, borderWidth: 1, borderColor: COL.border, borderRadius: 4, backgroundColor: COL.panel },
-  kpiLabel: { fontSize: 8, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  kpiValue: { fontSize: 16, fontWeight: 700, color: COL.text },
+  kpiCard: { width: "48%", padding: 10, borderWidth: 0.75, borderColor: COL.border, borderLeftWidth: 3, borderLeftColor: COL.primary, borderRadius: 3, backgroundColor: COL.panel },
+  kpiLabel: { fontSize: 7.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT_BOLD },
+  kpiValue: { fontSize: 16, fontFamily: FONT_BOLD, color: COL.bg },
   table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   trLast: { flexDirection: "row" },
-  th: { padding: 6, fontSize: 8, fontWeight: 700, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
   td: { padding: 6, fontSize: 9 },
-  pageFooter: { position: "absolute", bottom: 24, left: 85, right: 40, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: COL.muted, borderTopWidth: 0.5, borderTopColor: COL.border, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 24, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   evidImg: { width: "48%", height: 200, objectFit: "cover", borderRadius: 3 },
   badge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, alignSelf: "flex-start", color: "#fff", marginBottom: 4 },
   // Gráficas
   chartBlock: { marginBottom: 14, padding: 10, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel },
-  chartTitle: { fontSize: 10, fontWeight: 700, marginBottom: 2 },
-  chartCaption: { fontSize: 8, color: COL.muted, marginBottom: 8 },
+  chartTitle: { fontSize: 10, fontFamily: FONT_BOLD, marginBottom: 2, color: COL.bg },
+  chartCaption: { fontSize: 8, color: COL.muted, marginBottom: 8, fontFamily: FONT_OBL },
   chartRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   chartLabel: { width: 110, fontSize: 9, color: COL.text },
   chartTrack: { flex: 1, height: 10, backgroundColor: "#fff", borderWidth: 0.5, borderColor: COL.border, borderRadius: 2, overflow: "hidden" },
   chartBar: { height: "100%", backgroundColor: COL.primary },
   chartValue: { width: 60, textAlign: "right", fontSize: 9, color: COL.text, fontFamily: "Courier" },
-  chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontStyle: "italic" },
+  chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
   // Política documental y checklist ISO 15489
   policyGrid: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   policyRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   policyRowLast: { flexDirection: "row" },
-  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontWeight: 700, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
   policyValue: { flex: 1, padding: 6, fontSize: 9, color: COL.text, textAlign: "justify" },
   checkRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.3, borderBottomColor: COL.border },
   checkBox: { width: 12, height: 12, borderWidth: 1, borderColor: COL.ok, backgroundColor: COL.ok, marginRight: 8, marginTop: 1, alignItems: "center", justifyContent: "center" },
-  checkMark: { color: "#fff", fontSize: 9, fontWeight: 700, lineHeight: 1 },
+  checkMark: { color: "#fff", fontSize: 9, fontFamily: FONT_BOLD, lineHeight: 1 },
   checkBody: { flex: 1 },
-  checkTitle: { fontSize: 10, fontWeight: 700, marginBottom: 2 },
+  checkTitle: { fontSize: 10, fontFamily: FONT_BOLD, marginBottom: 2, color: COL.bg },
   checkText: { fontSize: 9, color: COL.text, textAlign: "justify", marginBottom: 2 },
-  checkEvidence: { fontSize: 8, color: COL.muted, fontStyle: "italic" },
+  checkEvidence: { fontSize: 8, color: COL.muted, fontFamily: FONT_OBL },
 });
 
 export type ReporteData = {
@@ -114,15 +162,24 @@ export type ReporteData = {
 };
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
+  const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
+  const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
     <View style={styles.header} fixed>
-      <View>
-        <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING · {data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno"} · {pageName}</Text>
-        <Text style={[styles.headerTitle, { marginTop: 2 }]}>
-          Doc. {data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015 · ISO 15489-1:2016
-        </Text>
+      <View style={styles.headerLeft}>
+        <EALogoMark size={22} />
+        <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
+          <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
+          <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
+          <Text style={styles.headerSub}>ISO 9001:2015 · ISO 15489-1:2016</Text>
+        </View>
       </View>
-      <Text style={styles.headerTitle}>{data.cliente} · {data.periodo}</Text>
+      <View style={styles.headerRight}>
+        <Text style={styles.headerRightTop}>{data.cliente}</Text>
+        <Text style={styles.headerRightBot}>{data.periodo}</Text>
+        <Text style={styles.headerRightBot}>{codigo}</Text>
+        <Text style={styles.headerRightBot}>{clasif}</Text>
+      </View>
     </View>
   );
 }
@@ -251,13 +308,18 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       {ejec && (
         <Page size="LETTER" style={styles.cover}>
           <View style={styles.coverBar} />
+          <View style={styles.coverSide} />
           <View style={styles.coverInner}>
             <View style={styles.brand}>
-              <View style={styles.logoBox} />
-              <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
+              <EALogoMark size={48} />
+              <View>
+                <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
+                <Text style={styles.brandSub}>Solar Operations · Quality Management</Text>
+              </View>
             </View>
             <Text style={styles.coverTag}>Reporte Ejecutivo · {data.periodo}</Text>
             <Text style={styles.coverTitle}>{data.titulo}</Text>
+            <View style={styles.coverRule} />
             <View style={styles.coverMeta}>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Cliente</Text><Text style={styles.metaValue}>{data.cliente}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Planta</Text><Text style={styles.metaValue}>{data.planta}</Text></View>
@@ -324,7 +386,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         {ejec && data.responsable && (
           <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
             <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
-            <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>{data.responsable}</Text>
+            <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
             {data.responsable_cargo && (
               <Text style={{ fontSize: 10, color: COL.muted }}>{data.responsable_cargo}</Text>
             )}
@@ -345,13 +407,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>
           </View>
           {data.trabajos.length === 0 ? (
-            <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontStyle: "italic" }]}>Sin trabajos registrados en este periodo.</Text></View>
+            <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL }]}>Sin trabajos registrados en este periodo.</Text></View>
           ) : data.trabajos.map((t, i) => (
             <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr}>
               <Text style={[styles.td, { width: "14%", fontFamily: "Courier" }]}>{t.folio}</Text>
               <Text style={[styles.td, { width: "30%" }]}>{t.servicio}</Text>
               <Text style={[styles.td, { width: "18%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontWeight: 700 }]}>{t.estado}</Text>
+              <Text style={[styles.td, { width: "16%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
               <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
             </View>
           ))}
@@ -361,7 +423,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <Text style={styles.sectionTitle}>Notas de Campo</Text>
             {data.trabajos.filter((t) => t.notas).map((t, i) => (
               <View key={i} style={{ marginBottom: 6 }}>
-                <Text style={{ fontSize: 9, fontWeight: 700 }}>{t.folio} · {t.servicio}</Text>
+                <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
                 <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
               </View>
             ))}
@@ -441,13 +503,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>{data.responsable_cargo ?? "Responsable Operativo"}</Text>
               </View>
             </View>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.cliente}</Text>
+                <Text style={{ fontSize: 10, fontFamily: FONT_BOLD }}>{data.cliente}</Text>
                 <Text style={{ fontSize: 9, color: COL.muted }}>Recepción Cliente</Text>
               </View>
             </View>
