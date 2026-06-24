@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { DEFAULT_PASSWORD_POLICY, PasswordPolicySchema, type PasswordPolicy } from "@/lib/system-config.functions";
 
 const RoleEnum = z.enum(["admin", "supervisor", "tecnico", "cliente"]);
 
@@ -15,34 +16,78 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: requiere rol admin");
 }
 
-function generarPasswordTemporal() {
-  // 12 chars: letras + dígitos, sin caracteres ambiguos
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  let out = "";
-  const arr = new Uint8Array(12);
+async function obtenerPolitica(): Promise<PasswordPolicy> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("system_config")
+    .select("value")
+    .eq("key", "password_policy")
+    .maybeSingle();
+  const parsed = PasswordPolicySchema.safeParse(data?.value);
+  return parsed.success ? parsed.data : DEFAULT_PASSWORD_POLICY;
+}
+
+function pickRandom(pool: string): string {
+  const arr = new Uint8Array(1);
   crypto.getRandomValues(arr);
-  for (const n of arr) out += chars[n % chars.length];
-  return out;
+  return pool[arr[0] % pool.length];
+}
+
+function generarPasswordSegunPolitica(pol: PasswordPolicy): string {
+  const MAY_FULL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const MIN_FULL = "abcdefghijklmnopqrstuvwxyz";
+  const DIG_FULL = "0123456789";
+  const SYM = "!@#$%&*?+-";
+  const MAY = pol.excluir_ambiguos ? "ABCDEFGHJKLMNPQRSTUVWXYZ" : MAY_FULL;
+  const MIN = pol.excluir_ambiguos ? "abcdefghijkmnpqrstuvwxyz" : MIN_FULL;
+  const DIG = pol.excluir_ambiguos ? "23456789" : DIG_FULL;
+
+  const required: string[] = [];
+  let pool = "";
+  if (pol.requiere_mayusculas) { required.push(pickRandom(MAY)); pool += MAY; }
+  if (pol.requiere_minusculas) { required.push(pickRandom(MIN)); pool += MIN; }
+  if (pol.requiere_digitos)    { required.push(pickRandom(DIG)); pool += DIG; }
+  if (pol.requiere_simbolos)   { required.push(pickRandom(SYM)); pool += SYM; }
+  if (!pool) pool = MAY + MIN + DIG;
+
+  const longitud = Math.max(pol.longitud, required.length);
+  const out: string[] = [...required];
+  while (out.length < longitud) out.push(pickRandom(pool));
+
+  // Mezcla (Fisher–Yates) usando aleatorios criptográficos
+  for (let i = out.length - 1; i > 0; i--) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const j = arr[0] % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.join("");
 }
 
 async function enviarCorreoCredenciales(opts: {
   email: string;
   password: string;
-  motivo: "nueva_cuenta" | "reseteo";
+  motivo: "nueva_cuenta" | "reseteo" | "reenvio";
 }) {
   const { sendGmail, emailLayout } = await import("@/lib/notifications.server");
   const titulo =
     opts.motivo === "nueva_cuenta"
       ? "Tu cuenta en EA Service Connect está lista"
-      : "Hemos restablecido tu contraseña";
+      : opts.motivo === "reseteo"
+        ? "Hemos restablecido tu contraseña"
+        : "Reenvío de tu contraseña temporal";
   const subject =
     opts.motivo === "nueva_cuenta"
       ? "EA Service Connect · Acceso a tu cuenta"
-      : "EA Service Connect · Nueva contraseña de acceso";
+      : opts.motivo === "reseteo"
+        ? "EA Service Connect · Nueva contraseña de acceso"
+        : "EA Service Connect · Reenvío de contraseña temporal";
   const intro =
     opts.motivo === "nueva_cuenta"
       ? "Un administrador ha creado tu cuenta en EA Service Connect. Usa estas credenciales para iniciar sesión por primera vez."
-      : "Atendimos tu solicitud de recuperación de contraseña. Usa esta clave temporal para ingresar.";
+      : opts.motivo === "reseteo"
+        ? "Atendimos tu solicitud de recuperación de contraseña. Usa esta clave temporal para ingresar."
+        : "Reenvío de la contraseña temporal previamente emitida. Si ya la cambiaste, ignora este mensaje.";
   const html = emailLayout(
     titulo,
     `
