@@ -86,7 +86,7 @@ function Terreno() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
-      <PageHeader title="Terreno" description="Mis trabajos asignados hoy y mañana." />
+      <PageHeader title="Terreno" description="Trabajos programados y con asignación de técnico." />
 
       {isStaff ? (
         <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
