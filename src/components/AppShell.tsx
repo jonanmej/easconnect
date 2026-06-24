@@ -28,6 +28,7 @@ import {
   Briefcase,
   Map as MapIcon,
   UserCheck,
+  Menu,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -42,6 +43,8 @@ import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 type NavItem = {
   to: string;
@@ -109,6 +112,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   });
   const totalAlertas = ((alertas.data?.sla_vencidos ?? 0) + (alertas.data?.stock_critico ?? 0) + (alertas.data?.solicitudes_estancadas ?? 0));
 
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -147,33 +152,31 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
-  return (
-    <div className="flex h-screen w-full bg-background text-foreground">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-      >
-        Saltar al contenido
-      </a>
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
-        <Link
-          to="/"
-          className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-          aria-label="EA Service & Consulting — Ir al inicio"
-        >
-          <EALogo className="h-24 w-auto text-brand" accentClassName="text-brand" />
-        </Link>
+  // Cierra el drawer al cambiar de ruta en móvil
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
-        <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
-          {groups.map((group) => {
-            const items = group.items.filter((item) => {
-              if (role === "cliente" && item.to === "/notificaciones") return false;
-              if (role === "cliente" && item.to === "/auditoria") return false;
-              if (role === "tecnico" && item.to === "/auditoria") return false;
-              return true;
-            });
-            if (items.length === 0) return null;
-            return (
+  const sidebarBody = (
+    <>
+      <Link
+        to="/"
+        className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        aria-label="EA Service & Consulting — Ir al inicio"
+      >
+        <EALogo className="h-20 w-auto text-brand" accentClassName="text-brand" />
+      </Link>
+
+      <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
+        {groups.map((group) => {
+          const items = group.items.filter((item) => {
+            if (role === "cliente" && item.to === "/notificaciones") return false;
+            if (role === "cliente" && item.to === "/auditoria") return false;
+            if (role === "tecnico" && item.to === "/auditoria") return false;
+            return true;
+          });
+          if (items.length === 0) return null;
+          return (
             <div key={group.title}>
               <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4">
                 {group.title}
@@ -194,7 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                   >
                     <Icon className="size-[18px] shrink-0" aria-hidden="true" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1 truncate">{item.label}</span>
                     {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
                       <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className="text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.sla_vencidos}</span>
                     ) : null}
@@ -208,82 +211,105 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </div>
-            );
-          })}
-        </nav>
+          );
+        })}
+      </nav>
 
-        <div className="p-4 border-t border-border">
-          <div className="mb-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
-              Marcas asociadas
+      <div className="p-4 border-t border-border">
+        <div className="mb-3">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
+            Marcas asociadas
+          </p>
+          <div className="flex items-center gap-3 px-2">
+            <ChemitekLogo className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+            <PVStopLogo className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-2">
+          <div className="size-8 shrink-0 rounded-full bg-secondary grid place-items-center text-xs font-bold">{initials}</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate">{user?.email}</p>
+            <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
+              <ShieldCheck className="size-3 shrink-0" />
+              {role ? ROLE_LABEL[role] : "Sin rol asignado"}
             </p>
-            <div className="flex items-center gap-3 px-2">
-              <ChemitekLogo
-                className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors"
-                accentClassName="text-primary"
-              />
-              <PVStopLogo
-                className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors"
-                accentClassName="text-primary"
-              />
-            </div>
           </div>
-          <div className="flex items-center gap-3 p-2">
-            <div className="size-8 rounded-full bg-secondary grid place-items-center text-xs font-bold">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">{user?.email}</p>
-              <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
-                <ShieldCheck className="size-3" />
-                {role ? ROLE_LABEL[role] : "Sin rol asignado"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              aria-label="Cerrar sesión"
-              className="size-9 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-            >
-              <LogOut className="size-4 text-muted-foreground" />
-            </button>
-          </div>
-          <Link
-            to="/completar-perfil"
-            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-          >
-            <UserCheck className="size-3" />
-            Completar perfil
-          </Link>
           <button
             type="button"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+            onClick={handleSignOut}
+            aria-label="Cerrar sesión"
+            className="size-9 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           >
-            <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
-            Sincronizar permisos
+            <LogOut className="size-4 text-muted-foreground" />
           </button>
         </div>
+        <Link
+          to="/completar-perfil"
+          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        >
+          <UserCheck className="size-3" />
+          Completar perfil
+        </Link>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        >
+          <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
+          Sincronizar permisos
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex h-screen w-full bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        Saltar al contenido
+      </a>
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
+        {sidebarBody}
       </aside>
 
       <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
-        <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative w-full max-w-md">
+        <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Abrir menú de navegación"
+                  className="md:hidden size-10 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Menu className="size-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar flex flex-col">
+                <VisuallyHidden>
+                  <SheetTitle>Navegación</SheetTitle>
+                </VisuallyHidden>
+                {sidebarBody}
+              </SheetContent>
+            </Sheet>
+            <div className="relative w-full max-w-md min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Abrir búsqueda global (atajo: Ctrl/Cmd + K)"
-                className="w-full bg-secondary border border-border rounded-md pl-9 pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="w-full bg-secondary border border-border rounded-md pl-9 pr-3 sm:pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                Buscar planta, cliente, trabajo…
-                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground flex items-center font-mono">⌘K</kbd>
+                <span className="hidden sm:inline">Buscar planta, cliente, trabajo…</span>
+                <span className="sm:hidden">Buscar…</span>
+                <kbd className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground items-center font-mono">⌘K</kbd>
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div
               role="radiogroup"
               aria-label="Modo de color"
