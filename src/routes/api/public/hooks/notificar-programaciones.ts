@@ -15,7 +15,7 @@ function buildHtml(opts: {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;padding:32px 12px;"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
 <tr><td style="padding:24px 28px;background:#0f172a;color:#fff;">
-<img src="https://easconnect.lovable.app/__l5e/assets-v1/c67d929c-4ade-469e-9577-738073147367/ea-service-connect-logo-transparent.png" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
+<img src="https://easconnect.lovable.app/__l5e/assets-v1/16fcfac4-bba2-45b9-8fe8-2aa60f6e51f5/ea-service-connect-logo.png" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;background:#0f172a;" />
 </td></tr>
 <tr><td style="padding:28px;color:#1f2937;">
 <h1 style="margin:0 0 12px;font-size:20px;">Recordatorio: visita programada en ${opts.diasRestantes} día${opts.diasRestantes === 1 ? "" : "s"}</h1>
