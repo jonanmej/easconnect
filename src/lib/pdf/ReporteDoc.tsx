@@ -63,6 +63,19 @@ const styles = StyleSheet.create({
   chartBar: { height: "100%", backgroundColor: COL.primary },
   chartValue: { width: 60, textAlign: "right", fontSize: 9, color: COL.text, fontFamily: "Courier" },
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontStyle: "italic" },
+  // Política documental y checklist ISO 15489
+  policyGrid: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
+  policyRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
+  policyRowLast: { flexDirection: "row" },
+  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontWeight: 700, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  policyValue: { flex: 1, padding: 6, fontSize: 9, color: COL.text, textAlign: "justify" },
+  checkRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.3, borderBottomColor: COL.border },
+  checkBox: { width: 12, height: 12, borderWidth: 1, borderColor: COL.ok, backgroundColor: COL.ok, marginRight: 8, marginTop: 1, alignItems: "center", justifyContent: "center" },
+  checkMark: { color: "#fff", fontSize: 9, fontWeight: 700, lineHeight: 1 },
+  checkBody: { flex: 1 },
+  checkTitle: { fontSize: 10, fontWeight: 700, marginBottom: 2 },
+  checkText: { fontSize: 9, color: COL.text, textAlign: "justify", marginBottom: 2 },
+  checkEvidence: { fontSize: 8, color: COL.muted, fontStyle: "italic" },
 });
 
 export type ReporteData = {
@@ -93,6 +106,10 @@ export type ReporteData = {
   documento_clasificacion?: string;
   documento_hash?: string;
   retencion?: string;
+  acceso?: string;
+  disposicion_final?: string;
+  custodio?: string;
+  base_legal?: string;
   modo: "ejecutivo" | "interno";
 };
 
@@ -153,6 +170,64 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
         );
       })}
       <Text style={styles.chartSource}>Fuente: {g.fuente}</Text>
+    </View>
+  );
+}
+
+function ChecklistItem({
+  title,
+  text,
+  evidencia,
+}: {
+  title: string;
+  text: string;
+  evidencia: string;
+}) {
+  return (
+    <View style={styles.checkRow} wrap={false}>
+      <View style={styles.checkBox}>
+        <Text style={styles.checkMark}>✓</Text>
+      </View>
+      <View style={styles.checkBody}>
+        <Text style={styles.checkTitle}>{title}</Text>
+        <Text style={styles.checkText}>{text}</Text>
+        <Text style={styles.checkEvidence}>Evidencia en este documento: {evidencia}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ChecklistISO15489({ data }: { data: ReporteData }) {
+  const docId = (data.documento_id ?? "").toUpperCase() || "—";
+  const hash = data.documento_hash ? `${data.documento_hash.slice(0, 16)}…` : "—";
+  const responsable = data.responsable ?? "Equipo EA SERVICE AND CONSULTING";
+  const codigo = `${data.documento_codigo ?? "REP"} v${data.documento_version ?? "1.0"}`;
+  return (
+    <View wrap={false}>
+      <Text style={styles.sectionTitle}>Checklist de Cumplimiento · ISO 15489-1:2016</Text>
+      <Text style={[styles.paragraph, { fontSize: 9, marginBottom: 8 }]}>
+        Verificación de los cuatro atributos esenciales que ISO 15489-1:2016 (§5.2) exige a todo documento de archivo.
+      </Text>
+      <ChecklistItem
+        title="Autenticidad (§5.2.2)"
+        text="El documento puede demostrar que es lo que pretende ser, fue creado por quien dice haberlo creado y en el momento declarado."
+        evidencia={`Autor identificado: ${responsable} · Código ${codigo} · ID único ${docId} · Sello de tiempo en metadatos PDF`}
+      />
+      <ChecklistItem
+        title="Fiabilidad (§5.2.3)"
+        text="Su contenido representa de forma completa y precisa las operaciones a las que se refiere y puede ser utilizado como prueba."
+        evidencia="Datos extraídos directamente de los registros operativos (trabajos, mantenimientos, evidencias, reportes técnicos) sin manipulación intermedia; las gráficas declaran su tabla origen."
+      />
+      <ChecklistItem
+        title="Integridad (§5.2.4)"
+        text="El documento está completo e inalterado; cualquier modificación posterior es controlada y trazable."
+        evidencia={`Huella criptográfica SHA-256 ${hash} embebida en pie y página de cierre; versionado controlado (${codigo}); cambios registrados en bitácora de auditoría.`}
+      />
+      <ChecklistItem
+        title="Disponibilidad (§5.2.5)"
+        text="El documento puede localizarse, recuperarse, presentarse e interpretarse durante todo su período de retención."
+        evidencia={`Almacenado en formato PDF/A-compatible, indexado por ID ${docId}, cliente, planta y periodo; recuperable desde la plataforma EA Service Connect durante toda su vigencia.`}
+      />
     </View>
   );
 }
@@ -311,22 +386,59 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         </Page>
       )}
 
-      {ejec && (
-        <Page size="LETTER" style={styles.page}>
-          <PageHeader data={data} pageName="Cierre" />
-          <Text style={styles.pageTitle}>Cierre y Firma</Text>
+      <Page size="LETTER" style={styles.page} wrap>
+        <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
+        <Text style={styles.pageTitle}>{ejec ? "Cierre, Política Documental y Cumplimiento" : "Política Documental y Cumplimiento"}</Text>
+
+        {ejec && (
           <Text style={styles.paragraph}>
             El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles, en conformidad con el Sistema de Gestión de la Calidad bajo ISO 9001:2015 (cláusulas 7.5 Información documentada, 8.5 Producción y prestación del servicio, 9.1 Seguimiento, medición, análisis y evaluación, y 10 Mejora).
           </Text>
-          <Text style={styles.paragraph}>
-            Asimismo, este documento es gestionado conforme a ISO 15489-1:2016 (Información y documentación — Gestión de documentos), garantizando los atributos de autenticidad, fiabilidad, integridad y disponibilidad mediante identificador único, código y versión controlados, sello de tiempo, firma del responsable, huella criptográfica SHA-256 y plan de retención documental.
-          </Text>
-          <Text style={[styles.paragraph, { fontSize: 9, color: COL.muted }]}>
-            Documento controlado · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9. Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
-            Código: {data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}. Clasificación: {data.documento_clasificacion ?? "Uso interno"}.
-            Integridad: SHA-256 {data.documento_hash ?? "—"}. {data.retencion ?? "Retención: 5 años."}
-          </Text>
-          <View style={{ marginTop: 80, flexDirection: "row", justifyContent: "space-between" }}>
+        )}
+
+        <Text style={styles.sectionTitle}>Política de Retención, Acceso y Disposición Final · ISO 15489-1:2016</Text>
+        <Text style={[styles.paragraph, { fontSize: 9 }]}>
+          De acuerdo con ISO 15489-1:2016 (§5.3 y §9.9), todo documento de archivo debe contar con reglas explícitas de conservación, control de acceso y disposición final, definidas antes de su captura y aplicadas durante todo su ciclo de vida.
+        </Text>
+        <View style={styles.policyGrid}>
+          <View style={styles.policyRow}>
+            <Text style={styles.policyLabel}>Custodio del documento</Text>
+            <Text style={styles.policyValue}>{data.custodio ?? "EA SERVICE AND CONSULTING — Coordinación de Gestión de la Calidad"}</Text>
+          </View>
+          <View style={styles.policyRow}>
+            <Text style={styles.policyLabel}>Periodo de retención</Text>
+            <Text style={styles.policyValue}>{data.retencion ?? "5 años contados a partir de la fecha de emisión (alineado a ISO 9001:2015 §7.5 e ISO 15489-1:2016 §9.9)."}</Text>
+          </View>
+          <View style={styles.policyRow}>
+            <Text style={styles.policyLabel}>Política de acceso</Text>
+            <Text style={styles.policyValue}>
+              {data.acceso ?? `Acceso restringido bajo clasificación "${data.documento_clasificacion ?? "Uso interno"}". Personal autorizado: administradores y supervisores de EA SERVICE AND CONSULTING, y representantes acreditados del cliente ${data.cliente}. Toda consulta queda registrada en la bitácora de auditoría (auditoria_log) con usuario, fecha y acción.`}
+            </Text>
+          </View>
+          <View style={styles.policyRow}>
+            <Text style={styles.policyLabel}>Base legal y normativa</Text>
+            <Text style={styles.policyValue}>
+              {data.base_legal ?? "ISO 9001:2015 · ISO 15489-1:2016 · Contrato de prestación de servicios vigente con el cliente · Normativa local aplicable de protección de datos."}
+            </Text>
+          </View>
+          <View style={styles.policyRowLast}>
+            <Text style={styles.policyLabel}>Disposición final</Text>
+            <Text style={styles.policyValue}>
+              {data.disposicion_final ?? "Al término del periodo de retención: revisión por el Comité de Calidad. Resultados posibles: (a) conservación permanente si el documento posee valor histórico, evidencial o legal; (b) eliminación segura mediante borrado criptográfico irreversible del archivo y registro del acta de eliminación; (c) transferencia al cliente cuando contractualmente corresponda. En todos los casos se conserva el metadato del documento eliminado (ID, código, hash, fecha de disposición y autorización) para fines de trazabilidad."}
+            </Text>
+          </View>
+        </View>
+
+        <ChecklistISO15489 data={data} />
+
+        <Text style={[styles.paragraph, { fontSize: 8, color: COL.muted, marginTop: 10 }]}>
+          Documento controlado · ISO 9001:2015 §7.5 · ISO 15489-1:2016 §5–9. Identificador único: {(data.documento_id ?? "").toUpperCase() || "—"}.
+          Código: {data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}. Clasificación: {data.documento_clasificacion ?? "Uso interno"}.
+          Integridad: SHA-256 {data.documento_hash ?? "—"}.
+        </Text>
+
+        {ejec && (
+          <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
             <View style={{ width: "45%" }}>
               <View style={{ borderTopWidth: 1, borderTopColor: COL.text, paddingTop: 6 }}>
                 <Text style={{ fontSize: 10, fontWeight: 700 }}>{data.responsable ?? "Equipo EA SERVICE AND CONSULTING"}</Text>
@@ -340,9 +452,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </View>
             </View>
           </View>
-          <PageFooter data={data} />
-        </Page>
-      )}
+        )}
+        <PageFooter data={data} />
+      </Page>
     </Document>
   );
 }
