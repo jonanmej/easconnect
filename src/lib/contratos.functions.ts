@@ -62,8 +62,63 @@ export const upsertContrato = createServerFn({ method: "POST" })
       : context.supabase.from("contratos_servicio").insert(payload).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
-    return row;
+
+    // Continuidad histórica: vincular trabajos completados previos (sin contrato)
+    // de la misma planta + servicio dentro del año del contrato, ocupando los
+    // primeros ciclos. Esto permite que el cumplimiento anual y la programación
+    // automática los reconozcan como ya ejecutados.
+    const contratoRow = row as any;
+    const vinculados = await vincularHistoricosAContrato(context.supabase, contratoRow);
+    return { ...contratoRow, historicos_vinculados: vinculados };
   });
+
+async function vincularHistoricosAContrato(supabase: any, contrato: any) {
+  const anioIni = `${contrato.anio}-01-01T00:00:00Z`;
+  const anioFin = `${contrato.anio + 1}-01-01T00:00:00Z`;
+  // Trabajos candidatos: completados, sin contrato, de la misma planta y servicio,
+  // dentro del año del contrato. Se ordenan por fecha ascendente para ocupar
+  // los ciclos 1..N en orden cronológico.
+  const { data: candidatos, error } = await supabase
+    .from("trabajos")
+    .select("id, fecha_programada, ciclo_numero")
+    .eq("planta_id", contrato.planta_id)
+    .eq("servicio", contrato.servicio)
+    .eq("estado", "completado")
+    .is("contrato_id", null)
+    .gte("fecha_programada", anioIni)
+    .lt("fecha_programada", anioFin)
+    .order("fecha_programada", { ascending: true });
+  if (error) return 0;
+
+  // Ciclos ya ocupados por trabajos vinculados al contrato.
+  const { data: yaVinculados } = await supabase
+    .from("trabajos")
+    .select("ciclo_numero")
+    .eq("contrato_id", contrato.id);
+  const ocupados = new Set<number>(
+    (yaVinculados ?? []).map((r: any) => r.ciclo_numero).filter((n: any) => n != null),
+  );
+
+  let proximoCiclo = 1;
+  let vinculados = 0;
+  for (const t of candidatos ?? []) {
+    if (vinculados + ocupados.size >= contrato.cantidad_anual) break;
+    while (ocupados.has(proximoCiclo) && proximoCiclo <= contrato.cantidad_anual) {
+      proximoCiclo++;
+    }
+    if (proximoCiclo > contrato.cantidad_anual) break;
+    const { error: uErr } = await supabase
+      .from("trabajos")
+      .update({ contrato_id: contrato.id, ciclo_numero: proximoCiclo })
+      .eq("id", (t as any).id);
+    if (!uErr) {
+      ocupados.add(proximoCiclo);
+      proximoCiclo++;
+      vinculados++;
+    }
+  }
+  return vinculados;
+}
 
 export const eliminarContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
