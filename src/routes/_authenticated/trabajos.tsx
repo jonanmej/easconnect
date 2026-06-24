@@ -350,7 +350,7 @@ function Trabajos() {
         onOpenChange={(v) => !v && setEditing(null)}
         title={editing?.id ? `Editar ${editing.folio ?? "trabajo"}` : "Nuevo trabajo"}
         busy={save.isPending}
-        error={save.error?.message}
+        error={save.error ? formatConflictoMensaje(save.error.message) : null}
         onSubmit={onSubmit}
       >
         {editing?.id && (
