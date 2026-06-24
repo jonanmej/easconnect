@@ -432,14 +432,20 @@ export const listTecnicos = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const userIds = Array.from(new Set((roles ?? []).map((r: any) => r.user_id)));
     if (userIds.length === 0) return [];
+    // Cross-check contra auth.users para excluir cuentas desvinculadas (orphan roles).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const validIds = new Set((authList?.users ?? []).map((u: any) => u.id));
+    const activeIds = userIds.filter((id) => validIds.has(id));
+    if (activeIds.length === 0) return [];
     const { data: profs, error: pErr } = await context.supabase
       .from("profiles")
       .select("id, display_name, nombres, apellidos")
-      .in("id", userIds);
+      .in("id", activeIds);
     if (pErr) throw new Error(pErr.message);
     const profMap = new Map<string, any>();
     (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
-    const out: { id: string; nombre: string }[] = userIds.map((id) => {
+    const out: { id: string; nombre: string }[] = activeIds.map((id) => {
       const p = profMap.get(id);
       const full = p ? [p.nombres, p.apellidos].filter(Boolean).join(" ").trim() : "";
       return { id, nombre: full || p?.display_name || id.slice(0, 8) };
