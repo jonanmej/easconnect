@@ -170,29 +170,31 @@ function Reportes() {
         }
       />
 
-      <section className="relative overflow-hidden bg-slate-900 text-white rounded-xl p-6 md:p-8 mb-8">
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/40" />
-        <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
-          <div className="w-full h-20 bg-gradient-to-b from-primary/40 to-transparent animate-scanline" />
-        </div>
-        <div className="relative flex flex-wrap gap-6 items-start justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 mb-3 text-primary">
-              <Sparkles className="size-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Lovable AI · Gemini 3 Flash</span>
+      {highestRole(roles) !== "cliente" && (
+        <section className="relative overflow-hidden bg-slate-900 text-white rounded-xl p-6 md:p-8 mb-8">
+          <div className="absolute top-0 left-0 w-full h-1 bg-primary/40" />
+          <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+            <div className="w-full h-20 bg-gradient-to-b from-primary/40 to-transparent animate-scanline" />
+          </div>
+          <div className="relative flex flex-wrap gap-6 items-start justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 mb-3 text-primary">
+                <Sparkles className="size-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Lovable AI · Gemini 3 Flash</span>
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Convierte tus bitácoras en informes ejecutivos</h2>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
+              </p>
             </div>
-            <h2 className="text-xl font-semibold mb-2">Convierte tus bitácoras en informes ejecutivos</h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
-            </p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <Stat label="Generados" value={items.length} />
+              <Stat label="Borradores" value={borradores} tone="primary" />
+              <Stat label="Enviados" value={enviados} tone="accent" />
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <Stat label="Generados" value={items.length} />
-            <Stat label="Borradores" value={borradores} tone="primary" />
-            <Stat label="Enviados" value={enviados} tone="accent" />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
