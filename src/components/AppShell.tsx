@@ -166,6 +166,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           {groups.map((group) => {
             const items = group.items.filter((item) => {
               if (role === "cliente" && item.to === "/notificaciones") return false;
+              if (role === "cliente" && item.to === "/auditoria") return false;
+              if (role === "tecnico" && item.to === "/auditoria") return false;
               return true;
             });
             if (items.length === 0) return null;
