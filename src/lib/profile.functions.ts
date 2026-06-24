@@ -8,7 +8,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, display_name, nombres, apellidos, cargo, perfil_completado")
+      .select("id, display_name, nombres, apellidos, cargo, perfil_completado, debe_cambiar_password")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -24,20 +24,23 @@ export const completarMiPerfil = createServerFn({ method: "POST" })
         nombres: z.string().min(2, "Ingresa tus nombres"),
         apellidos: z.string().min(2, "Ingresa tus apellidos"),
         cargo: z.string().min(2, "Ingresa tu cargo"),
+        password_actualizada: z.boolean().optional().default(false),
       })
       .parse(d),
   )
   .handler(async ({ context, data }) => {
     const display_name = `${data.nombres} ${data.apellidos}`.trim();
+    const update: Record<string, unknown> = {
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      cargo: data.cargo,
+      display_name,
+      perfil_completado: true,
+    };
+    if (data.password_actualizada) update.debe_cambiar_password = false;
     const { error } = await context.supabase
       .from("profiles")
-      .update({
-        nombres: data.nombres,
-        apellidos: data.apellidos,
-        cargo: data.cargo,
-        display_name,
-        perfil_completado: true,
-      })
+      .update(update)
       .eq("id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
