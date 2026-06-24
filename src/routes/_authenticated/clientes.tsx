@@ -27,7 +27,6 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 type ClienteRow = {
   id: string;
   nombre: string;
-  rut: string | null;
   contacto: string | null;
   email: string | null;
   telefono: string | null;
