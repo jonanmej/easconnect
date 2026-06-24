@@ -34,9 +34,9 @@ export function RecordDialog({
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-3">{children}</div>
           {error && (
-            <p className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+            <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2 whitespace-pre-line">
               {error}
-            </p>
+            </div>
           )}
           <DialogFooter>
             <button

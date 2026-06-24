@@ -368,11 +368,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       });
       if (cErr) throw new Error(cErr.message);
       if ((conflictos ?? []).length > 0) {
-        const c = (conflictos as any[])[0];
-        const f = new Date(c.fecha_programada).toLocaleDateString("es-CL");
-        throw new Error(
-          `El técnico ya tiene asignado el trabajo ${c.folio} el ${f} (${c.duracion_dias} día${c.duracion_dias === 1 ? "" : "s"}). Elige otra fecha o cambia el técnico.`,
-        );
+        throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(conflictos));
       }
     }
     const q = id
@@ -531,11 +527,7 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
         _excluir_trabajo_id: data.id,
       });
       if ((conflictos ?? []).length > 0) {
-        const c = (conflictos as any[])[0];
-        const f = new Date(c.fecha_programada).toLocaleDateString("es-CL");
-        throw new Error(
-          `El técnico ya tiene asignado el trabajo ${c.folio} el ${f}. Elige otra fecha o cambia el técnico.`,
-        );
+        throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(conflictos));
       }
     }
     const { data: row, error } = await context.supabase
