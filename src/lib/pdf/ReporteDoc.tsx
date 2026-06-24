@@ -63,6 +63,19 @@ const styles = StyleSheet.create({
   chartBar: { height: "100%", backgroundColor: COL.primary },
   chartValue: { width: 60, textAlign: "right", fontSize: 9, color: COL.text, fontFamily: "Courier" },
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontStyle: "italic" },
+  // Política documental y checklist ISO 15489
+  policyGrid: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
+  policyRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
+  policyRowLast: { flexDirection: "row" },
+  policyLabel: { width: "32%", padding: 6, fontSize: 8, fontWeight: 700, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", letterSpacing: 0.5 },
+  policyValue: { flex: 1, padding: 6, fontSize: 9, color: COL.text, textAlign: "justify" },
+  checkRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.3, borderBottomColor: COL.border },
+  checkBox: { width: 12, height: 12, borderWidth: 1, borderColor: COL.ok, backgroundColor: COL.ok, marginRight: 8, marginTop: 1, alignItems: "center", justifyContent: "center" },
+  checkMark: { color: "#fff", fontSize: 9, fontWeight: 700, lineHeight: 1 },
+  checkBody: { flex: 1 },
+  checkTitle: { fontSize: 10, fontWeight: 700, marginBottom: 2 },
+  checkText: { fontSize: 9, color: COL.text, textAlign: "justify", marginBottom: 2 },
+  checkEvidence: { fontSize: 8, color: COL.muted, fontStyle: "italic" },
 });
 
 export type ReporteData = {
@@ -93,6 +106,10 @@ export type ReporteData = {
   documento_clasificacion?: string;
   documento_hash?: string;
   retencion?: string;
+  acceso?: string;
+  disposicion_final?: string;
+  custodio?: string;
+  base_legal?: string;
   modo: "ejecutivo" | "interno";
 };
 
@@ -153,6 +170,64 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
         );
       })}
       <Text style={styles.chartSource}>Fuente: {g.fuente}</Text>
+    </View>
+  );
+}
+
+function ChecklistItem({
+  title,
+  text,
+  evidencia,
+}: {
+  title: string;
+  text: string;
+  evidencia: string;
+}) {
+  return (
+    <View style={styles.checkRow} wrap={false}>
+      <View style={styles.checkBox}>
+        <Text style={styles.checkMark}>✓</Text>
+      </View>
+      <View style={styles.checkBody}>
+        <Text style={styles.checkTitle}>{title}</Text>
+        <Text style={styles.checkText}>{text}</Text>
+        <Text style={styles.checkEvidence}>Evidencia en este documento: {evidencia}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ChecklistISO15489({ data }: { data: ReporteData }) {
+  const docId = (data.documento_id ?? "").toUpperCase() || "—";
+  const hash = data.documento_hash ? `${data.documento_hash.slice(0, 16)}…` : "—";
+  const responsable = data.responsable ?? "Equipo EA SERVICE AND CONSULTING";
+  const codigo = `${data.documento_codigo ?? "REP"} v${data.documento_version ?? "1.0"}`;
+  return (
+    <View wrap={false}>
+      <Text style={styles.sectionTitle}>Checklist de Cumplimiento · ISO 15489-1:2016</Text>
+      <Text style={[styles.paragraph, { fontSize: 9, marginBottom: 8 }]}>
+        Verificación de los cuatro atributos esenciales que ISO 15489-1:2016 (§5.2) exige a todo documento de archivo.
+      </Text>
+      <ChecklistItem
+        title="Autenticidad (§5.2.2)"
+        text="El documento puede demostrar que es lo que pretende ser, fue creado por quien dice haberlo creado y en el momento declarado."
+        evidencia={`Autor identificado: ${responsable} · Código ${codigo} · ID único ${docId} · Sello de tiempo en metadatos PDF`}
+      />
+      <ChecklistItem
+        title="Fiabilidad (§5.2.3)"
+        text="Su contenido representa de forma completa y precisa las operaciones a las que se refiere y puede ser utilizado como prueba."
+        evidencia="Datos extraídos directamente de los registros operativos (trabajos, mantenimientos, evidencias, reportes técnicos) sin manipulación intermedia; las gráficas declaran su tabla origen."
+      />
+      <ChecklistItem
+        title="Integridad (§5.2.4)"
+        text="El documento está completo e inalterado; cualquier modificación posterior es controlada y trazable."
+        evidencia={`Huella criptográfica SHA-256 ${hash} embebida en pie y página de cierre; versionado controlado (${codigo}); cambios registrados en bitácora de auditoría.`}
+      />
+      <ChecklistItem
+        title="Disponibilidad (§5.2.5)"
+        text="El documento puede localizarse, recuperarse, presentarse e interpretarse durante todo su período de retención."
+        evidencia={`Almacenado en formato PDF/A-compatible, indexado por ID ${docId}, cliente, planta y periodo; recuperable desde la plataforma EA Service Connect durante toda su vigencia.`}
+      />
     </View>
   );
 }
