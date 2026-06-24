@@ -61,7 +61,7 @@ function UsersPage() {
   });
 
   const invite = useMutation({
-    mutationFn: (vars: { email: string; password: string; role: AppRole }) =>
+    mutationFn: (vars: { email: string; password: string; role: AppRole; enviar_por_correo?: boolean }) =>
       fetchInvite({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
