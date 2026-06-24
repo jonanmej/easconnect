@@ -422,6 +422,47 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Registro de trabajos históricos (ejecutados antes de existir la app).
+// Solo admin/supervisor. Inserta directamente como completado, sin verificación
+// de conflicto de técnico ni notificaciones automáticas.
+export const crearTrabajoHistorico = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      planta_id: z.string().uuid(),
+      servicio: z.string().min(1),
+      fecha: z.string().min(1),
+      notas: z.string().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    // Autorizar: admin o supervisor
+    const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
+      context.supabase.rpc("has_role" as any, { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role" as any, { _user_id: context.userId, _role: "supervisor" }),
+    ]);
+    if (!isAdmin && !isSup) throw new Error("No autorizado");
+
+    const fechaIso = new Date(data.fecha).toISOString();
+    const notasFinal = `[HISTÓRICO] ${data.notas ?? ""}`.trim();
+    const { data: row, error } = await context.supabase
+      .from("trabajos")
+      .insert({
+        planta_id: data.planta_id,
+        servicio: data.servicio,
+        fecha_programada: fechaIso,
+        fecha_completado: fechaIso,
+        estado: "completado",
+        notas: notasFinal,
+        duracion_dias: 1,
+        auto_generado: false,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
 export const listTecnicos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

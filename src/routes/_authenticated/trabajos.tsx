@@ -14,10 +14,11 @@ import {
   deleteTrabajo,
   listTecnicos,
   listAsignacionesLog,
+  crearTrabajoHistorico,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -117,6 +118,7 @@ function Trabajos() {
   const fetchDelete = useServerFn(deleteTrabajo);
   const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
   const fetchTecnicos = useServerFn(listTecnicos);
+  const fetchHistorico = useServerFn(crearTrabajoHistorico);
   const { roles } = useAuth();
   const role = highestRole(roles);
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
@@ -127,6 +129,7 @@ function Trabajos() {
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
@@ -175,6 +178,27 @@ function Trabajos() {
     onSuccess: () => { toast.success("Trabajo eliminado"); qc.invalidateQueries({ queryKey: ["trabajos"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const saveHistorico = useMutation({
+    mutationFn: (vars: any) => fetchHistorico({ data: vars }),
+    onSuccess: () => {
+      toast.success("Trabajo histórico registrado");
+      qc.invalidateQueries({ queryKey: ["trabajos"] });
+      setHistoricoOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function onSubmitHistorico(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    saveHistorico.mutate({
+      planta_id: f.get("planta_id"),
+      servicio: f.get("servicio"),
+      fecha: f.get("fecha"),
+      notas: (f.get("notas") as string) || null,
+    });
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -232,6 +256,15 @@ function Trabajos() {
                 className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
               >
                 <Plus className="size-3.5" /> Nuevo trabajo
+              </button>
+            )}
+            {canEdit && (
+              <button
+                onClick={() => setHistoricoOpen(true)}
+                title="Registrar un servicio ejecutado antes de usar la app"
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
+              >
+                <Archive className="size-3.5" /> Cargar histórico
               </button>
             )}
           </>
@@ -489,6 +522,46 @@ function Trabajos() {
         {editing?.id && tab === "historial" && (
           <HistorialAsignacionesSection trabajoId={editing.id} />
         )}
+      </RecordDialog>
+
+      <RecordDialog
+        open={historicoOpen}
+        onOpenChange={(v) => !v && setHistoricoOpen(false)}
+        title="Cargar trabajo histórico"
+        busy={saveHistorico.isPending}
+        error={saveHistorico.error ? saveHistorico.error.message : null}
+        onSubmit={onSubmitHistorico}
+      >
+        <p className="text-[11px] text-muted-foreground -mt-1 mb-1">
+          Registra un servicio ejecutado antes de la puesta en marcha de la app.
+          Se guarda como <strong>completado</strong> y se marca con el prefijo
+          <code className="mx-1">[HISTÓRICO]</code> en las notas.
+        </p>
+        <Field label="Planta">
+          <select name="planta_id" required className={inputCls} defaultValue="">
+            <option value="">— Selecciona planta —</option>
+            {(plantas.data as any[] | undefined)?.map((p) => (
+              <option key={p.id} value={p.id}>{p.cliente_nombre} · {p.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Servicio">
+          <select name="servicio" required className={inputCls} defaultValue="">
+            <option value="">— Selecciona servicio —</option>
+            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Fecha de ejecución">
+          <input name="fecha" type="date" required className={inputCls}
+            max={new Date().toISOString().slice(0, 10)} />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Debe ser una fecha pasada (anterior a hoy).
+          </p>
+        </Field>
+        <Field label="Notas">
+          <textarea name="notas" rows={3} className={inputCls}
+            placeholder="Detalle del servicio realizado, observaciones, etc." />
+        </Field>
       </RecordDialog>
     </div>
   );
