@@ -40,13 +40,24 @@ function renderHtml(opts: {
   const card = "#FFFFFF";
   const primary = "#F59E0B";
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${opts.titulo}</title></head>
+<style>
+.logo-dark{display:none !important;}
+.logo-light{display:block !important;}
+@media (prefers-color-scheme: dark){
+  .logo-light{display:none !important;}
+  .logo-dark{display:block !important;}
+}
+[data-ogsc] .logo-light{display:none !important;}
+[data-ogsc] .logo-dark{display:block !important;}
+</style>
 <body style="margin:0;padding:0;background:${bg};font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#0f172a;">
 <span style="display:none;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden">${opts.preheader}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:32px 12px;">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${card};border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
-      <tr><td style="padding:24px 28px;background:#0f172a;color:#fff;">
-        <img src="https://easconnect.lovable.app/__l5e/assets-v1/16fcfac4-bba2-45b9-8fe8-2aa60f6e51f5/ea-service-connect-logo.png" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;background:#0f172a;" />
+      <tr><td style="padding:24px 28px;">
+        <img class="logo-light" src="https://easconnect.lovable.app/__l5e/assets-v1/ce7174da-fe38-403c-b5cf-5828b21ac9ad/ea-service-connect-logo-light.png" alt="EA Service Connect" width="160" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
+        <img class="logo-dark" src="https://easconnect.lovable.app/__l5e/assets-v1/c67d929c-4ade-469e-9577-738073147367/ea-service-connect-logo-transparent.png" alt="EA Service Connect" width="160" style="display:none;border:0;outline:none;text-decoration:none;height:auto;max-width:160px;" />
       </td></tr>
       <tr><td style="padding:28px;">
         <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;">${opts.titulo}</h1>
