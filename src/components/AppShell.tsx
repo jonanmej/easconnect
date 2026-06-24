@@ -163,12 +163,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
-          {groups.map((group) => (
+          {groups.map((group) => {
+            const items = group.items.filter((item) => {
+              if (role === "cliente" && item.to === "/notificaciones") return false;
+              return true;
+            });
+            if (items.length === 0) return null;
+            return (
             <div key={group.title}>
               <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4">
                 {group.title}
               </div>
-              {group.items.map((item) => {
+              {items.map((item) => {
                 const active = pathname === item.to;
                 const Icon = item.icon;
                 return (
@@ -198,7 +204,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-border">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -15,6 +15,17 @@ import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
   head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" }] }),
+  beforeLoad: async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const isStaff = (roles ?? []).some((r: any) => ["admin", "supervisor", "tecnico"].includes(r.role));
+    if (!isStaff) throw redirect({ to: "/" });
+  },
   component: Notificaciones,
   errorComponent: ({ error }) => (
     <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
