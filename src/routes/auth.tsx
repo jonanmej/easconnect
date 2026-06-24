@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { Sun } from "lucide-react";
+import { Triangle } from "lucide-react";
 import { EALogo } from "@/components/logos/EALogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
@@ -75,7 +75,7 @@ function AuthPage() {
           />
           <div className="flex items-center gap-2">
             <div className="size-7 bg-foreground rounded grid place-items-center">
-              <Sun className="size-4 text-primary" />
+              <Triangle className="size-4 text-primary" />
             </div>
             <span className="font-semibold tracking-tight text-lg">EA Service Connect</span>
           </div>
