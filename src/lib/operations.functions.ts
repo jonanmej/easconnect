@@ -393,6 +393,26 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const listTecnicos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("user_id, profiles(id, display_name, nombres, apellidos)")
+      .in("role", ["tecnico", "supervisor"]);
+    if (error) throw new Error(error.message);
+    const seen = new Set<string>();
+    const out: { id: string; nombre: string }[] = [];
+    for (const r of (data ?? []) as any[]) {
+      const p = r.profiles;
+      if (!p || seen.has(p.id)) continue;
+      seen.add(p.id);
+      const full = [p.nombres, p.apellidos].filter(Boolean).join(" ").trim();
+      out.push({ id: p.id, nombre: full || p.display_name || "Sin nombre" });
+    }
+    return out.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  });
+
 export const reprogramarTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

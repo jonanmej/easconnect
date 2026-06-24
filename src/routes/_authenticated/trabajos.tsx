@@ -11,6 +11,7 @@ import {
   listEquipos,
   upsertTrabajo,
   deleteTrabajo,
+  listTecnicos,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
@@ -123,12 +124,14 @@ function Trabajos() {
   const fetchUpsert = useServerFn(upsertTrabajo);
   const fetchDelete = useServerFn(deleteTrabajo);
   const fetchTrabajoEquipos = useServerFn(listTrabajoEquipos);
+  const fetchTecnicos = useServerFn(listTecnicos);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
+  const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
   const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
@@ -183,6 +186,7 @@ function Trabajos() {
       servicio: f.get("servicio"),
       fecha_programada: fecha,
       estado: f.get("estado"),
+      tecnico_id: (f.get("tecnico_id") as string) || null,
       notas: f.get("notas") || null,
       duracion_dias: Number(f.get("duracion_dias") ?? 1),
     });
@@ -371,6 +375,22 @@ function Trabajos() {
               <option value="cancelado">Cancelado</option>
             </select>
           </Field>
+        <Field label="Técnico asignado">
+          <select name="tecnico_id" defaultValue={editing?.tecnico_id ?? ""} className={inputCls}>
+            <option value="">— Sin asignar —</option>
+            {(tecnicos.data as any[] | undefined)?.map((t) => (
+              <option key={t.id} value={t.id}>{t.nombre}</option>
+            ))}
+          </select>
+          {tecnicos.isLoading && (
+            <p className="text-[10px] text-muted-foreground mt-1">Cargando técnicos…</p>
+          )}
+          {tecnicos.data && (tecnicos.data as any[]).length === 0 && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              No hay usuarios con rol técnico o supervisor. Crea uno en Usuarios.
+            </p>
+          )}
+        </Field>
         <Field label={`Equipos asignados (${equipoIds.length})`}>
           <div className="border border-border rounded-md max-h-48 overflow-y-auto divide-y divide-border">
             {(equipos.data as any[] | undefined)?.length ? (
