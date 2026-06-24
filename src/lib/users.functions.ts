@@ -270,7 +270,8 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: u, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (uErr || !u.user?.email) throw new Error("Usuario no encontrado");
-    const password = generarPasswordTemporal();
+    const politica = await obtenerPolitica();
+    const password = generarPasswordSegunPolitica(politica);
     const { error: pErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password });
     if (pErr) throw new Error(pErr.message);
     await supabaseAdmin
@@ -294,6 +295,18 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
         })
         .eq("id", data.solicitudId);
     }
+    // Auditoría: nueva contraseña enviada
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "password_reset_solicitudes",
+      entidad_id: data.solicitudId ?? null,
+      accion: "password_reseteado",
+      despues: {
+        usuario_afectado: data.userId,
+        email: u.user.email,
+        correo_enviado: !!r?.ok,
+      } as any,
+      actor: context.userId,
+    });
     if (!r?.ok) {
       throw new Error(
         `La contraseña fue restablecida, pero el correo no se envió: ${(r as any)?.error ?? "envío omitido"}. Comparte la clave manualmente: ${password}`,
@@ -302,15 +315,92 @@ export const resetPasswordUsuario = createServerFn({ method: "POST" })
     return { ok: true, email: u.user.email };
   });
 
+/**
+ * Reenvía una nueva contraseña temporal a un usuario asociado a una solicitud
+ * (caso "no me llegó el correo"). Genera una nueva clave y actualiza contador.
+ */
+export const reenviarPasswordTemporal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        solicitudId: z.string().uuid(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sol, error: sErr } = await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .select("id, email, reenvios")
+      .eq("id", data.solicitudId)
+      .maybeSingle();
+    if (sErr || !sol) throw new Error("Solicitud no encontrada");
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const target = (users?.users ?? []).find(
+      (u) => u.email?.toLowerCase() === String(sol.email).toLowerCase(),
+    );
+    if (!target?.email) throw new Error("No existe una cuenta con ese email");
+    const politica = await obtenerPolitica();
+    const password = generarPasswordSegunPolitica(politica);
+    const { error: pErr } = await supabaseAdmin.auth.admin.updateUserById(target.id, { password });
+    if (pErr) throw new Error(pErr.message);
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: target.id, debe_cambiar_password: true }, { onConflict: "id" });
+    const r = await enviarCorreoCredenciales({
+      email: target.email,
+      password,
+      motivo: "reenvio",
+    });
+    await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .update({
+        estado: "atendida",
+        atendida_at: new Date().toISOString(),
+        atendida_por: context.userId,
+        reenvios: (sol.reenvios ?? 0) + 1,
+        reenviado_at: new Date().toISOString(),
+      })
+      .eq("id", sol.id);
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "password_reset_solicitudes",
+      entidad_id: sol.id,
+      accion: "password_reenviado",
+      despues: {
+        usuario_afectado: target.id,
+        email: target.email,
+        correo_enviado: !!r?.ok,
+      } as any,
+      actor: context.userId,
+    });
+    if (!r?.ok) {
+      throw new Error(
+        `Contraseña regenerada, pero el correo falló: ${(r as any)?.error ?? "envío omitido"}. Clave: ${password}`,
+      );
+    }
+    return { ok: true, email: target.email };
+  });
+
 /** Lista solicitudes de reseteo de contraseña (admin). */
 export const listResetSolicitudes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Marca como 'caducada' las pendientes ya expiradas
+    await supabaseAdmin
+      .from("password_reset_solicitudes")
+      .update({ estado: "caducada" })
+      .eq("estado", "pendiente")
+      .lt("expira_at", new Date().toISOString());
     const { data, error } = await supabaseAdmin
       .from("password_reset_solicitudes")
-      .select("id, email, mensaje, estado, created_at, atendida_at")
+      .select("id, email, mensaje, estado, created_at, atendida_at, expira_at, ip, reenvios, reenviado_at")
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
