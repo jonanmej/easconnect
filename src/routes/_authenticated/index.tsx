@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
-import { dashboardStats, listEquipos, listPlantas, listTrabajos } from "@/lib/operations.functions";
+import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
@@ -109,7 +109,6 @@ function CumplimientoContratos() {
 
 function StaffDashboard() {
   const fetchStats = useServerFn(dashboardStats);
-  const fetchEquipos = useServerFn(listEquipos);
   const fetchSeries = useServerFn(dashboardSeries);
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
@@ -117,24 +116,10 @@ function StaffDashboard() {
   // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
   const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
-  const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos(), ...qOpts });
   const series = useQuery({ queryKey: ["dashboard-series"], queryFn: () => fetchSeries(), ...qOpts });
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
-
-  const statusStyles: Record<string, string> = {
-    operativo: "bg-accent/10 text-accent",
-    mantenimiento: "bg-amber-100 text-amber-700",
-    disponible: "bg-secondary text-foreground",
-    fuera_servicio: "bg-destructive/10 text-destructive",
-  };
-  const statusLabel: Record<string, string> = {
-    operativo: "Operativo",
-    mantenimiento: "Mantenimiento",
-    disponible: "Disponible",
-    fuera_servicio: "Fuera de servicio",
-  };
 
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
