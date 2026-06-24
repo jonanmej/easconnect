@@ -219,12 +219,13 @@ function RutasPage() {
         </button>
         {resultado && (
           <a
-            href={`https://earth.google.com/web/search/${resultado.destino.lat},${resultado.destino.lng}`}
+            href={`https://www.google.com/maps/@?api=1&map_action=map&center=${resultado.destino.lat},${resultado.destino.lng}&zoom=18&basemap=satellite`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 bg-secondary border border-border text-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-secondary/70"
+            title="Abrir vista satélite en Google Maps"
           >
-            <Navigation className="size-4" /> Google Earth
+            <Navigation className="size-4" /> Vista satélite
           </a>
         )}
         {resultado && (
