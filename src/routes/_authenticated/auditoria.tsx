@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,6 +11,17 @@ import { History, Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
   head: () => ({ meta: [{ title: "Auditoría · EA Service Connect" }] }),
+  beforeLoad: async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const isStaff = (roles ?? []).some((r: any) => ["admin", "supervisor"].includes(r.role));
+    if (!isStaff) throw redirect({ to: "/" });
+  },
   component: Auditoria,
   errorComponent: ({ error }) => <div className="p-8 text-sm text-destructive">Error: {error.message}</div>,
   notFoundComponent: () => <div className="p-8 text-sm text-muted-foreground">No encontrado.</div>,
