@@ -159,7 +159,15 @@ export const generarReporte = createServerFn({ method: "POST" })
       hallazgos: z.array(z.string()),
       recomendaciones: z.array(z.string()),
     });
-    const system = "Eres un analista senior de mantenimiento solar y térmico. Generas reportes ejecutivos claros en español, basados estrictamente en los datos provistos. No inventes números. Tono profesional, conciso, accionable.";
+    const system = [
+      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
+      "Redactas reportes ejecutivos en español, formales y trazables, alineados con ISO 9001:2015 (cláusulas 7.5, 8.5, 9.1 y 10).",
+      "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
+      "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
+      "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
+      "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
+      "Tono profesional, conciso, accionable.",
+    ].join(" ");
     const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).
 
 Datos:
@@ -310,6 +318,48 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       }
     }
 
+    // Series para gráficas (origen visible en el PDF)
+    const trabajosArr = trabajos ?? [];
+    const porEstado = new Map<string, number>();
+    const porServicio = new Map<string, number>();
+    for (const t of trabajosArr) {
+      porEstado.set(t.estado, (porEstado.get(t.estado) ?? 0) + 1);
+      porServicio.set(t.servicio, (porServicio.get(t.servicio) ?? 0) + 1);
+    }
+    const { data: equiposPlanta } = plantasIds.length
+      ? await supabase.from("equipos").select("nombre, salud").in("planta_id", plantasIds).order("salud", { ascending: true }).limit(8)
+      : { data: [] as any[] };
+    const graficas: { titulo: string; descripcion?: string; fuente: string; series: { label: string; value: number }[]; unidad?: string }[] = [];
+    if (porEstado.size > 0) {
+      graficas.push({
+        titulo: "Trabajos por estado",
+        descripcion: `Distribución de las ${trabajosArr.length} órdenes de trabajo del periodo.`,
+        fuente: `Tabla trabajos · planta_id ∈ (${plantasIds.length}) · fecha_programada entre ${desde ?? "—"} y ${hasta ?? "—"}`,
+        series: Array.from(porEstado.entries()).map(([k, v]) => ({ label: k, value: v })),
+      });
+    }
+    if (porServicio.size > 0) {
+      graficas.push({
+        titulo: "Trabajos por tipo de servicio",
+        fuente: "Tabla trabajos · campo servicio",
+        series: Array.from(porServicio.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([k, v]) => ({ label: k, value: v })),
+      });
+    }
+    if ((equiposPlanta ?? []).some((e: any) => typeof e.salud === "number")) {
+      graficas.push({
+        titulo: "Salud de equipos (menor a mayor)",
+        descripcion: "Top 8 equipos con menor salud reportada — foco de atención preventiva.",
+        fuente: "Tabla equipos · campo salud (0–100)",
+        unidad: "%",
+        series: (equiposPlanta ?? [])
+          .filter((e: any) => typeof e.salud === "number")
+          .map((e: any) => ({ label: e.nombre, value: e.salud })),
+      });
+    }
+
     return {
       titulo: (rep as any).titulo,
       cliente: (rep as any).clientes?.nombre ?? "—",
@@ -331,6 +381,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         notas: t.notas,
       })),
       evidencias,
+      graficas,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
     };
