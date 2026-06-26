@@ -58,7 +58,7 @@ export function NotificationsBell() {
 
   function abrir(n: NotifInApp) {
     if (n.trabajo_id) {
-      navigate({ to: "/trabajos", search: { focus: n.trabajo_id } as any });
+      navigate({ to: "/trabajos" });
     }
     remove.mutate(n.id);
   }
