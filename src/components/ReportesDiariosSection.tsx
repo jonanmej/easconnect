@@ -157,7 +157,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                   </div>
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
-                  {d.bloqueos && <Block title="Bloqueos">{d.bloqueos}</Block>}
+                  
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
                   {canDelete && (
                     <div className="flex justify-end">
