@@ -192,10 +192,7 @@ function Reportes() {
           </div>
           <div className="relative flex flex-wrap gap-6 items-start justify-between">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 mb-3 text-primary">
-                <Sparkles className="size-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Lovable AI · Gemini 3 Flash</span>
-              </div>
+              {/* Badge de modelo oculto a todos los roles */}
               <h2 className="text-xl font-semibold mb-2">Convierte tus bitácoras en informes ejecutivos</h2>
               <p className="text-sm text-slate-300 leading-relaxed">
                 La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
