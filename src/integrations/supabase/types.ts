@@ -1373,6 +1373,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      reset_operational_data: { Args: never; Returns: undefined }
       validar_token_aprobacion: {
         Args: { _token: string }
         Returns: {
