@@ -244,7 +244,7 @@ function DiarioForm({
       clima: (f.get("clima") as string) || null,
       trabajo_realizado: (f.get("trabajo_realizado") as string) || null,
       hallazgos: (f.get("hallazgos") as string) || null,
-      bloqueos: (f.get("bloqueos") as string) || null,
+      
       observaciones: (f.get("observaciones") as string) || null,
     });
     (e.currentTarget as HTMLFormElement).reset();
