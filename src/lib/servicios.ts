@@ -10,6 +10,8 @@ export const SERVICIOS_OT = [
   "Servicio Técnico de Drone",
   "Desmantelamiento de paneles solares",
   "Mantenimiento de transformador eléctrico",
+  "Capacitación",
+  "Visita técnica",
   "Falla",
   "Emergencia",
   "Inspección",
@@ -27,6 +29,8 @@ export const SERVICIOS_CONTRATO = [
   "Mantenimiento Mayor",
   "Mantenimiento de transformador eléctrico",
   "Servicio Técnico de Drone",
+  "Capacitación",
+  "Visita técnica",
 ] as const;
 
 export const SERVICIOS_NO_CONTRATABLES = ["Falla", "Emergencia", "Inspección"] as const;
