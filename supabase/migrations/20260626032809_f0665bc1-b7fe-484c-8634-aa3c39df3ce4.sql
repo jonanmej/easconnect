@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.reset_operational_data() FROM anon, PUBLIC;
