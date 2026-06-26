@@ -1,72 +1,62 @@
-## Objetivo
-Permitir definir cuántos servicios al año tiene contratada cada planta por tipo, autoprogramarlos en el calendario y mostrar el cumplimiento en el Dashboard para todos los roles. El cliente podrá mover sus fechas auto-asignadas a cualquier día libre dentro del ciclo correspondiente, sin chocar con otros clientes.
+## Resumen
+Implemento todo el pedido en 4 bloques. El bloque 4 requiere migración de BD (reportes diarios + PDFs de st.solar).
 
-## 1. Modelo de datos (migración)
+## Bloque 1 — Catálogo y Contratos
+- `src/lib/servicios.ts`: exporto `SERVICIOS_CONTRATO` con el orden exacto solicitado:
+  1. Instalación Fotovoltaica
+  2. Limpieza Robotizada
+  3. Mantenimiento Menor
+  4. Mantenimiento Medio
+  5. Mantenimiento Mayor
+  6. Mantenimiento de transformador eléctrico
+  7. Servicio Técnico de Drone
+- `contratos.tsx`: usa `SERVICIOS_CONTRATO`; agrego validación en el submit del diálogo que rechaza Falla/Emergencia/Inspección y cualquier servicio fuera del catálogo con `toast.error`. (El server fn `upsertContrato` ya valida.)
+- Trabajos/Programación siguen leyendo `SERVICIOS_OT` → al modificar el catálogo se actualizan automáticamente.
 
-Nueva tabla `public.contratos_servicio`:
-- `planta_id` (FK plantas) + `servicio` (texto) → PK compuesta única
-- `cantidad_anual` (int ≥ 1)
-- `anio` (int, default año actual) — para soportar cambios año a año
-- `fecha_inicio` (date) — ancla del primer ciclo (default 1 ene)
-- `duracion_dias_default` (int, default 1)
-- `activo` (bool, default true)
+## Bloque 2 — Filtros en Clientes
+- `clientes.tsx`: añado input de búsqueda (nombre/RUT) + segmento "Todos / Con O&M / Sin O&M".
+- Filtrado en memoria sobre la lista actual; cuenta visible por segmento.
 
-RLS:
-- Staff (admin/supervisor): full
-- Cliente: SELECT solo de plantas de su `current_cliente_id()`
-- Técnico: SELECT
+## Bloque 3 — Navegación del detalle de trabajo
+- Refactorizo el panel/dialog de detalle del trabajo en `trabajos.tsx` (y `mis-trabajos.tsx` / `terreno.tsx` si comparten) para usar tabs Shadcn:
+  - **Reportes diarios** (nuevo)
+  - **Reporte ejecutivo** (admin/supervisor) o **Carga PDF** (st.solar)
+  - **Evidencias**
+  - **Recursos**
+  - **Historial de asignaciones** (oculto para técnicos, como ya está)
+- Tabs scroll horizontal en móvil; sticky header; los acordeones largos se reemplazan por tabs accesibles.
 
-Nuevas columnas en `trabajos`:
-- `contrato_id uuid null` (FK contratos_servicio) — marca trabajos generados/contados por contrato
-- `ciclo_numero int null` — 1..cantidad_anual, identifica el ciclo del año
-- `auto_generado bool default false`
+## Bloque 4 — Reportes diarios + PDF st.solar (migración BD)
+**Nueva tabla** `trabajo_reportes_diarios`:
+- `trabajo_id`, `fecha` (date), `tecnico_id`, `avance_pct`, `paneles_limpiados`, `agua_galones`, `horas_trabajadas`, `clima`, `observaciones`, `bloqueos`.
+- Unique `(trabajo_id, fecha, tecnico_id)`.
+- RLS:
+  - admin/supervisor: ALL.
+  - técnico: SELECT si está asignado al trabajo (cualquier técnico del equipo); INSERT/UPDATE/DELETE solo sus propias filas.
+  - cliente: sin acceso.
 
-Función `public.proximas_fechas_contrato(_contrato_id uuid)` que devuelve las fechas tentativas distribuidas uniformemente (`fecha_inicio + i * round(365/cantidad_anual)`).
+**Nueva tabla** `trabajo_reportes_pdf` (para st.solar y futuros):
+- `trabajo_id`, `fecha`, `subido_por`, `storage_path`, `nombre_original`, `tamanio_bytes`.
+- RLS análoga: solo el autor, admin y supervisor.
+- Bucket reutilizado: `trabajos-evidencia` con prefijo `reportes-pdf/`.
 
-Función `public.contrato_cumplimiento(_anio int)` SECURITY DEFINER que retorna por planta/servicio: `programados`, `completados`, `pendientes`, `cumplimiento_pct`, respetando RLS de plantas (clientes ven solo las suyas).
+**Evidencias por día**: agrego columna `fecha` (date) opcional a `trabajo_evidencias`. El uploader la setea con la fecha activa.
 
-## 2. Backend (server functions)
+**Reporte ejecutivo**:
+- `reportes.functions.ts`: nueva fn `generarEjecutivoDesdeDiarios(trabajo_id)` solo admin/supervisor. Consolida diarios + PDFs (extrayendo texto con la skill PDF cuando aplique) y genera vía Lovable AI (`google/gemini-2.5-flash`).
+- El usuario `st.solar@easervice.app` se detecta por email; en su detalle el módulo de "Reporte diario" se reemplaza por "Subir PDF del día".
 
-Archivo nuevo `src/lib/contratos.functions.ts`:
-- `listContratos()` — staff y cliente (filtrado por RLS)
-- `upsertContrato({ planta_id, servicio, cantidad_anual, fecha_inicio, duracion_dias_default })` — staff
-- `eliminarContrato({ id })` — staff
-- `generarProgramacionAnual({ contrato_id, anio })` — staff. Crea trabajos `auto_generado=true` con `ciclo_numero`, evitando duplicar ciclos existentes. Si la fecha calculada está ocupada (otro trabajo no cancelado en la planta o, opcional, cualquier planta del mismo técnico), desplaza al primer día libre posterior.
-- `reprogramarTrabajoCliente({ trabajo_id, nueva_fecha })` — cliente. Validaciones:
-  - El trabajo debe ser `auto_generado`, estado `programado`, pertenecer a una planta de su cliente.
-  - `nueva_fecha` dentro del rango del ciclo: `[inicio_ciclo, inicio_ciclo + paso - 1]` donde `paso = round(365/cantidad_anual)`.
-  - El día (y duración) no debe estar ocupado por otro trabajo no cancelado en cualquier planta (regla global "respetar fechas de otros clientes").
-- `cumplimientoAnual({ anio })` — llama a `contrato_cumplimiento`, devuelve filas con cliente, planta, servicio, contratados, completados, programados, % cumplimiento.
-
-## 3. UI
-
-**Nueva ruta `src/routes/_authenticated/contratos.tsx`** (staff):
-- Tabla por planta+servicio con cantidad anual y botón "Generar programación".
-- Modal de edición.
-- Botón "Generar programación anual" por contrato muestra preview de fechas y confirma.
-
-**`src/routes/_authenticated/mis-trabajos.tsx`** (cliente):
-- Sobre cada trabajo `auto_generado` programado, botón "Reprogramar" que abre un date picker. El picker llama a `getDisponibilidad` extendido para marcar días ocupados globales (no solo en su planta). Al confirmar, llama a `reprogramarTrabajoCliente`.
-
-**Dashboard `src/routes/_authenticated/index.tsx`** (todos los roles):
-- Nueva sección "Cumplimiento de servicios contratados (año actual)" con:
-  - Barra de progreso global (servicios completados / contratados)
-  - Tabla por planta+servicio: contratados, completados, % cumplimiento, próxima fecha programada.
-- Para cliente: solo sus plantas. Para staff: todas.
-
-**AppShell**: agregar entrada "Contratos" para admin/supervisor.
-
-## 4. Reglas de ocupación
-
-"Día ocupado" = existe un trabajo con `estado != cancelado` cuyo rango `[fecha_programada, fecha_programada + duracion_dias)` cubre el día solicitado. Esto aplica a la generación automática (desplaza al siguiente libre) y a la reprogramación del cliente (rechaza con mensaje).
-
-## 5. Validación final
-
-- Build TypeScript.
-- Smoke: crear contrato 12/año en una planta, generar programación, ver 12 trabajos, mover uno desde rol cliente.
+**UI Reportes diarios**:
+- Listado por fecha con autor; el técnico activo edita el día de hoy; admin/supervisor editan cualquier día.
+- Botón "Generar reporte ejecutivo" arriba (admin/supervisor) → guarda en tabla `reportes` existente.
 
 ## Notas técnicas
-- `paso_dias = round(365 / cantidad_anual)`, ciclos numerados 1..N.
-- Generación es idempotente: si ya hay trabajo con mismo `contrato_id` y `ciclo_numero`, se omite.
-- `reprogramarTrabajoCliente` corre con `requireSupabaseAuth` y verifica pertenencia vía RLS + chequeo explícito.
-- Cumplimiento usa año calendario; configurable luego.
+- Server fns nuevas: `listReportesDiarios`, `upsertReporteDiario`, `eliminarReporteDiario`, `listReportesPDF`, `registrarReportePDF`, `eliminarReportePDF`, `generarEjecutivoDesdeDiarios`.
+- Todas con `requireSupabaseAuth`; las que escriben validan rol o autoría del registro.
+- Migración crea las dos tablas con GRANT a authenticated + service_role y RLS antes de policies.
+- No toco: branding emails, módulos cliente, lógica de programación/contratos existente.
+
+## Fuera de alcance (no se toca)
+- Notificaciones (no cambia).
+- Roles existentes.
+- Reportes anteriores (la fn antigua `generarReporte` queda funcional para retrocompatibilidad).
