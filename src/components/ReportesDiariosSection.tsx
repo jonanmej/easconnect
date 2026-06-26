@@ -157,7 +157,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                   </div>
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
-                  {d.bloqueos && <Block title="Bloqueos">{d.bloqueos}</Block>}
+                  
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
                   {canDelete && (
                     <div className="flex justify-end">
@@ -244,7 +244,7 @@ function DiarioForm({
       clima: (f.get("clima") as string) || null,
       trabajo_realizado: (f.get("trabajo_realizado") as string) || null,
       hallazgos: (f.get("hallazgos") as string) || null,
-      bloqueos: (f.get("bloqueos") as string) || null,
+      
       observaciones: (f.get("observaciones") as string) || null,
     });
     (e.currentTarget as HTMLFormElement).reset();
@@ -289,10 +289,7 @@ function DiarioForm({
         <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
       <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
-        <FieldS label="Bloqueos / pendientes"><textarea name="bloqueos" rows={2} className={textareaCls} /></FieldS>
-      </div>
+      <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
       <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={() => setOpen(false)} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
