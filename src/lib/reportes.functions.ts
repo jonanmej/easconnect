@@ -3,9 +3,44 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MODEL = "google/gemini-2.5-flash";
-const MODEL_FALLBACK = "google/gemini-2.5-flash-lite";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+type Proveedor = "gemini" | "openai" | "auto";
+
+const PROVIDER_MODELS: Record<"gemini" | "openai", { primary: string; fallback: string }> = {
+  gemini: { primary: "google/gemini-2.5-flash", fallback: "google/gemini-2.5-flash-lite" },
+  openai: { primary: "openai/gpt-5-mini", fallback: "openai/gpt-5-nano" },
+};
+
+function buildAttempts(proveedor: Proveedor): Array<{ model: string; wait: number }> {
+  if (proveedor === "openai") {
+    const m = PROVIDER_MODELS.openai;
+    return [
+      { model: m.primary, wait: 0 },
+      { model: m.primary, wait: 1500 },
+      { model: m.fallback, wait: 2500 },
+      { model: m.fallback, wait: 5000 },
+    ];
+  }
+  if (proveedor === "gemini") {
+    const m = PROVIDER_MODELS.gemini;
+    return [
+      { model: m.primary, wait: 0 },
+      { model: m.primary, wait: 1500 },
+      { model: m.fallback, wait: 2500 },
+      { model: m.fallback, wait: 5000 },
+    ];
+  }
+  // auto: probar Gemini y caer a OpenAI cross-provider
+  const g = PROVIDER_MODELS.gemini;
+  const o = PROVIDER_MODELS.openai;
+  return [
+    { model: g.primary, wait: 0 },
+    { model: g.fallback, wait: 1500 },
+    { model: o.primary, wait: 2500 },
+    { model: o.fallback, wait: 4000 },
+  ];
+}
 
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -63,6 +98,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       periodo: z.string().min(1),
       desde: z.string().min(1),
       hasta: z.string().min(1),
+      proveedor: z.enum(["gemini", "openai", "auto"]).optional().default("auto"),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -191,19 +227,17 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       return JSON.parse(s);
     };
 
-    const attempts: Array<{ model: string; wait: number }> = [
-      { model: MODEL, wait: 0 },
-      { model: MODEL, wait: 1500 },
-      { model: MODEL_FALLBACK, wait: 2500 },
-      { model: MODEL_FALLBACK, wait: 5000 },
-    ];
+    const proveedor: Proveedor = (data as any).proveedor ?? "auto";
+    const attempts = buildAttempts(proveedor);
     let lastErr: any = null;
     let ok = false;
+    let modelUsed = attempts[0].model;
     for (const a of attempts) {
       if (a.wait) await sleep(a.wait);
       try {
         const result = await generateText({ model: gateway(a.model), system, prompt });
         aiResult = ZReporte.parse(parseJson(result.text));
+        modelUsed = a.model;
         ok = true;
         break;
       } catch (e: any) {
@@ -245,7 +279,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       insight_resumen: aiResult.resumen.slice(0, 280),
       estado: "borrador",
       generado_por: context.userId,
-      model_used: MODEL,
+      model_used: modelUsed,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;

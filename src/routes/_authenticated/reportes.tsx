@@ -129,6 +129,7 @@ function Reportes() {
       periodo: f.get("periodo"),
       desde: f.get("desde"),
       hasta: f.get("hasta"),
+      proveedor: (f.get("proveedor") as string) || "auto",
     });
   }
 
@@ -286,6 +287,15 @@ function Reportes() {
           <Field label="Desde"><input name="desde" type="date" required className={inputCls} /></Field>
           <Field label="Hasta"><input name="hasta" type="date" required className={inputCls} /></Field>
         </div>
+        {!isCliente && (
+          <Field label="Motor de IA">
+            <select name="proveedor" defaultValue="auto" className={inputCls}>
+              <option value="auto">Automático (Gemini → OpenAI como respaldo)</option>
+              <option value="gemini">Solo Google Gemini</option>
+              <option value="openai">Solo OpenAI GPT</option>
+            </select>
+          </Field>
+        )}
       </RecordDialog>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
