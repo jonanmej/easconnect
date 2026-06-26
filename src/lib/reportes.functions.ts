@@ -98,6 +98,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       periodo: z.string().min(1),
       desde: z.string().min(1),
       hasta: z.string().min(1),
+      proveedor: z.enum(["gemini", "openai", "auto"]).optional().default("auto"),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -226,19 +227,17 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       return JSON.parse(s);
     };
 
-    const attempts: Array<{ model: string; wait: number }> = [
-      { model: MODEL, wait: 0 },
-      { model: MODEL, wait: 1500 },
-      { model: MODEL_FALLBACK, wait: 2500 },
-      { model: MODEL_FALLBACK, wait: 5000 },
-    ];
+    const proveedor: Proveedor = (data as any).proveedor ?? "auto";
+    const attempts = buildAttempts(proveedor);
     let lastErr: any = null;
     let ok = false;
+    let modelUsed = attempts[0].model;
     for (const a of attempts) {
       if (a.wait) await sleep(a.wait);
       try {
         const result = await generateText({ model: gateway(a.model), system, prompt });
         aiResult = ZReporte.parse(parseJson(result.text));
+        modelUsed = a.model;
         ok = true;
         break;
       } catch (e: any) {
@@ -280,7 +279,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       insight_resumen: aiResult.resumen.slice(0, 280),
       estado: "borrador",
       generado_por: context.userId,
-      model_used: MODEL,
+      model_used: modelUsed,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
