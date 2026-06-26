@@ -8,6 +8,8 @@ export const SERVICIOS_OT = [
   "Instalación Fotovoltaica",
   "Limpieza Robotizada",
   "Servicio Técnico de Drone",
+  "Desmantelamiento de paneles solares",
+  "Mantenimiento de transformador eléctrico",
   "Falla",
   "Emergencia",
   "Inspección",
