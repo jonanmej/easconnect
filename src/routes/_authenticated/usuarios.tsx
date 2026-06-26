@@ -63,7 +63,7 @@ function UsersPage() {
   });
 
   const invite = useMutation({
-    mutationFn: (vars: { email: string; password: string; role: AppRole; enviar_por_correo?: boolean }) =>
+    mutationFn: (vars: { email: string; role: AppRole }) =>
       fetchInvite({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
@@ -121,34 +121,25 @@ function UsersPage() {
   });
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>("tecnico");
   const [inviteClienteId, setInviteClienteId] = useState<string>("");
-  const [enviarPorCorreo, setEnviarPorCorreo] = useState(false);
 
   function onInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (enviarPorCorreo && (!password || password.length < 8)) {
-      alert("Para enviar la contraseña por correo debes definirla aquí (mínimo 8 caracteres).");
-      return;
-    }
     invite.mutate(
-      { email, password, role, enviar_por_correo: enviarPorCorreo },
+      { email, role },
       {
         onSuccess: (created: any) => {
-          // Si es cliente y se eligió un cliente, asignarlo.
           if (role === "cliente" && inviteClienteId && created?.id) {
             setCliente.mutate({ userId: created.id, clienteId: inviteClienteId });
           }
           if (created?.correo_enviado) {
-            alert(`Cuenta creada. Contraseña enviada por correo a ${created.email}.`);
-          } else if (enviarPorCorreo && created?.correo_error) {
-            alert(`Cuenta creada, pero el correo no se envió: ${created.correo_error}`);
+            alert(`Cuenta creada. Contraseña automática enviada por correo a ${created.email}. Se solicitará cambiarla al ingresar.`);
+          } else if (created?.password) {
+            alert(`Cuenta creada, pero el correo no se envió (${created.correo_error ?? "error"}).\n\nEntrega manualmente esta contraseña temporal:\n${created.password}`);
           }
           setEmail("");
-          setPassword("");
           setInviteClienteId("");
-          setEnviarPorCorreo(false);
         },
       },
     );
@@ -176,7 +167,7 @@ function UsersPage() {
           <UserPlus className="size-4 text-primary" />
           Invitar usuario
         </h2>
-        <form onSubmit={onInvite} className="grid sm:grid-cols-4 gap-3 mt-4">
+        <form onSubmit={onInvite} className="grid sm:grid-cols-3 gap-3 mt-4">
           <input
             type="email"
             required
@@ -184,13 +175,6 @@ function UsersPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="Contraseña opcional (min. 8)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm font-mono"
           />
           <select
             value={role}
@@ -214,7 +198,7 @@ function UsersPage() {
             <select
               value={inviteClienteId}
               onChange={(e) => setInviteClienteId(e.target.value)}
-              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm sm:col-span-4"
+              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm sm:col-span-3"
             >
               <option value="">— Selecciona el cliente al que pertenece —</option>
               {clientes.data?.map((c) => (
@@ -230,18 +214,9 @@ function UsersPage() {
             {(invite.error as Error).message}
           </p>
         )}
-        <label className="mt-4 flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={enviarPorCorreo}
-            onChange={(e) => setEnviarPorCorreo(e.target.checked)}
-            className="accent-primary size-4"
-          />
+        <p className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
           <Mail className="size-3.5 text-primary" />
-          Enviar la contraseña por correo al usuario (requerirá cambiarla al ingresar)
-        </label>
-        <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
-          Si dejas la contraseña en blanco, se enviará un correo de invitación para que el usuario fije la suya. Si la completas, deberás entregársela por un canal seguro (no se envía correo).
+          La contraseña se genera automáticamente según la política activa y se envía por correo al usuario. Se le pedirá cambiarla en su primer ingreso.
         </p>
       </section>
 

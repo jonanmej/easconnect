@@ -198,60 +198,51 @@ export const inviteUser = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        password: z.string().min(8).optional().or(z.literal("")),
         role: RoleEnum,
-        enviar_por_correo: z.boolean().optional().default(false),
       })
       .parse(d),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const usePassword = !!data.password && data.password.length >= 8;
-    let userId: string;
-    let userEmail: string | undefined;
-    if (usePassword) {
-      // Crea cuenta con contraseña inicial (admin la entrega por canal seguro, no se envía correo).
-      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true,
-      });
-      if (error) throw new Error(error.message);
-      userId = created.user!.id;
-      userEmail = created.user!.email ?? undefined;
-    } else {
-      // Envía correo de invitación oficial; el usuario fija su propia contraseña.
-      const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        data.email,
-      );
-      if (error) throw new Error(`No se pudo enviar la invitación: ${error.message}`);
-      userId = invited.user!.id;
-      userEmail = invited.user!.email ?? undefined;
-    }
+    // Genera siempre una contraseña automática segura según la política activa.
+    const politica = await obtenerPolitica();
+    const password = generarPasswordSegunPolitica(politica);
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password,
+      email_confirm: true,
+    });
+    if (error) throw new Error(error.message);
+    const userId = created.user!.id;
+    const userEmail = created.user!.email ?? data.email;
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: userId, role: data.role });
     if (roleErr) throw new Error(roleErr.message);
-    // Si admin pidió enviar credenciales por correo y se asignó contraseña → enviar y marcar cambio obligatorio
-    let correo_enviado = false;
-    let correo_error: string | null = null;
-    if (usePassword && data.enviar_por_correo && userEmail) {
-      await supabaseAdmin
-        .from("profiles")
-        .upsert(
-          { id: userId, debe_cambiar_password: true },
-          { onConflict: "id" },
-        );
-      const r = await enviarCorreoCredenciales({
-        email: userEmail,
-        password: data.password!,
-        motivo: "nueva_cuenta",
-      });
-      correo_enviado = !!r?.ok;
-      if (!r?.ok) correo_error = (r as any)?.error ?? "Envío omitido";
-    }
-    return { id: userId, email: userEmail, invited: !usePassword, correo_enviado, correo_error };
+    // Marca cambio obligatorio en el primer ingreso y envía la clave por correo.
+    await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        { id: userId, debe_cambiar_password: true },
+        { onConflict: "id" },
+      );
+    const r = await enviarCorreoCredenciales({
+      email: userEmail,
+      password,
+      motivo: "nueva_cuenta",
+    });
+    const correo_enviado = !!r?.ok;
+    const correo_error = r?.ok ? null : ((r as any)?.error ?? "Envío omitido");
+    return {
+      id: userId,
+      email: userEmail,
+      invited: false,
+      correo_enviado,
+      correo_error,
+      // Se devuelve para que el admin la entregue por canal seguro si el correo falla.
+      password: correo_enviado ? null : password,
+    };
   });
 
 /** Genera una nueva contraseña temporal para un usuario y la envía por correo. */
