@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { CalendarPlus, FileText, Trash2, Wand2 } from "lucide-react";
 import { SERVICIOS_OT } from "@/lib/servicios";
+const EXCLUIDOS_CONTRATO = new Set(["Falla", "Emergencia", "Inspección"]);
+const SERVICIOS_CONTRATO = SERVICIOS_OT.filter((s) => !EXCLUIDOS_CONTRATO.has(s));
 
 export const Route = createFileRoute("/_authenticated/contratos")({
   head: () => ({
