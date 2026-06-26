@@ -149,6 +149,19 @@ function Clientes() {
               </span>
             </div>
             <h3 className="text-base font-semibold tracking-tight">{c.nombre}</h3>
+            <div className="mt-1">
+              <span
+                className={
+                  "inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
+                  (c.contrato_om
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-slate-100 text-slate-600")
+                }
+                title={c.contrato_om ? "Cliente con contrato de O&M activo" : "Cliente sin contrato de O&M"}
+              >
+                {c.contrato_om ? "Con O&M" : "Sin O&M"}
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
               <div>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Plantas</p>
@@ -229,8 +242,8 @@ function Clientes() {
           <p className="text-[10px] text-muted-foreground mb-2">Cuotas anuales contratadas por tipo de servicio:</p>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { name: "cuota_preventivos", label: "Preventivos" },
-              { name: "cuota_correctivos", label: "Correctivos" },
+              { name: "cuota_preventivos", label: "Servicio técnico de drone" },
+              { name: "cuota_correctivos", label: "Mantenimiento de transformador eléctrico" },
               { name: "cuota_menores", label: "Menores" },
               { name: "cuota_medios", label: "Medios" },
               { name: "cuota_mayores", label: "Mayores" },
