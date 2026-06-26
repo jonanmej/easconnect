@@ -3,9 +3,44 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MODEL = "google/gemini-2.5-flash";
-const MODEL_FALLBACK = "google/gemini-2.5-flash-lite";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+type Proveedor = "gemini" | "openai" | "auto";
+
+const PROVIDER_MODELS: Record<"gemini" | "openai", { primary: string; fallback: string }> = {
+  gemini: { primary: "google/gemini-2.5-flash", fallback: "google/gemini-2.5-flash-lite" },
+  openai: { primary: "openai/gpt-5-mini", fallback: "openai/gpt-5-nano" },
+};
+
+function buildAttempts(proveedor: Proveedor): Array<{ model: string; wait: number }> {
+  if (proveedor === "openai") {
+    const m = PROVIDER_MODELS.openai;
+    return [
+      { model: m.primary, wait: 0 },
+      { model: m.primary, wait: 1500 },
+      { model: m.fallback, wait: 2500 },
+      { model: m.fallback, wait: 5000 },
+    ];
+  }
+  if (proveedor === "gemini") {
+    const m = PROVIDER_MODELS.gemini;
+    return [
+      { model: m.primary, wait: 0 },
+      { model: m.primary, wait: 1500 },
+      { model: m.fallback, wait: 2500 },
+      { model: m.fallback, wait: 5000 },
+    ];
+  }
+  // auto: probar Gemini y caer a OpenAI cross-provider
+  const g = PROVIDER_MODELS.gemini;
+  const o = PROVIDER_MODELS.openai;
+  return [
+    { model: g.primary, wait: 0 },
+    { model: g.fallback, wait: 1500 },
+    { model: o.primary, wait: 2500 },
+    { model: o.fallback, wait: 4000 },
+  ];
+}
 
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
