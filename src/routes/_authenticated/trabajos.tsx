@@ -23,8 +23,6 @@ import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import {
-  getTrabajoReporte,
-  upsertTrabajoReporte,
   listTrabajoRecursos,
   upsertTrabajoRecurso,
   deleteTrabajoRecurso,
