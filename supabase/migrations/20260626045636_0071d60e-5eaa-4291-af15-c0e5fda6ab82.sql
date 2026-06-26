@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.cleanup_notificaciones_trabajo_resuelto() FROM authenticated;
