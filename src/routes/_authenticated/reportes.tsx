@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { Sparkles, Wand2, Eye, FileDown, Mail } from "lucide-react";
+import { Sparkles, Wand2, Eye, FileDown, Mail, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
-import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte } from "@/lib/reportes.functions";
+import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
@@ -52,6 +52,7 @@ function Reportes() {
   const fPdf = useServerFn(getReporteParaPDF);
   const fResp = useServerFn(getResponsableReporte);
   const fEmail = useServerFn(enviarNotificacionReporte);
+  const fDel = useServerFn(eliminarReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
   const isCliente = highestRole(roles) === "cliente";
@@ -77,6 +78,11 @@ function Reportes() {
   const send = useMutation({
     mutationFn: (id: string) => fSend({ data: { id } }),
     onSuccess: () => { toast.success("Marcado como enviado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: (id: string) => fDel({ data: { id } }),
+    onSuccess: () => { toast.success("Reporte eliminado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -129,7 +135,7 @@ function Reportes() {
       periodo: f.get("periodo"),
       desde: f.get("desde"),
       hasta: f.get("hasta"),
-      proveedor: (f.get("proveedor") as string) || "auto",
+      proveedor: "auto",
     });
   }
 
@@ -246,6 +252,14 @@ function Reportes() {
                   <Mail className="size-3.5" /> Enviar
                 </button>
               )}
+              {canEdit && (
+                <button onClick={() => { if (confirm(`¿Eliminar el reporte "${r.titulo}"? Esta acción no se puede deshacer.`)) del.mutate(r.id); }}
+                  disabled={del.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"
+                  title="Eliminar reporte">
+                  <Trash2 className="size-3.5" /> Eliminar
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -287,15 +301,6 @@ function Reportes() {
           <Field label="Desde"><input name="desde" type="date" required className={inputCls} /></Field>
           <Field label="Hasta"><input name="hasta" type="date" required className={inputCls} /></Field>
         </div>
-        {!isCliente && (
-          <Field label="Motor de IA">
-            <select name="proveedor" defaultValue="auto" className={inputCls}>
-              <option value="auto">Automático (Gemini → OpenAI como respaldo)</option>
-              <option value="gemini">Solo Google Gemini</option>
-              <option value="openai">Solo OpenAI GPT</option>
-            </select>
-          </Field>
-        )}
       </RecordDialog>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
