@@ -491,7 +491,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const { data: trabajo, error: tErr } = await supabase
       .from("trabajos")
-      .select("id, folio, servicio, fecha_programada, fecha_completado, notas, planta_id, plantas(nombre, cliente_id, clientes(nombre, id))")
+      .select("id, folio, servicio, fecha_programada, fecha_completado, notas, planta_id, plantas(id, nombre, cliente_id, clientes(id, nombre))")
       .eq("id", data.trabajo_id)
       .single();
     if (tErr) throw new Error(tErr.message);
