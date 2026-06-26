@@ -381,11 +381,9 @@ function Trabajos() {
         {editing?.id && (
           <div className="flex gap-1 border-b border-border -mt-2 mb-2 overflow-x-auto -mx-1 px-1">
             {(([
-              { k: "ot", l: "Orden de trabajo" },
-              { k: "diarios", l: "Reportes diarios" },
-              { k: "reporte", l: "Reporte técnico" },
-              { k: "evidencias", l: "Evidencias" },
+              { k: "diarios", l: "Reporte diario" },
               { k: "recursos", l: "Recursos" },
+              { k: "ot", l: "Información de OT" },
               { k: "historial", l: "Historial de asignaciones" },
             ] as const).filter((t) => !isTecnico || (t.k !== "ot" && t.k !== "historial"))).map((t) => (
               <button
@@ -506,24 +504,14 @@ function Trabajos() {
         {editing?.id && tab === "diarios" && (
           <ReportesDiariosSection trabajoId={editing.id} />
         )}
-        {editing?.id && tab === "reporte" && (
-          <ReporteBaseSection
+        {editing?.id && tab === "recursos" && (
+          <RecursosSection
             trabajoId={editing.id}
             canEdit={canEdit}
-            duracionDias={editing?.duracion_dias ?? 1}
-            totalPaneles={(plantas.data as any[] | undefined)?.find((p) => p.id === editing.planta_id)?.paneles ?? null}
+            trabajo={editing}
+            plantaNombre={(plantas.data as any[] | undefined)?.find((p) => p.id === editing.planta_id)?.nombre ?? "—"}
+            clienteNombre={(plantas.data as any[] | undefined)?.find((p) => p.id === editing.planta_id)?.cliente_nombre ?? "—"}
           />
-        )}
-        {editing?.id && tab === "evidencias" && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-              Registro fotográfico secuencial
-            </p>
-            <EvidenciaUploader trabajoId={editing.id} />
-          </div>
-        )}
-        {editing?.id && tab === "recursos" && (
-          <RecursosSection trabajoId={editing.id} canEdit={canEdit} />
         )}
         {editing?.id && tab === "historial" && (
           <HistorialAsignacionesSection trabajoId={editing.id} />
