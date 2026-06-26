@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -42,6 +42,18 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
     queryKey: ["diarios", trabajoId],
     queryFn: () => fList({ data: { trabajo_id: trabajoId } }),
     enabled: !isStSolar,
+  });
+  const trabajoInfo = useQuery({
+    queryKey: ["trabajo-info-diarios", trabajoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trabajos")
+        .select("duracion_dias, planta:plantas(paneles)")
+        .eq("id", trabajoId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
   });
   const pdfs = useQuery({
     queryKey: ["diarios-pdf", trabajoId],
@@ -108,7 +120,12 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
       </div>
 
       {!isStSolar && (
-        <DiarioForm onSave={(v) => save.mutate(v)} saving={save.isPending} />
+        <DiarioForm
+          onSave={(v) => save.mutate(v)}
+          saving={save.isPending}
+          panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+          duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+        />
       )}
 
       {!isStSolar && (
@@ -192,8 +209,25 @@ function Block({ title, children }: { title: string; children: any }) {
   );
 }
 
-function DiarioForm({ onSave, saving }: { onSave: (v: any) => void; saving: boolean }) {
+function DiarioForm({
+  onSave, saving, panelesPlanta, duracionDias,
+}: {
+  onSave: (v: any) => void;
+  saving: boolean;
+  panelesPlanta: number | null;
+  duracionDias: number | null;
+}) {
   const [open, setOpen] = useState(false);
+  const [panelesDia, setPanelesDia] = useState<string>("");
+  const expectedDia = useMemo(() => {
+    if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
+    return panelesPlanta / duracionDias;
+  }, [panelesPlanta, duracionDias]);
+  const avancePct = useMemo(() => {
+    const n = Number(panelesDia);
+    if (!expectedDia || !Number.isFinite(n) || n <= 0) return null;
+    return Math.min(100, Math.round((n / expectedDia) * 100));
+  }, [panelesDia, expectedDia]);
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); e.stopPropagation();
     const f = new FormData(e.currentTarget);
@@ -203,7 +237,7 @@ function DiarioForm({ onSave, saving }: { onSave: (v: any) => void; saving: bool
     };
     onSave({
       fecha: f.get("fecha") || today(),
-      avance_pct: num("avance_pct"),
+      avance_pct: avancePct,
       paneles_limpiados: num("paneles_limpiados"),
       agua_galones: num("agua_galones"),
       horas_trabajadas: num("horas_trabajadas"),
@@ -214,6 +248,7 @@ function DiarioForm({ onSave, saving }: { onSave: (v: any) => void; saving: bool
       observaciones: (f.get("observaciones") as string) || null,
     });
     (e.currentTarget as HTMLFormElement).reset();
+    setPanelesDia("");
     setOpen(false);
   }
   if (!open) {
@@ -231,9 +266,25 @@ function DiarioForm({ onSave, saving }: { onSave: (v: any) => void; saving: bool
     <form onSubmit={submit} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
-        <FieldS label="Avance %"><input name="avance_pct" type="number" min={0} max={100} className={inputCls} /></FieldS>
+        <FieldS label="Avance % (calculado)">
+          <input
+            value={avancePct == null ? "" : `${avancePct}%`}
+            readOnly
+            placeholder={expectedDia ? `Meta diaria: ${Math.round(expectedDia)} paneles` : "Falta planta/duración"}
+            className={inputCls + " bg-secondary/50 text-muted-foreground"}
+          />
+        </FieldS>
         <FieldS label="Horas trabajadas"><input name="horas_trabajadas" type="number" min={0} step="0.25" className={inputCls} /></FieldS>
-        <FieldS label="Paneles limpiados"><input name="paneles_limpiados" type="number" min={0} className={inputCls} /></FieldS>
+        <FieldS label="Paneles limpiados">
+          <input
+            name="paneles_limpiados"
+            type="number"
+            min={0}
+            value={panelesDia}
+            onChange={(e) => setPanelesDia(e.currentTarget.value)}
+            className={inputCls}
+          />
+        </FieldS>
         <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" className={inputCls} /></FieldS>
         <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
