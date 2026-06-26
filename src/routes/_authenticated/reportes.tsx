@@ -10,12 +10,14 @@ import { Sparkles, Wand2, Eye, FileDown, Mail, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
+import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { Sparkles as _Sparkles, Send, CheckCircle2, XCircle, History, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
@@ -36,9 +38,14 @@ type R = {
   periodo: string;
   titulo: string;
   insight_resumen: string | null;
-  estado: "borrador" | "enviado";
+  estado: "borrador" | "enviado" | "aprobado" | "rechazado";
   model_used: string | null;
   created_at: string;
+  version?: number | null;
+  enviado_por?: string | null;
+  aprobado_por?: string | null;
+  rechazado_por?: string | null;
+  motivo_rechazo?: string | null;
 };
 
 function Reportes() {
@@ -53,6 +60,11 @@ function Reportes() {
   const fResp = useServerFn(getResponsableReporte);
   const fEmail = useServerFn(enviarNotificacionReporte);
   const fDel = useServerFn(eliminarReporte);
+  const fEnviarApro = useServerFn(enviarReporteAprobacion);
+  const fAprobar = useServerFn(aprobarReporte);
+  const fRechazar = useServerFn(rechazarReporte);
+  const fNuevaVer = useServerFn(crearNuevaVersionReporte);
+  const fAud = useServerFn(listAuditoriaReporte);
   const { roles } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
   const isCliente = highestRole(roles) === "cliente";
@@ -83,6 +95,26 @@ function Reportes() {
   const del = useMutation({
     mutationFn: (id: string) => fDel({ data: { id } }),
     onSuccess: () => { toast.success("Reporte eliminado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const enviarApro = useMutation({
+    mutationFn: (id: string) => fEnviarApro({ data: { id } }),
+    onSuccess: () => { toast.success("Enviado a aprobación"); qc.invalidateQueries({ queryKey: ["reportes"] }); qc.invalidateQueries({ queryKey: ["reporte-auditoria"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const aprobar = useMutation({
+    mutationFn: (id: string) => fAprobar({ data: { id } }),
+    onSuccess: () => { toast.success("Reporte aprobado"); qc.invalidateQueries({ queryKey: ["reportes"] }); qc.invalidateQueries({ queryKey: ["reporte-auditoria"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const rechazar = useMutation({
+    mutationFn: (vars: { id: string; motivo: string }) => fRechazar({ data: vars }),
+    onSuccess: () => { toast.success("Reporte rechazado"); qc.invalidateQueries({ queryKey: ["reportes"] }); qc.invalidateQueries({ queryKey: ["reporte-auditoria"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const nuevaVer = useMutation({
+    mutationFn: (id: string) => fNuevaVer({ data: { id } }),
+    onSuccess: () => { toast.success("Nueva versión creada"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -142,6 +174,28 @@ function Reportes() {
   const items = (list.data as R[] | undefined) ?? [];
   const borradores = items.filter((r) => r.estado === "borrador").length;
   const enviados = items.filter((r) => r.estado === "enviado").length;
+  const aprobados = items.filter((r) => r.estado === "aprobado").length;
+  const rechazados = items.filter((r) => r.estado === "rechazado").length;
+
+  const auditoria = useQuery({
+    queryKey: ["reporte-auditoria", viewing],
+    queryFn: () => fAud({ data: { reporte_id: viewing! } }),
+    enabled: !!viewing && canEdit,
+  });
+
+  function estadoBadge(estado: R["estado"]) {
+    const map: Record<string, string> = {
+      borrador: "bg-primary/10 text-primary",
+      enviado: "bg-amber-100 text-amber-800",
+      aprobado: "bg-emerald-100 text-emerald-800",
+      rechazado: "bg-destructive/10 text-destructive",
+    };
+    return (
+      <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (map[estado] ?? "bg-secondary text-foreground")}>
+        {estado}
+      </span>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -198,10 +252,12 @@ function Reportes() {
                 La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
               <Stat label="Generados" value={items.length} />
               <Stat label="Borradores" value={borradores} tone="primary" />
-              <Stat label="Enviados" value={enviados} tone="accent" />
+              <Stat label="En revisión" value={enviados} tone="accent" />
+              <Stat label="Aprobados" value={aprobados} tone="accent" />
+              <Stat label="Rechazados" value={rechazados} tone="primary" />
             </div>
           </div>
         </section>
@@ -225,13 +281,41 @@ function Reportes() {
               {r.insight_resumen && <p className="text-sm mt-2 text-foreground/80 line-clamp-2">{r.insight_resumen}</p>}
             </div>
             <div className="flex items-center gap-3">
-              <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
-                (r.estado === "enviado" ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary")}>
-                {r.estado}
-              </span>
+              {estadoBadge(r.estado)}
+              {r.version && r.version > 1 && (
+                <span className="text-[10px] font-mono text-muted-foreground">v{r.version}</span>
+              )}
               <button onClick={() => setViewing(r.id)} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
                 <Eye className="size-3.5" /> Ver
               </button>
+              {canEdit && r.estado === "borrador" && (
+                <button onClick={() => enviarApro.mutate(r.id)} disabled={enviarApro.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-amber-300 text-amber-800 rounded-md hover:bg-amber-50 disabled:opacity-50">
+                  <Send className="size-3.5" /> Enviar a aprobación
+                </button>
+              )}
+              {canEdit && r.estado === "enviado" && r.enviado_por !== undefined && (
+                <>
+                  <button onClick={() => aprobar.mutate(r.id)} disabled={aprobar.isPending}
+                    className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-emerald-400 text-emerald-700 rounded-md hover:bg-emerald-50 disabled:opacity-50">
+                    <CheckCircle2 className="size-3.5" /> Aprobar
+                  </button>
+                  <button onClick={() => {
+                    const motivo = prompt("Motivo del rechazo:");
+                    if (motivo && motivo.trim().length >= 4) rechazar.mutate({ id: r.id, motivo: motivo.trim() });
+                  }} disabled={rechazar.isPending}
+                    className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50">
+                    <XCircle className="size-3.5" /> Rechazar
+                  </button>
+                </>
+              )}
+              {canEdit && (r.estado === "rechazado" || r.estado === "aprobado") && (
+                <button onClick={() => nuevaVer.mutate(r.id)} disabled={nuevaVer.isPending}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                  title="Crear nueva versión a partir de este reporte">
+                  <GitBranch className="size-3.5" /> Nueva versión
+                </button>
+              )}
               <button onClick={() => descargarPdf(r.id, "ejecutivo")} disabled={downloadingId === r.id + "ejecutivo"}
                 className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50">
                 <FileDown className="size-3.5" /> {downloadingId === r.id + "ejecutivo" ? "Generando…" : "PDF Ejec."}
@@ -242,11 +326,11 @@ function Reportes() {
                   <FileDown className="size-3.5" /> PDF Interno
                 </button>
               )}
-              {canEdit && (
+              {canEdit && r.estado === "aprobado" && (
                 <button onClick={() => emailMut.mutate({ id: r.id, tipo: "reporte_ejecutivo" })} disabled={emailMut.isPending}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
-                  title="Enviar email al cliente">
-                  <Mail className="size-3.5" /> Enviar
+                  title="Enviar email al cliente (solo si está aprobado)">
+                  <Mail className="size-3.5" /> Enviar al cliente
                 </button>
               )}
               {canEdit && (
@@ -315,6 +399,41 @@ function Reportes() {
             <article className="text-sm leading-relaxed space-y-3 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-1 [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_strong]:font-semibold">
               <ReactMarkdown>{(detail.data as any).contenido_markdown}</ReactMarkdown>
             </article>
+          )}
+          {canEdit && (
+            <section className="mt-6 border-t border-border pt-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <History className="size-4" /> Auditoría del reporte
+              </h3>
+              {auditoria.isLoading ? (
+                <p className="text-xs text-muted-foreground">Cargando historial…</p>
+              ) : !(auditoria.data as any[] | undefined)?.length ? (
+                <p className="text-xs text-muted-foreground">Sin movimientos registrados.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {(auditoria.data as any[]).map((a) => (
+                    <li key={a.id} className="text-xs bg-secondary/40 rounded p-2 border border-border/60">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold uppercase tracking-wider">
+                          {a.accion}
+                          {a.version ? ` · v${a.version}` : ""}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(a.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground mt-0.5">
+                        Por <span className="text-foreground">{a.actor_nombre}</span>
+                        {a.estado_anterior && a.estado_nuevo
+                          ? ` · ${a.estado_anterior} → ${a.estado_nuevo}`
+                          : a.estado_nuevo ? ` · estado: ${a.estado_nuevo}` : ""}
+                      </div>
+                      {a.comentario && <p className="mt-1">{a.comentario}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
         </DialogContent>
       </Dialog>

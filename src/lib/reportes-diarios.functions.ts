@@ -52,6 +52,19 @@ export const upsertReporteDiario = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    try {
+      const { data: trab } = await context.supabase
+        .from("trabajos").select("folio, servicio").eq("id", data.trabajo_id).single();
+      const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
+      const folio = (trab as any)?.folio ?? data.trabajo_id.slice(0, 8);
+      await notificarStaff({
+        tipo: "reporte_diario",
+        titulo: `Reporte diario · ${folio}`,
+        mensaje: `Se registró un reporte diario del ${data.fecha} en el trabajo ${folio}.`,
+        trabajo_id: data.trabajo_id,
+        excluirUserId: context.userId,
+      });
+    } catch { /* silenciar */ }
     return row;
   });
 
@@ -103,6 +116,19 @@ export const registrarReportePDF = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    try {
+      const { data: trab } = await context.supabase
+        .from("trabajos").select("folio").eq("id", data.trabajo_id).single();
+      const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
+      const folio = (trab as any)?.folio ?? data.trabajo_id.slice(0, 8);
+      await notificarStaff({
+        tipo: "reporte_diario",
+        titulo: `Reporte PDF · ${folio}`,
+        mensaje: `Se subió un reporte en PDF (${data.fecha}) al trabajo ${folio}.`,
+        trabajo_id: data.trabajo_id,
+        excluirUserId: context.userId,
+      });
+    } catch { /* silenciar */ }
     return row;
   });
 
