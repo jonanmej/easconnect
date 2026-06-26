@@ -17,6 +17,7 @@ import {
   quitarUsuarioCliente,
 } from "@/lib/clientes-usuarios.functions";
 import { Plus, Pencil, Trash2, UserCog, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -66,6 +67,8 @@ function Clientes() {
   const list = useQuery({ queryKey: ["clientes"], queryFn: () => fetchList() });
   const [editing, setEditing] = useState<Partial<ClienteRow> | null>(null);
   const [managing, setManaging] = useState<ClienteRow | null>(null);
+  const [query, setQuery] = useState("");
+  const [omFilter, setOmFilter] = useState<"todos" | "con" | "sin">("todos");
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -125,8 +128,59 @@ function Clientes() {
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(list.data as ClienteRow[] | undefined)?.map((c) => (
+      {(() => {
+        const all = (list.data as ClienteRow[] | undefined) ?? [];
+        const total = all.length;
+        const conOM = all.filter((c) => c.contrato_om).length;
+        const sinOM = total - conOM;
+        const q = query.trim().toLowerCase();
+        const filtered = all.filter((c) => {
+          if (omFilter === "con" && !c.contrato_om) return false;
+          if (omFilter === "sin" && c.contrato_om) return false;
+          if (!q) return true;
+          return [c.nombre, c.contacto, c.email, c.telefono, c.capacidad]
+            .filter(Boolean)
+            .some((v) => (v as string).toLowerCase().includes(q));
+        });
+        return (
+          <>
+            <div className="flex flex-col md:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar por nombre, contacto, email…"
+                  className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
+                />
+              </div>
+              <div className="inline-flex rounded-md border border-border bg-card overflow-hidden text-xs font-medium">
+                {([
+                  { v: "todos", l: `Todos (${total})` },
+                  { v: "con", l: `Con O&M (${conOM})` },
+                  { v: "sin", l: `Sin O&M (${sinOM})` },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setOmFilter(opt.v)}
+                    className={
+                      "px-3 py-2 transition-colors " +
+                      (omFilter === opt.v
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary")
+                    }
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {filtered.length === 0 && !list.isLoading && (
+              <p className="text-sm text-muted-foreground py-6">No hay clientes que coincidan con el filtro.</p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((c) => (
           <div
             key={c.id}
             className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
@@ -199,8 +253,11 @@ function Clientes() {
               </div>
             )}
           </div>
-        ))}
-      </div>
+              ))}
+            </div>
+          </>
+        );
+      })()}
 
       <RecordDialog
         open={!!editing}

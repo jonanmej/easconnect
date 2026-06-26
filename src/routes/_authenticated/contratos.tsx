@@ -11,9 +11,9 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { CalendarPlus, FileText, Trash2, Wand2 } from "lucide-react";
-import { SERVICIOS_OT } from "@/lib/servicios";
-const EXCLUIDOS_CONTRATO = new Set(["Falla", "Emergencia", "Inspección"]);
-const SERVICIOS_CONTRATO = SERVICIOS_OT.filter((s) => !EXCLUIDOS_CONTRATO.has(s));
+import { SERVICIOS_CONTRATO, SERVICIOS_NO_CONTRATABLES } from "@/lib/servicios";
+const SERVICIOS_CONTRATO_SET = new Set<string>(SERVICIOS_CONTRATO);
+const SERVICIOS_NO_CONTRATABLES_SET = new Set<string>(SERVICIOS_NO_CONTRATABLES);
 
 export const Route = createFileRoute("/_authenticated/contratos")({
   head: () => ({
@@ -195,7 +195,23 @@ function ContratoDialog({
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="h-9 px-4 rounded-md border border-input text-sm">Cancelar</button>
-          <button onClick={() => onSave(form)} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50">
+          <button
+            onClick={() => {
+              if (SERVICIOS_NO_CONTRATABLES_SET.has(form.servicio)) {
+                toast.error(`"${form.servicio}" no es un servicio contratable. Selecciona otro tipo.`);
+                return;
+              }
+              if (!SERVICIOS_CONTRATO_SET.has(form.servicio) && form.servicio !== contrato?.servicio) {
+                toast.error("Selecciona un servicio del catálogo de contratos.");
+                return;
+              }
+              if (!form.planta_id) { toast.error("Debes seleccionar una planta."); return; }
+              if (!form.fecha_inicio) { toast.error("Indica la fecha de inicio del primer ciclo."); return; }
+              onSave(form);
+            }}
+            disabled={saving}
+            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50"
+          >
             {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>
