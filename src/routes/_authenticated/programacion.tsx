@@ -439,11 +439,17 @@ function ClienteCalendar() {
     const out: { fecha: string | null; ocupada?: boolean; today?: boolean }[] = [];
     const first = new Date(monthStart);
     const leading = (first.getDay() + 6) % 7;
-    for (let i = 0; i < leading; i++) out.push({ fecha: null });
+    // Solo días laborables (Lun-Vie); el leading se limita a 0..4
+    const leadingWk = Math.min(leading, 4);
+    for (let i = 0; i < leadingWk; i++) out.push({ fecha: null });
     const list = (dispQ.data as { fecha: string; ocupada: boolean }[] | undefined) ?? [];
     const today = toISODateLocal(new Date());
-    list.forEach((d) => out.push({ fecha: d.fecha, ocupada: d.ocupada, today: d.fecha === today }));
-    while (out.length % 7 !== 0) out.push({ fecha: null });
+    list.forEach((d) => {
+      const dow = new Date(d.fecha + "T00:00").getDay();
+      if (dow === 0 || dow === 6) return; // omitir sábado/domingo
+      out.push({ fecha: d.fecha, ocupada: d.ocupada, today: d.fecha === today });
+    });
+    while (out.length % 5 !== 0) out.push({ fecha: null });
     return out;
   }, [dispQ.data, monthStart]);
 
@@ -473,38 +479,34 @@ function ClienteCalendar() {
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="p-3 text-center font-semibold capitalize bg-secondary border-b border-border">{fmtMonth(monthStart)}</div>
-        <div className="grid grid-cols-7 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/50 border-b border-border">
-          {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
+        <div className="grid grid-cols-5 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/50 border-b border-border">
+          {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
             <div key={d} className="p-2 text-center">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-5">
           {cells.map((c, i) => {
             if (!c.fecha) return <div key={i} className="aspect-square border-t border-l border-border first:border-l-0 bg-muted/20" />;
             const isPast = c.fecha < toISODateLocal(new Date());
-            const dow = new Date(c.fecha + "T00:00").getDay();
-            const isWknd = dow === 0 || dow === 6;
             return (
               <button
                 key={i}
-                disabled={c.ocupada || isPast || isWknd}
+                disabled={c.ocupada || isPast}
                 onClick={() => setPickDate(c.fecha!)}
                 className={
                   "aspect-square border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors " +
-                  (isWknd
-                    ? "bg-muted/40 text-muted-foreground/50 cursor-not-allowed"
-                    : c.ocupada
+                  (c.ocupada
                     ? "bg-destructive/10 text-destructive cursor-not-allowed"
                     : isPast
                       ? "bg-muted/30 text-muted-foreground/60 cursor-not-allowed"
                       : "hover:bg-accent/10 cursor-pointer") +
                   (c.today ? " ring-1 ring-primary" : "")
                 }
-                title={isWknd ? "Sin atención fin de semana" : c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
+                title={c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
               >
                 <span className={"font-mono " + (c.today ? "text-primary font-bold" : "")}>{Number(c.fecha.slice(-2))}</span>
                 {c.ocupada && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest">Ocupado</span>}
-                {!c.ocupada && !isPast && !isWknd && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
+                {!c.ocupada && !isPast && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
               </button>
             );
           })}
@@ -536,7 +538,7 @@ function ClienteCalendar() {
             tipo: f.get("tipo"),
             descripcion: f.get("descripcion"),
             fecha_preferida: pickDate,
-            duracion_dias_estimada: Number(f.get("duracion_dias_estimada") ?? 1),
+            duracion_dias_estimada: 1,
           });
         }}
       >
@@ -554,9 +556,6 @@ function ClienteCalendar() {
             <option>Limpieza</option>
             <option>Otro</option>
           </select>
-        </Field>
-        <Field label="Duración estimada (días)">
-          <input name="duracion_dias_estimada" type="number" min={1} max={30} defaultValue={1} className={inputCls} />
         </Field>
         <Field label="Descripción / motivo">
           <textarea name="descripcion" rows={3} className={inputCls} placeholder="Describa brevemente el motivo de la visita…" />
