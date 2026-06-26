@@ -121,34 +121,25 @@ function UsersPage() {
   });
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>("tecnico");
   const [inviteClienteId, setInviteClienteId] = useState<string>("");
-  const [enviarPorCorreo, setEnviarPorCorreo] = useState(false);
 
   function onInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (enviarPorCorreo && (!password || password.length < 8)) {
-      alert("Para enviar la contraseña por correo debes definirla aquí (mínimo 8 caracteres).");
-      return;
-    }
     invite.mutate(
-      { email, password, role, enviar_por_correo: enviarPorCorreo },
+      { email, role },
       {
         onSuccess: (created: any) => {
-          // Si es cliente y se eligió un cliente, asignarlo.
           if (role === "cliente" && inviteClienteId && created?.id) {
             setCliente.mutate({ userId: created.id, clienteId: inviteClienteId });
           }
           if (created?.correo_enviado) {
-            alert(`Cuenta creada. Contraseña enviada por correo a ${created.email}.`);
-          } else if (enviarPorCorreo && created?.correo_error) {
-            alert(`Cuenta creada, pero el correo no se envió: ${created.correo_error}`);
+            alert(`Cuenta creada. Contraseña automática enviada por correo a ${created.email}. Se solicitará cambiarla al ingresar.`);
+          } else if (created?.password) {
+            alert(`Cuenta creada, pero el correo no se envió (${created.correo_error ?? "error"}).\n\nEntrega manualmente esta contraseña temporal:\n${created.password}`);
           }
           setEmail("");
-          setPassword("");
           setInviteClienteId("");
-          setEnviarPorCorreo(false);
         },
       },
     );
