@@ -1,62 +1,68 @@
-## Resumen
-Implemento todo el pedido en 4 bloques. El bloque 4 requiere migración de BD (reportes diarios + PDFs de st.solar).
 
-## Bloque 1 — Catálogo y Contratos
-- `src/lib/servicios.ts`: exporto `SERVICIOS_CONTRATO` con el orden exacto solicitado:
-  1. Instalación Fotovoltaica
-  2. Limpieza Robotizada
-  3. Mantenimiento Menor
-  4. Mantenimiento Medio
-  5. Mantenimiento Mayor
-  6. Mantenimiento de transformador eléctrico
-  7. Servicio Técnico de Drone
-- `contratos.tsx`: usa `SERVICIOS_CONTRATO`; agrego validación en el submit del diálogo que rechaza Falla/Emergencia/Inspección y cualquier servicio fuera del catálogo con `toast.error`. (El server fn `upsertContrato` ya valida.)
-- Trabajos/Programación siguen leyendo `SERVICIOS_OT` → al modificar el catálogo se actualizan automáticamente.
+# Refactor de reportes de trabajo y hallazgos
 
-## Bloque 2 — Filtros en Clientes
-- `clientes.tsx`: añado input de búsqueda (nombre/RUT) + segmento "Todos / Con O&M / Sin O&M".
-- Filtrado en memoria sobre la lista actual; cuenta visible por segmento.
+## 1. Unificación en un solo botón "Reporte diario"
+En `src/routes/_authenticated/trabajos.tsx`, dentro del diálogo de información del trabajo asignado, justo debajo de los datos básicos (folio, cliente/planta, servicio, fecha, estado), reubicar una fila de botones con:
 
-## Bloque 3 — Navegación del detalle de trabajo
-- Refactorizo el panel/dialog de detalle del trabajo en `trabajos.tsx` (y `mis-trabajos.tsx` / `terreno.tsx` si comparten) para usar tabs Shadcn:
-  - **Reportes diarios** (nuevo)
-  - **Reporte ejecutivo** (admin/supervisor) o **Carga PDF** (st.solar)
-  - **Evidencias**
-  - **Recursos**
-  - **Historial de asignaciones** (oculto para técnicos, como ya está)
-- Tabs scroll horizontal en móvil; sticky header; los acordeones largos se reemplazan por tabs accesibles.
+- **Reporte diario** (nuevo, unificado): abre un panel que combina el formulario de reporte técnico diario + hallazgos fotográficos del día. Reemplaza los accesos separados "Reporte técnico" y "Evidencias / Hallazgos".
+- **Recursos** (existente, reubicado): genera además un PDF imprimible.
+- **Información de OT** (existente, reubicado).
+- **Historial de asignaciones** (existente, reubicado, solo admin/supervisor).
 
-## Bloque 4 — Reportes diarios + PDF st.solar (migración BD)
-**Nueva tabla** `trabajo_reportes_diarios`:
-- `trabajo_id`, `fecha` (date), `tecnico_id`, `avance_pct`, `paneles_limpiados`, `agua_galones`, `horas_trabajadas`, `clima`, `observaciones`, `bloqueos`.
-- Unique `(trabajo_id, fecha, tecnico_id)`.
-- RLS:
-  - admin/supervisor: ALL.
-  - técnico: SELECT si está asignado al trabajo (cualquier técnico del equipo); INSERT/UPDATE/DELETE solo sus propias filas.
-  - cliente: sin acceso.
+Las pestañas o secciones que actualmente alojan estos accesos en otra parte del diálogo se eliminan para evitar duplicados.
 
-**Nueva tabla** `trabajo_reportes_pdf` (para st.solar y futuros):
-- `trabajo_id`, `fecha`, `subido_por`, `storage_path`, `nombre_original`, `tamanio_bytes`.
-- RLS análoga: solo el autor, admin y supervisor.
-- Bucket reutilizado: `trabajos-evidencia` con prefijo `reportes-pdf/`.
+## 2. Reporte diario unificado
+Refactor de `src/components/ReportesDiariosSection.tsx`:
 
-**Evidencias por día**: agrego columna `fecha` (date) opcional a `trabajo_evidencias`. El uploader la setea con la fecha activa.
+- Un solo formulario por día con: trabajo realizado, paneles limpiados, agua, horas, clima, hallazgos, observaciones, **avance %** (sigue calculándose automático), **+ hallazgos fotográficos del día** integrados (subida a `trabajo_evidencias` ya existente, etiquetados con la `fecha` del reporte diario).
+- Listado cronológico de reportes guardados muestra textos + miniaturas de fotos por día.
+- Caso especial `st.solar@easervice.app` (PDF) se mantiene como hoy.
 
-**Reporte ejecutivo**:
-- `reportes.functions.ts`: nueva fn `generarEjecutivoDesdeDiarios(trabajo_id)` solo admin/supervisor. Consolida diarios + PDFs (extrayendo texto con la skill PDF cuando aplique) y genera vía Lovable AI (`google/gemini-2.5-flash`).
-- El usuario `st.solar@easervice.app` se detecta por email; en su detalle el módulo de "Reporte diario" se reemplaza por "Subir PDF del día".
+Datos diarios alimentan el módulo de Reportes y el Dashboard (ver §5).
 
-**UI Reportes diarios**:
-- Listado por fecha con autor; el técnico activo edita el día de hoy; admin/supervisor editan cualquier día.
-- Botón "Generar reporte ejecutivo" arriba (admin/supervisor) → guarda en tabla `reportes` existente.
+## 3. Módulo de Reportes — generación
+En `src/lib/reportes.functions.ts`:
 
-## Notas técnicas
-- Server fns nuevas: `listReportesDiarios`, `upsertReporteDiario`, `eliminarReporteDiario`, `listReportesPDF`, `registrarReportePDF`, `eliminarReportePDF`, `generarEjecutivoDesdeDiarios`.
-- Todas con `requireSupabaseAuth`; las que escriben validan rol o autoría del registro.
-- Migración crea las dos tablas con GRANT a authenticated + service_role y RLS antes de policies.
-- No toco: branding emails, módulos cliente, lógica de programación/contratos existente.
+- Nueva acción "Generar reporte ejecutivo del día": consume reportes diarios del rango = fecha indicada (default = hoy).
+- Acción existente "Generar reporte ejecutivo final": consolida **todos** los reportes diarios del trabajo (es la `generarEjecutivoDesdeDiarios` ya creada, se renombra etiqueta UI a "Reporte ejecutivo final").
+- Ambos guardan en `public.reportes` y entran al workflow de aprobación existente.
 
-## Fuera de alcance (no se toca)
-- Notificaciones (no cambia).
-- Roles existentes.
-- Reportes anteriores (la fn antigua `generarReporte` queda funcional para retrocompatibilidad).
+UI en `src/routes/_authenticated/reportes.tsx`: dos botones por trabajo seleccionable — "Diario" / "Final".
+
+## 4. Recursos → PDF imprimible
+Nuevo `src/lib/pdf/RecursosDoc.tsx` reutilizando estilos de `ReporteDoc.tsx` (encabezado EA Service Connect, pie con ISO, paginación, tipografía y márgenes idénticos). Botón "Exportar PDF" dentro del panel de Recursos (que llama `descargarPDF` con el nuevo doc). Contenido: tabla de recursos con categoría, descripción, cantidad/unidad, entregado, devuelto, notas + datos del trabajo y firma.
+
+## 5. Nuevos servicios
+
+En `src/lib/servicios.ts`:
+
+```ts
+SERVICIOS_OT += "Capacitación", "Visita técnica"
+SERVICIOS_CONTRATO += "Capacitación", "Visita técnica"
+```
+
+Quedan visibles en Trabajos, Programación y Contratos automáticamente (todos consumen estas constantes). Validación servidor en `upsertContrato` no requiere cambios (sólo bloquea Falla/Emergencia/Inspección).
+
+## 6. Dashboard
+`src/lib/dashboard.functions.ts` y vistas:
+
+- Sumar lecturas desde `trabajo_reportes_diarios` (paneles_limpiados, agua_galones, horas_trabajadas, conteo de reportes) además de `trabajo_reportes`.
+- Series semanales: incluir conteos por día desde reportes diarios para "actividad diaria".
+- KPI dashboard (`dashboard_kpis_v1`): ampliar para sumar también desde `trabajo_reportes_diarios` (migración).
+- Vista cliente y vista staff usan los mismos números.
+
+## 7. Notificaciones / permisos
+Sin cambios en RLS. El nuevo botón unificado respeta roles existentes (técnicos no ven Historial de asignaciones, etc.). Notificaciones a staff por reporte diario ya existen, se mantienen.
+
+## Detalles técnicos
+
+- **Archivos editados:** `src/lib/servicios.ts`, `src/components/ReportesDiariosSection.tsx`, `src/routes/_authenticated/trabajos.tsx`, `src/routes/_authenticated/reportes.tsx`, `src/lib/reportes.functions.ts`, `src/lib/dashboard.functions.ts`, `src/components/dashboard/StaffCharts.tsx`.
+- **Archivos nuevos:** `src/lib/pdf/RecursosDoc.tsx`.
+- **Migración:** redefinir `public.dashboard_kpis_v1()` para sumar también desde `trabajo_reportes_diarios`.
+- **Reusar:** `trabajo_evidencias` (ya existe) recibe fotos diarias con `fecha` del reporte diario; no se crea tabla nueva.
+
+## Confirmaciones que necesito antes de implementar
+
+1. ¿El **PDF de Recursos** debe incluir firma del cliente (igual que el reporte ejecutivo) o sólo es un imprimible interno?
+2. Para el **Reporte ejecutivo diario**: ¿se permite un único reporte ejecutivo por día (sobrescribe si ya existe) o varios versionados?
+3. Cuando se elimina el botón antiguo de "Hallazgos fotográficos" — ¿los hallazgos existentes (sin `fecha` diaria) los muestro en una sección "Sin fecha" dentro del reporte diario, o sólo migrarán los nuevos a partir de hoy?

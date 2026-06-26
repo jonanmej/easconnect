@@ -1,6 +1,7 @@
 import { pdf } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { ReporteDoc, type ReporteData } from "./ReporteDoc";
+import { RecursosDoc, type RecursosData } from "./RecursosDoc";
 
 function uuidV4() {
   // Compatible con todos los navegadores; randomUUID() requiere contexto seguro.
@@ -81,6 +82,40 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
   // Render final con hash embebido para trazabilidad
   const finalData: ReporteData = { ...base, documento_hash: hash };
   const blob = await pdf(createElement(ReporteDoc, { data: finalData }) as any).toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
+/**
+ * Genera y descarga el PDF de Checklist de Recursos por OT,
+ * con la misma trazabilidad ISO que los reportes ejecutivos.
+ */
+export async function generarYDescargarRecursosPdf(data: RecursosData, filename: string) {
+  const documento_id = data.documento_id ?? uuidV4();
+  const documento_codigo = data.documento_codigo ?? `EA-REC-${data.folio ?? ""}`.replace(/\s+/g, "");
+  const documento_version = data.documento_version ?? "1.0";
+  const documento_clasificacion = data.documento_clasificacion ?? "Uso interno";
+
+  const base: RecursosData = {
+    ...data,
+    documento_id,
+    documento_codigo,
+    documento_version,
+    documento_clasificacion,
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(RecursosDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: RecursosData = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(RecursosDoc, { data: finalData }) as any).toBlob();
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
