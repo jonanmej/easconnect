@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import { SERVICIOS_OT } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
