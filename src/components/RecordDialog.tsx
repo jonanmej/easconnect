@@ -18,15 +18,16 @@ type Props = {
   error?: string | null;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
+  className?: string;
 };
 
 export function RecordDialog({
   open, onOpenChange, title, description,
-  submitLabel = "Guardar", busy, error, onSubmit, children,
+  submitLabel = "Guardar", busy, error, onSubmit, children, className,
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={className ?? "max-w-lg"}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
