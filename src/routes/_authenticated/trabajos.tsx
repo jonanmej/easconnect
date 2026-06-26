@@ -144,13 +144,14 @@ function Trabajos() {
 
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
-    if (!editing) { setEquipoIds([]); setTab("ot"); return; }
+    if (!editing) { setEquipoIds([]); setTab(isTecnico ? "reporte" : "ot"); return; }
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
       setEquipoIds([]);
     }
-  }, [editing?.id, equiposAsignados.data]);
+    if (editing.id && isTecnico) setTab("reporte");
+  }, [editing?.id, equiposAsignados.data, isTecnico]);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -378,13 +379,13 @@ function Trabajos() {
       >
         {editing?.id && (
           <div className="flex gap-1 border-b border-border -mt-2 mb-2">
-            {([
+            {(([
               { k: "ot", l: "Orden de trabajo" },
               { k: "reporte", l: "Reporte técnico" },
               { k: "evidencias", l: "Evidencia fotográfica" },
               { k: "recursos", l: "Recursos de la visita" },
               { k: "historial", l: "Historial de asignaciones" },
-            ] as const).map((t) => (
+            ] as const).filter((t) => !isTecnico || (t.k !== "ot" && t.k !== "historial"))).map((t) => (
               <button
                 key={t.k}
                 type="button"
