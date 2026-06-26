@@ -14,3 +14,19 @@ export const SERVICIOS_OT = [
   "Emergencia",
   "Inspección",
 ] as const;
+
+/**
+ * Catálogo cerrado de servicios contratables (orden fijo definido por negocio).
+ * Falla / Emergencia / Inspección NO son contratables (son eventos no recurrentes).
+ */
+export const SERVICIOS_CONTRATO = [
+  "Instalación Fotovoltaica",
+  "Limpieza Robotizada",
+  "Mantenimiento Menor",
+  "Mantenimiento Medio",
+  "Mantenimiento Mayor",
+  "Mantenimiento de transformador eléctrico",
+  "Servicio Técnico de Drone",
+] as const;
+
+export const SERVICIOS_NO_CONTRATABLES = ["Falla", "Emergencia", "Inspección"] as const;
