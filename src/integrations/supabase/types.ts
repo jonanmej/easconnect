@@ -984,6 +984,7 @@ export type Database = {
           categoria: string
           created_at: string
           descripcion: string | null
+          fecha: string | null
           id: string
           storage_path: string
           subido_por: string | null
@@ -993,6 +994,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           descripcion?: string | null
+          fecha?: string | null
           id?: string
           storage_path: string
           subido_por?: string | null
@@ -1002,6 +1004,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           descripcion?: string | null
+          fecha?: string | null
           id?: string
           storage_path?: string
           subido_por?: string | null
@@ -1174,6 +1177,126 @@ export type Database = {
             foreignKeyName: "trabajo_reportes_trabajo_id_fkey"
             columns: ["trabajo_id"]
             isOneToOne: true
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_reportes_diarios: {
+        Row: {
+          agua_galones: number | null
+          avance_pct: number | null
+          bloqueos: string | null
+          clima: string | null
+          created_at: string
+          fecha: string
+          hallazgos: string | null
+          horas_trabajadas: number | null
+          id: string
+          observaciones: string | null
+          paneles_limpiados: number | null
+          tecnico_id: string
+          trabajo_id: string
+          trabajo_realizado: string | null
+          updated_at: string
+        }
+        Insert: {
+          agua_galones?: number | null
+          avance_pct?: number | null
+          bloqueos?: string | null
+          clima?: string | null
+          created_at?: string
+          fecha?: string
+          hallazgos?: string | null
+          horas_trabajadas?: number | null
+          id?: string
+          observaciones?: string | null
+          paneles_limpiados?: number | null
+          tecnico_id: string
+          trabajo_id: string
+          trabajo_realizado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agua_galones?: number | null
+          avance_pct?: number | null
+          bloqueos?: string | null
+          clima?: string | null
+          created_at?: string
+          fecha?: string
+          hallazgos?: string | null
+          horas_trabajadas?: number | null
+          id?: string
+          observaciones?: string | null
+          paneles_limpiados?: number | null
+          tecnico_id?: string
+          trabajo_id?: string
+          trabajo_realizado?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_reportes_diarios_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_reportes_diarios_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_reportes_pdf: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          nombre_original: string | null
+          notas: string | null
+          storage_path: string
+          subido_por: string
+          tamanio_bytes: number | null
+          trabajo_id: string
+        }
+        Insert: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          nombre_original?: string | null
+          notas?: string | null
+          storage_path: string
+          subido_por: string
+          tamanio_bytes?: number | null
+          trabajo_id: string
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          nombre_original?: string | null
+          notas?: string | null
+          storage_path?: string
+          subido_por?: string
+          tamanio_bytes?: number | null
+          trabajo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_reportes_pdf_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_reportes_pdf_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
             referencedRelation: "trabajos_sla"
             referencedColumns: ["id"]
           },
