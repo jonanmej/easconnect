@@ -158,11 +158,16 @@ function siguienteLibre(fechaIso: string, durDias: number, ocupados: Set<string>
   for (let offset = 0; offset < limiteDias; offset++) {
     const cand = new Date(base);
     cand.setUTCDate(cand.getUTCDate() + offset);
+    // Saltar fines de semana: la fecha de inicio debe ser día hábil (Lun-Vie)
+    const dow = cand.getUTCDay();
+    if (dow === 0 || dow === 6) continue;
     let libre = true;
     for (let i = 0; i < durDias; i++) {
       const d = new Date(cand);
       d.setUTCHours(0, 0, 0, 0);
       d.setUTCDate(d.getUTCDate() + i);
+      const ddow = d.getUTCDay();
+      if (ddow === 0 || ddow === 6) { libre = false; break; }
       if (ocupados.has(d.toISOString().slice(0, 10))) { libre = false; break; }
     }
     if (libre) return cand.toISOString().slice(0, 10);
