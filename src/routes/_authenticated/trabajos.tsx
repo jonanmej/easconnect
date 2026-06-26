@@ -375,6 +375,7 @@ function Trabajos() {
         busy={save.isPending}
         error={save.error ? formatConflictoMensaje(save.error.message) : null}
         onSubmit={onSubmit}
+        className={editing?.id ? "max-w-4xl" : "max-w-lg"}
       >
         {editing?.id && (
           <div className="flex gap-1 border-b border-border -mt-2 mb-2 overflow-x-auto -mx-1 px-1">
