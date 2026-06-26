@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -94,55 +94,59 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const diariosArr = (diarios.data as any[] | undefined) ?? [];
+  const pdfsArr = (pdfs.data as any[] | undefined) ?? [];
+
   return (
-    <div className="pt-2 border-t border-border space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {isStSolar ? "Reportes PDF del trabajo" : "Reportes diarios del equipo técnico"}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            {isStSolar
-              ? "Sube un PDF por jornada con el reporte de tu trabajo."
-              : "Cada técnico registra su avance del día. Se acumulan hasta cerrar el trabajo."}
-          </p>
-        </div>
-        {isStaff && (
+    <div className="pt-2 border-t border-border space-y-3">
+      {/* Resumen + CTA ejecutivo */}
+      <div className="flex flex-wrap items-center gap-2">
+        {!isStSolar && (
+          <SummaryChip icon={ClipboardList} label="Diarios" value={diariosArr.length} />
+        )}
+        <SummaryChip icon={FileBox} label="PDFs" value={pdfsArr.length} />
+        {isStaff && !isStSolar && (
           <button
             type="button"
             onClick={() => gen.mutate()}
-            disabled={gen.isPending}
-            className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+            disabled={gen.isPending || diariosArr.length === 0}
+            className="ml-auto h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+            title={diariosArr.length === 0 ? "Registra al menos un reporte diario" : ""}
           >
             <Sparkles className="size-3.5" />
-            {gen.isPending ? "Generando…" : "Generar reporte ejecutivo"}
+            {gen.isPending ? "Generando…" : "Reporte ejecutivo"}
           </button>
         )}
       </div>
 
+      {/* Reportes diarios */}
       {!isStSolar && (
-        <DiarioForm
-          onSave={(v) => save.mutate(v)}
-          saving={save.isPending}
-          panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
-          duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
-        />
-      )}
-
-      {!isStSolar && (
-        <div className="space-y-2">
-          {diarios.isLoading && <p className="text-xs text-muted-foreground">Cargando reportes diarios…</p>}
-          {(diarios.data as any[] | undefined)?.length === 0 && (
-            <p className="text-xs text-muted-foreground">Sin reportes diarios todavía.</p>
-          )}
-          {(diarios.data as any[] | undefined)?.map((d) => {
+        <Section
+          icon={ClipboardList}
+          title="Reportes diarios"
+          subtitle="Avance del día por técnico"
+          count={diariosArr.length}
+          defaultOpen
+        >
+          <DiarioForm
+            onSave={(v) => save.mutate(v)}
+            saving={save.isPending}
+            panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+            duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+          />
+          <div className="space-y-1.5 mt-2">
+            {diarios.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
+            {!diarios.isLoading && diariosArr.length === 0 && (
+              <p className="text-xs text-muted-foreground">Sin reportes diarios todavía.</p>
+            )}
+            {diariosArr.map((d) => {
             const mine = d.tecnico_id === user?.id;
             const canDelete = mine || isStaff;
             return (
               <details key={d.id} className="rounded-md border border-border bg-card group">
                 <summary className="px-3 py-2 flex items-center gap-2 cursor-pointer text-sm">
                   <span className="font-mono text-xs text-muted-foreground">{d.fecha}</span>
-                  <span className="font-medium">{d.tecnico_nombre}</span>
+                    <span className="font-medium truncate">{d.tecnico_nombre}</span>
                   {typeof d.avance_pct === "number" && (
                     <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                       {d.avance_pct}%
@@ -158,7 +162,6 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                   </div>
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
-                  
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
                   {canDelete && (
                     <div className="flex justify-end">
@@ -175,33 +178,75 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
               </details>
             );
           })}
-        </div>
+          </div>
+        </Section>
       )}
 
-      <PDFSection
-        trabajoId={trabajoId}
-        pdfs={(pdfs.data as any[] | undefined) ?? []}
-        loading={pdfs.isLoading}
-        canUpload={isStSolar || isStaff}
-        onUploaded={() => qc.invalidateQueries({ queryKey: ["diarios-pdf", trabajoId] })}
-        onDelete={(id) => delPdf.mutate(id)}
-        registrar={fRegPdf}
-        currentUserId={user?.id ?? ""}
-        isStaff={isStaff}
-      />
+      {/* PDFs */}
+      <Section
+        icon={FileBox}
+        title="Reportes PDF"
+        subtitle={isStSolar ? "Sube un PDF por jornada" : "Documentos adjuntos por jornada"}
+        count={pdfsArr.length}
+        defaultOpen={isStSolar}
+      >
+        <PDFSection
+          trabajoId={trabajoId}
+          pdfs={pdfsArr}
+          loading={pdfs.isLoading}
+          canUpload={isStSolar || isStaff}
+          onUploaded={() => qc.invalidateQueries({ queryKey: ["diarios-pdf", trabajoId] })}
+          onDelete={(id) => delPdf.mutate(id)}
+          registrar={fRegPdf}
+          currentUserId={user?.id ?? ""}
+          isStaff={isStaff}
+        />
+      </Section>
 
+      {/* Evidencias */}
       {!isStSolar && (
-        <div className="space-y-2 pt-3 border-t border-border">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Hallazgos fotográficos
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            Sube las fotos del día (Antes / Durante / Después / Anomalías). Se acumulan junto a los reportes diarios.
-          </p>
+        <Section
+          icon={Camera}
+          title="Hallazgos fotográficos"
+          subtitle="Antes / Durante / Después / Anomalías"
+        >
           <EvidenciaUploader trabajoId={trabajoId} />
-        </div>
+        </Section>
       )}
     </div>
+  );
+}
+
+function SummaryChip({ icon: Icon, label, value }: { icon: any; label: string; value: number }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-secondary/40 text-xs">
+      <Icon className="size-3.5 text-muted-foreground" />
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function Section({
+  icon: Icon, title, subtitle, count, defaultOpen = false, children,
+}: {
+  icon: any; title: string; subtitle?: string; count?: number; defaultOpen?: boolean; children: any;
+}) {
+  return (
+    <details open={defaultOpen} className="group rounded-lg border border-border bg-card overflow-hidden">
+      <summary className="px-3 py-2.5 flex items-center gap-2 cursor-pointer hover:bg-secondary/40 list-none [&::-webkit-details-marker]:hidden">
+        <Icon className="size-4 text-primary shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold leading-tight truncate">{title}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>}
+        </div>
+        {typeof count === "number" && (
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary text-foreground/70">{count}</span>
+        )}
+        <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="px-3 pb-3 pt-1 border-t border-border">{children}</div>
+    </details>
   );
 }
 
