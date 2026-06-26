@@ -606,136 +606,15 @@ function HistorialAsignacionesSection({ trabajoId }: { trabajoId: string }) {
   );
 }
 
-function ReporteBaseSection({ trabajoId, canEdit, duracionDias, totalPaneles }: { trabajoId: string; canEdit: boolean; duracionDias: number; totalPaneles: number | null }) {
-  const qc = useQueryClient();
-  const fGet = useServerFn(getTrabajoReporte);
-  const fSave = useServerFn(upsertTrabajoReporte);
-  const q = useQuery({
-    queryKey: ["trabajo-reporte", trabajoId],
-    queryFn: () => fGet({ data: { trabajo_id: trabajoId } }),
-  });
-  const save = useMutation({
-    mutationFn: (v: any) => fSave({ data: { trabajo_id: trabajoId, ...v } }),
-    onSuccess: () => { toast.success("Reporte base guardado"); qc.invalidateQueries({ queryKey: ["trabajo-reporte", trabajoId] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const r = (q.data as any) ?? {};
-  function onSave(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); e.stopPropagation();
-    const f = new FormData(e.currentTarget);
-    save.mutate({
-      condiciones_sitio: f.get("condiciones_sitio") || null,
-      trabajo_realizado: f.get("trabajo_realizado") || null,
-      hallazgos: f.get("hallazgos") || null,
-      recomendaciones: f.get("recomendaciones") || null,
-      materiales_usados: f.get("materiales_usados") || null,
-      tecnico_nombre: f.get("tecnico_nombre") || null,
-      cliente_recibe_nombre: f.get("cliente_recibe_nombre") || null,
-      cliente_recibe_cargo: f.get("cliente_recibe_cargo") || null,
-      cliente_observaciones: f.get("cliente_observaciones") || null,
-      paneles_limpiados: f.get("paneles_limpiados") ? Number(f.get("paneles_limpiados")) : null,
-      agua_galones: f.get("agua_galones") ? Number(f.get("agua_galones")) : null,
-    });
-  }
-  const paneles = r.paneles_limpiados ?? 0;
-  const metaDiaria = totalPaneles && duracionDias > 0 ? Math.ceil(totalPaneles / duracionDias) : null;
-  const avancePct = totalPaneles && totalPaneles > 0 ? Math.min(100, Math.round((paneles / totalPaneles) * 100)) : null;
-  return (
-    <div className="pt-2 border-t border-border">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Reporte base de la visita</p>
-      <p className="text-[10px] text-muted-foreground mb-3">
-        Estos datos alimentan los Reportes generados por IA. Llénalos al cerrar la OT.
-      </p>
-      <form onSubmit={onSave} className="space-y-3">
-        <Field label="Condiciones del sitio">
-          <textarea name="condiciones_sitio" rows={2} defaultValue={r.condiciones_sitio ?? ""} className={inputCls} disabled={!canEdit} />
-        </Field>
-        <Field label="Trabajo realizado">
-          <textarea name="trabajo_realizado" rows={3} defaultValue={r.trabajo_realizado ?? ""} className={inputCls} disabled={!canEdit} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Hallazgos">
-            <textarea name="hallazgos" rows={3} defaultValue={r.hallazgos ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-          <Field label="Recomendaciones">
-            <textarea name="recomendaciones" rows={3} defaultValue={r.recomendaciones ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-        </div>
-        <Field label="Materiales usados">
-          <textarea name="materiales_usados" rows={2} defaultValue={r.materiales_usados ?? ""} className={inputCls} disabled={!canEdit} />
-        </Field>
-        <div className="rounded-md border border-border bg-secondary/30 p-3 space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Limpieza de paneles · Consumo de agua
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={`Paneles limpiados${totalPaneles ? ` (de ${totalPaneles.toLocaleString()})` : ""}`}>
-              <input
-                name="paneles_limpiados"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={r.paneles_limpiados ?? ""}
-                className={inputCls}
-                disabled={!canEdit}
-              />
-              {metaDiaria != null && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Meta diaria estimada: <span className="font-mono">{metaDiaria}</span> paneles/día ({duracionDias} día{duracionDias === 1 ? "" : "s"}).
-                </p>
-              )}
-            </Field>
-            <Field label="Agua usada (galones)">
-              <input
-                name="agua_galones"
-                type="number"
-                min={0}
-                step="0.01"
-                defaultValue={r.agua_galones ?? ""}
-                className={inputCls}
-                disabled={!canEdit}
-              />
-            </Field>
-          </div>
-          {avancePct != null && (
-            <div>
-              <div className="h-2 rounded bg-secondary overflow-hidden">
-                <div className="h-full bg-primary transition-all" style={{ width: `${avancePct}%` }} />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1 font-mono">
-                Avance: {avancePct}% · {paneles.toLocaleString()} / {totalPaneles?.toLocaleString()} paneles
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Técnico responsable">
-            <input name="tecnico_nombre" defaultValue={r.tecnico_nombre ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-          <Field label="Recibe (cliente)">
-            <input name="cliente_recibe_nombre" defaultValue={r.cliente_recibe_nombre ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Cargo del receptor">
-            <input name="cliente_recibe_cargo" defaultValue={r.cliente_recibe_cargo ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-          <Field label="Observaciones del cliente">
-            <input name="cliente_observaciones" defaultValue={r.cliente_observaciones ?? ""} className={inputCls} disabled={!canEdit} />
-          </Field>
-        </div>
-        {canEdit && (
-          <button type="submit" disabled={save.isPending}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-50">
-            {save.isPending ? "Guardando…" : "Guardar reporte base"}
-          </button>
-        )}
-      </form>
-    </div>
-  );
-}
-
-function RecursosSection({ trabajoId, canEdit }: { trabajoId: string; canEdit: boolean }) {
+function RecursosSection({
+  trabajoId, canEdit, trabajo, plantaNombre, clienteNombre,
+}: {
+  trabajoId: string;
+  canEdit: boolean;
+  trabajo?: any;
+  plantaNombre?: string;
+  clienteNombre?: string;
+}) {
   const qc = useQueryClient();
   const fList = useServerFn(listTrabajoRecursos);
   const fUp = useServerFn(upsertTrabajoRecurso);
@@ -773,12 +652,61 @@ function RecursosSection({ trabajoId, canEdit }: { trabajoId: string; canEdit: b
   }
 
   const rows = (list.data as any[] | undefined) ?? [];
+  const [downloading, setDownloading] = useState(false);
+
+  async function exportarPdf() {
+    if (!trabajo) return;
+    setDownloading(true);
+    try {
+      await generarYDescargarRecursosPdf({
+        folio: trabajo.folio ?? trabajoId.slice(0, 8),
+        cliente: clienteNombre ?? "—",
+        planta: plantaNombre ?? "—",
+        servicio: trabajo.servicio ?? "—",
+        fecha: trabajo.fecha_programada
+          ? new Date(trabajo.fecha_programada).toLocaleString("es-SV")
+          : "—",
+        estado: trabajo.estado ?? "—",
+        notas: trabajo.notas ?? null,
+        recursos: rows.map((r) => ({
+          categoria: r.categoria,
+          descripcion: r.descripcion,
+          cantidad: Number(r.cantidad ?? 0),
+          unidad: r.unidad,
+          entregado: !!r.entregado,
+          devuelto: !!r.devuelto,
+          notas: r.notas ?? null,
+        })),
+        emitido_at: new Date().toLocaleDateString("es-SV", { year: "numeric", month: "long", day: "numeric" }),
+        documento_codigo: `EA-REC-${trabajo.folio ?? trabajoId.slice(0, 8)}`,
+        documento_version: "1.0",
+        documento_clasificacion: "Uso interno",
+      }, `EA-Service-Connect-Recursos-${trabajo.folio ?? trabajoId.slice(0, 8)}.pdf`);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al generar PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="pt-2 border-t border-border">
       <div className="flex items-baseline justify-between mb-2">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
-        <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+          <button
+            type="button"
+            onClick={exportarPdf}
+            disabled={downloading || rows.length === 0}
+            className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+            title="Descargar checklist imprimible ISO 9001:2015"
+          >
+            <FileDown className="size-3.5" />
+            {downloading ? "Generando…" : "PDF imprimible"}
+          </button>
+        </div>
       </div>
       <p className="text-[10px] text-muted-foreground mb-3">
         Herramientas, EPP, equipos, insumos y repuestos que el técnico debe llevar a la empresa.
