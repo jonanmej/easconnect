@@ -145,7 +145,7 @@ function ContratoDialog({
   const [form, setForm] = useState({
     id: contrato?.id,
     planta_id: contrato?.planta_id ?? plantas[0]?.id ?? "",
-    servicio: contrato?.servicio ?? SERVICIOS_OT[0],
+    servicio: contrato?.servicio ?? SERVICIOS_CONTRATO[0],
     cantidad_anual: contrato?.cantidad_anual ?? 12,
     fecha_inicio: contrato?.fecha_inicio ?? `${anio}-01-01`,
     duracion_dias_default: contrato?.duracion_dias_default ?? 1,
@@ -167,8 +167,8 @@ function ContratoDialog({
             <span className="text-xs text-muted-foreground">Tipo de servicio</span>
             <select value={form.servicio} onChange={(e) => setForm({ ...form, servicio: e.target.value })}
               className="mt-1 w-full h-9 px-3 rounded-md border border-input bg-background">
-              {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
-              {contrato?.servicio && !SERVICIOS_OT.includes(contrato.servicio) && (
+              {SERVICIOS_CONTRATO.map((s) => <option key={s} value={s}>{s}</option>)}
+              {contrato?.servicio && !SERVICIOS_CONTRATO.includes(contrato.servicio as any) && (
                 <option value={contrato.servicio}>{contrato.servicio} (legado)</option>
               )}
             </select>
