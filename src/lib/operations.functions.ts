@@ -397,6 +397,18 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
           await enviarNotificacionTrabajo({ data: { trabajo_id: id } } as any).catch(() => {});
         }
       } catch {/* silenciar errores de notificación para no bloquear el guardado */}
+      // Notificar a admins/supervisores que el trabajo fue completado
+      try {
+        const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
+        const folio = (row as any)?.folio ?? id.slice(0, 8);
+        await notificarStaff({
+          tipo: "trabajo_completado",
+          titulo: `Trabajo ${folio} completado`,
+          mensaje: `El técnico finalizó el trabajo ${folio} (${rest.servicio ?? ""}).`,
+          trabajo_id: id,
+          excluirUserId: context.userId,
+        });
+      } catch { /* silenciar */ }
     }
     // Notificación al técnico cuando se le asigna o reasigna un trabajo
     if (payload.tecnico_id && payload.tecnico_id !== tecnicoPrevio) {

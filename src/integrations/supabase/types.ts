@@ -640,54 +640,125 @@ export type Database = {
           },
         ]
       }
+      reporte_auditoria: {
+        Row: {
+          accion: string
+          actor: string | null
+          comentario: string | null
+          created_at: string
+          estado_anterior: string | null
+          estado_nuevo: string | null
+          id: string
+          reporte_id: string
+          snapshot: Json | null
+          version: number | null
+        }
+        Insert: {
+          accion: string
+          actor?: string | null
+          comentario?: string | null
+          created_at?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          reporte_id: string
+          snapshot?: Json | null
+          version?: number | null
+        }
+        Update: {
+          accion?: string
+          actor?: string | null
+          comentario?: string | null
+          created_at?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string | null
+          id?: string
+          reporte_id?: string
+          snapshot?: Json | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reporte_auditoria_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reportes: {
         Row: {
+          aprobado_at: string | null
+          aprobado_por: string | null
           cliente_id: string
           contenido_markdown: string
           created_at: string
           enviado_a: string | null
           enviado_at: string | null
+          enviado_por: string | null
           estado: Database["public"]["Enums"]["reporte_estado"]
           generado_por: string | null
           id: string
           insight_resumen: string | null
           model_used: string | null
+          motivo_rechazo: string | null
           periodo: string
           planta_id: string | null
+          rechazado_at: string | null
+          rechazado_por: string | null
+          reporte_padre_id: string | null
           titulo: string
           updated_at: string
+          version: number
         }
         Insert: {
+          aprobado_at?: string | null
+          aprobado_por?: string | null
           cliente_id: string
           contenido_markdown: string
           created_at?: string
           enviado_a?: string | null
           enviado_at?: string | null
+          enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
           id?: string
           insight_resumen?: string | null
           model_used?: string | null
+          motivo_rechazo?: string | null
           periodo: string
           planta_id?: string | null
+          rechazado_at?: string | null
+          rechazado_por?: string | null
+          reporte_padre_id?: string | null
           titulo: string
           updated_at?: string
+          version?: number
         }
         Update: {
+          aprobado_at?: string | null
+          aprobado_por?: string | null
           cliente_id?: string
           contenido_markdown?: string
           created_at?: string
           enviado_a?: string | null
           enviado_at?: string | null
+          enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
           id?: string
           insight_resumen?: string | null
           model_used?: string | null
+          motivo_rechazo?: string | null
           periodo?: string
           planta_id?: string | null
+          rechazado_at?: string | null
+          rechazado_por?: string | null
+          reporte_padre_id?: string | null
           titulo?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -702,6 +773,13 @@ export type Database = {
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reportes_reporte_padre_id_fkey"
+            columns: ["reporte_padre_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
             referencedColumns: ["id"]
           },
         ]
@@ -1552,7 +1630,7 @@ export type Database = {
         | "cancelado"
       mantenimiento_tipo: "preventivo" | "correctivo" | "predictivo"
       movimiento_tipo: "ingreso" | "salida" | "ajuste"
-      reporte_estado: "borrador" | "enviado"
+      reporte_estado: "borrador" | "enviado" | "aprobado" | "rechazado"
       trabajo_estado: "programado" | "en_progreso" | "completado" | "cancelado"
     }
     CompositeTypes: {
@@ -1706,7 +1784,7 @@ export const Constants = {
       ],
       mantenimiento_tipo: ["preventivo", "correctivo", "predictivo"],
       movimiento_tipo: ["ingreso", "salida", "ajuste"],
-      reporte_estado: ["borrador", "enviado"],
+      reporte_estado: ["borrador", "enviado", "aprobado", "rechazado"],
       trabajo_estado: ["programado", "en_progreso", "completado", "cancelado"],
     },
   },
