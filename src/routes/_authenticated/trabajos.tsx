@@ -18,8 +18,7 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive } from "lucide-react";
-import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -33,6 +32,7 @@ import {
   listTrabajoEquipos,
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
+import { generarYDescargarRecursosPdf } from "@/lib/pdf/descargar";
 
 function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: string }) {
   const fSolicitar = useServerFn(solicitarAprobacion);
@@ -131,7 +131,7 @@ function Trabajos() {
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
-  const [tab, setTab] = useState<"ot" | "diarios" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
+  const [tab, setTab] = useState<"diarios" | "recursos" | "ot" | "historial">("diarios");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
@@ -145,13 +145,13 @@ function Trabajos() {
 
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
-    if (!editing) { setEquipoIds([]); setTab(isTecnico ? "diarios" : "ot"); return; }
+    if (!editing) { setEquipoIds([]); setTab("diarios"); return; }
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
       setEquipoIds([]);
     }
-    if (editing.id && isTecnico) setTab("diarios");
+    if (editing.id) setTab("diarios");
   }, [editing?.id, equiposAsignados.data, isTecnico]);
 
   const save = useMutation({
