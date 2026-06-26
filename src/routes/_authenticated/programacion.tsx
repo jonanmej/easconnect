@@ -549,12 +549,11 @@ function ClienteCalendar() {
           </select>
         </Field>
         <Field label="Tipo de visita">
-          <select name="tipo" required className={inputCls} defaultValue="Mantenimiento preventivo">
-            <option>Mantenimiento preventivo</option>
-            <option>Inspección</option>
-            <option>Falla / Emergencia</option>
-            <option>Limpieza</option>
-            <option>Otro</option>
+          <select name="tipo" required className={inputCls} defaultValue="">
+            <option value="" disabled>Selecciona…</option>
+            {SERVICIOS_OT.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
         </Field>
         <Field label="Descripción / motivo">
