@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -42,6 +42,18 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
     queryKey: ["diarios", trabajoId],
     queryFn: () => fList({ data: { trabajo_id: trabajoId } }),
     enabled: !isStSolar,
+  });
+  const trabajoInfo = useQuery({
+    queryKey: ["trabajo-info-diarios", trabajoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trabajos")
+        .select("duracion_dias, planta:plantas(paneles)")
+        .eq("id", trabajoId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
   });
   const pdfs = useQuery({
     queryKey: ["diarios-pdf", trabajoId],
@@ -108,7 +120,12 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
       </div>
 
       {!isStSolar && (
-        <DiarioForm onSave={(v) => save.mutate(v)} saving={save.isPending} />
+        <DiarioForm
+          onSave={(v) => save.mutate(v)}
+          saving={save.isPending}
+          panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+          duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+        />
       )}
 
       {!isStSolar && (
