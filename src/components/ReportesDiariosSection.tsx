@@ -15,6 +15,7 @@ import {
 import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 
 const BUCKET = "trabajos-evidencia";
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
@@ -188,6 +189,18 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
         currentUserId={user?.id ?? ""}
         isStaff={isStaff}
       />
+
+      {!isStSolar && (
+        <div className="space-y-2 pt-3 border-t border-border">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Hallazgos fotográficos
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Sube las fotos del día (Antes / Durante / Después / Anomalías). Se acumulan junto a los reportes diarios.
+          </p>
+          <EvidenciaUploader trabajoId={trabajoId} />
+        </div>
+      )}
     </div>
   );
 }
