@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
+import { SERVICIOS_OT } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -549,12 +550,11 @@ function ClienteCalendar() {
           </select>
         </Field>
         <Field label="Tipo de visita">
-          <select name="tipo" required className={inputCls} defaultValue="Mantenimiento preventivo">
-            <option>Mantenimiento preventivo</option>
-            <option>Inspección</option>
-            <option>Falla / Emergencia</option>
-            <option>Limpieza</option>
-            <option>Otro</option>
+          <select name="tipo" required className={inputCls} defaultValue="">
+            <option value="" disabled>Selecciona…</option>
+            {SERVICIOS_OT.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
         </Field>
         <Field label="Descripción / motivo">

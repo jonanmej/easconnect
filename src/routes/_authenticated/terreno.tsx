@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/terreno")({
 function Terreno() {
   const { user, roles } = useAuth();
   const isStaff = roles.includes("admin") || roles.includes("supervisor");
+  const isSupervisor = roles.includes("supervisor");
+  const soloMonitoreo = isStaff && !isSupervisor;
   const fList = useServerFn(listTrabajos);
   const fSave = useServerFn(upsertTrabajo);
   const fTecnicos = useServerFn(listTecnicos);
@@ -88,7 +90,7 @@ function Terreno() {
     <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
       <PageHeader title="Terreno" description="Trabajos programados y con asignación de técnico." />
 
-      {isStaff ? (
+      {soloMonitoreo ? (
         <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
           Vista de monitoreo: admin y supervisores visualizan los trabajos y técnicos asignados, sin ejecutar acciones de campo.
         </p>
@@ -119,7 +121,7 @@ function Terreno() {
             key={t.id}
             trabajo={t}
             tecnicoNombre={t.tecnico_id ? (tecMap.get(t.tecnico_id) ?? "Técnico desconocido") : "Sin asignar"}
-            soloLectura={isStaff}
+            soloLectura={soloMonitoreo}
             onIniciar={() =>
               mEstado.mutate({ id: t.id, estado: "en_progreso", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada, tecnico_id: t.tecnico_id ?? null })
             }
