@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const SERVICIOS_NO_CONTRATABLES = new Set(["Falla", "Emergencia", "Inspección"]);
+
 function toIsoStartOfDay(dateStr: string) {
   // dateStr YYYY-MM-DD
   const d = new Date(dateStr + "T08:00:00Z");
@@ -48,6 +50,11 @@ export const upsertContrato = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
+    if (SERVICIOS_NO_CONTRATABLES.has(data.servicio.trim())) {
+      throw new Error(
+        `El servicio "${data.servicio}" no puede registrarse como contrato (es un evento puntual, no recurrente).`,
+      );
+    }
     const payload = {
       planta_id: data.planta_id,
       servicio: data.servicio,
