@@ -10,7 +10,6 @@ import {
   Wrench,
   Sparkles,
   Search,
-  Bell,
   LogOut,
   ShieldCheck,
   Users,
