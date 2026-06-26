@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive } from "lucide-react";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import {
@@ -130,7 +131,7 @@ function Trabajos() {
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
-  const [tab, setTab] = useState<"ot" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
+  const [tab, setTab] = useState<"ot" | "diarios" | "reporte" | "evidencias" | "recursos" | "historial">("ot");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
@@ -144,13 +145,13 @@ function Trabajos() {
 
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
-    if (!editing) { setEquipoIds([]); setTab(isTecnico ? "reporte" : "ot"); return; }
+    if (!editing) { setEquipoIds([]); setTab(isTecnico ? "diarios" : "ot"); return; }
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
       setEquipoIds([]);
     }
-    if (editing.id && isTecnico) setTab("reporte");
+    if (editing.id && isTecnico) setTab("diarios");
   }, [editing?.id, equiposAsignados.data, isTecnico]);
 
   const save = useMutation({
@@ -378,12 +379,13 @@ function Trabajos() {
         onSubmit={onSubmit}
       >
         {editing?.id && (
-          <div className="flex gap-1 border-b border-border -mt-2 mb-2">
+          <div className="flex gap-1 border-b border-border -mt-2 mb-2 overflow-x-auto -mx-1 px-1">
             {(([
               { k: "ot", l: "Orden de trabajo" },
+              { k: "diarios", l: "Reportes diarios" },
               { k: "reporte", l: "Reporte técnico" },
-              { k: "evidencias", l: "Evidencia fotográfica" },
-              { k: "recursos", l: "Recursos de la visita" },
+              { k: "evidencias", l: "Evidencias" },
+              { k: "recursos", l: "Recursos" },
               { k: "historial", l: "Historial de asignaciones" },
             ] as const).filter((t) => !isTecnico || (t.k !== "ot" && t.k !== "historial"))).map((t) => (
               <button
@@ -391,7 +393,7 @@ function Trabajos() {
                 type="button"
                 onClick={() => setTab(t.k)}
                 className={
-                  "px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors " +
+                  "px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 " +
                   (tab === t.k
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground")
@@ -501,6 +503,9 @@ function Trabajos() {
         </Field>
         </div>
 
+        {editing?.id && tab === "diarios" && (
+          <ReportesDiariosSection trabajoId={editing.id} />
+        )}
         {editing?.id && tab === "reporte" && (
           <ReporteBaseSection
             trabajoId={editing.id}
