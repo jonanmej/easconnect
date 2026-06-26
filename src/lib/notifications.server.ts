@@ -66,9 +66,9 @@ export function formatFechaEs(d: Date) {
 }
 
 const LOGO_LIGHT =
-  "https://easconnect.lovable.app/__l5e/assets-v1/ce7174da-fe38-403c-b5cf-5828b21ac9ad/ea-service-connect-logo-light.png";
+  "https://easconnect.lovable.app/__l5e/assets-v1/cf02259b-9448-4a88-b32e-cbcbde302016/ea-logo-v2-light.png";
 const LOGO_DARK =
-  "https://easconnect.lovable.app/__l5e/assets-v1/c67d929c-4ade-469e-9577-738073147367/ea-service-connect-logo-transparent.png";
+  "https://easconnect.lovable.app/__l5e/assets-v1/3fc32008-2a58-41b1-85c6-f0ae8514924a/ea-logo-v2-dark.png";
 
 export function emailLayout(title: string, bodyHtml: string) {
   const bg = "#0F172A";
