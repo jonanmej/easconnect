@@ -89,6 +89,38 @@ export const marcarReporteEnviado = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const eliminarReporte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: isSup } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
+    if (!isAdmin && !isSup) throw new Error("Solo administradores o supervisores pueden eliminar reportes");
+    const { error } = await context.supabase.from("reportes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resetDatosOperacionales = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Solo administradores pueden reiniciar los datos");
+    const { error } = await context.supabase.rpc("reset_operational_data");
+    if (error) throw new Error(error.message);
+    // Vaciar storage buckets
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      for (const bucket of ["trabajos-evidencia", "firmas-clientes"]) {
+        const { data: files } = await supabaseAdmin.storage.from(bucket).list("", { limit: 1000 });
+        if (files?.length) {
+          await supabaseAdmin.storage.from(bucket).remove(files.map((f: any) => f.name));
+        }
+      }
+    } catch { /* ignore storage cleanup errors */ }
+    return { ok: true };
+  });
+
 export const generarReporte = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sun, Moon, Laptop, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme, type ThemePreference } from "@/lib/theme-context";
@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getPasswordPolicy, setPasswordPolicy, type PasswordPolicy } from "@/lib/system-config.functions";
+import { resetDatosOperacionales } from "@/lib/reportes.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracion")({
@@ -122,6 +123,7 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
         {isAdmin && <PasswordPolicyCard />}
+        {isAdmin && <ResetDataCard />}
       </div>
     </div>
   );
@@ -216,6 +218,63 @@ function PasswordPolicyCard() {
             className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
           >
             {save.isPending ? "Guardando…" : "Guardar política"}
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ResetDataCard() {
+  const qc = useQueryClient();
+  const fReset = useServerFn(resetDatosOperacionales);
+  const [confirm, setConfirm] = useState("");
+  const reset = useMutation({
+    mutationFn: () => fReset(),
+    onSuccess: () => {
+      toast.success("Datos operativos eliminados. La app está lista para iniciar desde cero.");
+      setConfirm("");
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const armed = confirm.trim().toUpperCase() === "REINICIAR";
+  return (
+    <Card className="max-w-3xl mt-6 border-destructive/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="size-4" />
+          Reiniciar datos de la aplicación
+        </CardTitle>
+        <CardDescription>
+          Borra todos los clientes, plantas, equipos, trabajos, mantenimientos, contratos,
+          inventario, reportes, notificaciones, solicitudes y archivos cargados (evidencias y firmas).
+          Se conservan los usuarios, sus roles y la configuración del sistema. Útil al publicar
+          la app por primera vez para que el cliente comience desde cero. Esta acción no se puede deshacer.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <label className="text-xs font-medium block">
+          Escribe <span className="font-mono font-bold">REINICIAR</span> para habilitar el botón
+        </label>
+        <input
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          placeholder="REINICIAR"
+          className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+        />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={!armed || reset.isPending}
+            onClick={() => {
+              if (window.confirm("¿Confirmas que deseas eliminar TODOS los datos operativos? Esta acción es irreversible.")) {
+                reset.mutate();
+              }
+            }}
+            className="bg-destructive text-destructive-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
+          >
+            {reset.isPending ? "Reiniciando…" : "Reiniciar datos ahora"}
           </button>
         </div>
       </CardContent>
