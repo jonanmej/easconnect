@@ -8,4 +8,7 @@ export const SERVICIOS_OT = [
   "Instalación Fotovoltaica",
   "Limpieza Robotizada",
   "Servicio Técnico de Drone",
+  "Falla",
+  "Emergencia",
+  "Inspección",
 ] as const;
