@@ -90,13 +90,16 @@ export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
   }, []);
 
   async function subirItem(item: ItemSubida, cat: Categoria): Promise<void> {
-    const ext = item.file.name.split(".").pop() || "jpg";
+    const rawExt = (item.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const ext = rawExt.slice(0, 5) || "jpg";
     const path = `trabajos/${trabajoId}/${crypto.randomUUID()}.${ext}`;
+    const contentType = item.file.type
+      || (ext === "heic" ? "image/heic" : ext === "png" ? "image/png" : "image/jpeg");
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, item.file, {
-      contentType: item.file.type || "image/jpeg",
+      contentType,
       upsert: false,
     });
-    if (upErr) throw upErr;
+    if (upErr) throw new Error(upErr.message || "Falló la subida a Storage");
     await fetchRecord({
       data: { trabajo_id: trabajoId, storage_path: path, descripcion: item.file.name, categoria: cat },
     });
@@ -126,10 +129,11 @@ export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
       const dataUrl = await fileToDataURL(item.file);
       enqueue({ trabajo_id: trabajoId, descripcion: item.file.name, data_url: dataUrl });
       setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
-      toast.info("Foto guardada offline. Se reintentará al recuperar la red.");
+      toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
       setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
     } catch {
       setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
+      toast.error(`Error al subir "${item.file.name}": ${item.error ?? "desconocido"}`);
     }
   }
 
