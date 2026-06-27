@@ -12,7 +12,7 @@ import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-
 export const Route = createFileRoute("/_authenticated/terreno")({
   head: () => ({
     meta: [
-      { title: "Terreno · EA Service Connect" },
+      { title: "A.T. · EA Service Connect" },
       { name: "description", content: "Vista móvil para técnicos en terreno: iniciar, evidenciar y completar." },
     ],
   }),
@@ -88,7 +88,7 @@ function Terreno() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
-      <PageHeader title="Terreno" description="Trabajos programados y con asignación de técnico." />
+      <PageHeader title="A.T." description="Asistencia técnica: trabajos programados con asignación de técnico." />
 
       {soloMonitoreo ? (
         <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
