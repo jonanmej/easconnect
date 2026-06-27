@@ -11,7 +11,7 @@ export const listClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("clientes")
-      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
+      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, solo_capacitacion, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
       .order("nombre");
     if (error) throw new Error(error.message);
     // include planta count
@@ -36,6 +36,7 @@ export const upsertCliente = createServerFn({ method: "POST" })
       capacidad: z.string().nullable().optional(),
       estado: ClienteEstado,
       contrato_om: z.coerce.boolean().optional(),
+      solo_capacitacion: z.coerce.boolean().optional(),
       cuota_preventivos: z.coerce.number().int().min(0).optional(),
       cuota_correctivos: z.coerce.number().int().min(0).optional(),
       cuota_menores: z.coerce.number().int().min(0).optional(),
