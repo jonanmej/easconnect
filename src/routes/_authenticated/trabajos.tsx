@@ -480,6 +480,40 @@ function Trabajos() {
             </p>
           )}
         </Field>
+        <Field label={`Técnicos adicionales (${tecExtraIds.length})`}>
+          <div className="border border-border rounded-md max-h-40 overflow-y-auto divide-y divide-border">
+            {(tecnicos.data as any[] | undefined)?.length ? (
+              (tecnicos.data as any[]).map((t) => {
+                const principal = (document.querySelector('select[name="tecnico_id"]') as HTMLSelectElement | null)?.value;
+                const isPrincipal = principal === t.id;
+                const checked = tecExtraIds.includes(t.id);
+                return (
+                  <label key={t.id} className={"flex items-center gap-2 px-3 py-2 text-xs cursor-pointer " + (isPrincipal ? "opacity-50" : "hover:bg-secondary/40")}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={isPrincipal}
+                      onChange={(ev) => {
+                        setTecExtraIds((prev) =>
+                          ev.currentTarget.checked
+                            ? [...prev, t.id]
+                            : prev.filter((x) => x !== t.id),
+                        );
+                      }}
+                    />
+                    <span>{t.nombre}</span>
+                    {isPrincipal && <span className="ml-auto text-[10px] text-muted-foreground">(principal)</span>}
+                  </label>
+                );
+              })
+            ) : (
+              <p className="px-3 py-3 text-xs text-muted-foreground">Sin técnicos disponibles.</p>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Marca técnicos de apoyo. Se valida conflicto de fechas y reciben notificación.
+          </p>
+        </Field>
         <Field label={`Equipos asignados (${equipoIds.length})`}>
           <div className="border border-border rounded-md max-h-48 overflow-y-auto divide-y divide-border">
             {(equipos.data as any[] | undefined)?.length ? (
