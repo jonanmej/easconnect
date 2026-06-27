@@ -102,6 +102,7 @@ function Clientes() {
       capacidad: f.get("capacidad") || null,
       estado: f.get("estado"),
       contrato_om: f.get("contrato_om") === "on",
+      solo_capacitacion: f.get("solo_capacitacion") === "on",
       cuota_preventivos: Number(f.get("cuota_preventivos") ?? 0),
       cuota_correctivos: Number(f.get("cuota_correctivos") ?? 0),
       cuota_menores: Number(f.get("cuota_menores") ?? 0),
@@ -296,6 +297,13 @@ function Clientes() {
             <input type="checkbox" name="contrato_om" defaultChecked={!!editing?.contrato_om} />
             Tiene contrato de O&amp;M activo
           </label>
+          <label className="flex items-center gap-2 text-xs font-medium mb-3">
+            <input type="checkbox" name="solo_capacitacion" defaultChecked={!!(editing as any)?.solo_capacitacion} />
+            Solo recibe capacitaciones
+          </label>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            Si está activo, el sistema bloqueará trabajos y contratos cuyo servicio no sea "Capacitación".
+          </p>
           <p className="text-[10px] text-muted-foreground mb-2">Cuotas anuales contratadas por tipo de servicio:</p>
           <div className="grid grid-cols-3 gap-2">
             {[

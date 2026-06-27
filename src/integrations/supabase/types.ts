@@ -64,6 +64,7 @@ export type Database = {
           id: string
           nombre: string
           rut: string | null
+          solo_capacitacion: boolean
           telefono: string | null
           updated_at: string
         }
@@ -83,6 +84,7 @@ export type Database = {
           id?: string
           nombre: string
           rut?: string | null
+          solo_capacitacion?: boolean
           telefono?: string | null
           updated_at?: string
         }
@@ -102,6 +104,7 @@ export type Database = {
           id?: string
           nombre?: string
           rut?: string | null
+          solo_capacitacion?: boolean
           telefono?: string | null
           updated_at?: string
         }
@@ -1373,6 +1376,45 @@ export type Database = {
           },
           {
             foreignKeyName: "trabajo_reportes_pdf_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_tecnicos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          rol: string
+          tecnico_id: string
+          trabajo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          rol?: string
+          tecnico_id: string
+          trabajo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          rol?: string
+          tecnico_id?: string
+          trabajo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_tecnicos_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_tecnicos_trabajo_id_fkey"
             columns: ["trabajo_id"]
             isOneToOne: false
             referencedRelation: "trabajos_sla"
