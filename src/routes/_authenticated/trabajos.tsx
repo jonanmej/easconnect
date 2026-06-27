@@ -15,6 +15,7 @@ import {
   listTecnicos,
   listAsignacionesLog,
   crearTrabajoHistorico,
+  listTrabajoTecnicosExtra,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
@@ -131,6 +132,7 @@ function Trabajos() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = useState<"diarios" | "recursos" | "ot" | "historial">("diarios");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
+  const [tecExtraIds, setTecExtraIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
 
@@ -141,16 +143,28 @@ function Trabajos() {
     enabled: !!editing?.id,
   });
 
+  const fetchTecExtra = useServerFn(listTrabajoTecnicosExtra);
+  const tecnicosExtraQ = useQuery({
+    queryKey: ["trabajo-tecnicos-extra", editing?.id],
+    queryFn: () => fetchTecExtra({ data: { trabajo_id: editing.id } }),
+    enabled: !!editing?.id,
+  });
+
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
-    if (!editing) { setEquipoIds([]); setTab("diarios"); return; }
+    if (!editing) { setEquipoIds([]); setTecExtraIds([]); setTab("diarios"); return; }
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
       setEquipoIds([]);
     }
+    if (editing.id && tecnicosExtraQ.data) {
+      setTecExtraIds((tecnicosExtraQ.data as any[]).map((e) => e.tecnico_id));
+    } else if (!editing.id) {
+      setTecExtraIds([]);
+    }
     if (editing.id) setTab("diarios");
-  }, [editing?.id, equiposAsignados.data, isTecnico]);
+  }, [editing?.id, equiposAsignados.data, tecnicosExtraQ.data, isTecnico]);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -217,6 +231,7 @@ function Trabajos() {
       fecha_programada: fecha,
       estado: f.get("estado"),
       tecnico_id: (f.get("tecnico_id") as string) || null,
+      tecnicos_extra_ids: tecExtraIds,
       notas: f.get("notas") || null,
       duracion_dias: Number(f.get("duracion_dias") ?? 1),
     });
