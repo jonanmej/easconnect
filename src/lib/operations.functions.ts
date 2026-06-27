@@ -654,6 +654,20 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
 
 // ============ Dashboard KPIs ============
 
+// ============ Técnicos extra por trabajo ============
+
+export const listTrabajoTecnicosExtra = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("trabajo_tecnicos")
+      .select("tecnico_id, rol")
+      .eq("trabajo_id", data.trabajo_id);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 export const dashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
