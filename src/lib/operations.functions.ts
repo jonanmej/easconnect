@@ -336,13 +336,14 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       fecha_programada: z.string(),
       estado: TrabajoEstado,
       tecnico_id: z.string().uuid().nullable().optional(),
+      tecnicos_extra_ids: z.array(z.string().uuid()).optional(),
       notas: z.string().nullable().optional(),
       duracion_dias: z.coerce.number().int().min(1).max(60).optional(),
       origen: z.enum(["staff", "cliente"]).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, equipo_ids, ...rest } = data;
+    const { id, equipo_ids, tecnicos_extra_ids, ...rest } = data;
     const payload = {
       ...rest,
       equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
@@ -384,6 +385,44 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         const rows = equipo_ids.map((eid) => ({ trabajo_id: trabajoId, equipo_id: eid }));
         const { error: errIns } = await context.supabase.from("trabajo_equipos").insert(rows);
         if (errIns) throw new Error(errIns.message);
+      }
+    }
+    // Sincronizar técnicos adicionales (trabajo_tecnicos)
+    if (tecnicos_extra_ids) {
+      const trabajoId = (row as any).id;
+      // Validar conflictos de cada técnico extra
+      const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
+      for (const tid of tecnicos_extra_ids) {
+        if (!tid || tid === payload.tecnico_id) continue;
+        const { data: cfx, error: cfxErr } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+          _tecnico_id: tid,
+          _fecha: payload.fecha_programada,
+          _duracion_dias: dur,
+          _excluir_trabajo_id: trabajoId,
+        });
+        if (cfxErr) throw new Error(cfxErr.message);
+        if ((cfx ?? []).length > 0) {
+          throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(cfx));
+        }
+      }
+      await context.supabase.from("trabajo_tecnicos").delete().eq("trabajo_id", trabajoId);
+      const limpios = Array.from(new Set(tecnicos_extra_ids.filter((t) => t && t !== payload.tecnico_id)));
+      if (limpios.length > 0) {
+        const rows = limpios.map((tid) => ({ trabajo_id: trabajoId, tecnico_id: tid, created_by: context.userId }));
+        const { error: errInsT } = await context.supabase.from("trabajo_tecnicos").insert(rows);
+        if (errInsT) throw new Error(errInsT.message);
+        // Notificar a cada técnico extra nuevo
+        try {
+          const { notificarAsignacionTecnico } = await import("@/lib/notificaciones-tecnico.server");
+          for (const tid of limpios) {
+            await notificarAsignacionTecnico({
+              tecnicoId: tid,
+              trabajoId,
+              reasignacion: false,
+              asignadoPor: context.userId,
+            }).catch(() => {});
+          }
+        } catch { /* silenciar */ }
       }
     }
     // Notificación automática al cliente cuando un trabajo pasa a "completado"
