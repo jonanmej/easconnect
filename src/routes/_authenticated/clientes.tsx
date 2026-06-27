@@ -102,6 +102,7 @@ function Clientes() {
       capacidad: f.get("capacidad") || null,
       estado: f.get("estado"),
       contrato_om: f.get("contrato_om") === "on",
+      solo_capacitacion: f.get("solo_capacitacion") === "on",
       cuota_preventivos: Number(f.get("cuota_preventivos") ?? 0),
       cuota_correctivos: Number(f.get("cuota_correctivos") ?? 0),
       cuota_menores: Number(f.get("cuota_menores") ?? 0),
