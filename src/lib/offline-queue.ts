@@ -11,6 +11,8 @@ const BUCKET = "trabajos-evidencia";
 export type EvidenciaPendiente = {
   id: string;
   trabajo_id: string;
+  reporte_diario_id?: string | null;
+  categoria?: "antes" | "durante" | "despues" | "anomalia";
   descripcion: string | null;
   data_url: string; // image/jpeg base64
   created_at: number;
@@ -58,7 +60,7 @@ export async function flushQueue(
   for (const item of items) {
     try {
       const blob = await dataUrlToBlob(item.data_url);
-      const path = `${item.trabajo_id}/${Date.now()}-${item.id.slice(0, 8)}.jpg`;
+      const path = `trabajos/${item.trabajo_id}/${Date.now()}-${item.id.slice(0, 8)}.jpg`;
       const up = await supabase.storage.from(BUCKET).upload(path, blob, {
         contentType: "image/jpeg",
         upsert: false,
@@ -66,7 +68,13 @@ export async function flushQueue(
       if (up.error) throw up.error;
       const ins = await supabase
         .from("trabajo_evidencias")
-        .insert({ trabajo_id: item.trabajo_id, storage_path: path, descripcion: item.descripcion });
+        .insert({
+          trabajo_id: item.trabajo_id,
+          reporte_diario_id: item.reporte_diario_id ?? null,
+          storage_path: path,
+          descripcion: item.descripcion,
+          categoria: item.categoria ?? "durante",
+        });
       if (ins.error) throw ins.error;
       const rest = read().filter((x) => x.id !== item.id);
       write(rest);
