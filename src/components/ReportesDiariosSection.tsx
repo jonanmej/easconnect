@@ -163,6 +163,12 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
+                  <div className="pt-2 border-t border-border/60">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">
+                      Evidencias de este día
+                    </p>
+                    <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={d.id} />
+                  </div>
                   {canDelete && (
                     <div className="flex justify-end">
                       <button
