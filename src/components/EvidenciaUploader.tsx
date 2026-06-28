@@ -50,6 +50,7 @@ export function EvidenciaUploader({
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const procesandoRef = useRef<Set<string>>(new Set());
   const [categoria, setCategoria] = useState<Categoria>("antes");
   const [cola, setCola] = useState<ItemSubida[]>([]);
   const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
@@ -100,6 +101,14 @@ export function EvidenciaUploader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Guarda contra estados "pendiente" atascados por renders asíncronos o recargas rápidas del diálogo.
+  useEffect(() => {
+    cola
+      .filter((item) => item.estado === "pendiente")
+      .forEach((item) => procesar(item.id, item));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cola]);
+
   async function subirItem(item: ItemSubida, cat: Categoria): Promise<void> {
     if (!trabajoId) throw new Error("trabajoId no definido");
     const rawExt = (item.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -134,40 +143,46 @@ export function EvidenciaUploader({
   }
 
   async function procesar(itemId: string, itemInicial?: ItemSubida) {
+    if (procesandoRef.current.has(itemId)) return;
     let item = itemInicial ?? cola.find((c) => c.id === itemId);
     if (!item) return;
-    for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
-      setCola((prev) => prev.map((c) => c.id === itemId
-        ? { ...c, estado: "subiendo", intentos: intento + 1, error: undefined }
-        : c));
-      try {
-        await subirItem(item, item.categoria);
-        setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "ok" } : c));
-        qc.invalidateQueries({ queryKey: ["evidencias", trabajoId] });
-        // limpiar de la cola luego de 2s
-        setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2000);
-        return;
-      } catch (e: any) {
-        item = { ...item, intentos: intento + 1, error: e?.message ?? "Error" };
-        await new Promise((r) => setTimeout(r, 400 * (intento + 1)));
-      }
-    }
-    // Fallback: encolar offline
+    procesandoRef.current.add(itemId);
     try {
-      const dataUrl = await fileToDataURL(item.file);
-      enqueue({
-        trabajo_id: trabajoId,
-        reporte_diario_id: reporteDiarioId ?? null,
-        categoria: item.categoria,
-        descripcion: item.file.name,
-        data_url: dataUrl,
-      });
-      setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
-      toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
-      setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
-    } catch {
-      setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
-      toast.error(`Error al subir "${item.file.name}": ${item.error ?? "desconocido"}`);
+      for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
+        setCola((prev) => prev.map((c) => c.id === itemId
+          ? { ...c, estado: "subiendo", intentos: intento + 1, error: undefined }
+          : c));
+        try {
+          await subirItem(item, item.categoria);
+          setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "ok" } : c));
+          qc.invalidateQueries({ queryKey: ["evidencias", trabajoId] });
+          // limpiar de la cola luego de 2s
+          setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2000);
+          return;
+        } catch (e: any) {
+          item = { ...item, intentos: intento + 1, error: e?.message ?? "Error" };
+          await new Promise((r) => setTimeout(r, 400 * (intento + 1)));
+        }
+      }
+      // Fallback: encolar offline
+      try {
+        const dataUrl = await fileToDataURL(item.file);
+        enqueue({
+          trabajo_id: trabajoId,
+          reporte_diario_id: reporteDiarioId ?? null,
+          categoria: item.categoria,
+          descripcion: item.file.name,
+          data_url: dataUrl,
+        });
+        setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
+        toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
+        setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
+      } catch {
+        setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
+        toast.error(`Error al subir "${item.file.name}": ${item.error ?? "desconocido"}`);
+      }
+    } finally {
+      procesandoRef.current.delete(itemId);
     }
   }
 
