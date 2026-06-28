@@ -133,8 +133,8 @@ export function EvidenciaUploader({
     }
   }
 
-  async function procesar(itemId: string) {
-    let item = cola.find((c) => c.id === itemId);
+  async function procesar(itemId: string, itemInicial?: ItemSubida) {
+    let item = itemInicial ?? cola.find((c) => c.id === itemId);
     if (!item) return;
     for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
       setCola((prev) => prev.map((c) => c.id === itemId
@@ -155,7 +155,13 @@ export function EvidenciaUploader({
     // Fallback: encolar offline
     try {
       const dataUrl = await fileToDataURL(item.file);
-      enqueue({ trabajo_id: trabajoId, descripcion: item.file.name, data_url: dataUrl });
+      enqueue({
+        trabajo_id: trabajoId,
+        reporte_diario_id: reporteDiarioId ?? null,
+        categoria: item.categoria,
+        descripcion: item.file.name,
+        data_url: dataUrl,
+      });
       setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
       toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
       setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
@@ -192,8 +198,8 @@ export function EvidenciaUploader({
     }));
     setCola((prev) => [...prev, ...nuevos]);
     if (inputRef.current) inputRef.current.value = "";
-    // Procesar en paralelo
-    for (const n of nuevos) procesar(n.id);
+    // Procesar en paralelo. Pasamos el item explícitamente porque setState es asíncrono.
+    for (const n of nuevos) procesar(n.id, n);
   }
 
   const all = (list.data as any[] | undefined) ?? [];
