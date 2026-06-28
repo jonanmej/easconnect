@@ -41,7 +41,13 @@ function fileToDataURL(file: File | Blob): Promise<string> {
   });
 }
 
-export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
+export function EvidenciaUploader({
+  trabajoId,
+  reporteDiarioId,
+}: {
+  trabajoId: string;
+  reporteDiarioId?: string | null;
+}) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [categoria, setCategoria] = useState<Categoria>("antes");
@@ -59,8 +65,13 @@ export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
   const fetchDelete = useServerFn(deleteEvidencia);
 
   const list = useQuery({
-    queryKey: ["evidencias", trabajoId],
-    queryFn: () => fetchList({ data: { trabajo_id: trabajoId } }),
+    queryKey: ["evidencias", trabajoId, reporteDiarioId ?? null],
+    queryFn: () => fetchList({
+      data: {
+        trabajo_id: trabajoId,
+        ...(reporteDiarioId !== undefined ? { reporte_diario_id: reporteDiarioId } : {}),
+      },
+    }),
     enabled: !!trabajoId,
   });
 
@@ -90,6 +101,7 @@ export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
   }, []);
 
   async function subirItem(item: ItemSubida, cat: Categoria): Promise<void> {
+    if (!trabajoId) throw new Error("trabajoId no definido");
     const rawExt = (item.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const ext = rawExt.slice(0, 5) || "jpg";
     const path = `trabajos/${trabajoId}/${crypto.randomUUID()}.${ext}`;
@@ -99,10 +111,26 @@ export function EvidenciaUploader({ trabajoId }: { trabajoId: string }) {
       contentType,
       upsert: false,
     });
-    if (upErr) throw new Error(upErr.message || "Falló la subida a Storage");
-    await fetchRecord({
-      data: { trabajo_id: trabajoId, storage_path: path, descripcion: item.file.name, categoria: cat },
-    });
+    if (upErr) {
+      console.error("[Evidencias] storage upload error", upErr);
+      throw new Error(upErr.message || "Falló la subida a Storage");
+    }
+    try {
+      await fetchRecord({
+        data: {
+          trabajo_id: trabajoId,
+          storage_path: path,
+          descripcion: item.file.name,
+          categoria: cat,
+          ...(reporteDiarioId ? { reporte_diario_id: reporteDiarioId } : {}),
+        },
+      });
+    } catch (e) {
+      // Limpieza: si no se logró asociar la fila, borrar el archivo huérfano del storage.
+      console.error("[Evidencias] record insert error, removing orphan", e);
+      try { await supabase.storage.from(BUCKET).remove([path]); } catch { /* noop */ }
+      throw e;
+    }
   }
 
   async function procesar(itemId: string) {
