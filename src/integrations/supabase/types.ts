@@ -1067,6 +1067,7 @@ export type Database = {
           descripcion: string | null
           fecha: string | null
           id: string
+          reporte_diario_id: string | null
           storage_path: string
           subido_por: string | null
           trabajo_id: string
@@ -1077,6 +1078,7 @@ export type Database = {
           descripcion?: string | null
           fecha?: string | null
           id?: string
+          reporte_diario_id?: string | null
           storage_path: string
           subido_por?: string | null
           trabajo_id: string
@@ -1087,11 +1089,19 @@ export type Database = {
           descripcion?: string | null
           fecha?: string | null
           id?: string
+          reporte_diario_id?: string | null
           storage_path?: string
           subido_por?: string | null
           trabajo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trabajo_evidencias_reporte_diario_id_fkey"
+            columns: ["reporte_diario_id"]
+            isOneToOne: false
+            referencedRelation: "trabajo_reportes_diarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trabajo_evidencias_trabajo_id_fkey"
             columns: ["trabajo_id"]

@@ -8,13 +8,24 @@ const CATEGORIAS = ["antes", "durante", "despues", "anomalia"] as const;
 
 export const listEvidencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({
+      trabajo_id: z.string().uuid(),
+      reporte_diario_id: z.string().uuid().nullable().optional(),
+    }).parse(d),
+  )
   .handler(async ({ context, data }) => {
-    const { data: rows, error } = await context.supabase
+    let q = context.supabase
       .from("trabajo_evidencias")
-      .select("id, trabajo_id, storage_path, descripcion, categoria, subido_por, created_at")
+      .select("id, trabajo_id, reporte_diario_id, storage_path, descripcion, categoria, subido_por, created_at")
       .eq("trabajo_id", data.trabajo_id)
       .order("created_at", { ascending: false });
+    if (data.reporte_diario_id !== undefined) {
+      q = data.reporte_diario_id === null
+        ? q.is("reporte_diario_id", null)
+        : q.eq("reporte_diario_id", data.reporte_diario_id);
+    }
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     if (!rows?.length) return [];
     const { data: signed, error: sErr } = await context.supabase
@@ -33,9 +44,27 @@ export const recordEvidencia = createServerFn({ method: "POST" })
       storage_path: z.string().min(1),
       descripcion: z.string().nullable().optional(),
       categoria: z.enum(CATEGORIAS).optional(),
+      reporte_diario_id: z.string().uuid().nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
+    // Defensa: el storage_path debe estar bajo trabajos/<trabajo_id>/
+    const prefix = `trabajos/${data.trabajo_id}/`;
+    if (!data.storage_path.startsWith(prefix)) {
+      throw new Error("storage_path no corresponde al trabajo indicado");
+    }
+    // Defensa: si se vincula a un reporte diario, debe pertenecer al mismo trabajo
+    if (data.reporte_diario_id) {
+      const { data: rd, error: rdErr } = await context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("id, trabajo_id")
+        .eq("id", data.reporte_diario_id)
+        .maybeSingle();
+      if (rdErr) throw new Error(rdErr.message);
+      if (!rd || rd.trabajo_id !== data.trabajo_id) {
+        throw new Error("El reporte diario no pertenece al trabajo");
+      }
+    }
     const { data: row, error } = await context.supabase
       .from("trabajo_evidencias")
       .insert({
@@ -43,6 +72,7 @@ export const recordEvidencia = createServerFn({ method: "POST" })
         storage_path: data.storage_path,
         descripcion: data.descripcion ?? null,
         categoria: data.categoria ?? "durante",
+        reporte_diario_id: data.reporte_diario_id ?? null,
         subido_por: context.userId,
       })
       .select()
