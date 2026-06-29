@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -63,9 +63,9 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
 
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: { trabajo_id: trabajoId, ...v } }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Reporte diario guardado");
-      qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -129,7 +129,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
           defaultOpen
         >
           <DiarioForm
-            onSave={(v) => save.mutate(v)}
+            onSave={(v) => save.mutateAsync(v)}
             saving={save.isPending}
             panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
             duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
@@ -276,7 +276,7 @@ function Block({ title, children }: { title: string; children: any }) {
 function DiarioForm({
   onSave, saving, panelesPlanta, duracionDias,
 }: {
-  onSave: (v: any) => void;
+  onSave: (v: any) => Promise<unknown>;
   saving: boolean;
   panelesPlanta: number | null;
   duracionDias: number | null;
@@ -293,7 +293,7 @@ function DiarioForm({
     if (!expectedDia || !Number.isFinite(n) || n <= 0) return null;
     return Math.min(100, Math.round((n / expectedDia) * 100));
   }, [panelesDia, expectedDia]);
-  function submit(e: React.MouseEvent<HTMLButtonElement>) {
+  async function submit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault(); e.stopPropagation();
     const root = formRef.current;
     if (!root) return;
@@ -305,24 +305,28 @@ function DiarioForm({
       const v = get(n);
       return v === "" ? null : Number(v);
     };
-    onSave({
-      fecha: get("fecha") || today(),
-      avance_pct: avancePct,
-      paneles_limpiados: num("paneles_limpiados"),
-      agua_galones: num("agua_galones"),
-      horas_trabajadas: num("horas_trabajadas"),
-      clima: get("clima") || null,
-      trabajo_realizado: get("trabajo_realizado") || null,
-      hallazgos: get("hallazgos") || null,
-      observaciones: get("observaciones") || null,
-    });
-    // Limpiar campos
-    root.querySelectorAll("input, textarea").forEach((el) => {
-      const node = el as HTMLInputElement | HTMLTextAreaElement;
-      if (node.type !== "date") node.value = "";
-    });
-    setPanelesDia("");
-    setOpen(false);
+    try {
+      await onSave({
+        fecha: get("fecha") || today(),
+        avance_pct: avancePct,
+        paneles_limpiados: num("paneles_limpiados"),
+        agua_galones: num("agua_galones"),
+        horas_trabajadas: num("horas_trabajadas"),
+        clima: get("clima") || null,
+        trabajo_realizado: get("trabajo_realizado") || null,
+        hallazgos: get("hallazgos") || null,
+        observaciones: get("observaciones") || null,
+      });
+      // Limpiar campos solo si el guardado fue exitoso
+      root.querySelectorAll("input, textarea").forEach((el) => {
+        const node = el as HTMLInputElement | HTMLTextAreaElement;
+        if (node.type !== "date") node.value = "";
+      });
+      setPanelesDia("");
+      setOpen(false);
+    } catch {
+      // El toast de error ya se mostró desde la mutación; mantener el formulario abierto.
+    }
   }
   if (!open) {
     return (
@@ -366,7 +370,8 @@ function DiarioForm({
       <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={() => setOpen(false)} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
-        <button type="button" onClick={submit} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5">
+          {saving && <Loader2 className="size-3.5 animate-spin" />}
           {saving ? "Guardando…" : "Guardar reporte del día"}
         </button>
       </div>
