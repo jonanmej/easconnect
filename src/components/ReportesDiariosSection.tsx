@@ -63,9 +63,9 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
 
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: { trabajo_id: trabajoId, ...v } }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Reporte diario guardado");
-      qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -129,7 +129,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
           defaultOpen
         >
           <DiarioForm
-            onSave={(v) => save.mutate(v)}
+            onSave={(v) => save.mutateAsync(v)}
             saving={save.isPending}
             panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
             duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
