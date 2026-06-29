@@ -283,6 +283,7 @@ function DiarioForm({
 }) {
   const [open, setOpen] = useState(false);
   const [panelesDia, setPanelesDia] = useState<string>("");
+  const formRef = useRef<HTMLDivElement>(null);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
     return panelesPlanta / duracionDias;
@@ -292,26 +293,34 @@ function DiarioForm({
     if (!expectedDia || !Number.isFinite(n) || n <= 0) return null;
     return Math.min(100, Math.round((n / expectedDia) * 100));
   }, [panelesDia, expectedDia]);
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  function submit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault(); e.stopPropagation();
-    const f = new FormData(e.currentTarget);
+    const root = formRef.current;
+    if (!root) return;
+    const get = (name: string): string => {
+      const el = root.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+      return el?.value ?? "";
+    };
     const num = (n: string) => {
-      const v = f.get(n) as string;
-      return v === "" || v == null ? null : Number(v);
+      const v = get(n);
+      return v === "" ? null : Number(v);
     };
     onSave({
-      fecha: f.get("fecha") || today(),
+      fecha: get("fecha") || today(),
       avance_pct: avancePct,
       paneles_limpiados: num("paneles_limpiados"),
       agua_galones: num("agua_galones"),
       horas_trabajadas: num("horas_trabajadas"),
-      clima: (f.get("clima") as string) || null,
-      trabajo_realizado: (f.get("trabajo_realizado") as string) || null,
-      hallazgos: (f.get("hallazgos") as string) || null,
-      
-      observaciones: (f.get("observaciones") as string) || null,
+      clima: get("clima") || null,
+      trabajo_realizado: get("trabajo_realizado") || null,
+      hallazgos: get("hallazgos") || null,
+      observaciones: get("observaciones") || null,
     });
-    (e.currentTarget as HTMLFormElement).reset();
+    // Limpiar campos
+    root.querySelectorAll("input, textarea").forEach((el) => {
+      const node = el as HTMLInputElement | HTMLTextAreaElement;
+      if (node.type !== "date") node.value = "";
+    });
     setPanelesDia("");
     setOpen(false);
   }
@@ -327,7 +336,7 @@ function DiarioForm({
     );
   }
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
+    <div ref={formRef} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
         <FieldS label="Avance % (calculado)">
@@ -357,11 +366,11 @@ function DiarioForm({
       <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={() => setOpen(false)} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
-        <button type="submit" disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50">
           {saving ? "Guardando…" : "Guardar reporte del día"}
         </button>
       </div>
-    </form>
+    </div>
   );
 }
 
