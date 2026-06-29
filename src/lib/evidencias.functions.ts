@@ -78,19 +78,6 @@ export const recordEvidencia = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    try {
-      const { data: trab } = await context.supabase
-        .from("trabajos").select("folio").eq("id", data.trabajo_id).single();
-      const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
-      const folio = (trab as any)?.folio ?? data.trabajo_id.slice(0, 8);
-      await notificarStaff({
-        tipo: "nueva_evidencia",
-        titulo: `Nueva evidencia · ${folio}`,
-        mensaje: `Se subió una nueva evidencia fotográfica (${data.categoria ?? "durante"}) al trabajo ${folio}.`,
-        trabajo_id: data.trabajo_id,
-        excluirUserId: context.userId,
-      });
-    } catch { /* silenciar */ }
     return row;
   });
 
