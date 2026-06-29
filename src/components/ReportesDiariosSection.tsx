@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
