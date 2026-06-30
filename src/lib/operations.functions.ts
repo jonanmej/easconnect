@@ -512,6 +512,44 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Vincular al contrato activo del año que coincida con planta + servicio,
+    // si existe y aún tiene ciclos disponibles. Esto asegura que los trabajos
+    // históricos cuenten en el cumplimiento anual y desplacen el inicio del
+    // contrato a la primera fecha ejecutada.
+    try {
+      const anio = new Date(fechaIso).getUTCFullYear();
+      const { data: contrato } = await context.supabase
+        .from("contratos_servicio")
+        .select("id, cantidad_anual")
+        .eq("planta_id", data.planta_id)
+        .eq("servicio", data.servicio)
+        .eq("activo", true)
+        .eq("anio", anio)
+        .maybeSingle();
+      if (contrato) {
+        const { data: vinculados } = await context.supabase
+          .from("trabajos")
+          .select("ciclo_numero")
+          .eq("contrato_id", (contrato as any).id);
+        const ocupados = new Set<number>(
+          (vinculados ?? []).map((r: any) => r.ciclo_numero).filter((n: any) => n != null),
+        );
+        let ciclo = 1;
+        while (ocupados.has(ciclo) && ciclo <= (contrato as any).cantidad_anual) ciclo++;
+        if (ciclo <= (contrato as any).cantidad_anual) {
+          await context.supabase
+            .from("trabajos")
+            .update({ contrato_id: (contrato as any).id, ciclo_numero: ciclo })
+            .eq("id", (row as any).id);
+          const { recalcularFechaInicioContrato } = await import("./contratos.functions");
+          await recalcularFechaInicioContrato(context.supabase, (contrato as any).id);
+        }
+      }
+    } catch (e) {
+      console.error("[historico] vinculación a contrato falló", e);
+    }
+
     return row;
   });
 
