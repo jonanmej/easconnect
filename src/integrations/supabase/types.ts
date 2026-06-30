@@ -1595,6 +1595,7 @@ export type Database = {
           completados: number
           contrato_id: string
           cumplimiento_pct: number
+          fecha_inicio_real: string
           pendientes: number
           planta_id: string
           planta_nombre: string

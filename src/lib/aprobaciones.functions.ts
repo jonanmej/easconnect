@@ -24,6 +24,17 @@ export const solicitarAprobacion = createServerFn({ method: "POST" })
     ]);
     if (!isAdmin && !isSup) throw new Error("Solo supervisores y admin pueden solicitar firma");
 
+    // Los trabajos históricos no pasan por flujo de firma del cliente.
+    const { data: tr, error: tErr } = await context.supabase
+      .from("trabajos")
+      .select("notas")
+      .eq("id", data.trabajo_id)
+      .single();
+    if (tErr) throw new Error(tErr.message);
+    if ((tr as any)?.notas?.startsWith("[HISTÓRICO]")) {
+      throw new Error("Los trabajos históricos están excluidos del flujo de firma del cliente.");
+    }
+
     const token = randomToken(24);
     const { data: ins, error } = await context.supabase
       .from("trabajo_aprobaciones")

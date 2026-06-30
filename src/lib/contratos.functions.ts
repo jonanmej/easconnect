@@ -80,11 +80,10 @@ export const upsertContrato = createServerFn({ method: "POST" })
   });
 
 async function vincularHistoricosAContrato(supabase: any, contrato: any) {
-  const anioIni = `${contrato.anio}-01-01T00:00:00Z`;
-  const anioFin = `${contrato.anio + 1}-01-01T00:00:00Z`;
-  // Trabajos candidatos: completados, sin contrato, de la misma planta y servicio,
-  // dentro del año del contrato. Se ordenan por fecha ascendente para ocupar
-  // los ciclos 1..N en orden cronológico.
+  // Trabajos candidatos: completados, sin contrato, misma planta y servicio.
+  // Se incluyen también los ejecutados antes del año del contrato (históricos
+  // previos) para que cuenten como ciclos ya ejecutados. Se ordenan por fecha
+  // ascendente para asignarlos a los ciclos 1..N en orden cronológico.
   const { data: candidatos, error } = await supabase
     .from("trabajos")
     .select("id, fecha_programada, ciclo_numero")
@@ -92,8 +91,6 @@ async function vincularHistoricosAContrato(supabase: any, contrato: any) {
     .eq("servicio", contrato.servicio)
     .eq("estado", "completado")
     .is("contrato_id", null)
-    .gte("fecha_programada", anioIni)
-    .lt("fecha_programada", anioFin)
     .order("fecha_programada", { ascending: true });
   if (error) return 0;
 
@@ -108,6 +105,7 @@ async function vincularHistoricosAContrato(supabase: any, contrato: any) {
 
   let proximoCiclo = 1;
   let vinculados = 0;
+  let minFecha: string | null = null;
   for (const t of candidatos ?? []) {
     if (vinculados + ocupados.size >= contrato.cantidad_anual) break;
     while (ocupados.has(proximoCiclo) && proximoCiclo <= contrato.cantidad_anual) {
@@ -122,10 +120,37 @@ async function vincularHistoricosAContrato(supabase: any, contrato: any) {
       ocupados.add(proximoCiclo);
       proximoCiclo++;
       vinculados++;
+      const f = (t as any).fecha_programada as string;
+      if (!minFecha || f < minFecha) minFecha = f;
     }
   }
+
+  // Inicio del contrato = primera fecha ejecutada de un servicio vinculado.
+  await recalcularFechaInicioContrato(supabase, contrato.id);
   return vinculados;
 }
+
+/**
+ * Ajusta `fecha_inicio` del contrato a la fecha del primer trabajo vinculado
+ * (sea histórico o ejecutado). Si no hay trabajos vinculados, no toca nada.
+ */
+async function recalcularFechaInicioContrato(supabase: any, contratoId: string) {
+  const { data } = await supabase
+    .from("trabajos")
+    .select("fecha_programada")
+    .eq("contrato_id", contratoId)
+    .order("fecha_programada", { ascending: true })
+    .limit(1);
+  const primera = (data ?? [])[0]?.fecha_programada as string | undefined;
+  if (!primera) return;
+  const iso = new Date(primera).toISOString().slice(0, 10);
+  await supabase
+    .from("contratos_servicio")
+    .update({ fecha_inicio: iso })
+    .eq("id", contratoId);
+}
+
+export { recalcularFechaInicioContrato };
 
 export const eliminarContrato = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

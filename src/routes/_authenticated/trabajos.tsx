@@ -352,7 +352,7 @@ function Trabajos() {
                 {canEdit && (
                   <td className="px-4 py-4 text-right">
                     <div className="inline-flex gap-1">
-                      {t.estado === "completado" && !t.firmado_at && (
+                      {t.estado === "completado" && !t.firmado_at && !(t.notas ?? "").startsWith("[HISTÓRICO]") && (
                         <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
                       )}
                       {t.firmado_at && (
