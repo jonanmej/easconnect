@@ -23,6 +23,7 @@ import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authent
 import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
 import { Route as AuthenticatedNotificacionesRouteImport } from './routes/_authenticated/notificaciones'
 import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenticated/mis-trabajos'
+import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
@@ -107,6 +108,11 @@ const AuthenticatedMisTrabajosRoute =
     path: '/mis-trabajos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMapaRoute = AuthenticatedMapaRouteImport.update({
+  id: '/mapa',
+  path: '/mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMantenimientosRoute =
   AuthenticatedMantenimientosRouteImport.update({
     id: '/mantenimientos',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/plantas': typeof AuthenticatedPlantasRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
+  '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/_authenticated/notificaciones': typeof AuthenticatedNotificacionesRoute
   '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/mapa'
     | '/mis-trabajos'
     | '/notificaciones'
     | '/plantas'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/equipos'
     | '/inventario'
     | '/mantenimientos'
+    | '/mapa'
     | '/mis-trabajos'
     | '/notificaciones'
     | '/plantas'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/_authenticated/equipos'
     | '/_authenticated/inventario'
     | '/_authenticated/mantenimientos'
+    | '/_authenticated/mapa'
     | '/_authenticated/mis-trabajos'
     | '/_authenticated/notificaciones'
     | '/_authenticated/plantas'
@@ -427,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMisTrabajosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mapa': {
+      id: '/_authenticated/mapa'
+      path: '/mapa'
+      fullPath: '/mapa'
+      preLoaderRoute: typeof AuthenticatedMapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/mantenimientos': {
       id: '/_authenticated/mantenimientos'
       path: '/mantenimientos'
@@ -509,6 +528,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
+  AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedMisTrabajosRoute: typeof AuthenticatedMisTrabajosRoute
   AuthenticatedNotificacionesRoute: typeof AuthenticatedNotificacionesRoute
   AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
@@ -531,6 +551,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
+  AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedMisTrabajosRoute: AuthenticatedMisTrabajosRoute,
   AuthenticatedNotificacionesRoute: AuthenticatedNotificacionesRoute,
   AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
