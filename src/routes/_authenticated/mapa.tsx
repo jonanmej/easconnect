@@ -20,19 +20,19 @@ export const Route = createFileRoute("/_authenticated/mapa")({
 
 declare global {
   interface Window {
-    google?: any;
     __eaInitMap?: () => void;
   }
 }
+const gmaps = (): any => (typeof window !== "undefined" ? (window as any).google : undefined);
 
 function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (window.google?.maps) return Promise.resolve(window.google);
+  if (gmaps()?.maps) return Promise.resolve(gmaps());
   const existing = document.getElementById("gmaps-js") as HTMLScriptElement | null;
   if (existing) {
     return new Promise((resolve, reject) => {
       const timer = setInterval(() => {
-        if (window.google?.maps) { clearInterval(timer); resolve(window.google); }
+        if (gmaps()?.maps) { clearInterval(timer); resolve(gmaps()); }
       }, 100);
       setTimeout(() => { clearInterval(timer); reject(new Error("timeout")); }, 15000);
     });
@@ -41,7 +41,7 @@ function loadGoogleMaps(): Promise<any> {
     const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
     const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
     if (!key) { reject(new Error("Falta clave de Google Maps")); return; }
-    window.__eaInitMap = () => resolve(window.google);
+    window.__eaInitMap = () => resolve(gmaps());
     const s = document.createElement("script");
     s.id = "gmaps-js";
     s.async = true;
@@ -84,13 +84,13 @@ function MapaPage() {
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google?.maps) return;
+    if (!mapRef.current || !gmaps()?.maps) return;
     mapRef.current.setMapTypeId(tipo);
   }, [tipo]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google?.maps || rows.length === 0) return;
-    const google = window.google;
+    if (!mapRef.current || !gmaps()?.maps || rows.length === 0) return;
+    const google = gmaps();
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
     const bounds = new google.maps.LatLngBounds();
@@ -118,7 +118,7 @@ function MapaPage() {
   }, [rows.length]);
 
   function enfocar(p: any) {
-    if (!mapRef.current || !window.google?.maps) return;
+    if (!mapRef.current || !gmaps()?.maps) return;
     const pos = { lat: Number(p.latitud), lng: Number(p.longitud) };
     mapRef.current.panTo(pos);
     mapRef.current.setZoom(18);
