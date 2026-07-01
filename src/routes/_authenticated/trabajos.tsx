@@ -222,13 +222,16 @@ function Trabajos() {
       toast.error("No se pueden programar trabajos en sábado o domingo.");
       return;
     }
+    // Convertir "YYYY-MM-DDTHH:mm" (hora local del navegador) a ISO UTC
+    // para que el servidor (UTC) no reinterprete el valor.
+    const fechaIso = fecha ? new Date(fecha).toISOString() : "";
     save.mutate({
       id: editing?.id,
       planta_id: f.get("planta_id"),
       equipo_id: equipoIds[0] || null,
       equipo_ids: equipoIds,
       servicio: f.get("servicio"),
-      fecha_programada: fecha,
+      fecha_programada: fechaIso,
       estado: f.get("estado"),
       tecnico_id: (f.get("tecnico_id") as string) || null,
       tecnicos_extra_ids: tecExtraIds,

@@ -134,9 +134,11 @@ function Solicitudes() {
         onSubmit={(e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
+          const fechaLocal = String(f.get("fecha_programada") ?? "");
+          const fechaIso = fechaLocal ? new Date(fechaLocal).toISOString() : "";
           aprobar.mutate({
             id: aprobando!.id,
-            fecha_programada: f.get("fecha_programada"),
+            fecha_programada: fechaIso,
             duracion_dias: f.get("duracion_dias"),
             servicio: f.get("servicio"),
             respuesta: f.get("respuesta") || "Solicitud aprobada",

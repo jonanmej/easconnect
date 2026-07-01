@@ -26,6 +26,7 @@ import {
   HardHat,
   Briefcase,
   Map as MapIcon,
+  Satellite,
   UserCheck,
   Menu,
 } from "lucide-react";
@@ -72,6 +73,7 @@ const allGroups: NavGroup[] = [
     items: [
       { to: "/clientes", label: "Clientes", icon: Building2 },
       { to: "/plantas", label: "Plantas Solares", icon: Sun },
+      { to: "/mapa", label: "Mapa satelital", icon: Satellite },
       { to: "/equipos", label: "Equipos", icon: Bot },
       { to: "/inventario", label: "Inventario", icon: Boxes },
     ],

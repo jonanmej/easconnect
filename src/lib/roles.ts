@@ -14,18 +14,18 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
-    "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos",
+    "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
   ],
   supervisor: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/mantenimientos", "/reportes",
-    "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos",
+    "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",
-    "/inventario", "/mantenimientos", "/configuracion", "/terreno", "/rutas",
+    "/inventario", "/mantenimientos", "/configuracion", "/terreno", "/rutas", "/mapa",
   ],
-  cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos", "/contratos"],
+  cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos", "/contratos", "/mapa"],
 };
 
 export function canAccess(roles: AppRole[], path: string): boolean {
