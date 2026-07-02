@@ -252,7 +252,22 @@ function Programacion() {
       )}
 
       {vista === "anio" && (
-        <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <label className="text-xs text-muted-foreground">Filtrar por cliente:</label>
+            <select
+              value={clienteFilter}
+              onChange={(e) => setClienteFilter(e.target.value)}
+              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+            >
+              <option value="">Todos los clientes</option>
+              {clientesUnicos.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+        </>
       )}
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
