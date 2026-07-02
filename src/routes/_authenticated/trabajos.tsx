@@ -135,6 +135,7 @@ function Trabajos() {
   const [tecExtraIds, setTecExtraIds] = useState<string[]>([]);
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
+  const [plantaFilter, setPlantaFilter] = useState<string>("");
 
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
@@ -302,6 +303,23 @@ function Trabajos() {
           <option value="completado">Completado</option>
           <option value="cancelado">Cancelado</option>
         </select>
+        <select
+          value={plantaFilter}
+          onChange={(e) => setPlantaFilter(e.target.value)}
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm max-w-[240px]"
+        >
+          <option value="">Todas las plantas</option>
+          {[...((plantas.data as any[] | undefined) ?? [])]
+            .sort((a, b) =>
+              String(a.cliente_nombre ?? "").localeCompare(String(b.cliente_nombre ?? "")) ||
+              String(a.nombre ?? "").localeCompare(String(b.nombre ?? "")),
+            )
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}{p.cliente_nombre ? ` — ${p.cliente_nombre}` : ""}
+              </option>
+            ))}
+        </select>
         {canEdit && (
           <select
             value={tecFilter}
@@ -335,6 +353,7 @@ function Trabajos() {
             )}
             {(list.data as any[] | undefined)?.map((t) => (
               ((!estadoFilter || t.estado === estadoFilter)
+                && (!plantaFilter || t.planta_id === plantaFilter)
                 && (!tecFilter
                     || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))) ? (
               <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
