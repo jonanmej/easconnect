@@ -701,7 +701,6 @@ function RecursosSection({
     mutationFn: (id: string) => fDel({ data: { id } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }); },
   });
-  });
 
   // No usamos <form> anidado (RecordDialog ya monta un <form> padre).
   // Un <form> dentro de otro es HTML inválido: React ignora el submit
