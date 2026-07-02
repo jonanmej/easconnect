@@ -86,7 +86,6 @@ function Programacion() {
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
   const trabajos = (list.data as any[] | undefined) ?? [];
-  const plantasQ = useQuery({ queryKey: ["plantas"], queryFn: () => (useServerFn(listPlantas))() as any, enabled: false });
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
   const clientesUnicos = useMemo(() => {
