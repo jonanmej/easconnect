@@ -70,6 +70,10 @@ export type RecursosData = {
   estado: string;
   tecnico?: string | null;
   notas?: string | null;
+  trabajo_a_realizar?: string | null;
+  fecha_entrada?: string | null;
+  fecha_salida?: string | null;
+  elaborado_por?: string | null;
   recursos: {
     categoria: string;
     descripcion: string;
