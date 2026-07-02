@@ -70,6 +70,18 @@ export const upsertContrato = createServerFn({ method: "POST" })
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
 
+    // Si se actualizó un contrato existente, propagar la nueva duración a los
+    // trabajos aún no ejecutados (programados) de ese contrato. Sin esto, la
+    // vista de programación seguiría mostrando la duración antigua.
+    if (data.id) {
+      const { error: upErr } = await context.supabase
+        .from("trabajos")
+        .update({ duracion_dias: payload.duracion_dias_default })
+        .eq("contrato_id", data.id)
+        .eq("estado", "programado");
+      if (upErr) console.error("[contratos] Error propagando duración a trabajos", upErr);
+    }
+
     // Continuidad histórica: vincular trabajos completados previos (sin contrato)
     // de la misma planta + servicio dentro del año del contrato, ocupando los
     // primeros ciclos. Esto permite que el cumplimiento anual y la programación
