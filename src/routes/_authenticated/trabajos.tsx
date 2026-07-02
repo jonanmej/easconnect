@@ -18,6 +18,7 @@ import {
   listTrabajoTecnicosExtra,
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
@@ -729,11 +730,26 @@ function RecursosSection({
 
   const rows = (list.data as any[] | undefined) ?? [];
   const [downloading, setDownloading] = useState(false);
+  const { user } = useAuth();
 
   async function exportarPdf() {
     if (!trabajo) return;
     setDownloading(true);
     try {
+      let elaboradoPor: string | null = null;
+      if (user?.id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("display_name, nombres, apellidos")
+          .eq("id", user.id)
+          .maybeSingle();
+        elaboradoPor =
+          (prof?.nombres && prof?.apellidos
+            ? `${prof.nombres} ${prof.apellidos}`.trim()
+            : prof?.display_name) ||
+          user.email ||
+          null;
+      }
       await generarYDescargarRecursosPdf({
         folio: trabajo.folio ?? trabajoId.slice(0, 8),
         cliente: clienteNombre ?? "—",
@@ -753,7 +769,7 @@ function RecursosSection({
           : trabajo.fecha_programada
             ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV")
             : null,
-        elaborado_por: trabajo.tecnico_nombre ?? null,
+        elaborado_por: elaboradoPor,
         recursos: rows.map((r) => ({
           categoria: r.categoria,
           descripcion: r.descripcion,
