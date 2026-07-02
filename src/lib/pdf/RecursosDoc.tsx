@@ -133,17 +133,14 @@ function PageFooter({ data }: { data: RecursosData }) {
   );
 }
 
-function catLabel(c: string) {
-  const m: Record<string, string> = {
-    herramienta: "Herramienta",
-    equipo: "Equipo",
-    epp: "EPP",
-    insumo: "Insumo",
-    repuesto: "Repuesto",
-    otro: "Otro",
-  };
-  return m[c] ?? c;
-}
+const SECCIONES: { key: string; titulo: string }[] = [
+  { key: "equipo", titulo: "EQUIPO" },
+  { key: "herramienta", titulo: "HERRAMIENTA" },
+  { key: "repuesto", titulo: "REPUESTOS" },
+  { key: "epp", titulo: "EQUIPO DE PROTECCIÓN PERSONAL" },
+  { key: "insumo", titulo: "INSUMOS" },
+  { key: "otro", titulo: "OTROS" },
+];
 
 export function RecursosDoc({ data }: { data: RecursosData }) {
   const fecha = new Date();
