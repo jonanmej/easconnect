@@ -332,18 +332,23 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                 <div className="space-y-1">
                   {items.slice(0, 3).map((t: any) => (
                     <div
-                      key={t.id}
+                      key={`${t.id}-${t.__diaIdx ?? 0}`}
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
-                      title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}`}
+                      title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
-                        "rounded px-1.5 py-0.5 text-[10px] truncate border cursor-grab " +
+                        "rounded px-1.5 py-1 text-[10px] border cursor-grab leading-tight " +
                         (estadoCls[t.estado] ?? "bg-secondary border-border") +
                         (dragId === t.id ? " opacity-50" : "")
                       }
                     >
-                      {t.folio}
+                      <div className="font-medium truncate">{t.planta_nombre}</div>
+                      <div className="opacity-70 truncate">
+                        {(t.__duracion ?? 1) > 1
+                          ? `d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}`
+                          : t.folio}
+                      </div>
                     </div>
                   ))}
                   {items.length > 3 && (
