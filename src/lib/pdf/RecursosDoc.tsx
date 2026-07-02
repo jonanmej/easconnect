@@ -47,9 +47,12 @@ const styles = StyleSheet.create({
   headerRightBot: { fontSize: 7.5, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
   pageTitle: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 12, color: COL.bg },
   sectionTitle: { fontSize: 11.5, fontFamily: FONT_BOLD, marginTop: 14, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
-  metaRow: { flexDirection: "row", marginBottom: 4 },
-  metaLabel: { width: 110, fontSize: 8.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 },
+  metaGrid: { marginBottom: 10, borderWidth: 0.5, borderColor: COL.border, borderRadius: 2, padding: 10 },
+  metaRow: { flexDirection: "row", marginBottom: 5, alignItems: "flex-start" },
+  metaRowLast: { flexDirection: "row", alignItems: "flex-start" },
+  metaLabel: { width: 130, fontSize: 8.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, paddingRight: 6 },
   metaValue: { flex: 1, fontSize: 10, fontFamily: FONT_BOLD, color: COL.text },
+  metaHalf: { width: "50%", flexDirection: "row", alignItems: "flex-start" },
   table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
@@ -160,17 +163,33 @@ export function RecursosDoc({ data }: { data: RecursosData }) {
         <Text style={styles.pageTitle}>Listado de Equipos, Herramientas y Repuestos</Text>
         <Text style={{ fontSize: 10, color: COL.muted, marginBottom: 10 }}>Cliente: {data.cliente}</Text>
 
-        <View style={{ marginBottom: 6 }}>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Cliente</Text><Text style={styles.metaValue}>{data.cliente}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Planta</Text><Text style={styles.metaValue}>{data.planta}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Trabajo a realizar</Text><Text style={styles.metaValue}>{data.trabajo_a_realizar ?? data.servicio}</Text></View>
+        <View style={styles.metaGrid}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Fecha de entrada</Text>
-            <Text style={[styles.metaValue, { flex: 0, width: 140 }]}>{data.fecha_entrada ?? data.fecha}</Text>
-            <Text style={styles.metaLabel}>Fecha de salida</Text>
-            <Text style={styles.metaValue}>{data.fecha_salida ?? data.fecha}</Text>
+            <Text style={styles.metaLabel}>Cliente</Text>
+            <Text style={styles.metaValue}>{data.cliente}</Text>
           </View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>OT</Text><Text style={styles.metaValue}>{data.folio}</Text></View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Planta</Text>
+            <Text style={styles.metaValue}>{data.planta}</Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Trabajo a realizar</Text>
+            <Text style={styles.metaValue}>{data.trabajo_a_realizar ?? data.servicio}</Text>
+          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.metaHalf}>
+              <Text style={styles.metaLabel}>Fecha de entrada</Text>
+              <Text style={styles.metaValue}>{data.fecha_entrada ?? data.fecha}</Text>
+            </View>
+            <View style={styles.metaHalf}>
+              <Text style={styles.metaLabel}>Fecha de salida</Text>
+              <Text style={styles.metaValue}>{data.fecha_salida ?? data.fecha}</Text>
+            </View>
+          </View>
+          <View style={styles.metaRowLast}>
+            <Text style={styles.metaLabel}>OT</Text>
+            <Text style={styles.metaValue}>{data.folio}</Text>
+          </View>
         </View>
 
         {SECCIONES.map(({ key, titulo }) => {
