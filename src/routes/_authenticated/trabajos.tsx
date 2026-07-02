@@ -688,7 +688,6 @@ function RecursosSection({
   const fList = useServerFn(listTrabajoRecursos);
   const fUp = useServerFn(upsertTrabajoRecurso);
   const fDel = useServerFn(deleteTrabajoRecurso);
-  const fToggle = useServerFn(toggleRecursoFlag);
   const list = useQuery({
     queryKey: ["trabajo-recursos", trabajoId],
     queryFn: () => fList({ data: { trabajo_id: trabajoId } }),
