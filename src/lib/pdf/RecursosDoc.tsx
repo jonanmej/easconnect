@@ -157,68 +157,71 @@ export function RecursosDoc({ data }: { data: RecursosData }) {
     >
       <Page size="LETTER" style={styles.page}>
         <PageHeader data={data} />
-        <Text style={styles.pageTitle}>Checklist de Recursos para Visita Técnica</Text>
+        <Text style={styles.pageTitle}>Listado de Equipos, Herramientas y Repuestos</Text>
+        <Text style={{ fontSize: 10, color: COL.muted, marginBottom: 10 }}>Cliente: {data.cliente}</Text>
+
         <View style={{ marginBottom: 6 }}>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>OT</Text><Text style={styles.metaValue}>{data.folio}</Text></View>
           <View style={styles.metaRow}><Text style={styles.metaLabel}>Cliente</Text><Text style={styles.metaValue}>{data.cliente}</Text></View>
           <View style={styles.metaRow}><Text style={styles.metaLabel}>Planta</Text><Text style={styles.metaValue}>{data.planta}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Servicio</Text><Text style={styles.metaValue}>{data.servicio}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Fecha visita</Text><Text style={styles.metaValue}>{data.fecha}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Estado</Text><Text style={styles.metaValue}>{data.estado}</Text></View>
-          {data.tecnico && (
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Técnico</Text><Text style={styles.metaValue}>{data.tecnico}</Text></View>
-          )}
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Emitido</Text><Text style={styles.metaValue}>{data.emitido_at}</Text></View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Recursos asignados ({data.recursos.length})</Text>
-        <View style={styles.table}>
-          <View style={styles.tr}>
-            <Text style={[styles.th, { width: "16%" }]}>Categoría</Text>
-            <Text style={[styles.th, { width: "38%" }]}>Descripción</Text>
-            <Text style={[styles.th, { width: "14%" }]}>Cant.</Text>
-            <Text style={[styles.th, { width: "16%", textAlign: "center" }]}>Entregado</Text>
-            <Text style={[styles.th, { width: "16%", textAlign: "center" }]}>Devuelto</Text>
+          <View style={styles.metaRow}><Text style={styles.metaLabel}>Trabajo a realizar</Text><Text style={styles.metaValue}>{data.trabajo_a_realizar ?? data.servicio}</Text></View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Fecha de entrada</Text>
+            <Text style={[styles.metaValue, { flex: 0, width: 140 }]}>{data.fecha_entrada ?? data.fecha}</Text>
+            <Text style={styles.metaLabel}>Fecha de salida</Text>
+            <Text style={styles.metaValue}>{data.fecha_salida ?? data.fecha}</Text>
           </View>
-          {data.recursos.length === 0 ? (
-            <View style={styles.tr}>
-              <Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL, textAlign: "center" }]}>
-                Sin recursos asignados.
-              </Text>
-            </View>
-          ) : (
-            data.recursos.map((r, i) => (
-              <View key={i} style={styles.tr} wrap={false}>
-                <Text style={[styles.td, { width: "16%" }]}>{catLabel(r.categoria)}</Text>
-                <Text style={[styles.td, { width: "38%" }]}>
-                  {r.descripcion}
-                  {r.notas ? `\n${r.notas}` : ""}
-                </Text>
-                <Text style={[styles.td, { width: "14%", fontFamily: "Courier" }]}>{r.cantidad} {r.unidad ?? ""}</Text>
-                <Text style={[styles.td, { width: "16%", textAlign: "center", color: r.entregado ? COL.ok : COL.danger, fontFamily: FONT_BOLD }]}>
-                  {r.entregado ? "Sí" : "No"}
-                </Text>
-                <Text style={[styles.td, { width: "16%", textAlign: "center", color: r.devuelto ? COL.ok : COL.muted, fontFamily: FONT_BOLD }]}>
-                  {r.devuelto ? "Sí" : "—"}
-                </Text>
-              </View>
-            ))
-          )}
+          <View style={styles.metaRow}><Text style={styles.metaLabel}>OT</Text><Text style={styles.metaValue}>{data.folio}</Text></View>
         </View>
 
-        {data.notas && (
-          <>
-            <Text style={styles.sectionTitle}>Notas de la OT</Text>
-            <Text style={{ fontSize: 10, lineHeight: 1.5, color: COL.text }}>{data.notas}</Text>
-          </>
+        {SECCIONES.map(({ key, titulo }) => {
+          const items = data.recursos.filter((r) => r.categoria === key);
+          if (items.length === 0) return null;
+          return (
+            <View key={key} wrap={false}>
+              <Text style={styles.sectionTitle}>{titulo}</Text>
+              <View style={styles.table}>
+                <View style={styles.tr}>
+                  <Text style={[styles.th, { width: "8%", textAlign: "center" }]}>#</Text>
+                  <Text style={[styles.th, { width: "72%" }]}>Artículo</Text>
+                  <Text style={[styles.th, { width: "20%", textAlign: "center" }]}>Cantidad</Text>
+                </View>
+                {items.map((r, i) => (
+                  <View key={i} style={styles.tr} wrap={false}>
+                    <Text style={[styles.td, { width: "8%", textAlign: "center" }]}>{i + 1}</Text>
+                    <Text style={[styles.td, { width: "72%" }]}>
+                      {r.descripcion}
+                      {r.notas ? `\n${r.notas}` : ""}
+                    </Text>
+                    <Text style={[styles.td, { width: "20%", textAlign: "center", fontFamily: "Courier" }]}>
+                      {r.cantidad}{r.unidad ? ` ${r.unidad}` : ""}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })}
+
+        {data.recursos.length === 0 && (
+          <Text style={{ fontSize: 10, color: COL.muted, fontFamily: FONT_OBL, marginTop: 10 }}>
+            Sin recursos asignados.
+          </Text>
         )}
 
-        <View style={styles.signRow}>
-          <View style={styles.signCol}>
-            <Text style={styles.signLine}>Entrega (bodega / supervisor)</Text>
+        {data.notas && (
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>Notas de la OT</Text>
+            <Text style={{ fontSize: 10, lineHeight: 1.5, color: COL.text }}>{data.notas}</Text>
           </View>
-          <View style={styles.signCol}>
-            <Text style={styles.signLine}>Recibe (técnico responsable)</Text>
+        )}
+
+        <View style={{ marginTop: 30 }}>
+          <Text style={{ fontSize: 10, marginBottom: 20 }}>
+            <Text style={{ fontFamily: FONT_BOLD }}>Elaborado por: </Text>
+            {data.elaborado_por ?? data.tecnico ?? data.responsable ?? "—"}
+          </Text>
+          <View style={{ width: 260 }}>
+            <Text style={styles.signLine}>Firma</Text>
           </View>
         </View>
 
