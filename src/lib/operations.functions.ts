@@ -495,7 +495,14 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
     ]);
     if (!isAdmin && !isSup) throw new Error("No autorizado");
 
-    const fechaIso = new Date(data.fecha).toISOString();
+    // Interpretar la fecha como local (mediodía) para evitar el corrimiento
+    // de un día que ocurre al parsear "YYYY-MM-DD" como UTC medianoche
+    // y luego mostrarlo en zonas al oeste de UTC (p. ej. UTC-6).
+    const raw = String(data.fecha);
+    const local = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+      ? new Date(`${raw}T12:00:00`)
+      : new Date(raw);
+    const fechaIso = local.toISOString();
     const notasFinal = `[HISTÓRICO] ${data.notas ?? ""}`.trim();
     const { data: row, error } = await context.supabase
       .from("trabajos")
