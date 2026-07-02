@@ -163,17 +163,33 @@ export function RecursosDoc({ data }: { data: RecursosData }) {
         <Text style={styles.pageTitle}>Listado de Equipos, Herramientas y Repuestos</Text>
         <Text style={{ fontSize: 10, color: COL.muted, marginBottom: 10 }}>Cliente: {data.cliente}</Text>
 
-        <View style={{ marginBottom: 6 }}>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Cliente</Text><Text style={styles.metaValue}>{data.cliente}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Planta</Text><Text style={styles.metaValue}>{data.planta}</Text></View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>Trabajo a realizar</Text><Text style={styles.metaValue}>{data.trabajo_a_realizar ?? data.servicio}</Text></View>
+        <View style={styles.metaGrid}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Fecha de entrada</Text>
-            <Text style={[styles.metaValue, { flex: 0, width: 140 }]}>{data.fecha_entrada ?? data.fecha}</Text>
-            <Text style={styles.metaLabel}>Fecha de salida</Text>
-            <Text style={styles.metaValue}>{data.fecha_salida ?? data.fecha}</Text>
+            <Text style={styles.metaLabel}>Cliente</Text>
+            <Text style={styles.metaValue}>{data.cliente}</Text>
           </View>
-          <View style={styles.metaRow}><Text style={styles.metaLabel}>OT</Text><Text style={styles.metaValue}>{data.folio}</Text></View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Planta</Text>
+            <Text style={styles.metaValue}>{data.planta}</Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Trabajo a realizar</Text>
+            <Text style={styles.metaValue}>{data.trabajo_a_realizar ?? data.servicio}</Text>
+          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.metaHalf}>
+              <Text style={styles.metaLabel}>Fecha de entrada</Text>
+              <Text style={styles.metaValue}>{data.fecha_entrada ?? data.fecha}</Text>
+            </View>
+            <View style={styles.metaHalf}>
+              <Text style={styles.metaLabel}>Fecha de salida</Text>
+              <Text style={styles.metaValue}>{data.fecha_salida ?? data.fecha}</Text>
+            </View>
+          </View>
+          <View style={styles.metaRowLast}>
+            <Text style={styles.metaLabel}>OT</Text>
+            <Text style={styles.metaValue}>{data.folio}</Text>
+          </View>
         </View>
 
         {SECCIONES.map(({ key, titulo }) => {
