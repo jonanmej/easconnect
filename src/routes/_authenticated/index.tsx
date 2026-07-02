@@ -120,15 +120,44 @@ function StaffDashboard() {
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
+  const fetchTrabajos = useServerFn(listTrabajos);
+  const trabajosQ = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos(), ...qOpts });
+
+  // Cumplimiento del cronograma: completados a tiempo / actividades programadas vencidas × 100.
+  // "A tiempo" = fecha_completado <= fecha_programada + duracion_dias.
+  const cumplimientoCronograma = (() => {
+    const ts = (trabajosQ.data as any[] | undefined) ?? [];
+    const ahora = Date.now();
+    const vencidas = ts.filter((t) => {
+      const prog = new Date(t.fecha_programada).getTime();
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      return prog + dur * 86400000 <= ahora && (t.estado === "completado" || t.estado === "programado" || t.estado === "en_progreso");
+    });
+    if (vencidas.length === 0) return { pct: 100, num: 0, den: 0 };
+    const aTiempo = vencidas.filter((t) => {
+      if (t.estado !== "completado" || !t.fecha_completado) return false;
+      const prog = new Date(t.fecha_programada).getTime();
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      return new Date(t.fecha_completado).getTime() <= prog + dur * 86400000;
+    }).length;
+    return { pct: Math.round((aTiempo / vencidas.length) * 100), num: aTiempo, den: vencidas.length };
+  })();
+
+  // Paneles limpiados por ciclo (cada trabajo completado = 1 ciclo).
+  const ciclos = (() => {
+    const ts = (trabajosQ.data as any[] | undefined) ?? [];
+    return ts.filter((t) => t.estado === "completado").length;
+  })();
+  const incidentes = Number(stats.data?.anomalias_detectadas ?? 0);
 
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
     { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString(), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString()}` : "acumulado", tone: "accent" as const },
     { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
     { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString(), delta: "galones", tone: "accent" as const },
-    { label: "Anomalías detectadas", value: String(stats.data?.anomalias_detectadas ?? 0).padStart(2, "0"), delta: "evidencias", tone: (stats.data?.anomalias_detectadas ?? 0) > 0 ? "danger" as const : "muted" as const },
+    { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
+    { label: "Incidentes de seguridad", value: String(incidentes).padStart(2, "0"), delta: "objetivo: 0", tone: incidentes === 0 ? "accent" as const : "danger" as const },
     { label: "Equipos operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
-    { label: "SLA vencidos", value: String(alertas.data?.sla_vencidos ?? 0).padStart(2, "0"), delta: "ver detalle", tone: alertas.data?.sla_vencidos ? "danger" as const : "muted" as const },
     { label: "Bajo stock", value: String(stats.data?.inv_bajo_stock ?? 0).padStart(2, "0"), delta: stats.data?.inv_bajo_stock ? "SKUs" : "OK", tone: stats.data?.inv_bajo_stock ? "danger" as const : "muted" as const },
   ];
 
