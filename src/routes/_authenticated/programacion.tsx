@@ -409,8 +409,25 @@ function MiniMonth({ year, month, byDay, onClick }: {
               const items = byDay.get(d.toDateString()) ?? [];
               const isToday = sameDay(d, today);
               const has = items.length > 0;
+              // Prioridad de sombreado: completado > en_progreso > programado
+              const estado = has
+                ? (items.find((i: any) => i.estado === "completado")?.estado
+                  ?? items.find((i: any) => i.estado === "en_progreso")?.estado
+                  ?? items.find((i: any) => i.estado === "programado")?.estado
+                  ?? items[0].estado)
+                : null;
+              const shade =
+                estado === "completado" ? "bg-accent/25"
+                : estado === "en_progreso" ? "bg-primary/25"
+                : estado === "programado" ? "bg-muted-foreground/15"
+                : estado === "cancelado" ? "bg-destructive/15"
+                : "";
               return (
-                <div key={d.toISOString()} className="aspect-square grid place-items-center relative">
+                <div
+                  key={d.toISOString()}
+                  className={"aspect-square grid place-items-center relative rounded " + (inMonth ? shade : "")}
+                  title={has ? `${items.length} trabajo(s) · ${estado}` : ""}
+                >
                   <span className={
                     "text-[10px] " +
                     (isToday ? "size-5 rounded-full bg-primary text-primary-foreground font-bold grid place-items-center"
@@ -418,9 +435,6 @@ function MiniMonth({ year, month, byDay, onClick }: {
                   }>
                     {d.getDate()}
                   </span>
-                  {has && !isToday && (
-                    <span className={"absolute bottom-0 size-1 rounded-full " + (estadoDot[items[0].estado] ?? "bg-primary")} />
-                  )}
                 </div>
               );
             })}
