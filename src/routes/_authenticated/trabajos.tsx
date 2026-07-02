@@ -750,6 +750,16 @@ function RecursosSection({
           : "—",
         estado: trabajo.estado ?? "—",
         notas: trabajo.notas ?? null,
+        trabajo_a_realizar: trabajo.servicio ?? null,
+        fecha_entrada: trabajo.fecha_programada
+          ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV")
+          : null,
+        fecha_salida: trabajo.fecha_fin
+          ? new Date(trabajo.fecha_fin).toLocaleDateString("es-SV")
+          : trabajo.fecha_programada
+            ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV")
+            : null,
+        elaborado_por: trabajo.tecnico_nombre ?? null,
         recursos: rows.map((r) => ({
           categoria: r.categoria,
           descripcion: r.descripcion,
