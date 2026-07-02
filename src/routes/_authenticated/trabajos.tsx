@@ -830,7 +830,7 @@ function RecursosSection({
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-2 py-3 text-center text-muted-foreground">Sin recursos asignados.</td></tr>
+              <tr><td colSpan={canEdit ? 4 : 3} className="px-2 py-3 text-center text-muted-foreground">Sin recursos asignados.</td></tr>
             )}
           </tbody>
         </table>
