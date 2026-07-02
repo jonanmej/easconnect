@@ -225,6 +225,28 @@ function StaffDashboard() {
 
       <CumplimientoContratos />
 
+      <section className="bg-gradient-to-br from-accent/10 to-primary/5 border border-accent/20 rounded-xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Suma total de paneles limpiados por cada ciclo (trabajo completado). Se incrementa constantemente.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-4xl md:text-5xl font-mono font-semibold text-accent tracking-tight">
+              {(stats.data?.paneles_limpiados ?? 0).toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              en <span className="font-mono font-semibold">{ciclos}</span> ciclo{ciclos === 1 ? "" : "s"} completado{ciclos === 1 ? "" : "s"}
+              {ciclos > 0 && (
+                <> · <span className="font-mono">{Math.round((stats.data?.paneles_limpiados ?? 0) / ciclos).toLocaleString()}</span> promedio/ciclo</>
+              )}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
