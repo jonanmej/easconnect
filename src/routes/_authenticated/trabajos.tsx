@@ -810,8 +810,6 @@ function RecursosSection({
               <th className="px-2 py-2 text-left">Cat.</th>
               <th className="px-2 py-2 text-left">Descripción</th>
               <th className="px-2 py-2 text-right">Cant.</th>
-              <th className="px-2 py-2 text-center">Entreg.</th>
-              <th className="px-2 py-2 text-center">Devuelto</th>
               {canEdit && <th />}
             </tr>
           </thead>
