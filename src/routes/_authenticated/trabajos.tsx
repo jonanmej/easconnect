@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
@@ -689,17 +689,29 @@ function RecursosSection({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }),
   });
 
-  function onAdd(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); e.stopPropagation();
-    const f = new FormData(e.currentTarget);
-    add.mutate({
-      categoria: f.get("categoria"),
-      descripcion: f.get("descripcion"),
-      cantidad: Number(f.get("cantidad") || 1),
-      unidad: f.get("unidad") || "un",
-      notas: f.get("notas") || null,
+  // No usamos <form> anidado (RecordDialog ya monta un <form> padre).
+  // Un <form> dentro de otro es HTML inválido: React ignora el submit
+  // del interno y el "+" no guardaba nada. Usamos refs + click handler.
+  const addFormRef = useRef<HTMLDivElement>(null);
+  function onAdd() {
+    const root = addFormRef.current;
+    if (!root) return;
+    const cat = (root.querySelector('[name="categoria"]') as HTMLSelectElement | null)?.value;
+    const desc = (root.querySelector('[name="descripcion"]') as HTMLInputElement | null)?.value?.trim();
+    const cant = Number((root.querySelector('[name="cantidad"]') as HTMLInputElement | null)?.value || 1);
+    const unidad = (root.querySelector('[name="unidad"]') as HTMLInputElement | null)?.value?.trim() || "un";
+    const notas = (root.querySelector('[name="notas"]') as HTMLInputElement | null)?.value?.trim() || null;
+    if (!desc) { toast.error("Descripción requerida"); return; }
+    add.mutate({ categoria: cat, descripcion: desc, cantidad: cant, unidad, notas }, {
+      onSuccess: () => {
+        (root.querySelector('[name="descripcion"]') as HTMLInputElement | null)?.setAttribute("value", "");
+        (root.querySelectorAll('input[name]') as NodeListOf<HTMLInputElement>).forEach((el) => {
+          if (el.name === "cantidad") el.value = "1";
+          else if (el.name === "unidad") el.value = "";
+          else el.value = "";
+        });
+      },
     });
-    e.currentTarget.reset();
   }
 
   const rows = (list.data as any[] | undefined) ?? [];
@@ -805,14 +817,15 @@ function RecursosSection({
         </table>
       </div>
       {canEdit && (
-        <form onSubmit={onAdd} className="grid grid-cols-12 gap-2 items-end">
+        <div ref={addFormRef} className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-3">
             <select name="categoria" required className={inputCls + " text-xs"} defaultValue="herramienta">
               {CAT_RECURSO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
           <div className="col-span-4">
-            <input name="descripcion" required placeholder="Descripción" className={inputCls + " text-xs"} />
+            <input name="descripcion" required placeholder="Descripción" className={inputCls + " text-xs"}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
           </div>
           <div className="col-span-2">
             <input name="cantidad" type="number" min="0.01" step="0.01" defaultValue={1} className={inputCls + " text-xs"} />
@@ -821,7 +834,7 @@ function RecursosSection({
             <input name="unidad" placeholder="un" className={inputCls + " text-xs"} />
           </div>
           <div className="col-span-1">
-            <button type="submit" disabled={add.isPending}
+            <button type="button" onClick={onAdd} disabled={add.isPending}
               className="h-9 w-full grid place-items-center rounded-md bg-primary text-primary-foreground disabled:opacity-50">
               <Plus className="size-3.5" />
             </button>
@@ -829,7 +842,7 @@ function RecursosSection({
           <div className="col-span-12">
             <input name="notas" placeholder="Notas (opcional)" className={inputCls + " text-xs"} />
           </div>
-        </form>
+        </div>
       )}
     </div>
   );

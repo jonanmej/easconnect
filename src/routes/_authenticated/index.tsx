@@ -317,7 +317,10 @@ function ClienteDashboard() {
   const proximos = ts.filter((t) => t.estado === "programado" && new Date(t.fecha_programada).getTime() >= ahora);
   const enCurso = ts.filter((t) => t.estado === "en_progreso");
   const completados = ts.filter((t) => t.estado === "completado");
-  const pendienteFirma = completados.filter((t) => !t.firmado_at);
+  // Los trabajos históricos no requieren firma del cliente.
+  const pendienteFirma = completados.filter(
+    (t) => !t.firmado_at && !String(t.notas ?? "").startsWith("[HISTÓRICO]"),
+  );
 
   const hoy = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long" });
 

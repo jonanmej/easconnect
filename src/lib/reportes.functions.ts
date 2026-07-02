@@ -189,6 +189,22 @@ export const generarReporte = createServerFn({ method: "POST" })
           .in("trabajo_id", tIdsArr)
       : { data: [] as any[] };
 
+    // Reportes diarios cargados por técnicos día a día (fuente principal desde el refactor).
+    const { data: reportesDiarios } = tIdsArr.length
+      ? await supabase.from("trabajo_reportes_diarios")
+          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct")
+          .in("trabajo_id", tIdsArr)
+          .order("fecha", { ascending: true })
+      : { data: [] as any[] };
+
+    // PDFs subidos (caso st.solar u otros).
+    const { data: reportesPdf } = tIdsArr.length
+      ? await supabase.from("trabajo_reportes_pdf")
+          .select("trabajo_id, fecha, nombre_original, notas")
+          .in("trabajo_id", tIdsArr)
+          .order("fecha", { ascending: true })
+      : { data: [] as any[] };
+
     const datasetCtx = {
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
@@ -202,6 +218,11 @@ export const generarReporte = createServerFn({ method: "POST" })
         salud_promedio: saludProm,
         mantenimientos: (mantenimientos ?? []).length,
         reportes_tecnicos: (reportesBase ?? []).length,
+        reportes_diarios: (reportesDiarios ?? []).length,
+        pdfs_cargados: (reportesPdf ?? []).length,
+        paneles_limpiados_periodo: (reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.paneles_limpiados ?? 0), 0),
+        agua_galones_periodo: Math.round((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.agua_galones ?? 0), 0)),
+        horas_trabajadas_periodo: Number((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.horas_trabajadas ?? 0), 0).toFixed(1)),
       },
       muestras_trabajos: trabajos.slice(0, 20),
       muestras_mantenimientos: (mantenimientos ?? []).slice(0, 20),
@@ -213,6 +234,24 @@ export const generarReporte = createServerFn({ method: "POST" })
         recomendaciones: r.recomendaciones,
         materiales_usados: r.materiales_usados,
         observaciones_cliente: r.cliente_observaciones,
+      })),
+      reportes_diarios: (reportesDiarios ?? []).slice(0, 60).map((r: any) => ({
+        folio: folioPorId.get(r.trabajo_id) ?? null,
+        fecha: r.fecha,
+        avance_pct: r.avance_pct,
+        paneles_limpiados: r.paneles_limpiados,
+        agua_galones: r.agua_galones,
+        horas_trabajadas: r.horas_trabajadas,
+        clima: r.clima,
+        trabajo_realizado: r.trabajo_realizado,
+        hallazgos: r.hallazgos,
+        observaciones: r.observaciones,
+      })),
+      pdfs_cargados: (reportesPdf ?? []).slice(0, 40).map((r: any) => ({
+        folio: folioPorId.get(r.trabajo_id) ?? null,
+        fecha: r.fecha,
+        archivo: r.nombre_original,
+        notas: r.notas,
       })),
     };
 
