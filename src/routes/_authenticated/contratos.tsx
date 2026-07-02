@@ -160,7 +160,27 @@ function ContratoDialog({
             <span className="text-xs text-muted-foreground">Planta</span>
             <select value={form.planta_id} onChange={(e) => setForm({ ...form, planta_id: e.target.value })}
               className="mt-1 w-full h-9 px-3 rounded-md border border-input bg-background">
-              {plantas.map((p) => <option key={p.id} value={p.id}>{p.nombre} ({p.cliente_nombre ?? "—"})</option>)}
+              {(() => {
+                // Agrupar por cliente y renderizar como <optgroup> ordenados alfabéticamente.
+                const grupos = new Map<string, any[]>();
+                [...plantas]
+                  .sort((a, b) =>
+                    String(a.cliente_nombre ?? "—").localeCompare(String(b.cliente_nombre ?? "—")) ||
+                    String(a.nombre ?? "").localeCompare(String(b.nombre ?? "")),
+                  )
+                  .forEach((p) => {
+                    const c = String(p.cliente_nombre ?? "— Sin cliente");
+                    if (!grupos.has(c)) grupos.set(c, []);
+                    grupos.get(c)!.push(p);
+                  });
+                return Array.from(grupos.entries()).map(([cliente, ps]) => (
+                  <optgroup key={cliente} label={cliente}>
+                    {ps.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
             </select>
           </label>
           <label className="block">

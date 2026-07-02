@@ -86,20 +86,37 @@ function Programacion() {
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
   const trabajos = (list.data as any[] | undefined) ?? [];
+  // Filtro por cliente (para vista anual)
+  const [clienteFilter, setClienteFilter] = useState<string>("");
+  const clientesUnicos = useMemo(() => {
+    const map = new Map<string, string>();
+    trabajos.forEach((t) => { if (t.cliente_id) map.set(t.cliente_id, t.cliente_nombre ?? "—"); });
+    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [trabajos]);
+  const trabajosFiltrados = useMemo(
+    () => (clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos),
+    [trabajos, clienteFilter],
+  );
 
   // Solo Lun-Vie
   const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, any[]>();
-    trabajos.forEach((t) => {
+    trabajosFiltrados.forEach((t) => {
       const dt = new Date(t.fecha_programada);
-      const key = dt.toDateString();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      // Marcar el trabajo en cada día que abarque su duración.
+      for (let i = 0; i < dur; i++) {
+        const d = new Date(dt);
+        d.setDate(d.getDate() + i);
+        const key = d.toDateString();
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push({ ...t, __diaIdx: i, __duracion: dur });
+      }
     });
     return map;
-  }, [trabajos]);
+  }, [trabajosFiltrados]);
 
   const totalSemana = useMemo(
     () => days.reduce((acc, d) => acc + (byDay.get(d.toDateString())?.length ?? 0), 0),
@@ -235,7 +252,22 @@ function Programacion() {
       )}
 
       {vista === "anio" && (
-        <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <label className="text-xs text-muted-foreground">Filtrar por cliente:</label>
+            <select
+              value={clienteFilter}
+              onChange={(e) => setClienteFilter(e.target.value)}
+              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+            >
+              <option value="">Todos los clientes</option>
+              {clientesUnicos.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+        </>
       )}
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
@@ -300,18 +332,23 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                 <div className="space-y-1">
                   {items.slice(0, 3).map((t: any) => (
                     <div
-                      key={t.id}
+                      key={`${t.id}-${t.__diaIdx ?? 0}`}
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
-                      title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}`}
+                      title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
-                        "rounded px-1.5 py-0.5 text-[10px] truncate border cursor-grab " +
+                        "rounded px-1.5 py-1 text-[10px] border cursor-grab leading-tight " +
                         (estadoCls[t.estado] ?? "bg-secondary border-border") +
                         (dragId === t.id ? " opacity-50" : "")
                       }
                     >
-                      {t.folio}
+                      <div className="font-medium truncate">{t.planta_nombre}</div>
+                      <div className="opacity-70 truncate">
+                        {(t.__duracion ?? 1) > 1
+                          ? `d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}`
+                          : t.folio}
+                      </div>
                     </div>
                   ))}
                   {items.length > 3 && (
@@ -372,8 +409,25 @@ function MiniMonth({ year, month, byDay, onClick }: {
               const items = byDay.get(d.toDateString()) ?? [];
               const isToday = sameDay(d, today);
               const has = items.length > 0;
+              // Prioridad de sombreado: completado > en_progreso > programado
+              const estado = has
+                ? (items.find((i: any) => i.estado === "completado")?.estado
+                  ?? items.find((i: any) => i.estado === "en_progreso")?.estado
+                  ?? items.find((i: any) => i.estado === "programado")?.estado
+                  ?? items[0].estado)
+                : null;
+              const shade =
+                estado === "completado" ? "bg-accent/25"
+                : estado === "en_progreso" ? "bg-primary/25"
+                : estado === "programado" ? "bg-muted-foreground/15"
+                : estado === "cancelado" ? "bg-destructive/15"
+                : "";
               return (
-                <div key={d.toISOString()} className="aspect-square grid place-items-center relative">
+                <div
+                  key={d.toISOString()}
+                  className={"aspect-square grid place-items-center relative rounded " + (inMonth ? shade : "")}
+                  title={has ? `${items.length} trabajo(s) · ${estado}` : ""}
+                >
                   <span className={
                     "text-[10px] " +
                     (isToday ? "size-5 rounded-full bg-primary text-primary-foreground font-bold grid place-items-center"
@@ -381,9 +435,6 @@ function MiniMonth({ year, month, byDay, onClick }: {
                   }>
                     {d.getDate()}
                   </span>
-                  {has && !isToday && (
-                    <span className={"absolute bottom-0 size-1 rounded-full " + (estadoDot[items[0].estado] ?? "bg-primary")} />
-                  )}
                 </div>
               );
             })}
