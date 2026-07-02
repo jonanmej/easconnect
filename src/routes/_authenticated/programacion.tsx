@@ -86,20 +86,38 @@ function Programacion() {
 
   const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
   const trabajos = (list.data as any[] | undefined) ?? [];
+  const plantasQ = useQuery({ queryKey: ["plantas"], queryFn: () => (useServerFn(listPlantas))() as any, enabled: false });
+  // Filtro por cliente (para vista anual)
+  const [clienteFilter, setClienteFilter] = useState<string>("");
+  const clientesUnicos = useMemo(() => {
+    const map = new Map<string, string>();
+    trabajos.forEach((t) => { if (t.cliente_id) map.set(t.cliente_id, t.cliente_nombre ?? "—"); });
+    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [trabajos]);
+  const trabajosFiltrados = useMemo(
+    () => (clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos),
+    [trabajos, clienteFilter],
+  );
 
   // Solo Lun-Vie
   const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, any[]>();
-    trabajos.forEach((t) => {
+    trabajosFiltrados.forEach((t) => {
       const dt = new Date(t.fecha_programada);
-      const key = dt.toDateString();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      // Marcar el trabajo en cada día que abarque su duración.
+      for (let i = 0; i < dur; i++) {
+        const d = new Date(dt);
+        d.setDate(d.getDate() + i);
+        const key = d.toDateString();
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push({ ...t, __diaIdx: i, __duracion: dur });
+      }
     });
     return map;
-  }, [trabajos]);
+  }, [trabajosFiltrados]);
 
   const totalSemana = useMemo(
     () => days.reduce((acc, d) => acc + (byDay.get(d.toDateString())?.length ?? 0), 0),
