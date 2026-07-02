@@ -842,7 +842,7 @@ function RecursosSection({
           <div className="col-span-12">
             <input name="notas" placeholder="Notas (opcional)" className={inputCls + " text-xs"} />
           </div>
-        </form>
+        </div>
       )}
     </div>
   );
