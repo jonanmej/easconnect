@@ -98,33 +98,6 @@ function Programacion() {
     [trabajos, clienteFilter],
   );
 
-  // Detección de solapamientos: agrupa trabajos que comparten al menos un día
-  // según su duración real. Solo se consideran no cancelados.
-  const solapamientos = useMemo(() => {
-    const dias = new Map<string, any[]>();
-    trabajosFiltrados.forEach((t) => {
-      if (t.estado === "cancelado") return;
-      const start = new Date(t.fecha_programada);
-      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      for (let i = 0; i < dur; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const key = d.toDateString();
-        if (!dias.has(key)) dias.set(key, []);
-        dias.get(key)!.push(t);
-      }
-    });
-    const conflictos: { fecha: string; trabajos: any[] }[] = [];
-    dias.forEach((items, key) => {
-      if (items.length > 1) {
-        // Deduplicar por id (un mismo trabajo puede ocupar varios días)
-        const unicos = Array.from(new Map(items.map((x) => [x.id, x])).values());
-        if (unicos.length > 1) conflictos.push({ fecha: key, trabajos: unicos });
-      }
-    });
-    return conflictos.sort((a, b) => +new Date(a.fecha) - +new Date(b.fecha));
-  }, [trabajosFiltrados]);
-
   // Solo Lun-Vie
   const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
 
@@ -299,25 +272,6 @@ function Programacion() {
           </div>
           <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
         </>
-      )}
-
-      {solapamientos.length > 0 && (
-        <div className="mt-4 border border-amber-500/40 bg-amber-500/5 rounded-lg p-3 text-xs">
-          <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
-            ⚠ {solapamientos.length} día{solapamientos.length === 1 ? "" : "s"} con solapamientos detectados
-          </p>
-          <ul className="space-y-1 max-h-32 overflow-auto">
-            {solapamientos.slice(0, 8).map((c, i) => (
-              <li key={i} className="text-muted-foreground">
-                <span className="font-mono">{new Date(c.fecha).toLocaleDateString("es-SV", { day: "2-digit", month: "short" })}:</span>{" "}
-                {c.trabajos.map((t: any) => `${t.folio} (${t.planta_nombre}, ${Math.max(1, Number(t.duracion_dias ?? 1))}d)`).join(" · ")}
-              </li>
-            ))}
-            {solapamientos.length > 8 && (
-              <li className="text-muted-foreground/70">+{solapamientos.length - 8} más…</li>
-            )}
-          </ul>
-        </div>
       )}
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
