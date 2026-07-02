@@ -369,8 +369,12 @@ function ClienteDashboard() {
   const enCurso = ts.filter((t) => t.estado === "en_progreso");
   const completados = ts.filter((t) => t.estado === "completado");
   // Los trabajos históricos no requieren firma del cliente.
+  const esHistorico = (t: any) => {
+    const notas = String(t.notas ?? "").toUpperCase();
+    return notas.includes("HIST") && notas.includes("RICO");
+  };
   const pendienteFirma = completados.filter(
-    (t) => !t.firmado_at && !String(t.notas ?? "").startsWith("[HISTÓRICO]"),
+    (t) => !t.firmado_at && !esHistorico(t),
   );
 
   const hoy = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long" });
