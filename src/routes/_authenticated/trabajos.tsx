@@ -819,14 +819,6 @@ function RecursosSection({
                 <td className="px-2 py-2 capitalize">{r.categoria}</td>
                 <td className="px-2 py-2">{r.descripcion}{r.notas && <span className="block text-[10px] text-muted-foreground">{r.notas}</span>}</td>
                 <td className="px-2 py-2 text-right font-mono">{r.cantidad} {r.unidad ?? ""}</td>
-                <td className="px-2 py-2 text-center">
-                  <input type="checkbox" checked={r.entregado} disabled={!canEdit}
-                    onChange={(e) => toggle.mutate({ id: r.id, campo: "entregado", valor: e.currentTarget.checked })} />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <input type="checkbox" checked={r.devuelto} disabled={!canEdit}
-                    onChange={(e) => toggle.mutate({ id: r.id, campo: "devuelto", valor: e.currentTarget.checked })} />
-                </td>
                 {canEdit && (
                   <td className="px-2 py-2 text-right">
                     <button type="button" onClick={() => del.mutate(r.id)}
