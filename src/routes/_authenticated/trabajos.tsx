@@ -374,6 +374,16 @@ function Trabajos() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar folio, cliente, planta, servicio…"
+            className="h-9 pl-8 pr-3 w-full rounded-md border border-input bg-background text-sm"
+          />
+        </div>
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
@@ -415,6 +425,20 @@ function Trabajos() {
             ))}
           </select>
         )}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          title="Ordenar por"
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm ml-auto"
+        >
+          <option value="smart">Orden inteligente (próximos primero)</option>
+          <option value="fecha_asc">Fecha ascendente</option>
+          <option value="fecha_desc">Fecha descendente</option>
+          <option value="folio">Folio</option>
+          <option value="cliente">Cliente</option>
+          <option value="servicio">Servicio</option>
+          <option value="estado">Estado</option>
+        </select>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-x-auto">
