@@ -136,6 +136,10 @@ function Trabajos() {
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter]);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
@@ -351,11 +355,18 @@ function Trabajos() {
             {list.isLoading && (
               <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
-            {(list.data as any[] | undefined)?.map((t) => (
-              ((!estadoFilter || t.estado === estadoFilter)
+            {(() => {
+              const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
+                (!estadoFilter || t.estado === estadoFilter)
                 && (!plantaFilter || t.planta_id === plantaFilter)
                 && (!tecFilter
-                    || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))) ? (
+                    || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
+              );
+              const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+              const currentPage = Math.min(page, totalPages);
+              const startIdx = (currentPage - 1) * PAGE_SIZE;
+              const visibles = filtrados.slice(startIdx, startIdx + PAGE_SIZE);
+              return visibles.map((t) => (
               <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
                 <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
                 <td className="px-4 py-4">
@@ -399,11 +410,64 @@ function Trabajos() {
                   </td>
                 )}
               </tr>
-              ) : null
-            ))}
+              ));
+            })()}
           </tbody>
         </table>
       </div>
+
+      {(() => {
+        const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
+          (!estadoFilter || t.estado === estadoFilter)
+          && (!plantaFilter || t.planta_id === plantaFilter)
+          && (!tecFilter
+              || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
+        );
+        const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+        const currentPage = Math.min(page, totalPages);
+        if (filtrados.length <= PAGE_SIZE) return null;
+        const startIdx = (currentPage - 1) * PAGE_SIZE;
+        const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
+        return (
+          <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+            <span>Mostrando {startIdx + 1}–{endIdx} de {filtrados.length}</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setPage(n)}
+                  aria-current={n === currentPage ? "page" : undefined}
+                  className={
+                    "h-8 min-w-8 px-2 rounded-md border text-xs " +
+                    (n === currentPage
+                      ? "bg-primary text-primary-foreground border-primary font-semibold"
+                      : "bg-background border-border hover:bg-secondary")
+                  }
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       <RecordDialog
         open={!!editing}
