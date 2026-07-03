@@ -20,7 +20,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -74,6 +74,9 @@ const CAT_RECURSO = [
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
     meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    alerta: typeof s.alerta === "string" ? (s.alerta as string) : undefined,
   }),
   component: Trabajos,
   errorComponent: ({ error }) => (
@@ -136,10 +139,85 @@ function Trabajos() {
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("smart");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
-  useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter]);
+  useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter, search, sortBy]);
+
+  const { alerta } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
+
+  // Filtrado + búsqueda + ordenamiento (single source of truth)
+  const filtrados = (() => {
+    const q = search.trim().toLowerCase();
+    const rows = ((list.data as any[] | undefined) ?? []).filter((t) =>
+      (!estadoFilter || t.estado === estadoFilter)
+      && (!plantaFilter || t.planta_id === plantaFilter)
+      && (!tecFilter
+          || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))
+      && (!q
+          || String(t.folio ?? "").toLowerCase().includes(q)
+          || String(t.cliente_nombre ?? "").toLowerCase().includes(q)
+          || String(t.planta_nombre ?? "").toLowerCase().includes(q)
+          || String(t.servicio ?? "").toLowerCase().includes(q)
+          || String(t.notas ?? "").toLowerCase().includes(q)),
+    );
+    const fechaMs = (t: any) => new Date(t.fecha_programada).getTime();
+    const cmp: Record<string, (a: any, b: any) => number> = {
+      smart: (a, b) => {
+        // Orden: programados/en_progreso primero por fecha asc, luego completados por fecha desc, cancelados al final
+        const rank = (t: any) => (t.estado === "programado" || t.estado === "en_progreso" ? 0 : t.estado === "completado" ? 1 : 2);
+        const ra = rank(a), rb = rank(b);
+        if (ra !== rb) return ra - rb;
+        if (ra === 0) return fechaMs(a) - fechaMs(b);
+        return fechaMs(b) - fechaMs(a);
+      },
+      fecha_asc: (a, b) => fechaMs(a) - fechaMs(b),
+      fecha_desc: (a, b) => fechaMs(b) - fechaMs(a),
+      folio: (a, b) => String(a.folio ?? "").localeCompare(String(b.folio ?? "")),
+      cliente: (a, b) => String(a.cliente_nombre ?? "").localeCompare(String(b.cliente_nombre ?? "")),
+      servicio: (a, b) => String(a.servicio ?? "").localeCompare(String(b.servicio ?? "")),
+      estado: (a, b) => String(a.estado ?? "").localeCompare(String(b.estado ?? "")),
+    };
+    return [...rows].sort(cmp[sortBy] ?? cmp.smart);
+  })();
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const visibles = filtrados.slice(startIdx, startIdx + PAGE_SIZE);
+
+  // Resaltar primer trabajo relacionado con la alerta entrante
+  useEffect(() => {
+    if (!alerta || !list.data) return;
+    const now = Date.now();
+    const rows = (list.data as any[]);
+    let target: any = null;
+    if (alerta === "sla") {
+      target = rows
+        .filter((t) => t.estado !== "completado" && t.estado !== "cancelado" && new Date(t.fecha_programada).getTime() < now)
+        .sort((a, b) => new Date(a.fecha_programada).getTime() - new Date(b.fecha_programada).getTime())[0];
+    }
+    if (!target) return;
+    setHighlightId(target.id);
+    // Mover a la página que contiene el registro
+    const idx = filtrados.findIndex((t) => t.id === target.id);
+    if (idx >= 0) setPage(Math.floor(idx / PAGE_SIZE) + 1);
+    // Limpiar el param de la URL para no re-disparar
+    setTimeout(() => navigate({ search: {} as any, replace: true }), 100);
+    const clr = setTimeout(() => setHighlightId(null), 6000);
+    return () => clearTimeout(clr);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alerta, list.data]);
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, currentPage]);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
@@ -296,6 +374,16 @@ function Trabajos() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar folio, cliente, planta, servicio…"
+            className="h-9 pl-8 pr-3 w-full rounded-md border border-input bg-background text-sm"
+          />
+        </div>
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
@@ -337,6 +425,20 @@ function Trabajos() {
             ))}
           </select>
         )}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          title="Ordenar por"
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm ml-auto"
+        >
+          <option value="smart">Orden inteligente (próximos primero)</option>
+          <option value="fecha_asc">Fecha ascendente</option>
+          <option value="fecha_desc">Fecha descendente</option>
+          <option value="folio">Folio</option>
+          <option value="cliente">Cliente</option>
+          <option value="servicio">Servicio</option>
+          <option value="estado">Estado</option>
+        </select>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-x-auto">
@@ -355,19 +457,22 @@ function Trabajos() {
             {list.isLoading && (
               <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
-            {(() => {
-              const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
-                (!estadoFilter || t.estado === estadoFilter)
-                && (!plantaFilter || t.planta_id === plantaFilter)
-                && (!tecFilter
-                    || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
-              );
-              const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-              const currentPage = Math.min(page, totalPages);
-              const startIdx = (currentPage - 1) * PAGE_SIZE;
-              const visibles = filtrados.slice(startIdx, startIdx + PAGE_SIZE);
-              return visibles.map((t) => (
-              <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
+            {!list.isLoading && visibles.length === 0 && (
+              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin resultados</td></tr>
+            )}
+            {visibles.map((t) => {
+              const isHi = highlightId === t.id;
+              return (
+              <tr
+                key={t.id}
+                ref={isHi ? highlightRef : undefined}
+                className={
+                  "transition-colors " +
+                  (isHi
+                    ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
+                    : "hover:bg-secondary/40")
+                }
+              >
                 <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
                 <td className="px-4 py-4">
                   <p className="font-medium">{t.cliente_nombre}</p>
@@ -410,25 +515,16 @@ function Trabajos() {
                   </td>
                 )}
               </tr>
-              ));
-            })()}
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {(() => {
-        const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
-          (!estadoFilter || t.estado === estadoFilter)
-          && (!plantaFilter || t.planta_id === plantaFilter)
-          && (!tecFilter
-              || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
-        );
-        const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-        const currentPage = Math.min(page, totalPages);
-        if (filtrados.length <= PAGE_SIZE) return null;
-        const startIdx = (currentPage - 1) * PAGE_SIZE;
-        const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
-        return (
+      {filtrados.length > PAGE_SIZE && (
+        (() => {
+          const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
+          return (
           <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
             <span>Mostrando {startIdx + 1}–{endIdx} de {filtrados.length}</span>
             <div className="flex items-center gap-1">
@@ -466,8 +562,9 @@ function Trabajos() {
               </button>
             </div>
           </div>
-        );
-      })()}
+          );
+        })()
+      )}
 
       <RecordDialog
         open={!!editing}
