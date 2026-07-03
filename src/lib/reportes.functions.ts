@@ -573,8 +573,47 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       pdfs: pdfs.map((p: any) => ({ fecha: p.fecha, archivo: p.nombre_original, notas: p.notas })),
     };
 
-    const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(apiKey);
+    // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
+    // lea directamente su contenido y produzca un ejecutivo basado en ellos.
+    const MAX_PDFS = 6;
+    const MAX_PDF_BYTES = 8 * 1024 * 1024;
+    const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
+    const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
+    let totalBytes = 0;
+    const pdfsUsados: string[] = [];
+    const pdfsOmitidos: string[] = [];
+    for (const p of pdfs.slice(0, MAX_PDFS) as any[]) {
+      try {
+        const { data: signed } = await supabase.storage
+          .from("trabajos-evidencia")
+          .createSignedUrl(p.storage_path, 300);
+        if (!signed?.signedUrl) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
+        const resp = await fetch(signed.signedUrl);
+        if (!resp.ok) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
+        const buf = new Uint8Array(await resp.arrayBuffer());
+        if (buf.byteLength > MAX_PDF_BYTES || totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
+          pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
+          continue;
+        }
+        totalBytes += buf.byteLength;
+        // Base64 encode
+        let bin = "";
+        for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
+        const b64 = btoa(bin);
+        pdfParts.push({
+          type: "file",
+          file: {
+            filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+            file_data: `data:application/pdf;base64,${b64}`,
+          },
+        });
+        pdfsUsados.push(p.nombre_original ?? p.storage_path);
+      } catch {
+        pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
+      }
+    }
+    (dataset as any).pdfs_procesados = pdfsUsados;
+    if (pdfsOmitidos.length) (dataset as any).pdfs_omitidos = pdfsOmitidos;
 
     const ZRep = z.object({
       titulo: z.string(),
@@ -586,7 +625,8 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const system = [
       "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
       "Consolidas reportes diarios del equipo técnico en un reporte ejecutivo único, formal y trazable.",
-      "Solo usas datos del dataset; nunca inventas cifras.",
+      "Solo usas datos del dataset y del contenido de los PDFs adjuntos; nunca inventas cifras.",
+      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus datos (mediciones, tablas, hallazgos) por sobre suposiciones.",
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
     ].join(" ");
@@ -601,6 +641,41 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       return JSON.parse(s);
     };
 
+    // Si hay PDFs adjuntos, llamamos al gateway directamente (chat completions
+    // multimodal). Si no, mantenemos el camino con AI SDK (generateText).
+    const callWithPdfs = async (model: string): Promise<string> => {
+      const body = {
+        model,
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              ...pdfParts,
+            ],
+          },
+        ],
+      };
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": apiKey,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => "");
+        throw new Error(`${r.status} ${t}`);
+      }
+      const j: any = await r.json();
+      return j?.choices?.[0]?.message?.content ?? "";
+    };
+
+    const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+    const gateway = createLovableAiGatewayProvider(apiKey);
+
     const attempts = buildAttempts("auto");
     let aiResult!: z.infer<typeof ZRep>;
     let modelUsed = attempts[0].model;
@@ -609,8 +684,14 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     for (const a of attempts) {
       if (a.wait) await sleep(a.wait);
       try {
-        const r = await generateText({ model: gateway(a.model), system, prompt });
-        aiResult = ZRep.parse(parseJson(r.text));
+        let text: string;
+        if (pdfParts.length > 0 && a.model.startsWith("google/")) {
+          text = await callWithPdfs(a.model);
+        } else {
+          const r = await generateText({ model: gateway(a.model), system, prompt });
+          text = r.text;
+        }
+        aiResult = ZRep.parse(parseJson(text));
         modelUsed = a.model;
         ok = true;
         break;
