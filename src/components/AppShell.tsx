@@ -343,21 +343,42 @@ export function AppShell({ children }: { children: ReactNode }) {
               })}
             </div>
             {role !== "cliente" && totalAlertas > 0 && (() => {
-              const destino = alertas.data?.sla_vencidos
-                ? "/trabajos"
-                : alertas.data?.stock_critico
-                  ? "/inventario"
-                  : "/solicitudes";
+              const sla = alertas.data?.sla_vencidos ?? 0;
+              const stock = alertas.data?.stock_critico ?? 0;
+              const soli = alertas.data?.solicitudes_estancadas ?? 0;
+              const destino = sla ? "/trabajos" : stock ? "/inventario" : "/solicitudes";
+              const motivos: string[] = [];
+              if (sla) motivos.push(`${sla} SLA vencido${sla === 1 ? "" : "s"}`);
+              if (stock) motivos.push(`${stock} item${stock === 1 ? "" : "s"} en stock crítico`);
+              if (soli) motivos.push(`${soli} solicitud${soli === 1 ? "" : "es"} estancada${soli === 1 ? "" : "s"}`);
+              const tituloMotivo = motivos.join(" · ");
+              const motivoPrincipal = sla
+                ? "sla_vencidos"
+                : stock
+                  ? "stock_critico"
+                  : "solicitudes_estancadas";
+              const descripcionPrincipal = sla
+                ? `Hay ${sla} trabajo${sla === 1 ? "" : "s"} con SLA vencido.`
+                : stock
+                  ? `Hay ${stock} item${stock === 1 ? "" : "s"} de inventario bajo su mínimo.`
+                  : `Hay ${soli} solicitud${soli === 1 ? "" : "es"} pendiente${soli === 1 ? "" : "s"} por más de 2 días.`;
               return (
-                <Link
-                  to={destino}
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.warning(descripcionPrincipal, {
+                      description: motivos.length > 1 ? `Otras alertas: ${motivos.filter((_, i) => (sla ? i > 0 : stock ? i > 0 : true)).join(" · ")}` : undefined,
+                      duration: 6000,
+                    });
+                    navigate({ to: destino, search: { alerta: motivoPrincipal } as never });
+                  }}
                   className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  aria-label="Alertas operacionales"
-                  title={`${totalAlertas} alertas activas`}
+                  aria-label={`Alertas operacionales: ${tituloMotivo}`}
+                  title={tituloMotivo}
                 >
                   <AlertTriangle className="size-[18px] text-destructive" aria-hidden="true" />
                   <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
-                </Link>
+                </button>
               );
             })()}
             <NotificationsBell />
