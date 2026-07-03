@@ -20,7 +20,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, ArrowUpDown, Search as SearchIcon } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -74,6 +74,9 @@ const CAT_RECURSO = [
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
     meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    alerta: typeof s.alerta === "string" ? (s.alerta as string) : undefined,
   }),
   component: Trabajos,
   errorComponent: ({ error }) => (
@@ -136,10 +139,17 @@ function Trabajos() {
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("smart");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
-  useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter]);
+  useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter, search, sortBy]);
+
+  const { alerta } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
