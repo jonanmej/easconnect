@@ -131,6 +131,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       desde: z.string().min(1),
       hasta: z.string().min(1),
       proveedor: z.enum(["gemini", "openai", "auto"]).optional().default("auto"),
+      servicio: z.string().min(1).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -153,11 +154,18 @@ export const generarReporte = createServerFn({ method: "POST" })
 
     const [trabajosRes, equiposRes] = await Promise.all([
       plantasIds.length
-        ? supabase.from("trabajos")
-            .select("folio, servicio, estado, fecha_programada")
-            .in("planta_id", plantasIds)
-            .gte("fecha_programada", data.desde)
-            .lte("fecha_programada", data.hasta)
+        ? (data.servicio
+            ? supabase.from("trabajos")
+                .select("folio, servicio, estado, fecha_programada")
+                .in("planta_id", plantasIds)
+                .gte("fecha_programada", data.desde)
+                .lte("fecha_programada", data.hasta)
+                .eq("servicio", data.servicio)
+            : supabase.from("trabajos")
+                .select("folio, servicio, estado, fecha_programada")
+                .in("planta_id", plantasIds)
+                .gte("fecha_programada", data.desde)
+                .lte("fecha_programada", data.hasta))
         : Promise.resolve({ data: [] as any[] }),
       plantasIds.length
         ? supabase.from("equipos").select("codigo, nombre, estado, salud").in("planta_id", plantasIds)
@@ -178,9 +186,12 @@ export const generarReporte = createServerFn({ method: "POST" })
 
     // Reportes base llenados por técnicos en cada OT
     const trabajoIds = (trabajosRes.data ?? []).map((t: any) => t.folio ? t : null).filter(Boolean);
-    const { data: tIds } = plantasIds.length
-      ? await supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", data.desde).lte("fecha_programada", data.hasta)
-      : { data: [] as any[] };
+    let tIdsQb: any = null;
+    if (plantasIds.length) {
+      tIdsQb = supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", data.desde).lte("fecha_programada", data.hasta);
+      if (data.servicio) tIdsQb = tIdsQb.eq("servicio", data.servicio);
+    }
+    const { data: tIds } = tIdsQb ? await tIdsQb : { data: [] as any[] };
     const tIdsArr = (tIds ?? []).map((t: any) => t.id);
     const folioPorId = new Map((tIds ?? []).map((t: any) => [t.id, t.folio]));
     const { data: reportesBase } = tIdsArr.length
@@ -209,6 +220,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
       periodo: data.periodo,
+      servicio: data.servicio ?? "Todos los servicios",
       ventana: { desde: data.desde, hasta: data.hasta },
       planta_meta: planta ?? null,
       kpis: {
