@@ -342,17 +342,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </div>
-            {role !== "cliente" && totalAlertas > 0 && (
-              <Link
-                to="/trabajos"
-                className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Alertas operacionales"
-                title={`${totalAlertas} alertas activas`}
-              >
-                <AlertTriangle className="size-[18px] text-destructive" aria-hidden="true" />
-                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
-              </Link>
-            )}
+            {role !== "cliente" && totalAlertas > 0 && (() => {
+              const destino = alertas.data?.sla_vencidos
+                ? "/trabajos"
+                : alertas.data?.stock_critico
+                  ? "/inventario"
+                  : "/solicitudes";
+              return (
+                <Link
+                  to={destino}
+                  className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Alertas operacionales"
+                  title={`${totalAlertas} alertas activas`}
+                >
+                  <AlertTriangle className="size-[18px] text-destructive" aria-hidden="true" />
+                  <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
+                </Link>
+              );
+            })()}
             <NotificationsBell />
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-accent/15 rounded-full">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
