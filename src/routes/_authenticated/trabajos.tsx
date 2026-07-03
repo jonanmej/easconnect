@@ -457,19 +457,22 @@ function Trabajos() {
             {list.isLoading && (
               <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
             )}
-            {(() => {
-              const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
-                (!estadoFilter || t.estado === estadoFilter)
-                && (!plantaFilter || t.planta_id === plantaFilter)
-                && (!tecFilter
-                    || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
-              );
-              const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-              const currentPage = Math.min(page, totalPages);
-              const startIdx = (currentPage - 1) * PAGE_SIZE;
-              const visibles = filtrados.slice(startIdx, startIdx + PAGE_SIZE);
-              return visibles.map((t) => (
-              <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
+            {!list.isLoading && visibles.length === 0 && (
+              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin resultados</td></tr>
+            )}
+            {visibles.map((t) => {
+              const isHi = highlightId === t.id;
+              return (
+              <tr
+                key={t.id}
+                ref={isHi ? highlightRef : undefined}
+                className={
+                  "transition-colors " +
+                  (isHi
+                    ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
+                    : "hover:bg-secondary/40")
+                }
+              >
                 <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
                 <td className="px-4 py-4">
                   <p className="font-medium">{t.cliente_nombre}</p>
@@ -512,25 +515,16 @@ function Trabajos() {
                   </td>
                 )}
               </tr>
-              ));
-            })()}
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {(() => {
-        const filtrados = ((list.data as any[] | undefined) ?? []).filter((t) =>
-          (!estadoFilter || t.estado === estadoFilter)
-          && (!plantaFilter || t.planta_id === plantaFilter)
-          && (!tecFilter
-              || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter)),
-        );
-        const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-        const currentPage = Math.min(page, totalPages);
-        if (filtrados.length <= PAGE_SIZE) return null;
-        const startIdx = (currentPage - 1) * PAGE_SIZE;
-        const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
-        return (
+      {filtrados.length > PAGE_SIZE && (
+        (() => {
+          const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
+          return (
           <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
             <span>Mostrando {startIdx + 1}–{endIdx} de {filtrados.length}</span>
             <div className="flex items-center gap-1">
@@ -568,8 +562,9 @@ function Trabajos() {
               </button>
             </div>
           </div>
-        );
-      })()}
+          );
+        })()
+      )}
 
       <RecordDialog
         open={!!editing}
