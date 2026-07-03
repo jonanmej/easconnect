@@ -492,18 +492,18 @@ function ClienteCalendar() {
 
   // Build grid (lunes-domingo)
   const cells = useMemo(() => {
-    const out: { fecha: string | null; ocupada?: boolean; today?: boolean }[] = [];
+    const out: { fecha: string | null; ocupada?: boolean; today?: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string }> }[] = [];
     const first = new Date(monthStart);
     const leading = (first.getDay() + 6) % 7;
     // Solo días laborables (Lun-Vie); el leading se limita a 0..4
     const leadingWk = Math.min(leading, 4);
     for (let i = 0; i < leadingWk; i++) out.push({ fecha: null });
-    const list = (dispQ.data as { fecha: string; ocupada: boolean }[] | undefined) ?? [];
+    const list = (dispQ.data as Array<{ fecha: string; ocupada: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string }> }> | undefined) ?? [];
     const today = toISODateLocal(new Date());
     list.forEach((d) => {
       const dow = new Date(d.fecha + "T00:00").getDay();
       if (dow === 0 || dow === 6) return; // omitir sábado/domingo
-      out.push({ fecha: d.fecha, ocupada: d.ocupada, today: d.fecha === today });
+      out.push({ fecha: d.fecha, ocupada: d.ocupada, today: d.fecha === today, asignaciones: d.asignaciones ?? [] });
     });
     while (out.length % 5 !== 0) out.push({ fecha: null });
     return out;
@@ -515,7 +515,7 @@ function ClienteCalendar() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
       <PageHeader
         title="Solicitar Visita"
-        description="Elija un día disponible en su calendario para pedir una visita técnica. Los días en rojo ya están ocupados."
+        description="Los días en rojo muestran el nombre de la planta con visita asignada. Elija un día libre para solicitar una nueva visita técnica."
         actions={
           <div className="inline-flex items-center gap-2">
             <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(startOfMonth(d)); }}
@@ -544,13 +544,17 @@ function ClienteCalendar() {
           {cells.map((c, i) => {
             if (!c.fecha) return <div key={i} className="aspect-square border-t border-l border-border first:border-l-0 bg-muted/20" />;
             const isPast = c.fecha < toISODateLocal(new Date());
+            const asigns = c.asignaciones ?? [];
+            const tooltip = asigns.length
+              ? asigns.map((a) => `• ${a.planta_nombre} — ${a.servicio}${a.folio ? ` (${a.folio})` : ""}`).join("\n")
+              : c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día";
             return (
               <button
                 key={i}
                 disabled={c.ocupada || isPast}
                 onClick={() => setPickDate(c.fecha!)}
                 className={
-                  "aspect-square border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors " +
+                  "min-h-[92px] border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors overflow-hidden " +
                   (c.ocupada
                     ? "bg-destructive/10 text-destructive cursor-not-allowed"
                     : isPast
@@ -558,11 +562,27 @@ function ClienteCalendar() {
                       : "hover:bg-accent/10 cursor-pointer") +
                   (c.today ? " ring-1 ring-primary" : "")
                 }
-                title={c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día"}
+                title={tooltip}
               >
                 <span className={"font-mono " + (c.today ? "text-primary font-bold" : "")}>{Number(c.fecha.slice(-2))}</span>
-                {c.ocupada && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest">Ocupado</span>}
-                {!c.ocupada && !isPast && <span className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-accent">Libre</span>}
+                {asigns.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {asigns.slice(0, 3).map((a, ix) => (
+                      <div
+                        key={ix}
+                        className="text-[10px] leading-tight px-1 py-0.5 rounded bg-destructive/15 text-destructive font-medium truncate"
+                      >
+                        {a.planta_nombre}
+                      </div>
+                    ))}
+                    {asigns.length > 3 && (
+                      <div className="text-[9px] text-destructive/80">+{asigns.length - 3} más</div>
+                    )}
+                  </div>
+                )}
+                {!c.ocupada && !isPast && (
+                  <span className="absolute bottom-1 right-1 text-[9px] uppercase tracking-widest text-accent">Libre</span>
+                )}
               </button>
             );
           })}

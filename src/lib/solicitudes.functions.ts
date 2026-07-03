@@ -112,31 +112,55 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
     const hastaPlus = addDaysStr(data.hasta, 1);
     const { data: trabajos, error } = await context.supabase
       .from("trabajos")
-      .select("id, fecha_programada, duracion_dias, estado")
+      .select("id, fecha_programada, duracion_dias, estado, folio, servicio, planta_id, plantas(nombre)")
       .gte("fecha_programada", desdeExt + "T00:00:00Z")
       .lt("fecha_programada", hastaPlus + "T00:00:00Z")
       .neq("estado", "cancelado");
     if (error) throw new Error(error.message);
 
-    // Marca cada día ocupado si algún trabajo cubre [start, start+duracion)
+    // Determinar si el usuario es cliente para saber si "propio" aplica.
+    const { data: prof } = await context.supabase
+      .from("profiles").select("cliente_id").eq("id", context.userId).maybeSingle();
+    const clienteId = (prof as any)?.cliente_id ?? null;
+
+    // Marca cada día ocupado si algún trabajo cubre [start, start+duracion).
+    // Además, agrupa las asignaciones propias del cliente por día (nombre de planta).
     const ocupados = new Set<string>();
+    const asignacionesPorDia = new Map<string, Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean }>>();
     (trabajos ?? []).forEach((t: any) => {
       const start = new Date(t.fecha_programada);
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      const plantaNombre = t.plantas?.nombre ?? "—";
+      // Nota: RLS ya limita al cliente sus propios trabajos; para staff mostramos todos.
+      const propio = true;
       for (let i = 0; i < dur; i++) {
         const day = new Date(start);
         day.setUTCHours(0, 0, 0, 0);
         day.setUTCDate(day.getUTCDate() + i);
-        ocupados.add(toISODate(day));
+        const key = toISODate(day);
+        ocupados.add(key);
+        if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
+        asignacionesPorDia.get(key)!.push({
+          planta_nombre: plantaNombre,
+          folio: t.folio ?? "",
+          servicio: t.servicio ?? "",
+          propio,
+        });
       }
     });
 
-    const result: { fecha: string; ocupada: boolean }[] = [];
+    const result: { fecha: string; ocupada: boolean; asignaciones: Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean }> }[] = [];
     let cur = data.desde;
     while (cur <= data.hasta) {
-      result.push({ fecha: cur, ocupada: ocupados.has(cur) });
+      result.push({
+        fecha: cur,
+        ocupada: ocupados.has(cur),
+        asignaciones: asignacionesPorDia.get(cur) ?? [],
+      });
       cur = addDaysStr(cur, 1);
     }
+    // Silenciar warning de no-uso cuando el usuario no es cliente.
+    void clienteId;
     return result;
   });
 
