@@ -151,6 +151,74 @@ function Trabajos() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
+  // Filtrado + búsqueda + ordenamiento (single source of truth)
+  const filtrados = (() => {
+    const q = search.trim().toLowerCase();
+    const rows = ((list.data as any[] | undefined) ?? []).filter((t) =>
+      (!estadoFilter || t.estado === estadoFilter)
+      && (!plantaFilter || t.planta_id === plantaFilter)
+      && (!tecFilter
+          || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))
+      && (!q
+          || String(t.folio ?? "").toLowerCase().includes(q)
+          || String(t.cliente_nombre ?? "").toLowerCase().includes(q)
+          || String(t.planta_nombre ?? "").toLowerCase().includes(q)
+          || String(t.servicio ?? "").toLowerCase().includes(q)
+          || String(t.notas ?? "").toLowerCase().includes(q)),
+    );
+    const fechaMs = (t: any) => new Date(t.fecha_programada).getTime();
+    const cmp: Record<string, (a: any, b: any) => number> = {
+      smart: (a, b) => {
+        // Orden: programados/en_progreso primero por fecha asc, luego completados por fecha desc, cancelados al final
+        const rank = (t: any) => (t.estado === "programado" || t.estado === "en_progreso" ? 0 : t.estado === "completado" ? 1 : 2);
+        const ra = rank(a), rb = rank(b);
+        if (ra !== rb) return ra - rb;
+        if (ra === 0) return fechaMs(a) - fechaMs(b);
+        return fechaMs(b) - fechaMs(a);
+      },
+      fecha_asc: (a, b) => fechaMs(a) - fechaMs(b),
+      fecha_desc: (a, b) => fechaMs(b) - fechaMs(a),
+      folio: (a, b) => String(a.folio ?? "").localeCompare(String(b.folio ?? "")),
+      cliente: (a, b) => String(a.cliente_nombre ?? "").localeCompare(String(b.cliente_nombre ?? "")),
+      servicio: (a, b) => String(a.servicio ?? "").localeCompare(String(b.servicio ?? "")),
+      estado: (a, b) => String(a.estado ?? "").localeCompare(String(b.estado ?? "")),
+    };
+    return [...rows].sort(cmp[sortBy] ?? cmp.smart);
+  })();
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const visibles = filtrados.slice(startIdx, startIdx + PAGE_SIZE);
+
+  // Resaltar primer trabajo relacionado con la alerta entrante
+  useEffect(() => {
+    if (!alerta || !list.data) return;
+    const now = Date.now();
+    const rows = (list.data as any[]);
+    let target: any = null;
+    if (alerta === "sla") {
+      target = rows
+        .filter((t) => t.estado !== "completado" && t.estado !== "cancelado" && new Date(t.fecha_programada).getTime() < now)
+        .sort((a, b) => new Date(a.fecha_programada).getTime() - new Date(b.fecha_programada).getTime())[0];
+    }
+    if (!target) return;
+    setHighlightId(target.id);
+    // Mover a la página que contiene el registro
+    const idx = filtrados.findIndex((t) => t.id === target.id);
+    if (idx >= 0) setPage(Math.floor(idx / PAGE_SIZE) + 1);
+    // Limpiar el param de la URL para no re-disparar
+    setTimeout(() => navigate({ search: {} as any, replace: true }), 100);
+    const clr = setTimeout(() => setHighlightId(null), 6000);
+    return () => clearTimeout(clr);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alerta, list.data]);
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, currentPage]);
+
   // Cargar equipos asignados cuando se abre un trabajo existente
   const equiposAsignados = useQuery({
     queryKey: ["trabajo-equipos", editing?.id],
