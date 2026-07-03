@@ -24,14 +24,19 @@ export const listContratos = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("contratos_servicio")
       .select("id, planta_id, servicio, cantidad_anual, anio, fecha_inicio, duracion_dias_default, activo, plantas(nombre, clientes(nombre))")
-      .eq("anio", anio)
-      .order("servicio");
+      .eq("anio", anio);
     if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({
-      ...r,
-      planta_nombre: r.plantas?.nombre ?? "—",
-      cliente_nombre: r.plantas?.clientes?.nombre ?? "—",
-    }));
+    return (data ?? [])
+      .map((r: any) => ({
+        ...r,
+        planta_nombre: r.plantas?.nombre ?? "—",
+        cliente_nombre: r.plantas?.clientes?.nombre ?? "—",
+      }))
+      .sort((a: any, b: any) =>
+        String(a.cliente_nombre).localeCompare(String(b.cliente_nombre), "es", { sensitivity: "base" }) ||
+        String(a.planta_nombre).localeCompare(String(b.planta_nombre), "es", { sensitivity: "base" }) ||
+        String(a.servicio).localeCompare(String(b.servicio), "es", { sensitivity: "base" }),
+      );
   });
 
 /** Crea o actualiza un contrato (staff). */
