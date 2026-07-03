@@ -352,11 +352,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               if (stock) motivos.push(`${stock} item${stock === 1 ? "" : "s"} en stock crítico`);
               if (soli) motivos.push(`${soli} solicitud${soli === 1 ? "" : "es"} estancada${soli === 1 ? "" : "s"}`);
               const tituloMotivo = motivos.join(" · ");
-              const motivoPrincipal = sla
-                ? "sla_vencidos"
-                : stock
-                  ? "stock_critico"
-                  : "solicitudes_estancadas";
               const descripcionPrincipal = sla
                 ? `Hay ${sla} trabajo${sla === 1 ? "" : "s"} con SLA vencido.`
                 : stock
@@ -370,7 +365,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       description: motivos.length > 1 ? `Otras alertas: ${motivos.filter((_, i) => (sla ? i > 0 : stock ? i > 0 : true)).join(" · ")}` : undefined,
                       duration: 6000,
                     });
-                    navigate({ to: destino, search: { alerta: motivoPrincipal } as never });
+                    navigate({ to: destino });
                   }}
                   className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label={`Alertas operacionales: ${tituloMotivo}`}
