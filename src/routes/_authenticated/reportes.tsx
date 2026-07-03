@@ -9,6 +9,7 @@ import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { Sparkles, Wand2, Eye, FileDown, Mail, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
+import { SERVICIOS_OT } from "@/lib/servicios";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
 import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
@@ -161,6 +162,7 @@ function Reportes() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const planta_id = f.get("planta_id") as string;
+    const servicio = (f.get("servicio") as string) || "";
     gen.mutate({
       cliente_id: f.get("cliente_id"),
       planta_id: planta_id || null,
@@ -168,6 +170,7 @@ function Reportes() {
       desde: f.get("desde"),
       hasta: f.get("hasta"),
       proveedor: "auto",
+      servicio: servicio || null,
     });
   }
 
@@ -372,6 +375,14 @@ function Reportes() {
             <option value="">Todas las plantas del cliente</option>
             {plantasFiltradas.map((p: any) => (
               <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Servicio (opcional · todos si vacío)">
+          <select name="servicio" defaultValue="" className={inputCls}>
+            <option value="">Todos los servicios</option>
+            {SERVICIOS_OT.map((s) => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </Field>
