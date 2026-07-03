@@ -576,8 +576,8 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
     // lea directamente su contenido y produzca un ejecutivo basado en ellos.
     const MAX_PDFS = 6;
-    const MAX_PDF_BYTES = 8 * 1024 * 1024;
-    const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
+    const MAX_PDF_BYTES = 75 * 1024 * 1024;
+    const MAX_TOTAL_BYTES = 150 * 1024 * 1024;
     const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
     let totalBytes = 0;
     const pdfsUsados: string[] = [];
