@@ -74,6 +74,13 @@ function Terreno() {
   const list = ((trabajos.data as any[] | undefined) ?? [])
     .filter((t) => (isStaff ? true : t.tecnico_id === user?.id))
     .filter((t) => t.estado !== "completado" && t.estado !== "cancelado")
+    .sort((a, b) => {
+      // En progreso primero, luego programados por fecha más próxima.
+      const rank = (s: string) => (s === "en_progreso" ? 0 : 1);
+      const rd = rank(a.estado) - rank(b.estado);
+      if (rd !== 0) return rd;
+      return String(a.fecha_programada).localeCompare(String(b.fecha_programada));
+    })
     .slice(0, 50);
 
   async function sincronizar() {
