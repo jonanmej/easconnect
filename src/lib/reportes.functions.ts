@@ -200,7 +200,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     // PDFs subidos (caso st.solar u otros).
     const { data: reportesPdf } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_pdf")
-          .select("trabajo_id, fecha, nombre_original, notas")
+          .select("trabajo_id, fecha, nombre_original, notas, storage_path")
           .in("trabajo_id", tIdsArr)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
@@ -258,6 +258,50 @@ export const generarReporte = createServerFn({ method: "POST" })
     const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(apiKey);
 
+    // Descargar y adjuntar PDFs subidos por técnicos al periodo, para que el
+    // modelo lea su contenido y consolide el ejecutivo con datos reales.
+    const MAX_PDFS = 8;
+    const MAX_PDF_BYTES = 75 * 1024 * 1024;
+    const MAX_TOTAL_BYTES = 150 * 1024 * 1024;
+    const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
+    const pdfsUsados: string[] = [];
+    const pdfsOmitidos: string[] = [];
+    let totalBytes = 0;
+    for (const p of (reportesPdf ?? []).slice(0, MAX_PDFS) as any[]) {
+      try {
+        const { data: signed } = await supabase.storage
+          .from("trabajos-evidencia")
+          .createSignedUrl(p.storage_path, 300);
+        if (!signed?.signedUrl) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
+        const resp = await fetch(signed.signedUrl);
+        if (!resp.ok) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
+        const buf = new Uint8Array(await resp.arrayBuffer());
+        if (buf.byteLength > MAX_PDF_BYTES || totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
+          pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
+          continue;
+        }
+        totalBytes += buf.byteLength;
+        let bin = "";
+        const CHUNK = 0x8000;
+        for (let i = 0; i < buf.byteLength; i += CHUNK) {
+          bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)) as any);
+        }
+        const b64 = btoa(bin);
+        pdfParts.push({
+          type: "file",
+          file: {
+            filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+            file_data: `data:application/pdf;base64,${b64}`,
+          },
+        });
+        pdfsUsados.push(p.nombre_original ?? p.storage_path);
+      } catch {
+        pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
+      }
+    }
+    (datasetCtx as any).pdfs_procesados = pdfsUsados;
+    if (pdfsOmitidos.length) (datasetCtx as any).pdfs_omitidos = pdfsOmitidos;
+
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
       titulo: z.string(),
@@ -270,6 +314,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
       "Redactas reportes ejecutivos en español, formales y trazables, alineados con ISO 9001:2015 (cláusulas 7.5, 8.5, 9.1 y 10).",
       "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
+      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus mediciones, tablas y hallazgos por sobre el resumen JSON del dataset.",
       "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
       "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
@@ -303,11 +348,42 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
     let lastErr: any = null;
     let ok = false;
     let modelUsed = attempts[0].model;
+
+    const callWithPdfs = async (model: string): Promise<string> => {
+      const body = {
+        model,
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              ...pdfParts,
+            ],
+          },
+        ],
+      };
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(`${r.status} ${await r.text().catch(() => "")}`);
+      const j: any = await r.json();
+      return j?.choices?.[0]?.message?.content ?? "";
+    };
+
     for (const a of attempts) {
       if (a.wait) await sleep(a.wait);
       try {
-        const result = await generateText({ model: gateway(a.model), system, prompt });
-        aiResult = ZReporte.parse(parseJson(result.text));
+        let text: string;
+        if (pdfParts.length > 0 && a.model.startsWith("google/")) {
+          text = await callWithPdfs(a.model);
+        } else {
+          const result = await generateText({ model: gateway(a.model), system, prompt });
+          text = result.text;
+        }
+        aiResult = ZReporte.parse(parseJson(text));
         modelUsed = a.model;
         ok = true;
         break;
