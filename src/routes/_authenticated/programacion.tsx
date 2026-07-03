@@ -515,7 +515,7 @@ function ClienteCalendar() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
       <PageHeader
         title="Solicitar Visita"
-        description="Elija un día disponible en su calendario para pedir una visita técnica. Los días en rojo ya están ocupados."
+        description="Los días en rojo muestran el nombre de la planta con visita asignada. Elija un día libre para solicitar una nueva visita técnica."
         actions={
           <div className="inline-flex items-center gap-2">
             <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(startOfMonth(d)); }}
