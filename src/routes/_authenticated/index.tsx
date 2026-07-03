@@ -405,29 +405,6 @@ function ClienteDashboard() {
 
       <CumplimientoContratos />
 
-      {(() => {
-        // Suma paneles limpiados por cada ciclo (trabajo completado) del cliente.
-        const panelesAcum = completados.reduce((s, t) => s + Number(t.paneles_limpiados ?? 0), 0);
-        return (
-          <section className="bg-gradient-to-br from-accent/10 to-primary/5 border border-accent/20 rounded-xl p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado</h3>
-                <p className="text-xs text-muted-foreground mt-1">Total acumulado a lo largo de todos los ciclos ejecutados en sus plantas.</p>
-              </div>
-              <div className="text-right">
-                <p className="text-4xl md:text-5xl font-mono font-semibold text-accent tracking-tight">
-                  {panelesAcum.toLocaleString()}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  en <span className="font-mono font-semibold">{completados.length}</span> ciclo{completados.length === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold uppercase tracking-wider">Mis plantas solares</h2>
