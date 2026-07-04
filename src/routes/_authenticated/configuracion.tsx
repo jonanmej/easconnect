@@ -234,6 +234,8 @@ function PasswordPolicyCard() {
 }
 
 function ResetDataCard() {
+function ReportEmailPauseCardStub() { return null; }
+
   const qc = useQueryClient();
   const fReset = useServerFn(resetDatosOperacionales);
   const [confirm, setConfirm] = useState("");
