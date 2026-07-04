@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
@@ -84,7 +84,12 @@ function Programacion() {
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const list = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchList() });
+  const list = useQuery({
+    queryKey: ["trabajos"],
+    queryFn: () => fetchList(),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
   const trabajos = (list.data as any[] | undefined) ?? [];
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
@@ -474,8 +479,33 @@ function ClienteCalendar() {
   const dispQ = useQuery({
     queryKey: ["disponibilidad", desde, hasta],
     queryFn: () => fDisp({ data: { desde, hasta } }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
-  const plantasQ = useQuery({ queryKey: ["mis-plantas"], queryFn: () => fPlantas() });
+  const plantasQ = useQuery({
+    queryKey: ["mis-plantas"],
+    queryFn: () => fPlantas(),
+    staleTime: 5 * 60_000,
+  });
+
+  // Prefetch de mes anterior y siguiente para navegación instantánea
+  useEffect(() => {
+    const prevStart = new Date(monthStart); prevStart.setMonth(prevStart.getMonth() - 1);
+    const prevEnd = new Date(prevStart); prevEnd.setMonth(prevEnd.getMonth() + 1); prevEnd.setDate(0);
+    const nextStart = new Date(monthStart); nextStart.setMonth(nextStart.getMonth() + 1);
+    const nextEnd = new Date(nextStart); nextEnd.setMonth(nextEnd.getMonth() + 1); nextEnd.setDate(0);
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    qc.prefetchQuery({
+      queryKey: ["disponibilidad", iso(prevStart), iso(prevEnd)],
+      queryFn: () => fDisp({ data: { desde: iso(prevStart), hasta: iso(prevEnd) } }),
+      staleTime: 60_000,
+    });
+    qc.prefetchQuery({
+      queryKey: ["disponibilidad", iso(nextStart), iso(nextEnd)],
+      queryFn: () => fDisp({ data: { desde: iso(nextStart), hasta: iso(nextEnd) } }),
+      staleTime: 60_000,
+    });
+  }, [monthStart, qc, fDisp]);
 
   const [pickDate, setPickDate] = useState<string | null>(null);
 

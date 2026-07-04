@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, type LucideIcon } from "lucide-react";
+import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, MailX, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme, type ThemePreference } from "@/lib/theme-context";
@@ -7,7 +7,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getPasswordPolicy, setPasswordPolicy, type PasswordPolicy } from "@/lib/system-config.functions";
+import {
+  getPasswordPolicy,
+  setPasswordPolicy,
+  getReportUploadEmailPaused,
+  setReportUploadEmailPaused,
+  type PasswordPolicy,
+} from "@/lib/system-config.functions";
+import { Switch } from "@/components/ui/switch";
 import { resetDatosOperacionales } from "@/lib/reportes.functions";
 import { toast } from "sonner";
 
@@ -123,6 +130,7 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
         {isAdmin && <PasswordPolicyCard />}
+        {isAdmin && <ReportEmailPauseCard />}
         {isAdmin && <ResetDataCard />}
       </div>
     </div>
@@ -220,6 +228,57 @@ function PasswordPolicyCard() {
             {save.isPending ? "Guardando…" : "Guardar política"}
           </button>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportEmailPauseCard() {
+  const qc = useQueryClient();
+  const fGet = useServerFn(getReportUploadEmailPaused);
+  const fSet = useServerFn(setReportUploadEmailPaused);
+  const q = useQuery({ queryKey: ["report-upload-email-paused"], queryFn: () => fGet() });
+  const save = useMutation({
+    mutationFn: (paused: boolean) => fSet({ data: { paused } }),
+    onSuccess: (_r, paused) => {
+      toast.success(paused
+        ? "Correos pausados. Los usuarios verán la notificación en la app, pero no recibirán email."
+        : "Correos reactivados. Los usuarios volverán a recibir email al subirse un reporte.");
+      qc.invalidateQueries({ queryKey: ["report-upload-email-paused"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const paused = Boolean(q.data?.paused);
+  return (
+    <Card className="max-w-3xl mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MailX className="size-4 text-primary" />
+          Correos al subir reportes
+        </CardTitle>
+        <CardDescription>
+          Al subirse un reporte diario o PDF en un trabajo, el sistema envía un correo a
+          todos los administradores y supervisores registrados. Puedes pausarlo temporalmente
+          (por ejemplo durante campañas intensivas) sin afectar las notificaciones dentro de la app.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between gap-4">
+        <div className="text-sm">
+          <p className="font-medium">
+            {q.isLoading ? "Cargando…" : paused ? "Correos pausados" : "Correos activos"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {paused
+              ? "No se están enviando emails cuando se sube un reporte."
+              : "Se envía un email a cada admin y supervisor al subirse un reporte."}
+          </p>
+        </div>
+        <Switch
+          checked={paused}
+          disabled={q.isLoading || save.isPending}
+          onCheckedChange={(v) => save.mutate(v)}
+          aria-label="Pausar correos al subir reportes"
+        />
       </CardContent>
     </Card>
   );

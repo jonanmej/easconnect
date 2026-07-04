@@ -69,3 +69,50 @@ export const setPasswordPolicy = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/**
+ * Pausa el envío de correo (a todos los usuarios y emails registrados) cuando
+ * se sube un reporte diario o PDF en un trabajo. Las notificaciones in-app
+ * siguen registrándose para no perder trazabilidad.
+ */
+export const REPORT_UPLOAD_EMAIL_PAUSE_KEY = "notify_report_upload_email_paused";
+
+export const getReportUploadEmailPaused = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("system_config")
+      .select("value")
+      .eq("key", REPORT_UPLOAD_EMAIL_PAUSE_KEY)
+      .maybeSingle();
+    return { paused: Boolean((data?.value as any)?.paused) };
+  });
+
+export const setReportUploadEmailPaused = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ paused: z.boolean() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("system_config")
+      .upsert(
+        {
+          key: REPORT_UPLOAD_EMAIL_PAUSE_KEY,
+          value: { paused: data.paused } as any,
+          updated_by: context.userId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "system_config",
+      accion: "update",
+      despues: { key: REPORT_UPLOAD_EMAIL_PAUSE_KEY, value: { paused: data.paused } } as any,
+      actor: context.userId,
+    });
+    return { ok: true };
+  });

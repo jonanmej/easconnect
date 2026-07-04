@@ -171,12 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
         {groups.map((group) => {
-          const items = group.items.filter((item) => {
-            if (role === "cliente" && item.to === "/notificaciones") return false;
-            if (role === "cliente" && item.to === "/auditoria") return false;
-            if (role === "tecnico" && item.to === "/auditoria") return false;
-            return true;
-          });
+          const items = group.items;
           if (items.length === 0) return null;
           return (
             <div key={group.title}>
