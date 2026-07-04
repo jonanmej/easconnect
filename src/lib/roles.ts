@@ -28,6 +28,9 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
   cliente: ["/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion", "/solicitudes", "/notificaciones", "/configuracion", "/mis-trabajos", "/contratos", "/mapa"],
 };
 
+// (Sobrescribimos arriba con lista depurada para eliminar rutas que no aplican al rol)
+};
+
 export function canAccess(roles: AppRole[], path: string): boolean {
   if (!roles.length) return false;
   return roles.some((r) => ROLE_ACCESS[r]?.includes(path));
