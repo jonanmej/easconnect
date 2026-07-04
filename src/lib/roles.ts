@@ -30,7 +30,6 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
     "/solicitudes", "/configuracion", "/mis-trabajos", "/contratos",
   ],
 };
-};
 
 export function canAccess(roles: AppRole[], path: string): boolean {
   if (!roles.length) return false;
