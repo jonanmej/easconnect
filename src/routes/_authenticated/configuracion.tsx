@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, type LucideIcon } from "lucide-react";
+import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, MailX, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme, type ThemePreference } from "@/lib/theme-context";
@@ -7,7 +7,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getPasswordPolicy, setPasswordPolicy, type PasswordPolicy } from "@/lib/system-config.functions";
+import {
+  getPasswordPolicy,
+  setPasswordPolicy,
+  getReportUploadEmailPaused,
+  setReportUploadEmailPaused,
+  type PasswordPolicy,
+} from "@/lib/system-config.functions";
+import { Switch } from "@/components/ui/switch";
 import { resetDatosOperacionales } from "@/lib/reportes.functions";
 import { toast } from "sonner";
 
@@ -123,6 +130,7 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
         {isAdmin && <PasswordPolicyCard />}
+        {isAdmin && <ReportEmailPauseCard />}
         {isAdmin && <ResetDataCard />}
       </div>
     </div>
