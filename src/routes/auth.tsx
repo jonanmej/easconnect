@@ -8,11 +8,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") ? s.next : "",
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const goNext = () => {
+    if (next && next.startsWith("/")) window.location.href = next;
+    else navigate({ to: "/" });
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +35,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (data.session) goNext();
     });
-  }, [navigate]);
+  }, [navigate, next]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +49,7 @@ function AuthPage() {
       setError("Credenciales inválidas o cuenta inexistente. Contacta al administrador.");
       return;
     }
-    navigate({ to: "/" });
+    goNext();
   }
 
   async function onForgotSubmit(e: React.FormEvent) {
@@ -68,7 +76,10 @@ function AuthPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri:
+          next && next.startsWith("/")
+            ? `${window.location.origin}${next}`
+            : window.location.origin,
       });
       if (result.error) {
         const msg = (result.error as Error).message ?? "";
@@ -83,7 +94,7 @@ function AuthPage() {
         return;
       }
       if (result.redirected) return;
-      navigate({ to: "/" });
+      goNext();
     } catch (e) {
       setError(`Fallo inesperado con Google: ${(e as Error).message}`);
       setBusy(false);
