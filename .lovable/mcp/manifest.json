@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://umnnxjjjzawqqdrtwswn.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "ea-service-connect-mcp",
+      "version": "0.1.0",
+      "title": "EA Service Connect"
+    },
+    "tools": [
+      {
+        "name": "list_plantas",
+        "title": "Listar plantas",
+        "description": "Devuelve las plantas solares visibles para el usuario autenticado (respeta RLS por rol/cliente).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "description": "Máximo de plantas a devolver."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_trabajos",
+        "title": "Listar trabajos",
+        "description": "Lista trabajos (órdenes de servicio) visibles para el usuario autenticado, ordenados por fecha programada descendente. Respeta RLS.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "description": "Máximo de trabajos a devolver."
+            },
+            "estado": {
+              "type": "string",
+              "enum": [
+                "programado",
+                "en_progreso",
+                "completado",
+                "cancelado"
+              ],
+              "description": "Filtro opcional por estado del trabajo."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
