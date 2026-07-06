@@ -441,7 +441,8 @@ function UsersPage() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
         {setCliente.error && (
           <p className="text-xs text-destructive px-5 py-3 border-t border-border">
             {(setCliente.error as Error).message}
