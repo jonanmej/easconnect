@@ -36,6 +36,7 @@ import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authentica
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksNotificarProgramacionesRouteImport } from './routes/api/public/hooks/notificar-programaciones'
 import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 
@@ -183,6 +184,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksNotificarProgramacionesRoute =
   ApiPublicHooksNotificarProgramacionesRouteImport.update({
     id: '/api/public/hooks/notificar-programaciones',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/trabajos': typeof AuthenticatedTrabajosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/aprobar/$token': typeof AprobarTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/trabajos'
     | '/usuarios'
     | '/aprobar/$token'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/aprobar/$token'
     | '/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/aprobar/$token'
     | '/_authenticated/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AprobarTokenRoute: typeof AprobarTokenRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
   ApiPublicHooksNotificarProgramacionesRoute: typeof ApiPublicHooksNotificarProgramacionesRoute
@@ -585,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/notificar-programaciones': {
       id: '/api/public/hooks/notificar-programaciones'
       path: '/api/public/hooks/notificar-programaciones'
@@ -659,6 +679,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AprobarTokenRoute: AprobarTokenRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicCronRevisarFirmasRoute: ApiPublicCronRevisarFirmasRoute,
   ApiPublicHooksNotificarProgramacionesRoute:
