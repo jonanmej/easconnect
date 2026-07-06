@@ -330,7 +330,8 @@ function UsersPage() {
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="text-left p-3">Email</th>
@@ -440,7 +441,8 @@ function UsersPage() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
         {setCliente.error && (
           <p className="text-xs text-destructive px-5 py-3 border-t border-border">
             {(setCliente.error as Error).message}
