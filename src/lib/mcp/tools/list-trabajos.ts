@@ -10,7 +10,7 @@ export default defineTool({
   inputSchema: {
     limit: z.number().int().min(1).max(200).default(50).describe("Máximo de trabajos a devolver."),
     estado: z
-      .enum(["pendiente", "en_curso", "completado", "cancelado"]) 
+      .enum(["programado", "en_progreso", "completado", "cancelado"]) 
       .optional()
       .describe("Filtro opcional por estado del trabajo."),
   },
