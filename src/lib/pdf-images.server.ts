@@ -6,12 +6,50 @@
  *
  * Devuelve dataURLs listos para consumir en <img>/@react-pdf.
  */
+/** Lee dimensiones (w,h) de un JPEG buscando el marker SOF (0xFFC0..0xFFCF, excepto C4/C8/CC). */
+function readJpegDimensions(bytes: Uint8Array): { w: number; h: number } | null {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let i = 2;
+  const len = bytes.byteLength;
+  while (i < len) {
+    if (bytes[i] !== 0xff) return null;
+    let marker = bytes[i + 1];
+    // Saltar marcadores de padding
+    while (marker === 0xff && i + 1 < len) {
+      i++;
+      marker = bytes[i + 1];
+    }
+    i += 2;
+    // SOF markers (excluye DHT=C4, JPG=C8, DAC=CC)
+    if (
+      marker >= 0xc0 && marker <= 0xcf &&
+      marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc
+    ) {
+      if (i + 5 >= len) return null;
+      const h = (bytes[i + 3] << 8) | bytes[i + 4];
+      const w = (bytes[i + 5] << 8) | bytes[i + 6];
+      return { w, h };
+    }
+    // Standalone markers sin longitud
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (i + 1 >= len) return null;
+    const segLen = (bytes[i] << 8) | bytes[i + 1];
+    if (segLen < 2) return null;
+    i += segLen;
+  }
+  return null;
+}
+
 export async function extractJpegImagesFromPdf(
   buf: Uint8Array,
   opts: { maxImages?: number; minBytes?: number } = {},
 ): Promise<string[]> {
   const maxImages = opts.maxImages ?? 12;
-  const minBytes = opts.minBytes ?? 6_000; // filtra logos/íconos diminutos
+  // Logos corporativos suelen pesar 15-60 KB. Subimos el umbral y además
+  // filtramos por dimensiones y proporción para descartar isotipos.
+  const minBytes = opts.minBytes ?? 40_000;
+  const minSidePx = 500;      // lado más corto mínimo para considerarla foto real
+  const minPixels = 500_000;  // ~0.5 MP: descarta gráficos pequeños
   try {
     const { PDFDocument, PDFName, PDFRawStream } = await import("pdf-lib");
     const pdf = await PDFDocument.load(buf, { ignoreEncryption: true, updateMetadata: false });
@@ -30,6 +68,16 @@ export async function extractJpegImagesFromPdf(
       if (!filterStr.includes("DCTDecode")) continue;
       const bytes = obj.contents as Uint8Array;
       if (!bytes || bytes.byteLength < minBytes) continue;
+      const dims = readJpegDimensions(bytes);
+      if (dims) {
+        const shortSide = Math.min(dims.w, dims.h);
+        const pixels = dims.w * dims.h;
+        if (shortSide < minSidePx) continue;
+        if (pixels < minPixels) continue;
+        // Relación de aspecto extrema (banners/logos apaisados o verticales)
+        const ratio = dims.w / dims.h;
+        if (ratio > 3 || ratio < 1 / 3) continue;
+      }
       // Deduplicar por tamaño + primeros bytes (evita repetir la misma foto).
       const sig = `${bytes.byteLength}:${bytes[0]},${bytes[1]},${bytes[2]},${bytes[3]}`;
       if (seen.has(sig)) continue;
