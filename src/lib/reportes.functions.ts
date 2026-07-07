@@ -189,14 +189,14 @@ export const generarReporte = createServerFn({ method: "POST" })
             ? supabase.from("trabajos")
                 .select("folio, servicio, estado, fecha_programada")
                 .in("planta_id", plantasIds)
-                .gte("fecha_programada", data.desde)
-                .lte("fecha_programada", data.hasta)
+                .gte("fecha_programada", desdeTs)
+                .lte("fecha_programada", hastaTs)
                 .eq("servicio", data.servicio)
             : supabase.from("trabajos")
                 .select("folio, servicio, estado, fecha_programada")
                 .in("planta_id", plantasIds)
-                .gte("fecha_programada", data.desde)
-                .lte("fecha_programada", data.hasta))
+                .gte("fecha_programada", desdeTs)
+                .lte("fecha_programada", hastaTs))
         : Promise.resolve({ data: [] as any[] }),
       plantasIds.length
         ? supabase.from("equipos").select("codigo, nombre, estado, salud").in("planta_id", plantasIds)
@@ -209,7 +209,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       ? (await supabase.from("equipos").select("id").in("planta_id", plantasIds)).data?.map((e: any) => e.id) ?? []
       : [];
     const { data: mantenimientos } = equipoIds.length
-      ? await supabase.from("mantenimientos").select("tipo, fecha, horas, estado").in("equipo_id", equipoIds).gte("fecha", data.desde).lte("fecha", data.hasta)
+      ? await supabase.from("mantenimientos").select("tipo, fecha, horas, estado").in("equipo_id", equipoIds).gte("fecha", desdeTs).lte("fecha", hastaTs)
       : { data: [] as any[] };
 
     const saludVals = equipos.map((e: any) => e.salud).filter((s: any) => typeof s === "number");
@@ -219,7 +219,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const trabajoIds = (trabajosRes.data ?? []).map((t: any) => t.folio ? t : null).filter(Boolean);
     let tIdsQb: any = null;
     if (plantasIds.length) {
-      tIdsQb = supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", data.desde).lte("fecha_programada", data.hasta);
+      tIdsQb = supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", desdeTs).lte("fecha_programada", hastaTs);
       if (data.servicio) tIdsQb = tIdsQb.eq("servicio", data.servicio);
     }
     const { data: tIds } = tIdsQb ? await tIdsQb : { data: [] as any[] };
