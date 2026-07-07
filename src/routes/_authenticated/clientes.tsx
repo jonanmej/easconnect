@@ -145,8 +145,8 @@ function Clientes() {
         });
         return (
           <>
-            <div className="flex flex-col md:flex-row gap-3 mb-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <input
                   value={query}
@@ -155,7 +155,7 @@ function Clientes() {
                   className="w-full h-10 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
                 />
               </div>
-              <div className="inline-flex rounded-md border border-border bg-card overflow-hidden text-xs font-medium">
+              <div className="flex w-full md:w-auto rounded-md border border-border bg-card overflow-hidden text-xs font-medium">
                 {([
                   { v: "todos", l: `Todos (${total})` },
                   { v: "con", l: `Con O&M (${conOM})` },
@@ -166,7 +166,7 @@ function Clientes() {
                     type="button"
                     onClick={() => setOmFilter(opt.v)}
                     className={
-                      "px-3 py-2 transition-colors " +
+                      "flex-1 md:flex-none px-3 py-2 transition-colors whitespace-nowrap " +
                       (omFilter === opt.v
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-secondary")

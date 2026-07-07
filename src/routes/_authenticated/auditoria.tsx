@@ -70,11 +70,11 @@ function Auditoria() {
         description="Registro inmutable de cambios sobre trabajos, mantenimientos, solicitudes, inventario y plantas."
         actions={
           <>
-            <select value={entidad} onChange={(e) => setEntidad(e.target.value)} className={inputCls + " w-44"}>
+            <select value={entidad} onChange={(e) => setEntidad(e.target.value)} className={inputCls + " w-full sm:w-44"}>
               <option value="">Todas las entidades</option>
               {ENTIDADES.map((e) => <option key={e} value={e}>{e}</option>)}
             </select>
-            <select value={accion} onChange={(e) => setAccion(e.target.value)} className={inputCls + " w-36"}>
+            <select value={accion} onChange={(e) => setAccion(e.target.value)} className={inputCls + " w-full sm:w-36"}>
               <option value="">Todas las acciones</option>
               {ACCIONES.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
