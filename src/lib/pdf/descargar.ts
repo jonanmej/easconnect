@@ -1,16 +1,8 @@
+import "./browser-polyfills";
 import { pdf } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { ReporteDoc, type ReporteData } from "./ReporteDoc";
 import { RecursosDoc, type RecursosData } from "./RecursosDoc";
-import { Buffer as BufferPolyfill } from "buffer";
-
-// @react-pdf/renderer usa `Buffer` para decodificar dataURLs de imágenes
-// (base64 → bytes) en el navegador. Vite no lo expone por defecto en la
-// build publicada, por lo que sin este polyfill todas las fotos se caen
-// con "Buffer is not defined" y no aparecen en el PDF final.
-if (typeof globalThis !== "undefined" && !(globalThis as any).Buffer) {
-  (globalThis as any).Buffer = BufferPolyfill;
-}
 
 /** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
 function currentTheme(): "light" | "dark" {
