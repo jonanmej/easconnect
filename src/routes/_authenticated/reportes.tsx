@@ -126,6 +126,10 @@ function Reportes() {
     try {
       const data: any = await fPdf({ data: { id } });
       const evidencias = await buildEvidencias(data.evidencias);
+      // Las imágenes extraídas de los PDFs subidos ya vienen como dataURL
+      // desde el servidor; se agregan al final del set de evidencias.
+      const evidenciasPdf = (data.evidencias_pdf ?? []) as { trabajo: string; descripcion?: string | null; dataUrl: string }[];
+      const evidenciasFinal = [...evidencias, ...evidenciasPdf];
       const firma = await fResp({ data: { reporte_id: id } }).catch(() => null);
       await generarYDescargarPdf({
         ...data,
@@ -135,7 +139,7 @@ function Reportes() {
         documento_codigo: `EA-${modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}-${(data.periodo ?? "").toString().slice(0, 10).replace(/\s+/g, "")}`,
         documento_version: "1.0",
         documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
-        evidencias,
+        evidencias: evidenciasFinal,
       }, `EA-Service-Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
       toast.success("PDF descargado");
     } catch (e: any) {

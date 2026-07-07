@@ -525,6 +525,10 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
 
     const trabajoIds = (trabajos ?? []).map((t) => t.id);
     let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
+    // Imágenes extraídas de los PDFs subidos (fotos/gráficas embebidas).
+    // Se agregan al final como "evidencia" para que aparezcan en la sección
+    // de Evidencias Fotográficas del reporte ejecutivo.
+    const evidenciasPdf: { trabajo: string; descripcion: string | null; dataUrl: string }[] = [];
     if (trabajoIds.length) {
       const { data: evs } = await supabase
         .from("trabajo_evidencias")
@@ -543,9 +547,47 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           url: urlByPath.get(e.storage_path) ?? "",
         })).filter((e) => e.url);
       }
+
+      // Extraer imágenes JPEG embebidas en los PDFs subidos por los técnicos
+      // (fotos operativas, tablas rasterizadas, gráficas). Se agregan como
+      // "evidencia" adicional en el reporte sin citar el origen documental.
+      const { data: pdfsRows } = await supabase
+        .from("trabajo_reportes_pdf")
+        .select("trabajo_id, storage_path")
+        .in("trabajo_id", trabajoIds)
+        .limit(20);
+      if (pdfsRows?.length) {
+        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const { data: signedPdfs } = await supabase.storage
+          .from("trabajos-evidencia")
+          .createSignedUrls(pdfsRows.map((p: any) => p.storage_path), 600);
+        const urlByPath = new Map((signedPdfs ?? []).map((s: any) => [s.path!, s.signedUrl]));
+        const { extractJpegImagesFromPdf } = await import("@/lib/pdf-images.server");
+        const MAX_TOTAL_IMGS = 12;
+        for (const p of pdfsRows as any[]) {
+          if (evidenciasPdf.length >= MAX_TOTAL_IMGS) break;
+          const url = urlByPath.get(p.storage_path);
+          if (!url) continue;
+          try {
+            const resp = await fetch(url);
+            if (!resp.ok) continue;
+            const buf = new Uint8Array(await resp.arrayBuffer());
+            const imgs = await extractJpegImagesFromPdf(buf, {
+              maxImages: MAX_TOTAL_IMGS - evidenciasPdf.length,
+            });
+            const folio = folioPorId.get(p.trabajo_id) ?? "—";
+            for (const dataUrl of imgs) {
+              evidenciasPdf.push({ trabajo: folio, descripcion: "Registro fotográfico de campo", dataUrl });
+              if (evidenciasPdf.length >= MAX_TOTAL_IMGS) break;
+            }
+          } catch { /* ignorar PDFs no procesables */ }
+        }
+      }
     }
 
-    // Series para gráficas (origen visible en el PDF)
+    // Series para gráficas — enfoque en avance diario de los trabajos
+    // (ejecutado vs. lo que debe finalizarse). Si el periodo solo tiene
+    // PDFs (sin diarios), degradamos a la distribución operativa disponible.
     const trabajosArr = trabajos ?? [];
     const porEstado = new Map<string, number>();
     const porServicio = new Map<string, number>();
@@ -553,38 +595,110 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       porEstado.set(t.estado, (porEstado.get(t.estado) ?? 0) + 1);
       porServicio.set(t.servicio, (porServicio.get(t.servicio) ?? 0) + 1);
     }
-    const { data: equiposPlanta } = plantasIds.length
-      ? await supabase.from("equipos").select("nombre, salud").in("planta_id", plantasIds).order("salud", { ascending: true }).limit(8)
-      : { data: [] as any[] };
     const graficas: { titulo: string; descripcion?: string; fuente: string; series: { label: string; value: number }[]; unidad?: string }[] = [];
-    if (porEstado.size > 0) {
-      graficas.push({
-        titulo: "Trabajos por estado",
-        descripcion: `Distribución de las ${trabajosArr.length} órdenes de trabajo del periodo.`,
-        fuente: `Tabla trabajos · planta_id ∈ (${plantasIds.length}) · fecha_programada entre ${desde ?? "—"} y ${hasta ?? "—"}`,
-        series: Array.from(porEstado.entries()).map(([k, v]) => ({ label: k, value: v })),
-      });
+
+    // ---- Avance diario vs. objetivo por trabajo -----------------------------
+    // Fuente: trabajo_reportes_diarios.avance_pct (0–100) — el técnico marca
+    // el avance por día, comparado contra el 100% que debe finalizarse.
+    let diarios: any[] = [];
+    if (trabajoIds.length) {
+      const { data: dd } = await supabase
+        .from("trabajo_reportes_diarios")
+        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct")
+        .in("trabajo_id", trabajoIds)
+        .order("fecha", { ascending: true });
+      diarios = dd ?? [];
     }
-    if (porServicio.size > 0) {
-      graficas.push({
-        titulo: "Trabajos por tipo de servicio",
-        fuente: "Tabla trabajos · campo servicio",
-        series: Array.from(porServicio.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
-          .map(([k, v]) => ({ label: k, value: v })),
-      });
-    }
-    if ((equiposPlanta ?? []).some((e: any) => typeof e.salud === "number")) {
-      graficas.push({
-        titulo: "Salud de equipos (menor a mayor)",
-        descripcion: "Top 8 equipos con menor salud reportada — foco de atención preventiva.",
-        fuente: "Tabla equipos · campo salud (0–100)",
-        unidad: "%",
-        series: (equiposPlanta ?? [])
-          .filter((e: any) => typeof e.salud === "number")
-          .map((e: any) => ({ label: e.nombre, value: e.salud })),
-      });
+    if (diarios.length) {
+      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      // Último avance registrado por trabajo (el más reciente).
+      const ultimoPorTrabajo = new Map<string, { fecha: string; pct: number }>();
+      for (const d of diarios) {
+        const pct = Number(d.avance_pct ?? 0);
+        if (!Number.isFinite(pct)) continue;
+        const prev = ultimoPorTrabajo.get(d.trabajo_id);
+        if (!prev || String(d.fecha) > prev.fecha) {
+          ultimoPorTrabajo.set(d.trabajo_id, { fecha: String(d.fecha), pct });
+        }
+      }
+      const avanceSeries = Array.from(ultimoPorTrabajo.entries())
+        .map(([tid, v]) => ({ label: folioPorId.get(tid) ?? "—", value: Math.min(100, Math.max(0, Math.round(v.pct))) }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
+      if (avanceSeries.length) {
+        graficas.push({
+          titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
+          descripcion: "Último porcentaje de avance reportado por el equipo en cada orden de trabajo del periodo.",
+          fuente: "Reportes diarios · campo avance_pct",
+          unidad: "%",
+          series: avanceSeries,
+        });
+      }
+
+      // Paneles limpiados acumulados por día — muestra ritmo de ejecución.
+      const panelesPorDia = new Map<string, number>();
+      for (const d of diarios) {
+        if (!d.fecha) continue;
+        const key = String(d.fecha);
+        panelesPorDia.set(key, (panelesPorDia.get(key) ?? 0) + Number(d.paneles_limpiados ?? 0));
+      }
+      const panelesSeries = Array.from(panelesPorDia.entries())
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-14)
+        .map(([k, v]) => ({ label: k, value: v }));
+      if (panelesSeries.length) {
+        graficas.push({
+          titulo: "Ejecución diaria — paneles limpiados",
+          descripcion: "Ritmo diario del equipo en campo durante el periodo.",
+          fuente: "Reportes diarios · campo paneles_limpiados",
+          series: panelesSeries,
+        });
+      }
+
+      // Horas trabajadas por día.
+      const horasPorDia = new Map<string, number>();
+      for (const d of diarios) {
+        if (!d.fecha) continue;
+        horasPorDia.set(String(d.fecha), (horasPorDia.get(String(d.fecha)) ?? 0) + Number(d.horas_trabajadas ?? 0));
+      }
+      const horasSeries = Array.from(horasPorDia.entries())
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-14)
+        .map(([k, v]) => ({ label: k, value: Number(v.toFixed(1)) }));
+      if (horasSeries.length) {
+        graficas.push({
+          titulo: "Horas de campo por día",
+          descripcion: "Esfuerzo del equipo por jornada dentro del periodo.",
+          fuente: "Reportes diarios · campo horas_trabajadas",
+          unidad: "h",
+          series: horasSeries,
+        });
+      }
+    } else {
+      // No hay diarios: caso "solo PDFs". Mostramos la información operativa
+      // que aparece en los PDFs (folio × servicio) para no dejar la sección
+      // vacía y evidenciar únicamente lo que sí se registró.
+      if (porServicio.size > 0) {
+        graficas.push({
+          titulo: "Trabajos ejecutados por tipo de servicio",
+          descripcion: "Distribución operativa del periodo según los registros disponibles.",
+          fuente: "Trabajos del periodo",
+          series: Array.from(porServicio.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([k, v]) => ({ label: k, value: v })),
+        });
+      }
+      if (porEstado.size > 0) {
+        graficas.push({
+          titulo: "Trabajos por estado de cierre",
+          descripcion: `Distribución de las ${trabajosArr.length} órdenes de trabajo del periodo.`,
+          fuente: "Trabajos del periodo",
+          series: Array.from(porEstado.entries()).map(([k, v]) => ({ label: k, value: v })),
+        });
+      }
     }
 
     return {
@@ -608,6 +722,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         notas: t.notas,
       })),
       evidencias,
+      evidencias_pdf: evidenciasPdf,
       graficas,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
