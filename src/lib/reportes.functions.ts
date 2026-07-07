@@ -328,6 +328,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
       "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus mediciones, tablas y hallazgos por sobre el resumen JSON del dataset.",
       "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
+      "NUNCA menciones los archivos PDF adjuntos: no cites nombres de archivo, no digas 'según el PDF', 'en el documento adjunto', 'archivo del día X', ni referencias a fechas de subida, notas del PDF ni al origen documental. Integra la información como propia del análisis operativo.",
       "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
@@ -718,6 +719,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Consolidas reportes diarios del equipo técnico en un reporte ejecutivo único, formal y trazable.",
       "Solo usas datos del dataset y del contenido de los PDFs adjuntos; nunca inventas cifras.",
       "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus datos (mediciones, tablas, hallazgos) por sobre suposiciones.",
+      "NUNCA menciones los archivos PDF adjuntos: nada de nombres de archivo, fechas de subida, notas del PDF ni frases como 'según el PDF' o 'en el documento adjunto'. Integra la información como propia del análisis.",
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
     ].join(" ");
