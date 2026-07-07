@@ -3,6 +3,12 @@ import { createElement } from "react";
 import { ReporteDoc, type ReporteData } from "./ReporteDoc";
 import { RecursosDoc, type RecursosData } from "./RecursosDoc";
 
+/** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
+function currentTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
 function uuidV4() {
   // Compatible con todos los navegadores; randomUUID() requiere contexto seguro.
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
