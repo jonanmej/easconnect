@@ -61,6 +61,7 @@ export async function extractJpegImagesFromPdf(
     //    tamaño y color engañen a las heurísticas de dimensión.
     const refCount = new Map<string, number>();
     const pages = pdf.getPages();
+    const totalPages = pages.length;
     for (const p of pages) {
       const node: any = p.node;
       const resources = node.Resources?.() ?? node.get?.(PDFName.of("Resources"));
@@ -89,11 +90,14 @@ export async function extractJpegImagesFromPdf(
       const subtype = dict.get(PDFName.of("Subtype"))?.toString();
       if (subtype !== "/Image") continue;
 
-      // Si el XObject se referencia desde más de una página es parte de la
-      // plantilla (logo membrete, sello de agua, marco). Lo excluimos.
+      // Descartamos solo si aparece en TODAS las páginas (logo membrete /
+      // pie / marca de agua). Si el mapa de páginas no pudo construirse
+      // (algunos PDFs heredan Resources), pagesUsing=0 y no filtramos por
+      // este criterio — otras heurísticas (colorspace, tamaño) actúan.
       const refKey = `${ref.objectNumber} ${ref.generationNumber}`;
       const pagesUsing = refCount.get(refKey) ?? 0;
-      if (pagesUsing !== 1) continue;
+      if (totalPages >= 2 && pagesUsing >= totalPages) continue;
+      if (totalPages >= 4 && pagesUsing >= Math.ceil(totalPages * 0.75)) continue;
 
       const filter = dict.get(PDFName.of("Filter"));
       const filterStr = filter?.toString() ?? "";
