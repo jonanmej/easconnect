@@ -29,10 +29,21 @@ export function buildRawEmail(opts: { from: string; to: string; subject: string;
   return b64url(lines);
 }
 
-export async function sendEmail(opts: { from: string; to: string; subject: string; html: string }): Promise<string | null> {
+export async function sendEmail(opts: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  /** Ignora la pausa global de correos automáticos (seguridad / admin de usuarios). */
+  bypassPause?: boolean;
+}): Promise<string | null> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !gmailKey) throw new Error("Conector Gmail no configurado");
+  if (!opts.bypassPause) {
+    const { isEmailsPaused } = await import("./email-pause.server");
+    if (await isEmailsPaused()) return null;
+  }
   const raw = buildRawEmail(opts);
   const res = await fetch(`${GMAIL_URL}/users/me/messages/send`, {
     method: "POST",
