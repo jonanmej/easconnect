@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect, Defs, LinearGradient, Stop } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 /** URL absoluta al logo EA Service Connect según tema del documento. */
