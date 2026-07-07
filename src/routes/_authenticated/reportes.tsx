@@ -284,7 +284,7 @@ function Reportes() {
                 {r.titulo}
               </h3>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
-                {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString()}
+                {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
               </p>
               {r.insight_resumen && <p className="text-sm mt-2 text-foreground/80 line-clamp-2">{r.insight_resumen}</p>}
             </div>
