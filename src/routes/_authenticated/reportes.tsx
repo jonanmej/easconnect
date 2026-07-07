@@ -391,13 +391,7 @@ function Reportes() {
             ))}
           </select>
         </Field>
-        <Field label="Etiqueta del periodo">
-          <input name="periodo" required placeholder="Q2 2026" className={inputCls} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Desde"><input name="desde" type="date" required className={inputCls} /></Field>
-          <Field label="Hasta"><input name="hasta" type="date" required className={inputCls} /></Field>
-        </div>
+        <PeriodoTrimestralFields />
       </RecordDialog>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
