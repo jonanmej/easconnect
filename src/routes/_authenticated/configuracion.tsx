@@ -53,8 +53,9 @@ const OPTIONS: Option[] = [
 
 function ConfiguracionPage() {
   const { preference, setPreference, theme } = useTheme();
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const isAdmin = roles.includes("admin");
+  const isOwner = user?.email?.toLowerCase() === "proyectos@easervice.app";
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,8 +131,8 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
         {isAdmin && <PasswordPolicyCard />}
-        {isAdmin && <ReportEmailPauseCard />}
-        {isAdmin && <ResetDataCard />}
+        {isOwner && <ReportEmailPauseCard />}
+        {isOwner && <ResetDataCard />}
       </div>
     </div>
   );
