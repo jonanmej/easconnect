@@ -166,7 +166,7 @@ function StaffDashboard() {
   async function exportarResumen() {
     const slaRows = (sla.data as any[] | undefined) ?? [];
     await exportarExcel({
-      filename: `dashboard-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filename: `dashboard-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
       hojas: [
         {
           nombre: "KPIs",

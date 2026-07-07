@@ -75,7 +75,7 @@ function Notificaciones() {
         actions={
           <ExportButton onExport={async () => {
             await exportarExcel({
-              filename: `notificaciones-${new Date().toISOString().slice(0,10)}.xlsx`,
+              filename: `notificaciones-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
               hojas: [{
                 nombre: "Notificaciones",
                 columnas: [

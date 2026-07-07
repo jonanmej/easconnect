@@ -110,7 +110,7 @@ function Inventario() {
           <>
             <ExportButton onExport={async () => {
               await exportarExcel({
-                filename: `inventario-${new Date().toISOString().slice(0,10)}.xlsx`,
+                filename: `inventario-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
                 hojas: [{
                   nombre: "Inventario",
                   columnas: [

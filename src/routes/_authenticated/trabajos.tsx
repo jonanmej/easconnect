@@ -335,7 +335,7 @@ function Trabajos() {
             <ExportButton onExport={async () => {
               const rows = (list.data as any[] | undefined) ?? [];
               await exportarExcel({
-                filename: `trabajos-${new Date().toISOString().slice(0,10)}.xlsx`,
+                filename: `trabajos-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
                 hojas: [{
                   nombre: "Trabajos",
                   columnas: [
@@ -778,7 +778,7 @@ function Trabajos() {
         </Field>
         <Field label="Fecha de ejecución">
           <input name="fecha" type="date" required className={inputCls}
-            max={new Date().toISOString().slice(0, 10)} />
+            max={new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })} />
           <p className="text-[10px] text-muted-foreground mt-1">
             Debe ser una fecha pasada (anterior a hoy).
           </p>
