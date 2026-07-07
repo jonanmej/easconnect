@@ -39,12 +39,15 @@ const DEFAULT_ALT: Record<Variant, string> = {
  * de alto `H`, el texto del logo mida siempre ≈ `TARGET_WORDMARK_RATIO * H`,
  * sin importar el tamaño real del archivo.
  */
+// Ratios medidos empíricamente sobre los PNG (altura del wordmark / altura total).
 const WORDMARK_RATIO: Record<Variant, number> = {
-  "ea-main": 0.70,
+  "ea-main": 0.45,
   "ea-connect": 0.55,
-  pvstop: 0.40,
+  pvstop: 0.68,
 };
-const TARGET_WORDMARK_RATIO = 0.70;
+// Usamos el ratio más alto (pvstop) como referencia → nunca escalamos > 1.5x
+// para evitar que un logo se desborde de su caja.
+const TARGET_WORDMARK_RATIO = 0.68;
 
 function scaleFor(variant: Variant): number {
   return TARGET_WORDMARK_RATIO / WORDMARK_RATIO[variant];
