@@ -130,6 +130,10 @@ export const resetDatosOperacionales = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Solo administradores pueden reiniciar los datos");
+    const email = String((context.claims as any)?.email ?? "").toLowerCase();
+    if (email !== "proyectos@easervice.app") {
+      throw new Error("Forbidden: acción restringida al propietario");
+    }
     const { error } = await context.supabase.rpc("reset_operational_data");
     if (error) throw new Error(error.message);
     // Vaciar storage buckets
