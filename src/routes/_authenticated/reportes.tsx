@@ -275,20 +275,20 @@ function Reportes() {
 
       <div className="space-y-3">
         {items.map((r) => (
-          <div key={r.id} className="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center gap-6 hover:border-primary/40 transition-colors">
-            <div className="size-12 rounded-lg bg-primary/10 text-primary grid place-items-center">
+          <div key={r.id} className="bg-card border border-border rounded-xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-6 hover:border-primary/40 transition-colors">
+            <div className="size-12 shrink-0 rounded-lg bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-5" />
             </div>
-            <div className="flex-1 min-w-[240px]">
-              <h3 className="text-base font-semibold tracking-tight">
+            <div className="min-w-0 sm:flex-1 sm:min-w-[240px]">
+              <h3 className="text-base font-semibold tracking-tight truncate">
                 {r.titulo}
               </h3>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
                 {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString()}
               </p>
               {r.insight_resumen && <p className="text-sm mt-2 text-foreground/80 line-clamp-2">{r.insight_resumen}</p>}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="col-span-2 flex flex-wrap items-center gap-2 sm:gap-3">
               {estadoBadge(r.estado)}
               {r.version && r.version > 1 && (
                 <span className="text-[10px] font-mono text-muted-foreground">v{r.version}</span>
