@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { useServerFn } from "@tanstack/react-start";
 import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
@@ -255,9 +256,9 @@ function AuthPage() {
             Aliados estratégicos
           </p>
           <div className="flex items-center justify-center gap-6 opacity-80">
-            <ChemitekLogo className="h-6 w-auto" />
-            <span className="h-5 w-px bg-border" aria-hidden />
-            <PVStopLogo className="h-7 w-auto text-foreground" />
+            <ChemitekLogo className="h-8 w-auto" />
+            <span className="h-6 w-px bg-border" aria-hidden />
+            <BrandLogo variant="pvstop" className="h-8 w-auto object-contain" />
           </div>
         </div>
 
