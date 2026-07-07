@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { SERVICIOS_OT } from "@/lib/servicios";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
+import { getReportesPeriodoPref, setReportesPeriodoPref } from "@/lib/profile.functions";
 import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias, withAspect } from "@/lib/pdf/descargar";
@@ -168,12 +169,22 @@ function Reportes() {
     const f = new FormData(e.currentTarget);
     const planta_id = f.get("planta_id") as string;
     const servicio = (f.get("servicio") as string) || "";
+    const desde = (f.get("desde") as string) || "";
+    const hasta = (f.get("hasta") as string) || "";
+    if (!desde || !hasta) {
+      toast.error('Selecciona las fechas "Desde" y "Hasta".');
+      return;
+    }
+    if (desde > hasta) {
+      toast.error('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
     gen.mutate({
       cliente_id: f.get("cliente_id"),
       planta_id: planta_id || null,
       periodo: f.get("periodo"),
-      desde: f.get("desde"),
-      hasta: f.get("hasta"),
+      desde,
+      hasta,
       proveedor: "auto",
       servicio: servicio || null,
     });
