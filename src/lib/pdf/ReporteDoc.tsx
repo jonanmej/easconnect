@@ -89,6 +89,10 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 12, color: COL.bg },
   pageTitleRule: { width: 40, height: 2.5, backgroundColor: COL.primary, marginBottom: 14, marginTop: -8 },
   sectionTitle: { fontSize: 11.5, fontFamily: FONT_BOLD, marginTop: 16, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
+  // Wrapper que agrupa "título + primer contenido" para que nunca se
+  // separen entre páginas. El `minPresenceAhead` reserva espacio suficiente
+  // debajo del título antes de permitir un salto de página.
+  sectionBlock: { marginTop: 0 },
   paragraph: { fontSize: 10, lineHeight: 1.55, marginBottom: 8, color: "#1f2937", textAlign: "justify" },
   bullet: { flexDirection: "row", marginBottom: 5 },
   bulletDot: { width: 12, fontSize: 10, color: COL.primary, fontFamily: FONT_BOLD },
@@ -294,38 +298,40 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <Text style={styles.pageTitle}>{ejec ? "Resumen Ejecutivo" : "Reporte Interno"}</Text>
         {ejec && data.resumen && <Text style={styles.paragraph}>{data.resumen}</Text>}
 
-        <Text style={styles.sectionTitle}>Indicadores Clave</Text>
-        <View style={styles.kpiRow}>
-          {data.kpis.map((k, i) => (
-            <View key={i} style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>{k.label}</Text>
-              <Text style={styles.kpiValue}>{k.value}</Text>
-            </View>
-          ))}
+        <View minPresenceAhead={80}>
+          <Text style={styles.sectionTitle}>Indicadores Clave</Text>
+          <View style={styles.kpiRow}>
+            {data.kpis.map((k, i) => (
+              <View key={i} style={styles.kpiCard} wrap={false}>
+                <Text style={styles.kpiLabel}>{k.label}</Text>
+                <Text style={styles.kpiValue}>{k.value}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {data.graficas && data.graficas.length > 0 && (
-          <>
+          <View minPresenceAhead={140}>
             <Text style={styles.sectionTitle}>Análisis Gráfico de Datos</Text>
             {data.graficas.map((g, i) => <Grafica key={i} g={g} />)}
-          </>
+          </View>
         )}
 
         {ejec && data.hallazgos.length > 0 && (
-          <>
+          <View minPresenceAhead={60}>
             <Text style={styles.sectionTitle}>Hallazgos</Text>
             {data.hallazgos.map((h, i) => (
-              <View key={i} style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
+              <View key={i} style={styles.bullet} wrap={false}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
             ))}
-          </>
+          </View>
         )}
         {ejec && data.recomendaciones.length > 0 && (
-          <>
+          <View minPresenceAhead={60}>
             <Text style={styles.sectionTitle}>Recomendaciones Priorizadas</Text>
             {data.recomendaciones.map((h, i) => (
-              <View key={i} style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
+              <View key={i} style={styles.bullet} wrap={false}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
             ))}
-          </>
+          </View>
         )}
         {ejec && data.responsable && (
           <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
@@ -363,15 +369,15 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           ))}
         </View>
         {!ejec && data.trabajos.some((t) => t.notas) && (
-          <>
+          <View minPresenceAhead={80}>
             <Text style={styles.sectionTitle}>Notas de Campo</Text>
             {data.trabajos.filter((t) => t.notas).map((t, i) => (
-              <View key={i} style={{ marginBottom: 6 }}>
+              <View key={i} style={{ marginBottom: 6 }} wrap={false}>
                 <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
                 <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
               </View>
             ))}
-          </>
+          </View>
         )}
         <PageFooter data={data} />
       </Page>
