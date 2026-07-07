@@ -106,7 +106,7 @@ async function enviarCorreoCredenciales(opts: {
     </p>
   `,
   );
-  return sendGmail({ to: opts.email, subject, html });
+  return sendGmail({ to: opts.email, subject, html, bypassPause: true });
 }
 
 export const listUsers = createServerFn({ method: "GET" })

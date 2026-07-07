@@ -142,6 +142,7 @@ export const solicitarResetPassword = createServerFn({ method: "POST" })
               to,
               subject: "EA Service Connect · Solicitud de recuperación de contraseña",
               html,
+              bypassPause: true,
             }),
           ),
         );
