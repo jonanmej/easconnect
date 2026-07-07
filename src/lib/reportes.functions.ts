@@ -5,6 +5,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Extrae el texto de un PDF (buffer) usando unpdf (compatible con Workers).
+ * Devuelve una cadena limpia y truncada a maxChars para no reventar el prompt.
+ * Si falla, retorna null (el llamador decide qué hacer).
+ */
+async function extraerTextoPdf(buf: Uint8Array, maxChars = 60000): Promise<string | null> {
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(buf);
+    const { text } = await extractText(pdf, { mergePages: true });
+    const raw = Array.isArray(text) ? text.join("\n") : text;
+    if (!raw) return null;
+    const clean = raw
+      .replace(/\u0000/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    if (!clean) return null;
+    return clean.length > maxChars ? clean.slice(0, maxChars) + "\n…[texto truncado]…" : clean;
+  } catch {
+    return null;
+  }
+}
+
 type Proveedor = "gemini" | "openai" | "auto";
 
 const PROVIDER_MODELS: Record<"gemini" | "openai", { primary: string; fallback: string }> = {
