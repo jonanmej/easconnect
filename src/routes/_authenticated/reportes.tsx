@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { SERVICIOS_OT } from "@/lib/servicios";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
+import { getReportesPeriodoPref, setReportesPeriodoPref } from "@/lib/profile.functions";
 import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias, withAspect } from "@/lib/pdf/descargar";
@@ -168,12 +169,22 @@ function Reportes() {
     const f = new FormData(e.currentTarget);
     const planta_id = f.get("planta_id") as string;
     const servicio = (f.get("servicio") as string) || "";
+    const desde = (f.get("desde") as string) || "";
+    const hasta = (f.get("hasta") as string) || "";
+    if (!desde || !hasta) {
+      toast.error('Selecciona las fechas "Desde" y "Hasta".');
+      return;
+    }
+    if (desde > hasta) {
+      toast.error('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
     gen.mutate({
       cliente_id: f.get("cliente_id"),
       planta_id: planta_id || null,
       periodo: f.get("periodo"),
-      desde: f.get("desde"),
-      hasta: f.get("hasta"),
+      desde,
+      hasta,
       proveedor: "auto",
       servicio: servicio || null,
     });
@@ -488,24 +499,44 @@ function fmtSV(iso: string): string {
 const PERIODO_STORAGE_KEY = "reportes:periodo-form";
 
 function PeriodoTrimestralFields() {
+  const fGetPref = useServerFn(getReportesPeriodoPref);
+  const fSetPref = useServerFn(setReportesPeriodoPref);
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [manual, setManual] = useState(false);
   const [periodo, setPeriodo] = useState("");
-  // Rehidratar valores previos.
+  const [hydrated, setHydrated] = useState(false);
+
+  // Rehidratar: primero cache local (rápido), luego perfil (autoritativo cross-device).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PERIODO_STORAGE_KEY);
-      if (!raw) return;
-      const s = JSON.parse(raw) as { desde?: string; hasta?: string; periodo?: string; manual?: boolean };
-      if (s.desde) setDesde(s.desde);
-      if (s.hasta) setHasta(s.hasta);
-      if (s.periodo) setPeriodo(s.periodo);
-      if (s.manual) setManual(true);
+      if (raw) {
+        const s = JSON.parse(raw) as { desde?: string; hasta?: string; periodo?: string; manual?: boolean };
+        if (s.desde) setDesde(s.desde);
+        if (s.hasta) setHasta(s.hasta);
+        if (s.periodo) setPeriodo(s.periodo);
+        if (s.manual) setManual(true);
+      }
     } catch { /* ignore */ }
+    fGetPref()
+      .then((pref) => {
+        if (pref) {
+          if (pref.desde) setDesde(pref.desde);
+          if (pref.hasta) setHasta(pref.hasta);
+          if (pref.periodo) setPeriodo(pref.periodo);
+          if (typeof pref.manual === "boolean") setManual(pref.manual);
+        }
+      })
+      .catch(() => { /* silencioso: usar cache local */ })
+      .finally(() => setHydrated(true));
   }, []);
-  // Rango exacto del trimestre a partir de las fechas.
-  const rango = useMemo(() => {
+
+  // Validación de rango.
+  const invalidRange = desde && hasta && desde > hasta ? true : false;
+
+  // Trimestre(s) que abarca el rango seleccionado.
+  const trimestre = useMemo(() => {
     const qD = quarterInfo(desde);
     const qH = quarterInfo(hasta);
     if (!qD && !qH) return null;
@@ -515,17 +546,33 @@ function PeriodoTrimestralFields() {
     const q = qD ?? qH!;
     return { label: q.label, inicio: q.inicio, fin: q.fin };
   }, [desde, hasta]);
+
+  // Rango exacto seleccionado (coincide siempre con las fechas del formulario).
+  const rangoSeleccionado = useMemo(() => {
+    if (!desde || !hasta || invalidRange) return null;
+    return { inicio: desde, fin: hasta };
+  }, [desde, hasta, invalidRange]);
+
   // Auto-completar etiqueta si el usuario no la editó manualmente.
   useEffect(() => {
     if (manual) return;
-    setPeriodo(rango?.label ?? "");
-  }, [rango, manual]);
-  // Persistir en localStorage.
+    setPeriodo(trimestre?.label ?? "");
+  }, [trimestre, manual]);
+
+  // Persistir en localStorage + perfil (debounced).
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(PERIODO_STORAGE_KEY, JSON.stringify({ desde, hasta, periodo, manual }));
     } catch { /* ignore */ }
-  }, [desde, hasta, periodo, manual]);
+    if (invalidRange) return; // no persistimos estados inválidos en el perfil
+    const t = setTimeout(() => {
+      fSetPref({ data: { desde: desde || null, hasta: hasta || null, periodo: periodo || null, manual } })
+        .catch(() => { /* silencioso */ });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [desde, hasta, periodo, manual, hydrated, invalidRange]);
+
   return (
     <>
       <Field label="Etiqueta del periodo (trimestre auto)">
@@ -537,21 +584,35 @@ function PeriodoTrimestralFields() {
           placeholder="Q2 2026"
           className={inputCls}
         />
-        {rango && (
+        {trimestre && (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Trimestre {rango.label}: <span className="font-mono">{fmtSV(rango.inicio)}</span> → <span className="font-mono">{fmtSV(rango.fin)}</span>
-            {manual && <> · <button type="button" className="underline" onClick={() => { setManual(false); setPeriodo(rango.label); }}>usar automático</button></>}
+            Trimestre {trimestre.label}: <span className="font-mono">{fmtSV(trimestre.inicio)}</span> → <span className="font-mono">{fmtSV(trimestre.fin)}</span>
+            {manual && <> · <button type="button" className="underline" onClick={() => { setManual(false); setPeriodo(trimestre.label); }}>usar automático</button></>}
+          </p>
+        )}
+        {rangoSeleccionado && (
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Rango del reporte: <span className="font-mono">{fmtSV(rangoSeleccionado.inicio)}</span> → <span className="font-mono">{fmtSV(rangoSeleccionado.fin)}</span>
           </p>
         )}
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Desde">
-          <input name="desde" type="date" required value={desde} onChange={(e) => setDesde(e.currentTarget.value)} className={inputCls} />
+          <input name="desde" type="date" required value={desde} max={hasta || undefined}
+            onChange={(e) => setDesde(e.currentTarget.value)}
+            aria-invalid={invalidRange || undefined}
+            className={inputCls + (invalidRange ? " border-destructive" : "")} />
         </Field>
         <Field label="Hasta">
-          <input name="hasta" type="date" required value={hasta} onChange={(e) => setHasta(e.currentTarget.value)} className={inputCls} />
+          <input name="hasta" type="date" required value={hasta} min={desde || undefined}
+            onChange={(e) => setHasta(e.currentTarget.value)}
+            aria-invalid={invalidRange || undefined}
+            className={inputCls + (invalidRange ? " border-destructive" : "")} />
         </Field>
       </div>
+      {invalidRange && (
+        <p className="text-[11px] text-destructive">La fecha "Desde" no puede ser posterior a "Hasta".</p>
+      )}
     </>
   );
 }
