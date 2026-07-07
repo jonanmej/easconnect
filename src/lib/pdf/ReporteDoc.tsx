@@ -130,7 +130,7 @@ export type ReporteData = {
   recomendaciones: string[];
   kpis: { label: string; value: string }[];
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
-  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string }[];
+  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
