@@ -462,29 +462,70 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "pr
   );
 }
 
-function quarterLabel(dateStr: string): string {
+function quarterInfo(dateStr: string) {
   const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
-  if (!m) return "";
+  if (!m) return null;
   const year = Number(m[1]);
   const month = Number(m[2]);
   const q = Math.floor((month - 1) / 3) + 1;
-  return `Q${q} ${year}`;
+  const startMonth = (q - 1) * 3 + 1;
+  const endMonth = startMonth + 2;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const lastDay = new Date(year, endMonth, 0).getDate();
+  return {
+    label: `Q${q} ${year}`,
+    inicio: `${year}-${pad(startMonth)}-01`,
+    fin: `${year}-${pad(endMonth)}-${pad(lastDay)}`,
+    key: `${year}-Q${q}`,
+  };
 }
+
+function fmtSV(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : iso;
+}
+
+const PERIODO_STORAGE_KEY = "reportes:periodo-form";
 
 function PeriodoTrimestralFields() {
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [manual, setManual] = useState(false);
   const [periodo, setPeriodo] = useState("");
+  // Rehidratar valores previos.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PERIODO_STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw) as { desde?: string; hasta?: string; periodo?: string; manual?: boolean };
+      if (s.desde) setDesde(s.desde);
+      if (s.hasta) setHasta(s.hasta);
+      if (s.periodo) setPeriodo(s.periodo);
+      if (s.manual) setManual(true);
+    } catch { /* ignore */ }
+  }, []);
+  // Rango exacto del trimestre a partir de las fechas.
+  const rango = useMemo(() => {
+    const qD = quarterInfo(desde);
+    const qH = quarterInfo(hasta);
+    if (!qD && !qH) return null;
+    if (qD && qH && qD.key !== qH.key) {
+      return { label: `${qD.label} – ${qH.label}`, inicio: qD.inicio, fin: qH.fin };
+    }
+    const q = qD ?? qH!;
+    return { label: q.label, inicio: q.inicio, fin: q.fin };
+  }, [desde, hasta]);
+  // Auto-completar etiqueta si el usuario no la editó manualmente.
   useEffect(() => {
     if (manual) return;
-    const qD = quarterLabel(desde);
-    const qH = quarterLabel(hasta);
-    let next = "";
-    if (qD && qH) next = qD === qH ? qD : `${qD} – ${qH}`;
-    else next = qD || qH;
-    setPeriodo(next);
-  }, [desde, hasta, manual]);
+    setPeriodo(rango?.label ?? "");
+  }, [rango, manual]);
+  // Persistir en localStorage.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PERIODO_STORAGE_KEY, JSON.stringify({ desde, hasta, periodo, manual }));
+    } catch { /* ignore */ }
+  }, [desde, hasta, periodo, manual]);
   return (
     <>
       <Field label="Etiqueta del periodo (trimestre auto)">
@@ -496,6 +537,12 @@ function PeriodoTrimestralFields() {
           placeholder="Q2 2026"
           className={inputCls}
         />
+        {rango && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Trimestre {rango.label}: <span className="font-mono">{fmtSV(rango.inicio)}</span> → <span className="font-mono">{fmtSV(rango.fin)}</span>
+            {manual && <> · <button type="button" className="underline" onClick={() => { setManual(false); setPeriodo(rango.label); }}>usar automático</button></>}
+          </p>
+        )}
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Desde">
