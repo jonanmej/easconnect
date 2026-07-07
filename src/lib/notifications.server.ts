@@ -81,10 +81,12 @@ export function formatFechaEs(d: Date) {
   return d.toLocaleDateString("es-SV", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/El_Salvador" });
 }
 
-const LOGO_LIGHT =
-  "https://easconnect.lovable.app/__l5e/assets-v1/cf02259b-9448-4a88-b32e-cbcbde302016/ea-logo-v2-light.png";
-const LOGO_DARK =
-  "https://easconnect.lovable.app/__l5e/assets-v1/3fc32008-2a58-41b1-85c6-f0ae8514924a/ea-logo-v2-dark.png";
+// Logos EA Service Connect con fondo transparente (adaptables al tema).
+import brandConnectLight from "@/assets/brand-ea-connect-light.png.asset.json";
+import brandConnectDark from "@/assets/brand-ea-connect-dark.png.asset.json";
+const APP_ORIGIN = "https://easconnect.lovable.app";
+const LOGO_LIGHT = `${APP_ORIGIN}${brandConnectLight.url}`;
+const LOGO_DARK = `${APP_ORIGIN}${brandConnectDark.url}`;
 
 export function emailLayout(title: string, bodyHtml: string) {
   const bg = "#0F172A";

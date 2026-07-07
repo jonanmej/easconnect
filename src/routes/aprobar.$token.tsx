@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CheckCircle2, ShieldCheck, AlertTriangle, Loader2 } from "lucide-react";
-import { EALogo } from "@/components/logos/EALogo";
+import { BrandLogo } from "@/components/BrandLogo";
 import { SignaturePad } from "@/components/SignaturePad";
 import { validarTokenAprobacion, firmarAprobacion } from "@/lib/aprobaciones.functions";
 
@@ -33,7 +33,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <EALogo className="h-10 w-auto text-brand" accentClassName="text-brand" />
+          <BrandLogo variant="ea-connect" className="h-10 w-auto object-contain" />
           <div className="ml-auto text-xs text-muted-foreground hidden sm:block">
             Plataforma de gestión EA Service & Consulting
           </div>

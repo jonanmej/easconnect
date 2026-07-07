@@ -3,6 +3,12 @@ import { createElement } from "react";
 import { ReporteDoc, type ReporteData } from "./ReporteDoc";
 import { RecursosDoc, type RecursosData } from "./RecursosDoc";
 
+/** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
+function currentTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
 function uuidV4() {
   // Compatible con todos los navegadores; randomUUID() requiere contexto seguro.
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -101,6 +107,7 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
     documento_version,
     documento_clasificacion,
     documento_hash: undefined,
+    theme: data.theme ?? currentTheme(),
   };
   const initialBlob = await pdf(createElement(ReporteDoc, { data: base }) as any).toBlob();
   const hash = await sha256Hex(initialBlob);
@@ -137,6 +144,7 @@ export async function generarYDescargarRecursosPdf(data: RecursosData, filename:
     documento_version,
     documento_clasificacion,
     documento_hash: undefined,
+    theme: data.theme ?? currentTheme(),
   };
   const initialBlob = await pdf(createElement(RecursosDoc, { data: base }) as any).toBlob();
   const hash = await sha256Hex(initialBlob);

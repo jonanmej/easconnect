@@ -2,11 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { BrandLogo } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
-import { PVStopLogo } from "@/components/logos/PVStopLogo";
-import { useTheme } from "@/lib/theme-context";
-import eaConnectLight from "@/assets/ea-connect-light.png.asset.json";
-import eaConnectDark from "@/assets/ea-connect-dark.png.asset.json";
 import { useServerFn } from "@tanstack/react-start";
 import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
@@ -20,7 +17,6 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { next } = Route.useSearch();
-  const { theme } = useTheme();
   const goNext = () => {
     if (next && next.startsWith("/")) window.location.href = next;
     else navigate({ to: "/" });
@@ -109,11 +105,7 @@ function AuthPage() {
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center mb-8">
-          <img
-            src={theme === "dark" ? eaConnectDark.url : eaConnectLight.url}
-            alt="EA Service Connect"
-            className="h-20 w-auto object-contain"
-          />
+          <BrandLogo variant="ea-connect" className="h-20 w-auto object-contain" />
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">
@@ -264,9 +256,9 @@ function AuthPage() {
             Aliados estratégicos
           </p>
           <div className="flex items-center justify-center gap-6 opacity-80">
-            <ChemitekLogo className="h-6 w-auto" />
-            <span className="h-5 w-px bg-border" aria-hidden />
-            <PVStopLogo className="h-7 w-auto text-foreground" />
+            <ChemitekLogo className="h-8 w-auto" />
+            <span className="h-6 w-px bg-border" aria-hidden />
+            <BrandLogo variant="pvstop" className="h-8 w-auto object-contain" />
           </div>
         </div>
 
