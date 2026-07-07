@@ -218,10 +218,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             Marcas asociadas
           </p>
           <div className="flex items-center gap-4 px-2">
-            {/* Chemitek es un wordmark puro → necesita más alto para igualar la altura tipográfica de PVSTOP */}
+            {/* Ambos usan la misma caja: BrandLogo aplica escalado por variante
+                para igualar la altura del wordmark independientemente del PNG. */}
             <ChemitekLogo className="h-8 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            {/* PVSTOP incluye ícono + wordmark + bajada; se reduce para que su wordmark iguale la altura del texto Chemitek */}
-            <BrandLogo variant="pvstop" className="h-12 w-auto object-contain" />
+            <BrandLogo variant="pvstop" className="h-10" />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">

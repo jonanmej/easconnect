@@ -27,6 +27,29 @@ const DEFAULT_ALT: Record<Variant, string> = {
   pvstop: "PVSTOP El Salvador",
 };
 
+/**
+ * Escalado inteligente por variante.
+ *
+ * Cada PNG tiene distinta relación entre el contenido tipográfico (wordmark)
+ * y el alto total del archivo — p. ej. PVSTOP incluye ícono + wordmark +
+ * bajada "EL SALVADOR", mientras que "EA Service" es casi puro wordmark.
+ *
+ * `wordmarkRatio` = altura aproximada del texto principal / altura total del PNG.
+ * A partir de ese ratio calculamos un factor de escala para que, dada una caja
+ * de alto `H`, el texto del logo mida siempre ≈ `TARGET_WORDMARK_RATIO * H`,
+ * sin importar el tamaño real del archivo.
+ */
+const WORDMARK_RATIO: Record<Variant, number> = {
+  "ea-main": 0.70,
+  "ea-connect": 0.55,
+  pvstop: 0.40,
+};
+const TARGET_WORDMARK_RATIO = 0.70;
+
+function scaleFor(variant: Variant): number {
+  return TARGET_WORDMARK_RATIO / WORDMARK_RATIO[variant];
+}
+
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt"> & {
   variant: Variant;
   /** Fuerza tema en lugar de leer el contexto. Útil en previews/PDF. */
@@ -37,18 +60,29 @@ type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt"> & {
 /**
  * `<BrandLogo>` — muestra el logo apropiado según el tema activo (`light` u `oscuro`)
  * con fondo transparente para integrarse a cualquier superficie.
+ *
+ * El `className` define la caja (alto de referencia). Internamente aplicamos
+ * un factor de escala por variante para que el texto del logo conserve la
+ * misma legibilidad óptica sin importar el tamaño del PNG de origen.
  */
 export function BrandLogo({ variant, themeOverride, alt, className, ...rest }: Props) {
   const { theme } = useTheme();
   const effective = themeOverride ?? theme;
   const src = BRAND_LOGO_URLS[variant][effective];
+  const scale = scaleFor(variant);
   return (
-    <img
-      src={src}
-      alt={alt ?? DEFAULT_ALT[variant]}
-      className={className ?? "h-8 w-auto object-contain"}
-      {...rest}
-    />
+    <span
+      className={`inline-flex items-center justify-center overflow-visible ${className ?? "h-8"}`}
+      aria-hidden={rest["aria-hidden"]}
+    >
+      <img
+        src={src}
+        alt={alt ?? DEFAULT_ALT[variant]}
+        style={{ height: `${scale * 100}%`, width: "auto" }}
+        className="max-w-none object-contain"
+        {...rest}
+      />
+    </span>
   );
 }
 
