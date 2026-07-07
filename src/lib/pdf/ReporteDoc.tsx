@@ -1,4 +1,12 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path, G, Rect, Defs, LinearGradient, Stop } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+/** URL absoluta al logo EA Service Connect según tema del documento. */
+function brandLogoUrl(theme: "light" | "dark") {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${BRAND_LOGO_URLS["ea-main"][theme]}`;
+}
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
@@ -14,23 +22,12 @@ Font.registerHyphenationCallback((word) => [word]);
  * Reproduce el triángulo "play" con dos tonos de naranja sobre navy,
  * fiel a la identidad de marca utilizada en la app (EALogo.tsx).
  */
-function EALogoMark({ size = 28 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 200 150">
-      <Defs>
-        <LinearGradient id="ea-grad" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%" stopColor={COL.primary} stopOpacity={0.95} />
-          <Stop offset="100%" stopColor={COL.primary} stopOpacity={0.7} />
-        </LinearGradient>
-      </Defs>
-      {/* Triángulo "play" fiel al original EALogo.tsx */}
-      <G>
-        <Path d="M40 10 L190 75 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
-        <Path d="M40 10 L40 140 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
-        <Path d="M110 75 L190 75 L40 140 Z" fill="url(#ea-grad)" />
-      </G>
-    </Svg>
-  );
+/**
+ * Logo EA Service & Consulting como imagen embebida (PNG transparente).
+ * Cambia automáticamente entre variante clara/oscura según el tema del PDF.
+ */
+function EALogoMark({ size = 28, theme = "light" }: { size?: number; theme?: "light" | "dark" }) {
+  return <Image src={brandLogoUrl(theme)} style={{ width: size, height: size }} />;
 }
 
 // Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
