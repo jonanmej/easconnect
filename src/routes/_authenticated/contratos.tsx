@@ -75,8 +75,8 @@ function ContratosPage() {
         ) : null}
       />
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-secondary text-[11px] uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-2 text-left">Cliente</th>

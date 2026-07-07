@@ -121,8 +121,8 @@ function MisTrabajos() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
           <CheckCircle2 className="size-4" /> Trabajos realizados
         </h2>
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-secondary text-[11px] uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 text-left">Folio</th>

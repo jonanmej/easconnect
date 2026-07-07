@@ -392,7 +392,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       if (a.wait) await sleep(a.wait);
       try {
         let text: string;
-        if (pdfParts.length > 0 && a.model.startsWith("google/")) {
+        if (pdfParts.length > 0 && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
           text = await callWithPdfs(a.model);
         } else {
           const result = await generateText({ model: gateway(a.model), system, prompt });
@@ -776,7 +776,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       if (a.wait) await sleep(a.wait);
       try {
         let text: string;
-        if (pdfParts.length > 0 && a.model.startsWith("google/")) {
+        if (pdfParts.length > 0 && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
           text = await callWithPdfs(a.model);
         } else {
           const r = await generateText({ model: gateway(a.model), system, prompt });
