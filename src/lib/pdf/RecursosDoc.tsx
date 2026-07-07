@@ -1,4 +1,11 @@
-import { Document, Page, Text, View, StyleSheet, Font, Svg, Path, G, Defs, LinearGradient, Stop } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+function brandLogoUrl(theme: "light" | "dark") {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${BRAND_LOGO_URLS["ea-main"][theme]}`;
+}
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -17,22 +24,8 @@ const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
 
-function EALogoMark({ size = 22 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 200 150">
-      <Defs>
-        <LinearGradient id="ea-grad-rec" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%" stopColor={COL.primary} stopOpacity={0.95} />
-          <Stop offset="100%" stopColor={COL.primary} stopOpacity={0.7} />
-        </LinearGradient>
-      </Defs>
-      <G>
-        <Path d="M40 10 L190 75 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
-        <Path d="M40 10 L40 140 L110 75 Z" fill={COL.primary} fillOpacity={0.55} />
-        <Path d="M110 75 L190 75 L40 140 Z" fill="url(#ea-grad-rec)" />
-      </G>
-    </Svg>
-  );
+function EALogoMark({ size = 22, theme = "light" }: { size?: number; theme?: "light" | "dark" }) {
+  return <Image src={brandLogoUrl(theme)} style={{ width: size, height: size }} />;
 }
 
 const styles = StyleSheet.create({
@@ -94,6 +87,8 @@ export type RecursosData = {
   documento_hash?: string;
   responsable?: string | null;
   responsable_cargo?: string | null;
+  /** Tema del documento — controla la variante del logo. */
+  theme?: "light" | "dark";
 };
 
 function PageHeader({ data }: { data: RecursosData }) {
@@ -102,7 +97,7 @@ function PageHeader({ data }: { data: RecursosData }) {
   return (
     <View style={styles.header} fixed>
       <View style={styles.headerLeft}>
-        <EALogoMark size={22} />
+        <EALogoMark size={22} theme={data.theme ?? "light"} />
         <View style={styles.headerLeftText}>
           <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
           <Text style={styles.headerSub}>Checklist de Recursos · OT {data.folio}</Text>
