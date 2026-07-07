@@ -67,7 +67,7 @@ function Solicitudes() {
         title={isStaff ? "Solicitudes de Visita" : "Mis Solicitudes"}
         description={isStaff ? "Apruebe o rechace las visitas que los clientes han pedido desde su calendario." : "Estado de las visitas que ha solicitado para sus plantas."}
         actions={
-          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className={inputCls + " w-44"}>
+          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className={inputCls + " w-full sm:w-44"}>
             <option value="todas">Todas</option>
             <option value="pendiente">Pendientes</option>
             <option value="convertida">Aprobadas</option>

@@ -10,12 +10,16 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-      <div>
+    <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+      <div className="min-w-0">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{description}</p>
       </div>
-      {actions ? <div className="flex gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto [&>select]:min-w-0 [&>select]:flex-1 sm:[&>select]:flex-none">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }
