@@ -41,7 +41,8 @@ import { useTheme } from "@/lib/theme-context";
 import eaLogoLight from "@/assets/ea-logo-light.png.asset.json";
 import eaLogoDark from "@/assets/ea-logo-dark.png.asset.json";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
-import { PVStopLogo } from "@/components/logos/PVStopLogo";
+import pvstopLight from "@/assets/pvstop-light.png.asset.json";
+import pvstopDark from "@/assets/pvstop-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -224,7 +225,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </p>
           <div className="flex items-center gap-3 px-2">
             <ChemitekLogo className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            <PVStopLogo className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+            <img
+              src={theme === "dark" ? pvstopDark.url : pvstopLight.url}
+              alt="PVSTOP El Salvador"
+              className="h-6 w-auto object-contain"
+            />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">
