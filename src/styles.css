@@ -162,6 +162,46 @@
     font-size: 16px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    /* Evita rubber-band jank y ayuda a mantener 90-120fps al hacer scroll. */
+    overscroll-behavior-y: none;
+  }
+
+  html {
+    /* Fluidez de scroll programático (anchors) sin bloquear scroll manual. */
+    scroll-behavior: smooth;
+    text-size-adjust: 100%;
+  }
+
+  /* Componer en GPU los elementos que suelen animarse (menús, diálogos,
+     tooltips, toasts, drawers) para evitar repaint en cada frame a 120Hz. */
+  [data-radix-popper-content-wrapper],
+  [data-state="open"][role="dialog"],
+  [data-radix-portal] > *,
+  [data-sonner-toast],
+  [data-vaul-drawer] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Duración base más corta y easing suave para transiciones utilitarias
+     (hover, focus, cambios de color). Se percibe más ágil a alto refresh. */
+  button, a, [role="button"], input, select, textarea,
+  [data-slot="button"], [data-slot="input"], [data-slot="select-trigger"] {
+    transition-duration: 120ms;
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Respetar la preferencia de reducir movimiento del sistema. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
