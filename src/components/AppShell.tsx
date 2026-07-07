@@ -38,11 +38,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
-import eaLogoLight from "@/assets/ea-logo-light.png.asset.json";
-import eaLogoDark from "@/assets/ea-logo-dark.png.asset.json";
+import { BrandLogo } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
-import pvstopLight from "@/assets/pvstop-light.png.asset.json";
-import pvstopDark from "@/assets/pvstop-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -104,6 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const { preference, setPreference, theme } = useTheme();
+  void theme;
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -168,11 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
         aria-label="EA Service & Consulting — Ir al inicio"
       >
-        <img
-          src={theme === "dark" ? eaLogoDark.url : eaLogoLight.url}
-          alt="EA Service & Consulting"
-          className="h-20 w-auto object-contain"
-        />
+        <BrandLogo variant="ea-main" className="h-20 w-auto object-contain" />
       </Link>
 
       <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
@@ -224,12 +218,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             Marcas asociadas
           </p>
           <div className="flex items-center gap-3 px-2">
-            <ChemitekLogo className="h-6 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            <img
-              src={theme === "dark" ? pvstopDark.url : pvstopLight.url}
-              alt="PVSTOP El Salvador"
-              className="h-6 w-auto object-contain"
-            />
+            <ChemitekLogo className="h-10 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+            <BrandLogo variant="pvstop" className="h-10 w-auto object-contain" />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">
