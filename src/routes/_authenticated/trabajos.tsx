@@ -373,21 +373,37 @@ function Trabajos() {
       />
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="mb-4 flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <div className="relative w-full">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar folio, cliente, planta, servicio…"
-            className="h-9 pl-8 pr-3 w-full rounded-md border border-input bg-background text-sm"
+            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm"
           />
         </div>
         <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          title="Ordenar por"
+          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-auto"
+        >
+          <option value="smart">Orden inteligente (próximos primero)</option>
+          <option value="fecha_asc">Fecha ascendente</option>
+          <option value="fecha_desc">Fecha descendente</option>
+          <option value="folio">Folio</option>
+          <option value="cliente">Cliente</option>
+          <option value="servicio">Servicio</option>
+          <option value="estado">Estado</option>
+        </select>
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todos los estados</option>
           <option value="programado">Programado</option>
@@ -398,7 +414,7 @@ function Trabajos() {
         <select
           value={plantaFilter}
           onChange={(e) => setPlantaFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm max-w-[240px]"
+          className="h-9 max-w-[240px] rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todas las plantas</option>
           {[...((plantas.data as any[] | undefined) ?? [])]
@@ -416,7 +432,7 @@ function Trabajos() {
           <select
             value={tecFilter}
             onChange={(e) => setTecFilter(e.target.value)}
-            className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">Todos los técnicos</option>
             <option value="__sin__">Sin asignar</option>
@@ -425,20 +441,6 @@ function Trabajos() {
             ))}
           </select>
         )}
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          title="Ordenar por"
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm ml-auto"
-        >
-          <option value="smart">Orden inteligente (próximos primero)</option>
-          <option value="fecha_asc">Fecha ascendente</option>
-          <option value="fecha_desc">Fecha descendente</option>
-          <option value="folio">Folio</option>
-          <option value="cliente">Cliente</option>
-          <option value="servicio">Servicio</option>
-          <option value="estado">Estado</option>
-        </select>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-x-auto">
