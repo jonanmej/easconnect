@@ -461,3 +461,50 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "pr
     </div>
   );
 }
+
+function quarterLabel(dateStr: string): string {
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dateStr);
+  if (!m) return "";
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const q = Math.floor((month - 1) / 3) + 1;
+  return `Q${q} ${year}`;
+}
+
+function PeriodoTrimestralFields() {
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [manual, setManual] = useState(false);
+  const [periodo, setPeriodo] = useState("");
+  useEffect(() => {
+    if (manual) return;
+    const qD = quarterLabel(desde);
+    const qH = quarterLabel(hasta);
+    let next = "";
+    if (qD && qH) next = qD === qH ? qD : `${qD} – ${qH}`;
+    else next = qD || qH;
+    setPeriodo(next);
+  }, [desde, hasta, manual]);
+  return (
+    <>
+      <Field label="Etiqueta del periodo (trimestre auto)">
+        <input
+          name="periodo"
+          required
+          value={periodo}
+          onChange={(e) => { setManual(true); setPeriodo(e.currentTarget.value); }}
+          placeholder="Q2 2026"
+          className={inputCls}
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Desde">
+          <input name="desde" type="date" required value={desde} onChange={(e) => setDesde(e.currentTarget.value)} className={inputCls} />
+        </Field>
+        <Field label="Hasta">
+          <input name="hasta" type="date" required value={hasta} onChange={(e) => setHasta(e.currentTarget.value)} className={inputCls} />
+        </Field>
+      </div>
+    </>
+  );
+}
