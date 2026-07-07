@@ -165,7 +165,7 @@ function Plantas() {
                     <div className="flex flex-wrap gap-6 text-sm">
                       <div>
                         <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Paneles</p>
-                        <p className="font-mono font-semibold">{p.paneles ? p.paneles.toLocaleString() : "—"}</p>
+                        <p className="font-mono font-semibold">{p.paneles ? p.paneles.toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>

@@ -94,7 +94,7 @@ function Solicitudes() {
                 </span>
               </div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                {s.cliente_nombre} · Fecha solicitada: {new Date(s.fecha_preferida + "T00:00").toLocaleDateString("es-SV", { day: "2-digit", month: "long" })} · Duración: {s.duracion_dias_estimada}d
+                {s.cliente_nombre} · Fecha solicitada: {new Date(s.fecha_preferida + "T00:00").toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "long" })} · Duración: {s.duracion_dias_estimada}d
               </p>
               {s.descripcion && <p className="text-sm mt-2 text-foreground/80">{s.descripcion}</p>}
               {s.respuesta_supervisor && (

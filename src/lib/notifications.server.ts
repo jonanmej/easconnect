@@ -62,7 +62,7 @@ export async function sendGmail(opts: { to: string; subject: string; html: strin
 }
 
 export function formatFechaEs(d: Date) {
-  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("es-SV", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 const LOGO_LIGHT =

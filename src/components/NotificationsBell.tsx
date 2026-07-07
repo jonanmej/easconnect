@@ -21,7 +21,7 @@ function fmtRel(iso: string) {
   if (diff < 60) return "hace instantes";
   if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
   if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
-  return new Date(iso).toLocaleDateString("es-SV", { day: "2-digit", month: "short" });
+  return new Date(iso).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "short" });
 }
 
 export function NotificationsBell() {

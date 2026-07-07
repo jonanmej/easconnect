@@ -52,7 +52,7 @@ function addDays(d: Date, n: number) {
   return x;
 }
 function fmtDayLabel(d: Date) {
-  return d.toLocaleDateString("es-SV", { weekday: "short", day: "2-digit", month: "short" });
+  return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", weekday: "short", day: "2-digit", month: "short" });
 }
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -163,9 +163,9 @@ function Programacion() {
 
   const headerTitle =
     vista === "semana"
-      ? `Semana del ${cursor.toLocaleDateString("es-SV", { day: "2-digit", month: "short" })}`
+      ? `Semana del ${cursor.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "short" })}`
       : vista === "mes"
-        ? cursor.toLocaleDateString("es-SV", { month: "long", year: "numeric" })
+        ? cursor.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" })
         : String(cursor.getFullYear());
 
   return (
@@ -403,7 +403,7 @@ function MiniMonth({ year, month, byDay, onClick }: {
   return (
     <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors">
       <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
-        {first.toLocaleDateString("es-SV", { month: "long" })}
+        {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
       </p>
       <div className="grid grid-cols-[24px_repeat(5,1fr)] gap-y-0.5 text-[9px] text-muted-foreground">
         <div />
@@ -457,7 +457,7 @@ function MiniMonth({ year, month, byDay, onClick }: {
 // =============== Vista Cliente ===============
 
 function startOfMonth(d: Date) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
-function fmtMonth(d: Date) { return d.toLocaleDateString("es-SV", { month: "long", year: "numeric" }); }
+function fmtMonth(d: Date) { return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" }); }
 function toISODateLocal(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -627,7 +627,7 @@ function ClienteCalendar() {
       <RecordDialog
         open={!!pickDate}
         onOpenChange={(v) => !v && setPickDate(null)}
-        title={`Solicitar visita para el ${pickDate ? new Date(pickDate + "T00:00").toLocaleDateString("es-SV", { weekday: "long", day: "2-digit", month: "long" }) : ""}`}
+        title={`Solicitar visita para el ${pickDate ? new Date(pickDate + "T00:00").toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", weekday: "long", day: "2-digit", month: "long" }) : ""}`}
         description="La solicitud quedará pendiente hasta que un supervisor la confirme. Recibirás un correo con el resultado."
         submitLabel={crear.isPending ? "Enviando…" : <><CalendarPlus className="size-3.5 inline mr-1.5" /> Enviar solicitud</> as any}
         busy={crear.isPending}

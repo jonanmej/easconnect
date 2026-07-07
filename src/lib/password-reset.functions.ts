@@ -132,7 +132,7 @@ export const solicitarResetPassword = createServerFn({ method: "POST" })
             <p style="margin:14px 0 0;">
               <a href="https://easconnect.lovable.app/usuarios" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 16px;border-radius:6px;font-size:13px;">Atender solicitud</a>
             </p>
-            <p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">Solicitada el ${new Date().toLocaleString("es-CL")}. Expira el ${new Date(expira_at).toLocaleString("es-CL")}.</p>
+            <p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">Solicitada el ${new Date().toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}. Expira el ${new Date(expira_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}.</p>
           `,
         );
         // Enviar a todos los admins en paralelo

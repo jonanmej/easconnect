@@ -119,7 +119,7 @@ export const Route = createFileRoute("/api/public/hooks/notificar-programaciones
               .filter(Boolean)
               .map((e: any) => `${e.codigo} ${e.nombre}`);
 
-            const fechaTxt = fechaProg.toLocaleString("es-CL", { dateStyle: "long", timeStyle: "short" });
+            const fechaTxt = fechaProg.toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "long", timeStyle: "short" });
             const asunto = `Recordatorio · OT ${t.folio} en ${intervalo} día${intervalo === 1 ? "" : "s"}`;
             const html = buildHtml({
               folio: t.folio,

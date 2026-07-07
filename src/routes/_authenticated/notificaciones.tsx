@@ -155,7 +155,7 @@ function Notificaciones() {
             {!list.isLoading && items.length === 0 && (<tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Sin notificaciones registradas con esos filtros.</td></tr>)}
             {items.map((n: any) => (
               <tr key={n.id} className="border-t border-border">
-                <td className="p-3 font-mono text-xs">{new Date(n.enviado_at).toLocaleString("es-SV", { dateStyle: "short", timeStyle: "short" })}</td>
+                <td className="p-3 font-mono text-xs">{new Date(n.enviado_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "short", timeStyle: "short" })}</td>
                 <td className="p-3">
                   <p className="font-medium">{n.cliente_nombre}</p>
                   {n.planta_nombre && <p className="text-xs text-muted-foreground">{n.planta_nombre}</p>}

@@ -17,7 +17,7 @@ export function parseConflictoError(msg?: string | null): ConflictoTecnico[] | n
 }
 
 function fmt(d: Date) {
-  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function formatConflictoRango(c: ConflictoTecnico): string {

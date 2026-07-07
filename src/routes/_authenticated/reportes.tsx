@@ -435,7 +435,7 @@ function Reportes() {
                           {a.version ? ` · v${a.version}` : ""}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {new Date(a.created_at).toLocaleString()}
+                          {new Date(a.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
                         </span>
                       </div>
                       <div className="text-muted-foreground mt-0.5">

@@ -249,7 +249,7 @@ function UsersPage() {
             {resets.data?.map((s: any) => (
               <tr key={s.id} className="border-t border-border">
                 <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(s.created_at).toLocaleString()}
+                  {new Date(s.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
                 </td>
                 <td className="p-3 text-xs">{s.email}</td>
                 <td className="p-3 text-xs text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
@@ -260,7 +260,7 @@ function UsersPage() {
                   )}
                 </td>
                 <td className="p-3 text-[10px] font-mono text-muted-foreground">
-                  {s.expira_at ? new Date(s.expira_at).toLocaleString() : "—"}
+                  {s.expira_at ? new Date(s.expira_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
                 </td>
                 <td className="p-3">
                   <span className={
@@ -496,7 +496,7 @@ function UsersPage() {
             {audit.data?.map((l) => (
               <tr key={l.id} className="border-t border-border">
                 <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(l.created_at).toLocaleString()}
+                  {new Date(l.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
                 </td>
                 <td className="p-3">
                   <span className={
