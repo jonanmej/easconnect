@@ -376,21 +376,41 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <PageFooter data={data} />
       </Page>
 
-      {data.evidencias.length > 0 && (
-        <Page size="LETTER" style={styles.page} wrap>
-          <PageHeader data={data} pageName="Evidencias" />
-          <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
-          <View style={styles.evidGrid}>
-            {data.evidencias.slice(0, ejec ? 8 : 30).map((e, i) => (
-              <View key={i} style={{ width: "48%", marginBottom: 10 }} wrap={false}>
-                <Image src={e.dataUrl} style={styles.evidImg} />
-                <Text style={{ fontSize: 8, color: COL.muted, marginTop: 3 }}>{e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}</Text>
-              </View>
-            ))}
-          </View>
-          <PageFooter data={data} />
-        </Page>
-      )}
+      {data.evidencias.length > 0 && (() => {
+        // Ordenamos por orientación para que la grilla se vea uniforme:
+        // primero apaisadas (landscape), luego verticales (portrait).
+        const ordenadas = [...data.evidencias].slice(0, ejec ? 8 : 30).sort((a, b) => {
+          const ar = (a.aspect ?? 1) >= 1 ? 0 : 1;
+          const br = (b.aspect ?? 1) >= 1 ? 0 : 1;
+          return ar - br;
+        });
+        return (
+          <Page size="LETTER" style={styles.page} wrap>
+            <PageHeader data={data} pageName="Evidencias" />
+            <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
+            <View style={styles.pageTitleRule} />
+            <View style={styles.evidGrid}>
+              {ordenadas.map((e, i) => {
+                const isPortrait = (e.aspect ?? 1) < 0.95;
+                return (
+                  <View key={i} style={styles.evidTile} wrap={false}>
+                    <View style={styles.evidFrame}>
+                      <Image
+                        src={e.dataUrl}
+                        style={isPortrait ? styles.evidImgPortrait : styles.evidImgLandscape}
+                      />
+                    </View>
+                    <Text style={styles.evidCaption}>
+                      {e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <PageFooter data={data} />
+          </Page>
+        );
+      })()}
 
       <Page size="LETTER" style={styles.page} wrap>
         <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
