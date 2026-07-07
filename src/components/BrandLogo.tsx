@@ -79,7 +79,7 @@ export function BrandLogo({ variant, themeOverride, alt, className, ...rest }: P
   const { theme } = useTheme();
   const effective = themeOverride ?? theme;
   const src = BRAND_LOGO_URLS[variant][effective];
-  const scale = scaleFor(variant);
+  const scale = scaleFor(variant, effective);
   return (
     <span
       className={`inline-flex items-center justify-center overflow-visible ${className ?? "h-8"}`}
