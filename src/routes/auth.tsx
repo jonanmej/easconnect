@@ -2,11 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
-import { PVStopLogo } from "@/components/logos/PVStopLogo";
-import { useTheme } from "@/lib/theme-context";
-import eaConnectLight from "@/assets/ea-connect-light.png.asset.json";
-import eaConnectDark from "@/assets/ea-connect-dark.png.asset.json";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useServerFn } from "@tanstack/react-start";
 import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
@@ -20,7 +16,6 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { next } = Route.useSearch();
-  const { theme } = useTheme();
   const goNext = () => {
     if (next && next.startsWith("/")) window.location.href = next;
     else navigate({ to: "/" });
@@ -109,11 +104,7 @@ function AuthPage() {
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center mb-8">
-          <img
-            src={theme === "dark" ? eaConnectDark.url : eaConnectLight.url}
-            alt="EA Service Connect"
-            className="h-20 w-auto object-contain"
-          />
+          <BrandLogo variant="ea-connect" className="h-20 w-auto object-contain" />
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">
