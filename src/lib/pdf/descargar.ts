@@ -1,8 +1,7 @@
-import "./browser-polyfills";
-import { pdf } from "@react-pdf/renderer";
 import { createElement } from "react";
-import { ReporteDoc, type ReporteData } from "./ReporteDoc";
-import { RecursosDoc, type RecursosData } from "./RecursosDoc";
+import { ensurePdfBrowserPolyfills } from "./browser-polyfills";
+import type { ReporteData } from "./ReporteDoc";
+import type { RecursosData } from "./RecursosDoc";
 
 /** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
 function currentTheme(): "light" | "dark" {
@@ -93,6 +92,11 @@ export async function withAspect(items: { trabajo: string; descripcion?: string 
  * - Hash SHA-256 visible en pie y cierre para garantizar integridad
  */
 export async function generarYDescargarPdf(data: ReporteData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { ReporteDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./ReporteDoc"),
+  ]);
   const documento_id = data.documento_id ?? uuidV4();
   const documento_codigo =
     data.documento_codigo ?? `EA-${data.modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}`;
@@ -133,6 +137,11 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
  * con la misma trazabilidad ISO que los reportes ejecutivos.
  */
 export async function generarYDescargarRecursosPdf(data: RecursosData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { RecursosDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./RecursosDoc"),
+  ]);
   const documento_id = data.documento_id ?? uuidV4();
   const documento_codigo = data.documento_codigo ?? `EA-REC-${data.folio ?? ""}`.replace(/\s+/g, "");
   const documento_version = data.documento_version ?? "1.0";
