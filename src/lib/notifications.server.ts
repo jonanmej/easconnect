@@ -27,7 +27,17 @@ function buildRfc2822(to: string, subject: string, html: string, fromName = "EA 
   ].join("\r\n");
 }
 
-export async function sendGmail(opts: { to: string; subject: string; html: string }) {
+export async function sendGmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  /**
+   * Si es `true`, el envío ignora la pausa global de correos automáticos.
+   * Reservado para correos de seguridad y administración de usuarios
+   * (recuperación de contraseña, invitaciones, credenciales nuevas, etc.).
+   */
+  bypassPause?: boolean;
+}) {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !gmailKey) {
@@ -36,6 +46,12 @@ export async function sendGmail(opts: { to: string; subject: string; html: strin
   }
   if (!opts.to || !/.+@.+\..+/.test(opts.to)) {
     return { ok: false, skipped: true, reason: "destinatario inválido" };
+  }
+  if (!opts.bypassPause) {
+    const { isEmailsPaused } = await import("./email-pause.server");
+    if (await isEmailsPaused()) {
+      return { ok: false, skipped: true, reason: "correos pausados" };
+    }
   }
 
   const raw = toBase64Url(buildRfc2822(opts.to, opts.subject, opts.html));

@@ -242,8 +242,8 @@ function ReportEmailPauseCard() {
     mutationFn: (paused: boolean) => fSet({ data: { paused } }),
     onSuccess: (_r, paused) => {
       toast.success(paused
-        ? "Correos pausados. Los usuarios verán la notificación en la app, pero no recibirán email."
-        : "Correos reactivados. Los usuarios volverán a recibir email al subirse un reporte.");
+        ? "Correos automáticos pausados. Solo se seguirán enviando los de seguridad y administración de usuarios."
+        : "Correos automáticos reactivados. La app volverá a enviar todos los correos operativos.");
       qc.invalidateQueries({ queryKey: ["report-upload-email-paused"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -254,12 +254,16 @@ function ReportEmailPauseCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MailX className="size-4 text-primary" />
-          Correos al subir reportes
+          Correos automáticos
         </CardTitle>
         <CardDescription>
-          Al subirse un reporte diario o PDF en un trabajo, el sistema envía un correo a
-          todos los administradores y supervisores registrados. Puedes pausarlo temporalmente
-          (por ejemplo durante campañas intensivas) sin afectar las notificaciones dentro de la app.
+          Cuando esta opción está activa, la app deja de enviar cualquier correo
+          operativo (reportes, evidencias, aprobaciones, solicitudes de visita,
+          notificaciones a técnicos, rutas, contratos por vencer, etc.). Las
+          notificaciones dentro de la app siguen registrándose. Se siguen
+          enviando únicamente los correos de <b>seguridad</b> y <b>administración
+          de usuarios</b>: recuperación de contraseña, invitaciones y credenciales
+          de acceso.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-4">
@@ -269,15 +273,15 @@ function ReportEmailPauseCard() {
           </p>
           <p className="text-xs text-muted-foreground">
             {paused
-              ? "No se están enviando emails cuando se sube un reporte."
-              : "Se envía un email a cada admin y supervisor al subirse un reporte."}
+              ? "Solo se envían correos de seguridad y administración de usuarios."
+              : "Se envían todos los correos automáticos de la app."}
           </p>
         </div>
         <Switch
           checked={paused}
           disabled={q.isLoading || save.isPending}
           onCheckedChange={(v) => save.mutate(v)}
-          aria-label="Pausar correos al subir reportes"
+          aria-label="Pausar correos automáticos"
         />
       </CardContent>
     </Card>

@@ -49,17 +49,8 @@ export async function notificarStaff(opts: {
 
     // 2) Email
     try {
-      // Si es un evento de subida de reporte y el admin pausó los correos, saltamos.
-      if (opts.tipo === "reporte_diario") {
-        const { data: cfg } = await supabaseAdmin
-          .from("system_config")
-          .select("value")
-          .eq("key", "notify_report_upload_email_paused")
-          .maybeSingle();
-        if ((cfg?.value as any)?.paused === true) {
-          return;
-        }
-      }
+      // La pausa global de correos automáticos se aplica dentro de sendGmail
+      // (src/lib/email-pause.server.ts). Aquí solo preparamos y enviamos.
       const { data: usersList } = await (supabaseAdmin as any).auth.admin.listUsers({ perPage: 500 });
       const emailById = new Map<string, string>();
       for (const u of usersList?.users ?? []) {

@@ -114,5 +114,7 @@ export const setReportUploadEmailPaused = createServerFn({ method: "POST" })
       despues: { key: REPORT_UPLOAD_EMAIL_PAUSE_KEY, value: { paused: data.paused } } as any,
       actor: context.userId,
     });
+    const { invalidateEmailsPausedCache } = await import("./email-pause.server");
+    invalidateEmailsPausedCache();
     return { ok: true };
   });
