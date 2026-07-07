@@ -5,6 +5,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Extrae el texto de un PDF (buffer) usando unpdf (compatible con Workers).
+ * Devuelve una cadena limpia y truncada a maxChars para no reventar el prompt.
+ * Si falla, retorna null (el llamador decide qué hacer).
+ */
+async function extraerTextoPdf(buf: Uint8Array, maxChars = 60000): Promise<string | null> {
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(buf);
+    const { text } = await extractText(pdf, { mergePages: true });
+    const raw = Array.isArray(text) ? text.join("\n") : text;
+    if (!raw) return null;
+    const clean = raw
+      .replace(/\u0000/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    if (!clean) return null;
+    return clean.length > maxChars ? clean.slice(0, maxChars) + "\n…[texto truncado]…" : clean;
+  } catch {
+    return null;
+  }
+}
+
 type Proveedor = "gemini" | "openai" | "auto";
 
 const PROVIDER_MODELS: Record<"gemini" | "openai", { primary: string; fallback: string }> = {
@@ -271,6 +295,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
+    const pdfTextos: string[] = [];
     let totalBytes = 0;
     for (const p of (reportesPdf ?? []).slice(0, MAX_PDFS) as any[]) {
       try {
@@ -286,6 +311,10 @@ export const generarReporte = createServerFn({ method: "POST" })
           continue;
         }
         totalBytes += buf.byteLength;
+        // Extraer texto plano del PDF (siempre disponible para el modelo,
+        // aun si el proveedor no soporta adjuntos binarios).
+        const texto = await extraerTextoPdf(buf);
+        if (texto) pdfTextos.push(texto);
         let bin = "";
         const CHUNK = 0x8000;
         for (let i = 0; i < buf.byteLength; i += CHUNK) {
@@ -305,6 +334,9 @@ export const generarReporte = createServerFn({ method: "POST" })
       }
     }
     // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
+    const contenidoPdfsBloque = pdfTextos.length
+      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""`
+      : "";
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
@@ -332,7 +364,7 @@ export const generarReporte = createServerFn({ method: "POST" })
 
 Datos:
 ${JSON.stringify(datasetCtx, null, 2)}
-
+${contenidoPdfsBloque}
 Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, sin texto adicional) con esta forma exacta:
 {
   "titulo": "string (título atractivo)",
@@ -405,6 +437,12 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
     if (!ok) {
       const msg = lastErr?.message || String(lastErr);
       throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${msg})`);
+    }
+
+    if ((reportesPdf ?? []).length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
+      // Los PDFs existían pero no pudimos leerlos ni adjuntarlos.
+      // Avisar en consola para diagnóstico; no romper el reporte ya generado.
+      console.warn("[generarReporte] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
     const markdown = [
@@ -664,6 +702,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     let totalBytes = 0;
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
+    const pdfTextos: string[] = [];
     for (const p of pdfs.slice(0, MAX_PDFS) as any[]) {
       try {
         const { data: signed } = await supabase.storage
@@ -678,6 +717,8 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
           continue;
         }
         totalBytes += buf.byteLength;
+        const texto = await extraerTextoPdf(buf);
+        if (texto) pdfTextos.push(texto);
         // Base64 encode
         let bin = "";
         for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
@@ -695,6 +736,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       }
     }
     // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
+    const contenidoPdfsBloque = pdfTextos.length
+      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""\n`
+      : "";
 
     const ZRep = z.object({
       titulo: z.string(),
@@ -712,7 +756,11 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
     ].join(" ");
-    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+
+    if (pdfs.length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
+      console.warn("[generarEjecutivoDesdeDiarios] PDFs encontrados pero no procesables:", pdfsOmitidos);
+    }
 
     const parseJson = (raw: string): unknown => {
       let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
