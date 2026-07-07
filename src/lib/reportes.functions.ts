@@ -310,6 +310,7 @@ export const generarReporte = createServerFn({ method: "POST" })
           pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
           continue;
         }
+        if (buf.byteLength === 0) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
         totalBytes += buf.byteLength;
         // Extraer texto plano del PDF (siempre disponible para el modelo,
         // aun si el proveedor no soporta adjuntos binarios).
@@ -321,13 +322,15 @@ export const generarReporte = createServerFn({ method: "POST" })
           bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)) as any);
         }
         const b64 = btoa(bin);
-        pdfParts.push({
-          type: "file",
-          file: {
-            filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
-            file_data: `data:application/pdf;base64,${b64}`,
-          },
-        });
+        if (b64.length > 0) {
+          pdfParts.push({
+            type: "file",
+            file: {
+              filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+              file_data: `data:application/pdf;base64,${b64}`,
+            },
+          });
+        }
         pdfsUsados.push(p.nombre_original ?? p.storage_path);
       } catch {
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
