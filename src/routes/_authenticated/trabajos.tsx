@@ -335,7 +335,7 @@ function Trabajos() {
             <ExportButton onExport={async () => {
               const rows = (list.data as any[] | undefined) ?? [];
               await exportarExcel({
-                filename: `trabajos-${new Date().toISOString().slice(0,10)}.xlsx`,
+                filename: `trabajos-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
                 hojas: [{
                   nombre: "Trabajos",
                   columnas: [
@@ -480,7 +480,7 @@ function Trabajos() {
                 </td>
                 <td className="px-4 py-4 text-xs">{t.servicio}</td>
                 <td className="px-4 py-4 text-xs text-muted-foreground">
-                  {new Date(t.fecha_programada).toLocaleString()}
+                  {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
                 </td>
                 <td className="px-4 py-4">
                   <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
@@ -778,7 +778,7 @@ function Trabajos() {
         </Field>
         <Field label="Fecha de ejecución">
           <input name="fecha" type="date" required className={inputCls}
-            max={new Date().toISOString().slice(0, 10)} />
+            max={new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })} />
           <p className="text-[10px] text-muted-foreground mt-1">
             Debe ser una fecha pasada (anterior a hoy).
           </p>
@@ -823,7 +823,7 @@ function HistorialAsignacionesSection({ trabajoId }: { trabajoId: string }) {
                   <p>Asignado a <strong>{r.tecnico_nuevo_nombre}</strong></p>
                 )}
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(r.created_at).toLocaleString("es-CL")} · por {r.asignado_por_nombre}
+                  {new Date(r.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })} · por {r.asignado_por_nombre}
                 </p>
                 {r.motivo && (
                   <p className="text-[10px] text-muted-foreground italic mt-0.5">"{r.motivo}"</p>
@@ -917,18 +917,18 @@ function RecursosSection({
         planta: plantaNombre ?? "—",
         servicio: trabajo.servicio ?? "—",
         fecha: trabajo.fecha_programada
-          ? new Date(trabajo.fecha_programada).toLocaleString("es-SV")
+          ? new Date(trabajo.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })
           : "—",
         estado: trabajo.estado ?? "—",
         notas: trabajo.notas ?? null,
         trabajo_a_realizar: trabajo.servicio ?? null,
         fecha_entrada: trabajo.fecha_programada
-          ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV")
+          ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
           : null,
         fecha_salida: trabajo.fecha_fin
-          ? new Date(trabajo.fecha_fin).toLocaleDateString("es-SV")
+          ? new Date(trabajo.fecha_fin).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
           : trabajo.fecha_programada
-            ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV")
+            ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
             : null,
         elaborado_por: elaboradoPor,
         recursos: rows.map((r) => ({
@@ -940,7 +940,7 @@ function RecursosSection({
           devuelto: !!r.devuelto,
           notas: r.notas ?? null,
         })),
-        emitido_at: new Date().toLocaleDateString("es-SV", { year: "numeric", month: "long", day: "numeric" }),
+        emitido_at: new Date().toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" }),
         documento_codigo: `EA-REC-${trabajo.folio ?? trabajoId.slice(0, 8)}`,
         documento_version: "1.0",
         documento_clasificacion: "Uso interno",

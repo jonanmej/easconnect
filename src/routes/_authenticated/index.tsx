@@ -95,7 +95,7 @@ function CumplimientoContratos() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-CL") : "—"}
+                    {f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
                   </td>
                 </tr>
               ))}
@@ -152,21 +152,21 @@ function StaffDashboard() {
 
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
-    { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString(), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString()}` : "acumulado", tone: "accent" as const },
+    { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}` : "acumulado", tone: "accent" as const },
     { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
-    { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString(), delta: "galones", tone: "accent" as const },
+    { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }), delta: "galones", tone: "accent" as const },
     { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
     { label: "Incidentes de seguridad", value: String(incidentes).padStart(2, "0"), delta: "objetivo: 0", tone: incidentes === 0 ? "accent" as const : "danger" as const },
     { label: "Equipos operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
     { label: "Bajo stock", value: String(stats.data?.inv_bajo_stock ?? 0).padStart(2, "0"), delta: stats.data?.inv_bajo_stock ? "SKUs" : "OK", tone: stats.data?.inv_bajo_stock ? "danger" as const : "muted" as const },
   ];
 
-  const hoy = new Date().toLocaleDateString("es-SV", { weekday: "long", day: "2-digit", month: "long" });
+  const hoy = new Date().toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", weekday: "long", day: "2-digit", month: "long" });
 
   async function exportarResumen() {
     const slaRows = (sla.data as any[] | undefined) ?? [];
     await exportarExcel({
-      filename: `dashboard-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filename: `dashboard-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
       hojas: [
         {
           nombre: "KPIs",
@@ -235,12 +235,12 @@ function StaffDashboard() {
           </div>
           <div className="text-right">
             <p className="text-4xl md:text-5xl font-mono font-semibold text-accent tracking-tight">
-              {(stats.data?.paneles_limpiados ?? 0).toLocaleString()}
+              {(stats.data?.paneles_limpiados ?? 0).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               en <span className="font-mono font-semibold">{ciclos}</span> ciclo{ciclos === 1 ? "" : "s"} completado{ciclos === 1 ? "" : "s"}
               {ciclos > 0 && (
-                <> · <span className="font-mono">{Math.round((stats.data?.paneles_limpiados ?? 0) / ciclos).toLocaleString()}</span> promedio/ciclo</>
+                <> · <span className="font-mono">{Math.round((stats.data?.paneles_limpiados ?? 0) / ciclos).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}</span> promedio/ciclo</>
               )}
             </p>
           </div>
@@ -298,7 +298,7 @@ function StaffDashboard() {
               <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Total acumulado: <span className="font-mono font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString()}</span> galones
+              Total acumulado: <span className="font-mono font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}</span> galones
             </p>
           </div>
         </div>
@@ -377,7 +377,7 @@ function ClienteDashboard() {
     (t) => !t.firmado_at && !esHistorico(t),
   );
 
-  const hoy = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long" });
+  const hoy = new Date().toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", weekday: "long", day: "2-digit", month: "long" });
 
   const kpis = [
     { label: "Mis plantas", value: rows.length },
@@ -433,7 +433,7 @@ function ClienteDashboard() {
                 <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
                   <div>
                     <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Paneles</p>
-                    <p className="text-sm font-mono font-semibold">{p.paneles?.toLocaleString() ?? "—"}</p>
+                    <p className="text-sm font-mono font-semibold">{p.paneles?.toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) ?? "—"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
@@ -458,7 +458,7 @@ function ClienteDashboard() {
                 <span className="mt-1 size-2 rounded-full bg-primary" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · {new Date(t.fecha_programada).toLocaleString("es-CL")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}</p>
                 </div>
               </li>
             ))}
@@ -476,7 +476,7 @@ function ClienteDashboard() {
                 <span className="mt-1 size-2 rounded-full bg-destructive" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-CL")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
                 </div>
               </li>
             ))}
@@ -487,13 +487,13 @@ function ClienteDashboard() {
 
       <section className="bg-card border border-border rounded-xl p-5">
         <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString()} gal
+          <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })} gal
         </h3>
         <ul className="divide-y divide-border text-sm">
           {(agua.data?.filas ?? []).slice(0, 8).map((r: any) => (
             <li key={r.planta_id} className="flex items-center justify-between py-2">
               <span className="truncate">{r.nombre}</span>
-              <span className="font-mono text-xs">{Math.round(r.galones).toLocaleString()} gal</span>
+              <span className="font-mono text-xs">{Math.round(r.galones).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })} gal</span>
             </li>
           ))}
           {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (

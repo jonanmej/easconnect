@@ -103,7 +103,7 @@ function AprobarPage() {
         <div className="rounded-lg border border-accent/30 bg-accent/5 p-6 text-center">
           <CheckCircle2 className="size-10 text-accent mx-auto mb-3" />
           <h1 className="text-lg font-semibold">Trabajo {t.folio} ya fue aprobado</h1>
-          <p className="text-sm text-muted-foreground mt-1">Se registró su firma el {new Date(t.firmado_at).toLocaleString("es-CL")}.</p>
+          <p className="text-sm text-muted-foreground mt-1">Se registró su firma el {new Date(t.firmado_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}.</p>
         </div>
       </Shell>
     );
@@ -134,11 +134,11 @@ function AprobarPage() {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <div className="text-[11px] uppercase text-muted-foreground">Programado</div>
-            <div>{new Date(t.fecha_programada).toLocaleString("es-CL")}</div>
+            <div>{new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}</div>
           </div>
           <div>
             <div className="text-[11px] uppercase text-muted-foreground">Completado</div>
-            <div>{t.fecha_completado ? new Date(t.fecha_completado).toLocaleString("es-CL") : "—"}</div>
+            <div>{t.fecha_completado ? new Date(t.fecha_completado).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</div>
           </div>
           <div className="col-span-2">
             <div className="text-[11px] uppercase text-muted-foreground">Técnico</div>

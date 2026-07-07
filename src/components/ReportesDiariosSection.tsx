@@ -22,7 +22,7 @@ const ST_SOLAR_EMAIL = "st.solar@easervice.app";
 const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background text-sm";
 const textareaCls = "w-full px-3 py-2 rounded-md border border-input bg-background text-sm";
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" }); }
 
 export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
   const { user, roles } = useAuth();

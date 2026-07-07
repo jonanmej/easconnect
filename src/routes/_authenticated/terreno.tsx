@@ -195,7 +195,7 @@ function TrabajoCard({
         </span>
       </div>
       <div className="text-xs text-muted-foreground">
-        {new Date(trabajo.fecha_programada).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" })}
+        {new Date(trabajo.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" })}
       </div>
       <div className="flex items-center gap-1.5 text-xs">
         <UserIcon className="size-3.5 text-muted-foreground" />

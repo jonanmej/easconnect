@@ -100,7 +100,7 @@ function MisTrabajos() {
                 <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">{t.folio}</div>
                 <div className="font-medium mt-1">{t.servicio}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(t.fecha_programada).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" })}
                 </div>
                 <div className="text-xs text-muted-foreground">{t.planta_nombre}</div>
                 {t.auto_generado && t.estado === "programado" && (
@@ -139,7 +139,7 @@ function MisTrabajos() {
                   <td className="px-4 py-3">{t.planta_nombre}</td>
                   <td className="px-4 py-3">{t.servicio}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {t.fecha_completado ? new Date(t.fecha_completado).toLocaleDateString("es-CL") : "—"}
+                    {t.fecha_completado ? new Date(t.fecha_completado).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
                   </td>
                   <td className="px-4 py-3">
                     {t.firmado_at ? (
@@ -194,7 +194,7 @@ function ReprogramarDialog({
         <div>
           <h2 className="text-lg font-semibold">Reprogramar trabajo</h2>
           <p className="text-xs text-muted-foreground mt-1">{trabajo.folio} · {trabajo.servicio} · {trabajo.planta_nombre}</p>
-          <p className="text-xs text-muted-foreground">Fecha actual: {new Date(trabajo.fecha_programada).toLocaleDateString("es-CL")}</p>
+          <p className="text-xs text-muted-foreground">Fecha actual: {new Date(trabajo.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
         </div>
         <div className="space-y-2 text-sm">
           <label className="block">

@@ -69,10 +69,10 @@ export function fmtFechaSV(d?: string | Date | null) {
   if (!d) return "";
   const x = typeof d === "string" ? new Date(d) : d;
   if (isNaN(x.getTime())) return "";
-  return x.toLocaleString("es-SV", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return x.toLocaleString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function fmtMonedaSV(n?: number | null) {
   if (n == null) return "";
-  return n.toLocaleString("es-SV", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+  return n.toLocaleString("es-SV", { timeZone: "America/El_Salvador", style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }

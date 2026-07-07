@@ -134,7 +134,7 @@ export const enviarNotificacionTrabajo = createServerFn({ method: "POST" })
     const cliente = planta?.clientes;
     const destinatario = data.destinatario_override || planta?.email_notificaciones;
     if (!destinatario) throw new Error("La planta no tiene email de notificaciones configurado");
-    const fechaTxt = new Date((trabajo as any).fecha_programada).toLocaleString("es-SV", { dateStyle: "long", timeStyle: "short" });
+    const fechaTxt = new Date((trabajo as any).fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "long", timeStyle: "short" });
     const asunto = data.asunto_override ?? `EA Service Connect · ${(trabajo as any).estado === "completado" ? "Trabajo completado" : "Notificación"}: ${(trabajo as any).folio}`;
     const html = renderHtml({
       titulo: (trabajo as any).estado === "completado" ? "Trabajo completado en su planta" : "Actualización de trabajo",

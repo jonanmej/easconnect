@@ -271,7 +271,7 @@ export const aprobarSolicitud = createServerFn({ method: "POST" })
       aprobada: true,
       tipo: (sol as any).tipo ?? data.servicio,
       planta_nombre: (sol as any).plantas?.nombre ?? "—",
-      fecha: new Date(data.fecha_programada).toLocaleString("es-CL"),
+      fecha: new Date(data.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
       mensaje: data.respuesta ?? null,
     });
     return { ok: true, trabajo_id: (trabajo as any).id };
