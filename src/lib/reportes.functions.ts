@@ -259,12 +259,6 @@ export const generarReporte = createServerFn({ method: "POST" })
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
       })),
-      pdfs_cargados: (reportesPdf ?? []).slice(0, 40).map((r: any) => ({
-        folio: folioPorId.get(r.trabajo_id) ?? null,
-        fecha: r.fecha,
-        archivo: r.nombre_original,
-        notas: r.notas,
-      })),
     };
 
     const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
@@ -311,8 +305,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
       }
     }
-    (datasetCtx as any).pdfs_procesados = pdfsUsados;
-    if (pdfsOmitidos.length) (datasetCtx as any).pdfs_omitidos = pdfsOmitidos;
+    // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
