@@ -393,17 +393,26 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             </View>
           ))}
         </View>
-        {!ejec && data.trabajos.some((t) => t.notas) && (
-          <View minPresenceAhead={80}>
-            <Text style={styles.sectionTitle}>Notas de Campo</Text>
-            {data.trabajos.filter((t) => t.notas).map((t, i) => (
-              <View key={i} style={{ marginBottom: 6 }} wrap={false}>
-                <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
-                <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
+        {!ejec && data.trabajos.some((t) => t.notas) && (() => {
+          const notas = data.trabajos.filter((t) => t.notas);
+          return (
+            <>
+              <View wrap={false}>
+                <Text style={styles.sectionTitle}>Notas de Campo</Text>
+                <View style={{ marginBottom: 6 }}>
+                  <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{notas[0].folio} · {notas[0].servicio}</Text>
+                  <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{notas[0].notas}</Text>
+                </View>
               </View>
-            ))}
-          </View>
-        )}
+              {notas.slice(1).map((t, i) => (
+                <View key={i} style={{ marginBottom: 6 }} wrap={false}>
+                  <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
+                  <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
+                </View>
+              ))}
+            </>
+          );
+        })()}
         <PageFooter data={data} />
       </Page>
 
