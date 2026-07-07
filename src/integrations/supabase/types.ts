@@ -604,6 +604,7 @@ export type Database = {
           id: string
           nombres: string | null
           perfil_completado: boolean
+          reportes_periodo_pref: Json | null
           theme_preference: string
           updated_at: string
         }
@@ -617,6 +618,7 @@ export type Database = {
           id: string
           nombres?: string | null
           perfil_completado?: boolean
+          reportes_periodo_pref?: Json | null
           theme_preference?: string
           updated_at?: string
         }
@@ -630,6 +632,7 @@ export type Database = {
           id?: string
           nombres?: string | null
           perfil_completado?: boolean
+          reportes_periodo_pref?: Json | null
           theme_preference?: string
           updated_at?: string
         }
