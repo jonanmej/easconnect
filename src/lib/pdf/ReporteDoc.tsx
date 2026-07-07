@@ -298,38 +298,40 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <Text style={styles.pageTitle}>{ejec ? "Resumen Ejecutivo" : "Reporte Interno"}</Text>
         {ejec && data.resumen && <Text style={styles.paragraph}>{data.resumen}</Text>}
 
-        <Text style={styles.sectionTitle}>Indicadores Clave</Text>
-        <View style={styles.kpiRow}>
-          {data.kpis.map((k, i) => (
-            <View key={i} style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>{k.label}</Text>
-              <Text style={styles.kpiValue}>{k.value}</Text>
-            </View>
-          ))}
+        <View minPresenceAhead={80}>
+          <Text style={styles.sectionTitle}>Indicadores Clave</Text>
+          <View style={styles.kpiRow}>
+            {data.kpis.map((k, i) => (
+              <View key={i} style={styles.kpiCard} wrap={false}>
+                <Text style={styles.kpiLabel}>{k.label}</Text>
+                <Text style={styles.kpiValue}>{k.value}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {data.graficas && data.graficas.length > 0 && (
-          <>
+          <View minPresenceAhead={140}>
             <Text style={styles.sectionTitle}>Análisis Gráfico de Datos</Text>
             {data.graficas.map((g, i) => <Grafica key={i} g={g} />)}
-          </>
+          </View>
         )}
 
         {ejec && data.hallazgos.length > 0 && (
-          <>
+          <View minPresenceAhead={60}>
             <Text style={styles.sectionTitle}>Hallazgos</Text>
             {data.hallazgos.map((h, i) => (
-              <View key={i} style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
+              <View key={i} style={styles.bullet} wrap={false}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
             ))}
-          </>
+          </View>
         )}
         {ejec && data.recomendaciones.length > 0 && (
-          <>
+          <View minPresenceAhead={60}>
             <Text style={styles.sectionTitle}>Recomendaciones Priorizadas</Text>
             {data.recomendaciones.map((h, i) => (
-              <View key={i} style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
+              <View key={i} style={styles.bullet} wrap={false}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
             ))}
-          </>
+          </View>
         )}
         {ejec && data.responsable && (
           <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
