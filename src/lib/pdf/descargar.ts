@@ -107,6 +107,7 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
     documento_version,
     documento_clasificacion,
     documento_hash: undefined,
+    theme: data.theme ?? currentTheme(),
   };
   const initialBlob = await pdf(createElement(ReporteDoc, { data: base }) as any).toBlob();
   const hash = await sha256Hex(initialBlob);
@@ -143,6 +144,7 @@ export async function generarYDescargarRecursosPdf(data: RecursosData, filename:
     documento_version,
     documento_clasificacion,
     documento_hash: undefined,
+    theme: data.theme ?? currentTheme(),
   };
   const initialBlob = await pdf(createElement(RecursosDoc, { data: base }) as any).toBlob();
   const hash = await sha256Hex(initialBlob);
