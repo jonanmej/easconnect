@@ -295,6 +295,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
+    const pdfTextos: string[] = [];
     let totalBytes = 0;
     for (const p of (reportesPdf ?? []).slice(0, MAX_PDFS) as any[]) {
       try {
@@ -310,6 +311,10 @@ export const generarReporte = createServerFn({ method: "POST" })
           continue;
         }
         totalBytes += buf.byteLength;
+        // Extraer texto plano del PDF (siempre disponible para el modelo,
+        // aun si el proveedor no soporta adjuntos binarios).
+        const texto = await extraerTextoPdf(buf);
+        if (texto) pdfTextos.push(texto);
         let bin = "";
         const CHUNK = 0x8000;
         for (let i = 0; i < buf.byteLength; i += CHUNK) {
@@ -329,6 +334,9 @@ export const generarReporte = createServerFn({ method: "POST" })
       }
     }
     // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
+    const contenidoPdfsBloque = pdfTextos.length
+      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""`
+      : "";
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
@@ -356,7 +364,7 @@ export const generarReporte = createServerFn({ method: "POST" })
 
 Datos:
 ${JSON.stringify(datasetCtx, null, 2)}
-
+${contenidoPdfsBloque}
 Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, sin texto adicional) con esta forma exacta:
 {
   "titulo": "string (título atractivo)",
@@ -429,6 +437,12 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
     if (!ok) {
       const msg = lastErr?.message || String(lastErr);
       throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${msg})`);
+    }
+
+    if ((reportesPdf ?? []).length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
+      // Los PDFs existían pero no pudimos leerlos ni adjuntarlos.
+      // Avisar en consola para diagnóstico; no romper el reporte ya generado.
+      console.warn("[generarReporte] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
     const markdown = [
