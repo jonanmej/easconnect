@@ -231,7 +231,6 @@ export const generarReporte = createServerFn({ method: "POST" })
         mantenimientos: (mantenimientos ?? []).length,
         reportes_tecnicos: (reportesBase ?? []).length,
         reportes_diarios: (reportesDiarios ?? []).length,
-        pdfs_cargados: (reportesPdf ?? []).length,
         paneles_limpiados_periodo: (reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.paneles_limpiados ?? 0), 0),
         agua_galones_periodo: Math.round((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.agua_galones ?? 0), 0)),
         horas_trabajadas_periodo: Number((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.horas_trabajadas ?? 0), 0).toFixed(1)),
