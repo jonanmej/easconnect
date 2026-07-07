@@ -649,12 +649,10 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
-      pdfs_cargados: pdfs.length,
       reportes_diarios: diarios.map((d: any) => ({
         ...d,
         tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
       })),
-      pdfs: pdfs.map((p: any) => ({ fecha: p.fecha, archivo: p.nombre_original, notas: p.notas })),
     };
 
     // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
@@ -696,8 +694,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
       }
     }
-    (dataset as any).pdfs_procesados = pdfsUsados;
-    if (pdfsOmitidos.length) (dataset as any).pdfs_omitidos = pdfsOmitidos;
+    // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
 
     const ZRep = z.object({
       titulo: z.string(),
