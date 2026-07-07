@@ -48,7 +48,7 @@ export async function extractJpegImagesFromPdf(
   // Umbral base muy bajo: dejamos pasar prácticamente todo JPEG DCT del PDF
   // y solo descartamos lo que sea claramente un logo/ícono (poco peso Y
   // dimensiones pequeñas simultáneamente).
-  const minBytes = opts.minBytes ?? 8_000;
+  const minBytes = opts.minBytes ?? 3_000;
   try {
     const { PDFDocument, PDFName, PDFRawStream } = await import("pdf-lib");
     const pdf = await PDFDocument.load(buf, { ignoreEncryption: true, updateMetadata: false });
@@ -64,16 +64,19 @@ export async function extractJpegImagesFromPdf(
       const filter = dict.get(PDFName.of("Filter"));
       const filterStr = filter?.toString() ?? "";
       // DCTDecode = JPEG embebido; los bytes ya son un JPEG válido.
-      if (!filterStr.includes("DCTDecode")) continue;
+      // DCTDecode = JPEG puro. JPXDecode = JPEG 2000 (soportado por
+      // @react-pdf vía su decoder subyacente en muchos visores). Aceptamos
+      // ambos como fuente directa de bytes de imagen.
+      const isJpeg = filterStr.includes("DCTDecode");
+      const isJpx = filterStr.includes("JPXDecode");
+      if (!isJpeg && !isJpx) continue;
       const bytes = obj.contents as Uint8Array;
       if (!bytes || bytes.byteLength < minBytes) continue;
-      const dims = readJpegDimensions(bytes);
+      const dims = isJpeg ? readJpegDimensions(bytes) : null;
       if (dims) {
         const shortSide = Math.min(dims.w, dims.h);
-        // Solo descartamos como logo si ES pequeño en dimensiones Y liviano.
-        // Una foto de cámara siempre supera >=400px en su lado corto o
-        // pesa bastante más que un isotipo.
-        const parecesLogo = shortSide < 250 && bytes.byteLength < 60_000;
+        // Descartamos solo si ES pequeño en dimensiones Y liviano (logo/isotipo).
+        const parecesLogo = shortSide < 180 && bytes.byteLength < 30_000;
         if (parecesLogo) continue;
       }
       // Deduplicar por tamaño + primeros bytes (evita repetir la misma foto).
@@ -85,7 +88,8 @@ export async function extractJpegImagesFromPdf(
       for (let i = 0; i < bytes.byteLength; i += CHUNK) {
         bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)) as any);
       }
-      out.push(`data:image/jpeg;base64,${btoa(bin)}`);
+      const mime = isJpx ? "image/jp2" : "image/jpeg";
+      out.push(`data:${mime};base64,${btoa(bin)}`);
     }
     return out;
   } catch {
