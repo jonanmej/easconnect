@@ -167,9 +167,11 @@ export const generarReporte = createServerFn({ method: "POST" })
     // el "hasta" al final del día para incluir trabajos/PDFs registrados en
     // cualquier hora de esa fecha. Sin esto, "hasta=2026-07-03" se interpreta
     // como 2026-07-03T00:00:00Z y excluye todo lo ocurrido durante ese día.
+    // Zona horaria operativa: América/El Salvador (UTC-6, sin DST).
     const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-    const desdeTs = isDateOnly(data.desde) ? `${data.desde}T00:00:00.000Z` : data.desde;
-    const hastaTs = isDateOnly(data.hasta) ? `${data.hasta}T23:59:59.999Z` : data.hasta;
+    const SV_OFFSET = "-06:00";
+    const desdeTs = isDateOnly(data.desde) ? `${data.desde}T00:00:00.000${SV_OFFSET}` : data.desde;
+    const hastaTs = isDateOnly(data.hasta) ? `${data.hasta}T23:59:59.999${SV_OFFSET}` : data.hasta;
     const { data: cliente } = await supabase.from("clientes").select("nombre").eq("id", data.cliente_id).single();
     const plantaId = data.planta_id ?? null;
     const { data: planta } = plantaId
