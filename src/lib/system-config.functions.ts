@@ -29,6 +29,12 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: requiere rol admin");
 }
 
+const OWNER_EMAIL = "proyectos@easervice.app";
+function assertOwner(claims: any) {
+  const email = String(claims?.email ?? "").toLowerCase();
+  if (email !== OWNER_EMAIL) throw new Error("Forbidden: acción restringida");
+}
+
 export const getPasswordPolicy = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -81,6 +87,7 @@ export const getReportUploadEmailPaused = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
+    assertOwner(context.claims);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("system_config")
@@ -95,6 +102,7 @@ export const setReportUploadEmailPaused = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ paused: z.boolean() }).parse(d))
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
+    assertOwner(context.claims);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("system_config")
