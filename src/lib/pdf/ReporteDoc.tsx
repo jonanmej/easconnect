@@ -89,6 +89,10 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 12, color: COL.bg },
   pageTitleRule: { width: 40, height: 2.5, backgroundColor: COL.primary, marginBottom: 14, marginTop: -8 },
   sectionTitle: { fontSize: 11.5, fontFamily: FONT_BOLD, marginTop: 16, marginBottom: 8, color: COL.bg, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: COL.primary },
+  // Wrapper que agrupa "título + primer contenido" para que nunca se
+  // separen entre páginas. El `minPresenceAhead` reserva espacio suficiente
+  // debajo del título antes de permitir un salto de página.
+  sectionBlock: { marginTop: 0 },
   paragraph: { fontSize: 10, lineHeight: 1.55, marginBottom: 8, color: "#1f2937", textAlign: "justify" },
   bullet: { flexDirection: "row", marginBottom: 5 },
   bulletDot: { width: 12, fontSize: 10, color: COL.primary, fontFamily: FONT_BOLD },
