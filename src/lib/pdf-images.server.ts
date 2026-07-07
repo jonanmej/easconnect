@@ -46,22 +46,55 @@ export async function extractJpegImagesFromPdf(
   opts: { maxImages?: number; minBytes?: number } = {},
 ): Promise<string[]> {
   const maxImages = opts.maxImages ?? 12;
-  // Umbral base muy bajo: dejamos pasar prácticamente todo JPEG DCT del PDF
-  // y solo descartamos lo que sea claramente un logo/ícono (poco peso Y
-  // dimensiones pequeñas simultáneamente).
+  // Base baja para no descartar fotos comprimidas; usamos otras heurísticas
+  // (páginas que referencian la imagen, colorspace, ratio) para filtrar
+  // logos/plantillas/firmas.
   const minBytes = opts.minBytes ?? 3_000;
   try {
-    const { PDFDocument, PDFName, PDFRawStream } = await import("pdf-lib");
+    const { PDFDocument, PDFName, PDFRawStream, PDFDict, PDFRef } = await import("pdf-lib");
     const pdf = await PDFDocument.load(buf, { ignoreEncryption: true, updateMetadata: false });
+
+    // 1) Contar cuántas páginas referencian cada XObject imagen. Los logos
+    //    del membrete y elementos de plantilla aparecen en varias páginas,
+    //    mientras que las fotografías de campo se insertan en una sola
+    //    página. Filtrar por reference-count elimina el logo aunque su
+    //    tamaño y color engañen a las heurísticas de dimensión.
+    const refCount = new Map<string, number>();
+    const pages = pdf.getPages();
+    for (const p of pages) {
+      const node: any = p.node;
+      const resources = node.Resources?.() ?? node.get?.(PDFName.of("Resources"));
+      const xobjects = resources instanceof PDFDict
+        ? resources.get(PDFName.of("XObject"))
+        : null;
+      if (!(xobjects instanceof PDFDict)) continue;
+      const seenInPage = new Set<string>();
+      for (const [, value] of xobjects.entries()) {
+        if (value instanceof PDFRef) {
+          const key = `${value.objectNumber} ${value.generationNumber}`;
+          if (seenInPage.has(key)) continue;
+          seenInPage.add(key);
+          refCount.set(key, (refCount.get(key) ?? 0) + 1);
+        }
+      }
+    }
+
     const out: string[] = [];
     const seen = new Set<string>();
     const indirects = pdf.context.enumerateIndirectObjects();
-    for (const [, obj] of indirects) {
+    for (const [ref, obj] of indirects) {
       if (out.length >= maxImages) break;
       if (!(obj instanceof PDFRawStream)) continue;
       const dict = obj.dict;
       const subtype = dict.get(PDFName.of("Subtype"))?.toString();
       if (subtype !== "/Image") continue;
+
+      // Si el XObject se referencia desde más de una página es parte de la
+      // plantilla (logo membrete, sello de agua, marco). Lo excluimos.
+      const refKey = `${ref.objectNumber} ${ref.generationNumber}`;
+      const pagesUsing = refCount.get(refKey) ?? 0;
+      if (pagesUsing !== 1) continue;
+
       const filter = dict.get(PDFName.of("Filter"));
       const filterStr = filter?.toString() ?? "";
       // DCTDecode = JPEG embebido; los bytes ya son un JPEG válido.
