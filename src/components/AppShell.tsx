@@ -163,10 +163,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <Link
         to="/"
-        className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        className="px-4 pt-5 pb-4 flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
         aria-label="EA Service & Consulting — Ir al inicio"
       >
-        <BrandLogo variant="ea-main" className="h-20 w-auto object-contain" />
+        <BrandLogo variant="ea-main" className="h-16 sm:h-20 w-auto object-contain" />
       </Link>
 
       <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
