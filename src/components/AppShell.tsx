@@ -218,8 +218,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             Marcas asociadas
           </p>
           <div className="flex items-center gap-4 px-2">
-            <ChemitekLogo className="h-11 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            <BrandLogo variant="pvstop" className="h-9" />
+            <ChemitekLogo className="h-14 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+            <BrandLogo variant="pvstop" className="h-11" />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">
