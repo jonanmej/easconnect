@@ -138,8 +138,8 @@ function Notificaciones() {
         </div>
       )}
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="text-left p-3 font-bold">Fecha</th>
