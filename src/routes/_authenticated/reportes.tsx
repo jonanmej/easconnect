@@ -13,7 +13,7 @@ import { SERVICIOS_OT } from "@/lib/servicios";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
 import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
-import { generarYDescargarPdf, buildEvidencias } from "@/lib/pdf/descargar";
+import { generarYDescargarPdf, buildEvidencias, withAspect } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
@@ -128,7 +128,8 @@ function Reportes() {
       const evidencias = await buildEvidencias(data.evidencias);
       // Las imágenes extraídas de los PDFs subidos ya vienen como dataURL
       // desde el servidor; se agregan al final del set de evidencias.
-      const evidenciasPdf = (data.evidencias_pdf ?? []) as { trabajo: string; descripcion?: string | null; dataUrl: string }[];
+      const evidenciasPdfRaw = (data.evidencias_pdf ?? []) as { trabajo: string; descripcion?: string | null; dataUrl: string }[];
+      const evidenciasPdf = await withAspect(evidenciasPdfRaw);
       const evidenciasFinal = [...evidencias, ...evidenciasPdf];
       const firma = await fResp({ data: { reporte_id: id } }).catch(() => null);
       await generarYDescargarPdf({
