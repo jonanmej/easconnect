@@ -217,9 +217,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
             Marcas asociadas
           </p>
-          <div className="flex items-center gap-3 px-2">
-            <ChemitekLogo className="h-10 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            <BrandLogo variant="pvstop" className="h-10 w-auto object-contain" />
+          <div className="flex items-center gap-4 px-2">
+            {/* Chemitek es un wordmark puro → necesita más alto para igualar la altura tipográfica de PVSTOP */}
+            <ChemitekLogo className="h-8 w-auto text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
+            {/* PVSTOP incluye ícono + wordmark + bajada; se reduce para que su wordmark iguale la altura del texto Chemitek */}
+            <BrandLogo variant="pvstop" className="h-12 w-auto object-contain" />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">
