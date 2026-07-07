@@ -74,5 +74,5 @@ export function fmtFechaSV(d?: string | Date | null) {
 
 export function fmtMonedaSV(n?: number | null) {
   if (n == null) return "";
-  return n.toLocaleString("es-SV", { timeZone: "America/El_Salvador", style: "currency", currency: "USD", minimumFractionDigits: 2 });
+  return n.toLocaleString("es-SV", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
