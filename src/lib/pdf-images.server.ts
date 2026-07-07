@@ -79,7 +79,6 @@ export async function extractJpegImagesFromPdf(
       // descartamos cualquier XObject usado como SMask (canal alfa auxiliar).
       const colorSpace = dict.get(PDFName.of("ColorSpace"))?.toString() ?? "";
       const isSMask = !!dict.get(PDFName.of("SMask"))
-        || subtype === "/Mask"
         || dict.get(PDFName.of("ImageMask"))?.toString() === "true";
       if (isSMask) continue;
       if (colorSpace.includes("DeviceGray") || colorSpace.includes("CalGray")) continue;
