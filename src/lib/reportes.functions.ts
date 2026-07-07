@@ -702,6 +702,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     let totalBytes = 0;
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
+    const pdfTextos: string[] = [];
     for (const p of pdfs.slice(0, MAX_PDFS) as any[]) {
       try {
         const { data: signed } = await supabase.storage
@@ -716,6 +717,8 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
           continue;
         }
         totalBytes += buf.byteLength;
+        const texto = await extraerTextoPdf(buf);
+        if (texto) pdfTextos.push(texto);
         // Base64 encode
         let bin = "";
         for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
@@ -733,6 +736,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       }
     }
     // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
+    const contenidoPdfsBloque = pdfTextos.length
+      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""\n`
+      : "";
 
     const ZRep = z.object({
       titulo: z.string(),
@@ -750,7 +756,11 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
     ].join(" ");
-    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+
+    if (pdfs.length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
+      console.warn("[generarEjecutivoDesdeDiarios] PDFs encontrados pero no procesables:", pdfsOmitidos);
+    }
 
     const parseJson = (raw: string): unknown => {
       let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
