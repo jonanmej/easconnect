@@ -369,15 +369,15 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           ))}
         </View>
         {!ejec && data.trabajos.some((t) => t.notas) && (
-          <>
+          <View minPresenceAhead={80}>
             <Text style={styles.sectionTitle}>Notas de Campo</Text>
             {data.trabajos.filter((t) => t.notas).map((t, i) => (
-              <View key={i} style={{ marginBottom: 6 }}>
+              <View key={i} style={{ marginBottom: 6 }} wrap={false}>
                 <Text style={{ fontSize: 9, fontFamily: FONT_BOLD }}>{t.folio} · {t.servicio}</Text>
                 <Text style={{ fontSize: 9, color: "#1f2937", textAlign: "justify" }}>{t.notas}</Text>
               </View>
             ))}
-          </>
+          </View>
         )}
         <PageFooter data={data} />
       </Page>
