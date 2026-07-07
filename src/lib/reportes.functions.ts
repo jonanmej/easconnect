@@ -834,6 +834,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
           pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
           continue;
         }
+        if (buf.byteLength === 0) { pdfsOmitidos.push(p.nombre_original ?? p.storage_path); continue; }
         totalBytes += buf.byteLength;
         const texto = await extraerTextoPdf(buf);
         if (texto) pdfTextos.push(texto);
@@ -841,13 +842,15 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         let bin = "";
         for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
         const b64 = btoa(bin);
-        pdfParts.push({
-          type: "file",
-          file: {
-            filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
-            file_data: `data:application/pdf;base64,${b64}`,
-          },
-        });
+        if (b64.length > 0) {
+          pdfParts.push({
+            type: "file",
+            file: {
+              filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+              file_data: `data:application/pdf;base64,${b64}`,
+            },
+          });
+        }
         pdfsUsados.push(p.nombre_original ?? p.storage_path);
       } catch {
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
