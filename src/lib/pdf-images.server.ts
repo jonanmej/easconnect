@@ -7,7 +7,7 @@
  * Devuelve dataURLs listos para consumir en <img>/@react-pdf.
  */
 /** Lee dimensiones (w,h) de un JPEG buscando el marker SOF (0xFFC0..0xFFCF, excepto C4/C8/CC). */
-function readJpegDimensions(bytes: Uint8Array): { w: number; h: number } | null {
+function readJpegInfo(bytes: Uint8Array): { w: number; h: number; components: number } | null {
   if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
   let i = 2;
   const len = bytes.byteLength;
@@ -25,10 +25,11 @@ function readJpegDimensions(bytes: Uint8Array): { w: number; h: number } | null 
       marker >= 0xc0 && marker <= 0xcf &&
       marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc
     ) {
-      if (i + 5 >= len) return null;
+      if (i + 7 >= len) return null;
       const h = (bytes[i + 3] << 8) | bytes[i + 4];
       const w = (bytes[i + 5] << 8) | bytes[i + 6];
-      return { w, h };
+      const components = bytes[i + 7];
+      return { w, h, components };
     }
     // Standalone markers sin longitud
     if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
@@ -72,12 +73,35 @@ export async function extractJpegImagesFromPdf(
       if (!isJpeg && !isJpx) continue;
       const bytes = obj.contents as Uint8Array;
       if (!bytes || bytes.byteLength < minBytes) continue;
-      const dims = isJpeg ? readJpegDimensions(bytes) : null;
-      if (dims) {
-        const shortSide = Math.min(dims.w, dims.h);
-        // Descartamos solo si ES pequeño en dimensiones Y liviano (logo/isotipo).
-        const parecesLogo = shortSide < 180 && bytes.byteLength < 30_000;
+
+      // Descartar firmas y máscaras: PDFs suelen marcar la firma manuscrita
+      // como ColorSpace DeviceGray o como imagen indexada 1-bit. También
+      // descartamos cualquier XObject usado como SMask (canal alfa auxiliar).
+      const colorSpace = dict.get(PDFName.of("ColorSpace"))?.toString() ?? "";
+      const isSMask = !!dict.get(PDFName.of("SMask"))
+        || subtype === "/Mask"
+        || dict.get(PDFName.of("ImageMask"))?.toString() === "true";
+      if (isSMask) continue;
+      if (colorSpace.includes("DeviceGray") || colorSpace.includes("CalGray")) continue;
+
+      const info = isJpeg ? readJpegInfo(bytes) : null;
+      if (info) {
+        // JPEG con 1 componente = escala de grises (firmas escaneadas,
+        // sellos monocromos). Los registros fotográficos reales son RGB (3).
+        if (info.components === 1) continue;
+        const shortSide = Math.min(info.w, info.h);
+        const longSide = Math.max(info.w, info.h);
+        const ratio = longSide / Math.max(1, shortSide);
+        // Firmas manuscritas suelen ser tiras muy alargadas (ratio > 2.5)
+        // y de peso moderado. Filtramos esa forma.
+        if (ratio > 2.6 && bytes.byteLength < 120_000) continue;
+        // Logos/isotipos: dimensiones y peso reducidos. Un registro
+        // fotográfico real de cámara supera ampliamente estos umbrales.
+        const parecesLogo = shortSide < 500 && bytes.byteLength < 80_000;
         if (parecesLogo) continue;
+      } else if (isJpeg) {
+        // No pudimos leer SOF: por prudencia exigimos peso mínimo de foto.
+        if (bytes.byteLength < 60_000) continue;
       }
       // Deduplicar por tamaño + primeros bytes (evita repetir la misma foto).
       const sig = `${bytes.byteLength}:${bytes[0]},${bytes[1]},${bytes[2]},${bytes[3]}`;
