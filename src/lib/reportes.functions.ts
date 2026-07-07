@@ -231,7 +231,6 @@ export const generarReporte = createServerFn({ method: "POST" })
         mantenimientos: (mantenimientos ?? []).length,
         reportes_tecnicos: (reportesBase ?? []).length,
         reportes_diarios: (reportesDiarios ?? []).length,
-        pdfs_cargados: (reportesPdf ?? []).length,
         paneles_limpiados_periodo: (reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.paneles_limpiados ?? 0), 0),
         agua_galones_periodo: Math.round((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.agua_galones ?? 0), 0)),
         horas_trabajadas_periodo: Number((reportesDiarios ?? []).reduce((s: number, r: any) => s + Number(r.horas_trabajadas ?? 0), 0).toFixed(1)),
@@ -258,12 +257,6 @@ export const generarReporte = createServerFn({ method: "POST" })
         trabajo_realizado: r.trabajo_realizado,
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
-      })),
-      pdfs_cargados: (reportesPdf ?? []).slice(0, 40).map((r: any) => ({
-        folio: folioPorId.get(r.trabajo_id) ?? null,
-        fecha: r.fecha,
-        archivo: r.nombre_original,
-        notas: r.notas,
       })),
     };
 
@@ -311,8 +304,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
       }
     }
-    (datasetCtx as any).pdfs_procesados = pdfsUsados;
-    if (pdfsOmitidos.length) (datasetCtx as any).pdfs_omitidos = pdfsOmitidos;
+    // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
@@ -328,6 +320,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
       "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus mediciones, tablas y hallazgos por sobre el resumen JSON del dataset.",
       "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
+      "NUNCA menciones los archivos PDF adjuntos: no cites nombres de archivo, no digas 'según el PDF', 'en el documento adjunto', 'archivo del día X', ni referencias a fechas de subida, notas del PDF ni al origen documental. Integra la información como propia del análisis operativo.",
       "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
@@ -656,12 +649,10 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
-      pdfs_cargados: pdfs.length,
       reportes_diarios: diarios.map((d: any) => ({
         ...d,
         tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
       })),
-      pdfs: pdfs.map((p: any) => ({ fecha: p.fecha, archivo: p.nombre_original, notas: p.notas })),
     };
 
     // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
@@ -703,8 +694,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         pdfsOmitidos.push(p.nombre_original ?? p.storage_path);
       }
     }
-    (dataset as any).pdfs_procesados = pdfsUsados;
-    if (pdfsOmitidos.length) (dataset as any).pdfs_omitidos = pdfsOmitidos;
+    // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
 
     const ZRep = z.object({
       titulo: z.string(),
@@ -718,6 +708,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Consolidas reportes diarios del equipo técnico en un reporte ejecutivo único, formal y trazable.",
       "Solo usas datos del dataset y del contenido de los PDFs adjuntos; nunca inventas cifras.",
       "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus datos (mediciones, tablas, hallazgos) por sobre suposiciones.",
+      "NUNCA menciones los archivos PDF adjuntos: nada de nombres de archivo, fechas de subida, notas del PDF ni frases como 'según el PDF' o 'en el documento adjunto'. Integra la información como propia del análisis.",
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
     ].join(" ");
