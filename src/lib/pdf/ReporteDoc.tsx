@@ -161,6 +161,8 @@ export type ReporteData = {
   documento_clasificacion?: string;
   documento_hash?: string;
   modo: "ejecutivo" | "interno";
+  /** Tema visual del documento — controla la variante del logo. Por defecto "light". */
+  theme?: "light" | "dark";
 };
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
@@ -169,7 +171,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   return (
     <View style={styles.header} fixed>
       <View style={styles.headerLeft}>
-        <EALogoMark size={22} />
+        <EALogoMark size={22} theme={data.theme ?? "light"} />
         <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
           <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
           <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
@@ -256,7 +258,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
             <View style={styles.brand}>
-              <EALogoMark size={48} />
+              <EALogoMark size={48} theme={data.theme ?? "light"} />
               <View>
                 <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
                 <Text style={styles.brandSub}>Solar Operations · Quality Management</Text>
