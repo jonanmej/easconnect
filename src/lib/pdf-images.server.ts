@@ -45,11 +45,10 @@ export async function extractJpegImagesFromPdf(
   opts: { maxImages?: number; minBytes?: number } = {},
 ): Promise<string[]> {
   const maxImages = opts.maxImages ?? 12;
-  // Logos corporativos suelen pesar 15-60 KB. Subimos el umbral y además
-  // filtramos por dimensiones y proporción para descartar isotipos.
-  const minBytes = opts.minBytes ?? 40_000;
-  const minSidePx = 500;      // lado más corto mínimo para considerarla foto real
-  const minPixels = 500_000;  // ~0.5 MP: descarta gráficos pequeños
+  // Umbral base muy bajo: dejamos pasar prácticamente todo JPEG DCT del PDF
+  // y solo descartamos lo que sea claramente un logo/ícono (poco peso Y
+  // dimensiones pequeñas simultáneamente).
+  const minBytes = opts.minBytes ?? 8_000;
   try {
     const { PDFDocument, PDFName, PDFRawStream } = await import("pdf-lib");
     const pdf = await PDFDocument.load(buf, { ignoreEncryption: true, updateMetadata: false });
@@ -71,12 +70,11 @@ export async function extractJpegImagesFromPdf(
       const dims = readJpegDimensions(bytes);
       if (dims) {
         const shortSide = Math.min(dims.w, dims.h);
-        const pixels = dims.w * dims.h;
-        if (shortSide < minSidePx) continue;
-        if (pixels < minPixels) continue;
-        // Relación de aspecto extrema (banners/logos apaisados o verticales)
-        const ratio = dims.w / dims.h;
-        if (ratio > 3 || ratio < 1 / 3) continue;
+        // Solo descartamos como logo si ES pequeño en dimensiones Y liviano.
+        // Una foto de cámara siempre supera >=400px en su lado corto o
+        // pesa bastante más que un isotipo.
+        const parecesLogo = shortSide < 250 && bytes.byteLength < 60_000;
+        if (parecesLogo) continue;
       }
       // Deduplicar por tamaño + primeros bytes (evita repetir la misma foto).
       const sig = `${bytes.byteLength}:${bytes[0]},${bytes[1]},${bytes[2]},${bytes[3]}`;
