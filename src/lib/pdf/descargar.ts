@@ -43,13 +43,39 @@ async function urlToDataUrl(url: string): Promise<string | null> {
   }
 }
 
+function measureAspect(dataUrl: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new window.Image();
+      img.onload = () => {
+        const a = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : null;
+        resolve(a);
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export async function buildEvidencias(items: { trabajo: string; descripcion?: string | null; url: string }[]) {
-  const out: { trabajo: string; descripcion?: string | null; dataUrl: string }[] = [];
+  const out: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[] = [];
   await Promise.all(items.map(async (it) => {
     const d = await urlToDataUrl(it.url);
-    if (d) out.push({ trabajo: it.trabajo, descripcion: it.descripcion ?? null, dataUrl: d });
+    if (!d) return;
+    const aspect = await measureAspect(d);
+    out.push({ trabajo: it.trabajo, descripcion: it.descripcion ?? null, dataUrl: d, aspect });
   }));
   return out;
+}
+
+/** Añade metadatos de orientación (aspect) a imágenes que ya vienen como dataURL. */
+export async function withAspect(items: { trabajo: string; descripcion?: string | null; dataUrl: string }[]) {
+  return Promise.all(items.map(async (it) => ({
+    ...it,
+    aspect: await measureAspect(it.dataUrl),
+  })));
 }
 
 /**
