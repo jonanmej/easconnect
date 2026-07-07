@@ -103,8 +103,22 @@ const styles = StyleSheet.create({
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
   pageFooter: { position: "absolute", bottom: 24, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
-  evidGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  evidImg: { width: "48%", height: 200, objectFit: "cover", borderRadius: 3 },
+  evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
+  evidTile: {
+    width: "50%",
+    paddingHorizontal: 3,
+    marginBottom: 8,
+  },
+  evidFrame: {
+    borderWidth: 0.75,
+    borderColor: COL.border,
+    borderRadius: 3,
+    padding: 3,
+    backgroundColor: "#ffffff",
+  },
+  evidImgLandscape: { width: "100%", height: 150, objectFit: "cover", borderRadius: 2 },
+  evidImgPortrait: { width: "100%", height: 210, objectFit: "cover", borderRadius: 2 },
+  evidCaption: { fontSize: 7.5, color: COL.muted, marginTop: 4, lineHeight: 1.3 },
   badge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, alignSelf: "flex-start", color: "#fff", marginBottom: 4 },
   // Gráficas
   chartBlock: { marginBottom: 14, padding: 10, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel },
@@ -130,7 +144,7 @@ export type ReporteData = {
   recomendaciones: string[];
   kpis: { label: string; value: string }[];
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
-  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string }[];
+  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
@@ -362,21 +376,41 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <PageFooter data={data} />
       </Page>
 
-      {data.evidencias.length > 0 && (
-        <Page size="LETTER" style={styles.page} wrap>
-          <PageHeader data={data} pageName="Evidencias" />
-          <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
-          <View style={styles.evidGrid}>
-            {data.evidencias.slice(0, ejec ? 8 : 30).map((e, i) => (
-              <View key={i} style={{ width: "48%", marginBottom: 10 }} wrap={false}>
-                <Image src={e.dataUrl} style={styles.evidImg} />
-                <Text style={{ fontSize: 8, color: COL.muted, marginTop: 3 }}>{e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}</Text>
-              </View>
-            ))}
-          </View>
-          <PageFooter data={data} />
-        </Page>
-      )}
+      {data.evidencias.length > 0 && (() => {
+        // Ordenamos por orientación para que la grilla se vea uniforme:
+        // primero apaisadas (landscape), luego verticales (portrait).
+        const ordenadas = [...data.evidencias].slice(0, ejec ? 8 : 30).sort((a, b) => {
+          const ar = (a.aspect ?? 1) >= 1 ? 0 : 1;
+          const br = (b.aspect ?? 1) >= 1 ? 0 : 1;
+          return ar - br;
+        });
+        return (
+          <Page size="LETTER" style={styles.page} wrap>
+            <PageHeader data={data} pageName="Evidencias" />
+            <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
+            <View style={styles.pageTitleRule} />
+            <View style={styles.evidGrid}>
+              {ordenadas.map((e, i) => {
+                const isPortrait = (e.aspect ?? 1) < 0.95;
+                return (
+                  <View key={i} style={styles.evidTile} wrap={false}>
+                    <View style={styles.evidFrame}>
+                      <Image
+                        src={e.dataUrl}
+                        style={isPortrait ? styles.evidImgPortrait : styles.evidImgLandscape}
+                      />
+                    </View>
+                    <Text style={styles.evidCaption}>
+                      {e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <PageFooter data={data} />
+          </Page>
+        );
+      })()}
 
       <Page size="LETTER" style={styles.page} wrap>
         <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
