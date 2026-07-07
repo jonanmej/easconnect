@@ -38,7 +38,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
-import { EALogo } from "@/components/logos/EALogo";
+import eaLogoLight from "@/assets/ea-logo-light.png.asset.json";
+import eaLogoDark from "@/assets/ea-logo-dark.png.asset.json";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import { PVStopLogo } from "@/components/logos/PVStopLogo";
 import { GlobalSearch } from "@/components/GlobalSearch";
@@ -102,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, roles, signOut, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const { preference, setPreference } = useTheme();
+  const { theme } = useTheme();
   const role = highestRole(roles);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -166,7 +168,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         className="px-6 pt-6 pb-3 flex items-center justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
         aria-label="EA Service & Consulting — Ir al inicio"
       >
-        <EALogo className="h-20 w-auto text-brand" accentClassName="text-brand" />
+        <img
+          src={theme === "dark" ? eaLogoDark.url : eaLogoLight.url}
+          alt="EA Service & Consulting"
+          className="h-20 w-auto object-contain"
+        />
       </Link>
 
       <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
