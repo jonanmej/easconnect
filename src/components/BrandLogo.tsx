@@ -49,8 +49,15 @@ const WORDMARK_RATIO: Record<Variant, number> = {
 // para evitar que un logo se desborde de su caja.
 const TARGET_WORDMARK_RATIO = 0.68;
 
-function scaleFor(variant: Variant): number {
-  return TARGET_WORDMARK_RATIO / WORDMARK_RATIO[variant];
+// Ajuste fino por tema para compensar diferencias visuales entre variantes light/dark.
+const THEME_SCALE: Record<Variant, { light: number; dark: number }> = {
+  "ea-main": { light: 0.88, dark: 1.0 },
+  "ea-connect": { light: 1.0, dark: 1.0 },
+  pvstop: { light: 1.0, dark: 1.0 },
+};
+
+function scaleFor(variant: Variant, theme: "light" | "dark"): number {
+  return (TARGET_WORDMARK_RATIO / WORDMARK_RATIO[variant]) * THEME_SCALE[variant][theme];
 }
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt"> & {
