@@ -53,7 +53,9 @@ const TARGET_WORDMARK_RATIO = 0.68;
 const THEME_SCALE: Record<Variant, { light: number; dark: number }> = {
   "ea-main": { light: 1.0, dark: 1.0 },
   "ea-connect": { light: 1.0, dark: 1.0 },
-  pvstop: { light: 1.0, dark: 1.0 },
+  // El PNG oscuro incluye más padding transparente que el claro, así que
+  // el wordmark se ve visiblemente más pequeño en dark. Compensamos.
+  pvstop: { light: 1.0, dark: 1.18 },
 };
 
 function scaleFor(variant: Variant, theme: "light" | "dark"): number {
