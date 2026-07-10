@@ -160,6 +160,12 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                     <Stat label="Horas" value={d.horas_trabajadas ?? "—"} />
                     <Stat label="Clima" value={d.clima ?? "—"} />
                   </div>
+                  {(d.hora_inicio || d.hora_fin) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Stat label="Hora inicio" value={fmtHora(d.hora_inicio)} />
+                      <Stat label="Hora fin" value={fmtHora(d.hora_fin)} />
+                    </div>
+                  )}
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
