@@ -143,10 +143,10 @@ function StaffDashboard() {
     return { pct: Math.round((aTiempo / vencidas.length) * 100), num: aTiempo, den: vencidas.length };
   })();
 
-  // Paneles limpiados por ciclo (cada trabajo completado = 1 ciclo).
+  // Paneles limpiados por ciclo de limpieza completado.
   const ciclos = (() => {
     const ts = (trabajosQ.data as any[] | undefined) ?? [];
-    return ts.filter((t) => t.estado === "completado").length;
+    return ts.filter((t) => t.estado === "completado" && String(t.servicio ?? "").toLowerCase().includes("limpieza")).length;
   })();
   const incidentes = Number(stats.data?.anomalias_detectadas ?? 0);
 
