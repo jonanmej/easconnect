@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   registrarReportePDF,
   eliminarReportePDF,
 } from "@/lib/reportes-diarios.functions";
+import { getJornadaHoy } from "@/lib/jornadas.functions";
 import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
