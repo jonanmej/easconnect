@@ -294,6 +294,8 @@ function DiarioForm({
 }) {
   const [open, setOpen] = useState(false);
   const [panelesDia, setPanelesDia] = useState<string>("");
+  const [horaInicio, setHoraInicio] = useState<string>("");
+  const [horaFin, setHoraFin] = useState<string>("");
   const formRef = useRef<HTMLDivElement>(null);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
@@ -304,6 +306,15 @@ function DiarioForm({
     if (!expectedDia || !Number.isFinite(n) || n <= 0) return null;
     return Math.min(100, Math.round((n / expectedDia) * 100));
   }, [panelesDia, expectedDia]);
+  const horasCalc = useMemo(() => {
+    if (!horaInicio || !horaFin) return null;
+    const [hi, mi] = horaInicio.split(":").map(Number);
+    const [hf, mf] = horaFin.split(":").map(Number);
+    if ([hi, mi, hf, mf].some((v) => !Number.isFinite(v))) return null;
+    let diff = (hf * 60 + mf) - (hi * 60 + mi);
+    if (diff < 0) diff += 24 * 60;
+    return Math.round((diff / 60) * 100) / 100;
+  }, [horaInicio, horaFin]);
   async function submit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault(); e.stopPropagation();
     const root = formRef.current;
@@ -322,7 +333,9 @@ function DiarioForm({
         avance_pct: avancePct,
         paneles_limpiados: num("paneles_limpiados"),
         agua_galones: num("agua_galones"),
-        horas_trabajadas: num("horas_trabajadas"),
+        horas_trabajadas: horasCalc ?? num("horas_trabajadas"),
+        hora_inicio: horaInicio || null,
+        hora_fin: horaFin || null,
         clima: get("clima") || null,
         trabajo_realizado: get("trabajo_realizado") || null,
         hallazgos: get("hallazgos") || null,
@@ -334,6 +347,8 @@ function DiarioForm({
         if (node.type !== "date") node.value = "";
       });
       setPanelesDia("");
+      setHoraInicio("");
+      setHoraFin("");
       setOpen(false);
     } catch {
       // El toast de error ya se mostró desde la mutación; mantener el formulario abierto.
@@ -362,7 +377,24 @@ function DiarioForm({
             className={inputCls + " bg-secondary/50 text-muted-foreground"}
           />
         </FieldS>
-        <FieldS label="Horas trabajadas"><input name="horas_trabajadas" type="number" min={0} step="0.25" className={inputCls} /></FieldS>
+        <FieldS label="Hora de inicio">
+          <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.currentTarget.value)} className={inputCls} />
+        </FieldS>
+        <FieldS label="Hora de fin">
+          <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.currentTarget.value)} className={inputCls} />
+        </FieldS>
+        <FieldS label="Horas trabajadas">
+          <input
+            name="horas_trabajadas"
+            type="number"
+            min={0}
+            step="0.25"
+            value={horasCalc != null ? String(horasCalc) : undefined}
+            readOnly={horasCalc != null}
+            placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
+            className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
+          />
+        </FieldS>
         <FieldS label="Paneles limpiados">
           <input
             name="paneles_limpiados"
