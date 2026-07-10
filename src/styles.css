@@ -239,11 +239,10 @@
 
 /* ============ Impresión ============ */
 @media print {
-  /* Ocultar chrome de la app y controles interactivos */
   .no-print,
   aside,
   nav,
-  header[data-app-header],
+  header,
   [data-sidebar],
   [data-appshell-nav] {
     display: none !important;
@@ -257,19 +256,44 @@
     max-width: none !important;
     margin: 0 !important;
   }
-  /* Evitar cortes feos dentro de tarjetas del calendario */
-  .print-area .rounded-md,
-  .print-area .rounded-xl {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  /* Forzar bordes visibles al imprimir */
   .print-area * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  @page {
-    size: A4 landscape;
-    margin: 12mm;
+
+  /* Tarjetas de OT nunca se cortan */
+  .print-card,
+  .print-area [data-print-card] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
+
+  /* --- Vista Semana --- */
+  .print-week-grid {
+    break-inside: avoid;
+  }
+
+  /* --- Vista Mes --- */
+  /* Cada fila semanal es una unidad indivisible; deja saltar entre filas. */
+  .print-month-row {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .print-month-header {
+    break-after: avoid;
+  }
+
+  /* --- Vista Año --- */
+  /* 2 mini-meses por fila para que quepan bien en A4/A3 */
+  .print-year-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10mm !important;
+  }
+  .print-mini-month {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* @page se inyecta dinámicamente desde la UI (#print-page-config) */
 }

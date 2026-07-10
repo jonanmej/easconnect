@@ -104,15 +104,59 @@ function Programacion() {
   const trabajos = (list.data as any[] | undefined) ?? [];
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
+  // Filtros de impresión
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printPaper, setPrintPaper] = useState<"A4" | "A3">("A4");
+  const [printOrient, setPrintOrient] = useState<"landscape" | "portrait">("landscape");
+  const [printCliente, setPrintCliente] = useState<string>("");
+  const [printServicio, setPrintServicio] = useState<string>("");
+  const [printFolio, setPrintFolio] = useState<string>("");
+  const [printing, setPrinting] = useState(false);
+
   const clientesUnicos = useMemo(() => {
     const map = new Map<string, string>();
     trabajos.forEach((t) => { if (t.cliente_id) map.set(t.cliente_id, t.cliente_nombre ?? "—"); });
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [trabajos]);
-  const trabajosFiltrados = useMemo(
-    () => (clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos),
-    [trabajos, clienteFilter],
-  );
+  const trabajosFiltrados = useMemo(() => {
+    let arr = clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos;
+    if (printing) {
+      if (printCliente) arr = arr.filter((t) => t.cliente_id === printCliente);
+      if (printServicio) arr = arr.filter((t) => String(t.servicio ?? "").toLocaleLowerCase("es") === printServicio.toLocaleLowerCase("es"));
+      if (printFolio.trim()) {
+        const q = printFolio.trim().toLocaleLowerCase("es");
+        arr = arr.filter((t) => String(t.folio ?? "").toLocaleLowerCase("es").includes(q));
+      }
+    }
+    return arr;
+  }, [trabajos, clienteFilter, printing, printCliente, printServicio, printFolio]);
+
+  // Inyecta @page y dispara window.print() cuando `printing` pasa a true.
+  useEffect(() => {
+    if (!printing) return;
+    const style = document.createElement("style");
+    style.id = "print-page-config";
+    style.textContent = `@media print { @page { size: ${printPaper} ${printOrient}; margin: 12mm; } }`;
+    document.head.appendChild(style);
+    const done = () => {
+      setPrinting(false);
+      style.remove();
+      window.removeEventListener("afterprint", done);
+    };
+    window.addEventListener("afterprint", done);
+    const t = window.setTimeout(() => {
+      try { window.print(); } catch (_e) { done(); }
+    }, 60);
+    return () => { window.clearTimeout(t); style.remove(); window.removeEventListener("afterprint", done); };
+  }, [printing, printPaper, printOrient]);
+
+  function launchPrint() {
+    setPrintOpen(false);
+    setPrinting(true);
+  }
+  function resetPrintFilters() {
+    setPrintCliente(""); setPrintServicio(""); setPrintFolio("");
+  }
 
   // Solo Lun-Vie
   const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
@@ -205,13 +249,63 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
-            <button
-              onClick={() => window.print()}
-              className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
-              title="Imprimir vista actual"
-            >
-              <Printer className="size-3.5" /> Imprimir
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setPrintOpen((v) => !v)}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                title="Opciones de impresión"
+              >
+                <Printer className="size-3.5" /> Imprimir
+              </button>
+              {printOpen && (
+                <div className="absolute right-0 mt-2 w-80 z-30 bg-popover text-popover-foreground border border-border rounded-md shadow-lg p-3 space-y-2 text-xs">
+                  <p className="font-semibold text-sm">Opciones de impresión</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1">
+                      <span className="text-muted-foreground">Papel</span>
+                      <select value={printPaper} onChange={(e) => setPrintPaper(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                        <option value="A4">A4</option>
+                        <option value="A3">A3</option>
+                      </select>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-muted-foreground">Orientación</span>
+                      <select value={printOrient} onChange={(e) => setPrintOrient(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                        <option value="landscape">Horizontal</option>
+                        <option value="portrait">Vertical</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Cliente</span>
+                    <select value={printCliente} onChange={(e) => setPrintCliente(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <option value="">Todos</option>
+                      {clientesUnicos.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Servicio</span>
+                    <select value={printServicio} onChange={(e) => setPrintServicio(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <option value="">Todos</option>
+                      {SERVICIOS_OT.map((s) => (<option key={s} value={s}>{s}</option>))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Orden de trabajo (folio contiene)</span>
+                    <input value={printFolio} onChange={(e) => setPrintFolio(e.target.value)} placeholder="Ej: T-2026-0046" className="w-full h-8 px-2 rounded border border-input bg-background" />
+                  </label>
+                  <div className="flex items-center justify-between pt-1">
+                    <button onClick={resetPrintFilters} className="text-muted-foreground hover:text-foreground underline underline-offset-2">Limpiar filtros</button>
+                    <div className="inline-flex gap-2">
+                      <button onClick={() => setPrintOpen(false)} className="h-8 px-3 rounded border border-border hover:bg-secondary">Cancelar</button>
+                      <button onClick={launchPrint} className="h-8 px-3 rounded bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5">
+                        <Printer className="size-3.5" /> Imprimir / Guardar PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         }
       />
@@ -219,7 +313,7 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid">
         <div className="grid grid-cols-5 border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {days.map((d) => (
             <div key={d.toISOString()} className={"p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
@@ -245,6 +339,7 @@ function Programacion() {
                   .map((t: any) => (
                     <div
                       key={t.id}
+                      data-print-card
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
@@ -330,14 +425,14 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
   }
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="p-3 text-center">Sem.</div>
         {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
           <div key={d} className="p-3 text-center border-l border-border">{d}</div>
         ))}
       </div>
       {weeks.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border last:border-b-0 min-h-[110px]">
+        <div key={ri} className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border last:border-b-0 min-h-[110px] print-month-row">
           <div className="p-2 text-center text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
@@ -356,9 +451,10 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                   {d.getDate()}
                 </div>
                 <div className="space-y-1">
-                  {items.slice(0, 3).map((t: any) => (
+                   {items.slice(0, 3).map((t: any) => (
                     <div
                       key={`${t.id}-${t.__diaIdx ?? 0}`}
+                      data-print-card
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
@@ -395,7 +491,7 @@ function YearView({ year, byDay, onPickMonth }: {
   year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 print-year-grid">
       {Array.from({ length: 12 }, (_, m) => (
         <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
       ))}
@@ -418,7 +514,7 @@ function MiniMonth({ year, month, byDay, onClick }: {
   }
   const today = new Date();
   return (
-    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors">
+    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors print-mini-month">
       <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
         {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
       </p>
