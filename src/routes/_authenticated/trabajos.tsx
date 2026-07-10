@@ -875,6 +875,28 @@ function RecursosSection({
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }); },
   });
 
+  // Copiar desde otro trabajo (cualquier planta / cliente)
+  const fListSrc = useServerFn(listTrabajosConRecursos);
+  const fCopy = useServerFn(copiarTrabajoRecursos);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyQuery, setCopyQuery] = useState("");
+  const [copyMode, setCopyMode] = useState<"agregar" | "reemplazar">("agregar");
+  const srcList = useQuery({
+    queryKey: ["trabajos-con-recursos"],
+    queryFn: () => fListSrc(),
+    enabled: copyOpen,
+  });
+  const copyMut = useMutation({
+    mutationFn: (source_trabajo_id: string) =>
+      fCopy({ data: { source_trabajo_id, target_trabajo_id: trabajoId, modo: copyMode } }),
+    onSuccess: (r: any) => {
+      toast.success(`${r.copiados} recurso${r.copiados === 1 ? "" : "s"} copiado${r.copiados === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] });
+      setCopyOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // No usamos <form> anidado (RecordDialog ya monta un <form> padre).
   // Un <form> dentro de otro es HTML inválido: React ignora el submit
   // del interno y el "+" no guardaba nada. Usamos refs + click handler.
