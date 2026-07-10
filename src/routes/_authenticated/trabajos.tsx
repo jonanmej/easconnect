@@ -1099,8 +1099,8 @@ function RecursosSection({
         onOpenChange={(v) => { if (!v) setCopyOpen(false); }}
         title="Copiar recursos desde otro trabajo"
         description="Elige un trabajo origen. Puedes agregar sus recursos a este, o reemplazar los actuales."
-        submitLabel={null as any}
-        onSubmit={(e) => e.preventDefault()}
+        submitLabel="Cerrar"
+        onSubmit={(e) => { e.preventDefault(); setCopyOpen(false); }}
       >
         <div className="flex items-center gap-2 mb-2">
           <input
