@@ -51,7 +51,7 @@ const TARGET_WORDMARK_RATIO = 0.68;
 
 // Ajuste fino por tema para compensar diferencias visuales entre variantes light/dark.
 const THEME_SCALE: Record<Variant, { light: number; dark: number }> = {
-  "ea-main": { light: 0.88, dark: 1.0 },
+  "ea-main": { light: 1.0, dark: 1.0 },
   "ea-connect": { light: 1.0, dark: 1.0 },
   pvstop: { light: 1.0, dark: 1.0 },
 };
