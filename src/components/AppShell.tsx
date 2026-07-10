@@ -40,6 +40,8 @@ import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
+import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
+import pvstopDarkAsset from "@/assets/brand-pvstop-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -218,9 +220,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             Marcas asociadas
           </p>
           <div className="flex flex-col items-start gap-3 px-2">
-            <ChemitekLogo className="w-44 h-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
             <img
-              src={BRAND_LOGO_URLS.pvstop[theme]}
+              src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
               alt="PVSTOP El Salvador"
               className="w-44 h-auto object-contain"
             />
