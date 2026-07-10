@@ -313,7 +313,7 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid">
         <div className="grid grid-cols-5 border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {days.map((d) => (
             <div key={d.toISOString()} className={"p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
@@ -339,6 +339,7 @@ function Programacion() {
                   .map((t: any) => (
                     <div
                       key={t.id}
+                      data-print-card
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
