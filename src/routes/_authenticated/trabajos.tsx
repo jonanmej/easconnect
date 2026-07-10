@@ -1008,6 +1008,17 @@ function RecursosSection({
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setCopyOpen(true)}
+              className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary"
+              title="Copiar recursos desde otro trabajo (cualquier cliente / planta)"
+            >
+              <Copy className="size-3.5" />
+              Copiar de otro trabajo
+            </button>
+          )}
           <button
             type="button"
             onClick={exportarPdf}
