@@ -40,6 +40,8 @@ import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
+import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
+import pvstopDarkAsset from "@/assets/brand-pvstop-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
