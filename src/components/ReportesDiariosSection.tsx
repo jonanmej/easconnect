@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   registrarReportePDF,
   eliminarReportePDF,
 } from "@/lib/reportes-diarios.functions";
+import { getJornadaHoy } from "@/lib/jornadas.functions";
 import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
@@ -297,6 +298,27 @@ function DiarioForm({
   const [horaInicio, setHoraInicio] = useState<string>("");
   const [horaFin, setHoraFin] = useState<string>("");
   const formRef = useRef<HTMLDivElement>(null);
+  const fJornada = useServerFn(getJornadaHoy);
+  const jornada = useQuery({
+    queryKey: ["jornada-hoy"],
+    queryFn: () => fJornada(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+  // Autocompletar horas desde la jornada al abrir el formulario
+  useEffect(() => {
+    if (!open) return;
+    const j: any = jornada.data;
+    if (!j) return;
+    const toHM = (iso: string | null | undefined) => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      const parts = d.toLocaleTimeString("es-SV", { timeZone: "America/El_Salvador", hour12: false, hour: "2-digit", minute: "2-digit" });
+      return parts;
+    };
+    setHoraInicio((prev) => prev || toHM(j.hora_inicio));
+    setHoraFin((prev) => prev || toHM(j.hora_fin));
+  }, [open, jornada.data]);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
     return panelesPlanta / duracionDias;

@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
+import { JornadaControl } from "@/components/JornadaControl";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import {
@@ -371,6 +372,12 @@ function Trabajos() {
           </>
         }
       />
+
+      {isTecnico && (
+        <div className="mb-4">
+          <JornadaControl />
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="mb-4 flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
