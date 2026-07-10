@@ -23,6 +23,11 @@ const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background t
 const textareaCls = "w-full px-3 py-2 rounded-md border border-input bg-background text-sm";
 
 function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" }); }
+function fmtHora(h?: string | null): string {
+  if (!h) return "—";
+  const m = /^(\d{2}):(\d{2})/.exec(h);
+  return m ? `${m[1]}:${m[2]}` : String(h);
+}
 
 export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
   const { user, roles } = useAuth();
@@ -160,6 +165,12 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                     <Stat label="Horas" value={d.horas_trabajadas ?? "—"} />
                     <Stat label="Clima" value={d.clima ?? "—"} />
                   </div>
+                  {(d.hora_inicio || d.hora_fin) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Stat label="Hora inicio" value={fmtHora(d.hora_inicio)} />
+                      <Stat label="Hora fin" value={fmtHora(d.hora_fin)} />
+                    </div>
+                  )}
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
@@ -283,6 +294,8 @@ function DiarioForm({
 }) {
   const [open, setOpen] = useState(false);
   const [panelesDia, setPanelesDia] = useState<string>("");
+  const [horaInicio, setHoraInicio] = useState<string>("");
+  const [horaFin, setHoraFin] = useState<string>("");
   const formRef = useRef<HTMLDivElement>(null);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
@@ -293,6 +306,15 @@ function DiarioForm({
     if (!expectedDia || !Number.isFinite(n) || n <= 0) return null;
     return Math.min(100, Math.round((n / expectedDia) * 100));
   }, [panelesDia, expectedDia]);
+  const horasCalc = useMemo(() => {
+    if (!horaInicio || !horaFin) return null;
+    const [hi, mi] = horaInicio.split(":").map(Number);
+    const [hf, mf] = horaFin.split(":").map(Number);
+    if ([hi, mi, hf, mf].some((v) => !Number.isFinite(v))) return null;
+    let diff = (hf * 60 + mf) - (hi * 60 + mi);
+    if (diff < 0) diff += 24 * 60;
+    return Math.round((diff / 60) * 100) / 100;
+  }, [horaInicio, horaFin]);
   async function submit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault(); e.stopPropagation();
     const root = formRef.current;
@@ -311,7 +333,9 @@ function DiarioForm({
         avance_pct: avancePct,
         paneles_limpiados: num("paneles_limpiados"),
         agua_galones: num("agua_galones"),
-        horas_trabajadas: num("horas_trabajadas"),
+        horas_trabajadas: horasCalc ?? num("horas_trabajadas"),
+        hora_inicio: horaInicio || null,
+        hora_fin: horaFin || null,
         clima: get("clima") || null,
         trabajo_realizado: get("trabajo_realizado") || null,
         hallazgos: get("hallazgos") || null,
@@ -323,6 +347,8 @@ function DiarioForm({
         if (node.type !== "date") node.value = "";
       });
       setPanelesDia("");
+      setHoraInicio("");
+      setHoraFin("");
       setOpen(false);
     } catch {
       // El toast de error ya se mostró desde la mutación; mantener el formulario abierto.
@@ -351,7 +377,25 @@ function DiarioForm({
             className={inputCls + " bg-secondary/50 text-muted-foreground"}
           />
         </FieldS>
-        <FieldS label="Horas trabajadas"><input name="horas_trabajadas" type="number" min={0} step="0.25" className={inputCls} /></FieldS>
+        <FieldS label="Hora de inicio">
+          <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.currentTarget.value)} className={inputCls} />
+        </FieldS>
+        <FieldS label="Hora de fin">
+          <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.currentTarget.value)} className={inputCls} />
+        </FieldS>
+        <FieldS label="Horas trabajadas">
+          <input
+            name="horas_trabajadas"
+            type="number"
+            min={0}
+            step="0.25"
+            key={horasCalc != null ? "calc" : "manual"}
+            defaultValue={horasCalc != null ? String(horasCalc) : ""}
+            readOnly={horasCalc != null}
+            placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
+            className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
+          />
+        </FieldS>
         <FieldS label="Paneles limpiados">
           <input
             name="paneles_limpiados"

@@ -17,6 +17,8 @@ const ZDiario = z.object({
   hallazgos: z.string().nullable().optional(),
   bloqueos: z.string().nullable().optional(),
   observaciones: z.string().nullable().optional(),
+  hora_inicio: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional(),
+  hora_fin: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional(),
 });
 
 export const listReportesDiarios = createServerFn({ method: "GET" })
