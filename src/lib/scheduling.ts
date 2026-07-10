@@ -29,6 +29,7 @@ export async function findCleaningClientConflicts(
   },
 ) {
   if (!isCleaningService(args.servicio)) return [];
+  if (!args.plantaId) return [];
 
   const { data: planta } = await supabase
     .from("plantas")

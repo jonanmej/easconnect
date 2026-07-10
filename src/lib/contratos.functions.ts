@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findCleaningClientConflicts, formatCleaningClientConflict, isCleaningService } from "@/lib/scheduling";
 
 const SERVICIOS_NO_CONTRATABLES = new Set(["Falla", "Emergencia", "Inspección"]);
 
@@ -260,8 +261,24 @@ export const generarProgramacionAnual = createServerFn({ method: "POST" })
     for (let i = 0; i < c.cantidad_anual; i++) {
       const ciclo = i + 1;
       if (ciclosExistentes.has(ciclo)) continue;
-      const fechaIdeal = addDaysDate(inicio, i * paso);
-      const fechaLibre = siguienteLibre(fechaIdeal.toISOString(), dur, ocupados);
+      let fechaIdeal = addDaysDate(inicio, i * paso);
+      let fechaLibre = siguienteLibre(fechaIdeal.toISOString(), dur, ocupados);
+      if (isCleaningService(c.servicio)) {
+        for (let intento = 0; intento < 365; intento++) {
+          const conflictos = await findCleaningClientConflicts(supabase, {
+            plantaId: c.planta_id,
+            servicio: c.servicio,
+            fechaProgramada: toIsoStartOfDay(fechaLibre),
+            duracionDias: dur,
+          });
+          if (conflictos.length === 0) break;
+          for (const cf of conflictos as any[]) {
+            for (const dia of cf.dias ?? []) ocupados.add(dia);
+          }
+          fechaIdeal = addDaysDate(new Date(fechaLibre + "T00:00:00Z"), 1);
+          fechaLibre = siguienteLibre(fechaIdeal.toISOString(), dur, ocupados);
+        }
+      }
       // marcar esta fecha como ocupada para el resto del bucle
       for (let k = 0; k < dur; k++) {
         const dx = new Date(fechaLibre + "T00:00:00Z");
@@ -344,7 +361,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const { data: trabajo, error: tErr } = await supabase
       .from("trabajos")
-      .select("id, planta_id, contrato_id, ciclo_numero, auto_generado, estado, duracion_dias")
+      .select("id, planta_id, servicio, contrato_id, ciclo_numero, auto_generado, estado, duracion_dias")
       .eq("id", data.trabajo_id)
       .single();
     if (tErr || !trabajo) throw new Error(tErr?.message ?? "Trabajo no encontrado");
@@ -382,6 +399,16 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
       if (ocupados.has(d.toISOString().slice(0, 10))) {
         throw new Error("La fecha seleccionada ya está ocupada por otro trabajo. Elige un día libre.");
       }
+    }
+    const conflictosLimpieza = await findCleaningClientConflicts(supabase, {
+      plantaId: t.planta_id,
+      servicio: t.servicio,
+      fechaProgramada: toIsoStartOfDay(data.nueva_fecha),
+      duracionDias: dur,
+      excluirTrabajoId: t.id,
+    });
+    if (conflictosLimpieza.length > 0) {
+      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
     }
 
     const { error: uErr } = await supabase
