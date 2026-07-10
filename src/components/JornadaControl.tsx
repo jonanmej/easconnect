@@ -238,8 +238,9 @@ export function JornadaControl() {
   );
 }
 
-function Panel({ tone, children }: { tone: "idle" | "active" | "lunch" | "warn" | "danger" | "done"; children: React.ReactNode }) {
-  const toneCls: Record<typeof tone, string> = {
+type PanelTone = "idle" | "active" | "lunch" | "warn" | "danger" | "done";
+function Panel({ tone, children }: { tone: PanelTone; children: React.ReactNode }) {
+  const toneCls: Record<PanelTone, string> = {
     idle: "border-border bg-card",
     active: "border-primary/30 bg-primary/5",
     lunch: "border-amber-500/30 bg-amber-500/5",
