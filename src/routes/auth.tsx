@@ -105,7 +105,7 @@ function AuthPage() {
     <div className="min-h-screen grid place-items-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center mb-8">
-          <BrandLogo variant="ea-connect" className="h-20 w-auto object-contain" />
+          <BrandLogo variant="ea-connect" className="h-32 w-auto object-contain" />
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-card">

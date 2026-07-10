@@ -42,7 +42,7 @@ const DEFAULT_ALT: Record<Variant, string> = {
 // Ratios medidos empíricamente sobre los PNG (altura del wordmark / altura total).
 const WORDMARK_RATIO: Record<Variant, number> = {
   "ea-main": 0.45,
-  "ea-connect": 0.55,
+  "ea-connect": 0.28,
   pvstop: 0.68,
 };
 // Usamos el ratio más alto (pvstop) como referencia → nunca escalamos > 1.5x
