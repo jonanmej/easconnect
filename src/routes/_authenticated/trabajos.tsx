@@ -899,6 +899,24 @@ function RecursosSection({
     if (!trabajo) return;
     setDownloading(true);
     try {
+      // Fecha de salida = último día laborable (L-V) que abarca la duración del trabajo.
+      function lastWorkdayEnd(fechaIso: string, duracion: number): Date | null {
+        if (!fechaIso) return null;
+        const d = new Date(fechaIso);
+        d.setHours(0, 0, 0, 0);
+        let placed = 0;
+        let last = new Date(d);
+        const total = Math.max(1, Number(duracion || 1));
+        while (placed < total) {
+          const w = d.getDay();
+          if (w !== 0 && w !== 6) { last = new Date(d); placed++; }
+          d.setDate(d.getDate() + 1);
+        }
+        return last;
+      }
+      const fechaSalidaDate =
+        (trabajo.fecha_fin ? new Date(trabajo.fecha_fin) : null) ??
+        lastWorkdayEnd(trabajo.fecha_programada, trabajo.duracion_dias ?? 1);
       let elaboradoPor: string | null = null;
       if (user?.id) {
         const { data: prof } = await supabase
@@ -927,11 +945,9 @@ function RecursosSection({
         fecha_entrada: trabajo.fecha_programada
           ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
           : null,
-        fecha_salida: trabajo.fecha_fin
-          ? new Date(trabajo.fecha_fin).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
-          : trabajo.fecha_programada
-            ? new Date(trabajo.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
-            : null,
+        fecha_salida: fechaSalidaDate
+          ? fechaSalidaDate.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
+          : null,
         elaborado_por: elaboradoPor,
         recursos: rows.map((r) => ({
           categoria: r.categoria,

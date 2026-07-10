@@ -61,6 +61,17 @@ function isWorkday(d: Date) {
   const w = d.getDay();
   return w !== 0 && w !== 6;
 }
+function addWorkdays(start: Date, workdays: number) {
+  // Devuelve las N fechas laborables consecutivas (L-V) desde start (inclusive).
+  const out: Date[] = [];
+  const d = new Date(start);
+  d.setHours(0, 0, 0, 0);
+  while (out.length < workdays) {
+    if (isWorkday(d)) out.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
 function isoWeek(d: Date) {
   const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = x.getUTCDay() || 7;
@@ -111,14 +122,13 @@ function Programacion() {
     trabajosFiltrados.forEach((t) => {
       const dt = new Date(t.fecha_programada);
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      // Marcar el trabajo en cada día que abarque su duración.
-      for (let i = 0; i < dur; i++) {
-        const d = new Date(dt);
-        d.setDate(d.getDate() + i);
+      // Marcar el trabajo en cada día laborable (L-V) que abarque su duración.
+      const dias = addWorkdays(dt, dur);
+      dias.forEach((d, i) => {
         const key = d.toDateString();
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push({ ...t, __diaIdx: i, __duracion: dur });
-      }
+      });
     });
     return map;
   }, [trabajosFiltrados]);
