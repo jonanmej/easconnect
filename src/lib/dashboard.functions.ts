@@ -108,13 +108,20 @@ export const listTrabajosSla = createServerFn({ method: "GET" })
 export const aguaPorPlanta = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("trabajo_reportes")
-      .select("agua_galones, trabajos!inner(planta_id, plantas(nombre, clientes(nombre)))")
-      .not("agua_galones", "is", null);
-    if (error) throw new Error(error.message);
+    const [baseRes, diariosRes] = await Promise.all([
+      context.supabase
+        .from("trabajo_reportes")
+        .select("agua_galones, trabajos!inner(planta_id, plantas(nombre, clientes(nombre)))")
+        .not("agua_galones", "is", null),
+      context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("agua_galones, trabajos!inner(planta_id, plantas(nombre, clientes(nombre)))")
+        .not("agua_galones", "is", null),
+    ]);
+    if (baseRes.error) throw new Error(baseRes.error.message);
+    if (diariosRes.error) throw new Error(diariosRes.error.message);
     const map = new Map<string, { planta_id: string; nombre: string; cliente: string; galones: number }>();
-    (data ?? []).forEach((r: any) => {
+    [...(baseRes.data ?? []), ...(diariosRes.data ?? [])].forEach((r: any) => {
       const pid = r.trabajos?.planta_id;
       if (!pid) return;
       const cur = map.get(pid) ?? {
