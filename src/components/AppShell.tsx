@@ -218,9 +218,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             Marcas asociadas
           </p>
           <div className="flex flex-col items-start gap-3 px-2">
-            <ChemitekLogo className="w-44 h-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
             <img
-              src={BRAND_LOGO_URLS.pvstop[theme]}
+              src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
               alt="PVSTOP El Salvador"
               className="w-44 h-auto object-contain"
             />
