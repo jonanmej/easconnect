@@ -221,16 +221,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
             Marcas asociadas
           </p>
-          <div className="flex flex-col items-start gap-1 px-2">
+          <div className="flex flex-col items-start gap-2 px-2">
             <img
               src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
               alt="PVSTOP El Salvador"
-              className="w-32 h-10 object-contain object-left"
+              className="h-8 w-auto object-contain"
             />
             <img
               src={theme === "dark" ? chemitekDarkAsset.url : chemitekLightAsset.url}
               alt="Chemitek Solar"
-              className="w-32 h-8 object-contain object-left"
+              className="h-5 w-auto object-contain"
             />
           </div>
         </div>
