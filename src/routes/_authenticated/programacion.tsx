@@ -425,14 +425,14 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
   }
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="p-3 text-center">Sem.</div>
         {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
           <div key={d} className="p-3 text-center border-l border-border">{d}</div>
         ))}
       </div>
       {weeks.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border last:border-b-0 min-h-[110px]">
+        <div key={ri} className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border last:border-b-0 min-h-[110px] print-month-row">
           <div className="p-2 text-center text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
@@ -451,9 +451,10 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                   {d.getDate()}
                 </div>
                 <div className="space-y-1">
-                  {items.slice(0, 3).map((t: any) => (
+                   {items.slice(0, 3).map((t: any) => (
                     <div
                       key={`${t.id}-${t.__diaIdx ?? 0}`}
+                      data-print-card
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDragId(t.id)}
                       onDragEnd={() => setDragId(null)}
