@@ -77,10 +77,10 @@ export async function buildEvidencias(items: { trabajo: string; descripcion?: st
 }
 
 /** Añade metadatos de orientación (aspect) a imágenes que ya vienen como dataURL. */
-export async function withAspect(items: { trabajo: string; descripcion?: string | null; dataUrl: string }[]) {
+export async function withAspect(items: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[]) {
   return Promise.all(items.map(async (it) => ({
     ...it,
-    aspect: await measureAspect(it.dataUrl),
+    aspect: it.aspect ?? await measureAspect(it.dataUrl),
   })));
 }
 
