@@ -42,6 +42,8 @@ import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
 import pvstopDarkAsset from "@/assets/brand-pvstop-dark.png.asset.json";
+import chemitekLightAsset from "@/assets/brand-chemitek-light.png.asset.json";
+import chemitekDarkAsset from "@/assets/brand-chemitek-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
@@ -223,6 +225,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <img
               src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
               alt="PVSTOP El Salvador"
+              className="w-44 h-auto object-contain"
+            />
+            <img
+              src={theme === "dark" ? chemitekDarkAsset.url : chemitekLightAsset.url}
+              alt="Chemitek Solar"
               className="w-44 h-auto object-contain"
             />
           </div>
