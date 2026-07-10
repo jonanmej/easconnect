@@ -236,3 +236,40 @@
 @utility animate-scanline {
   animation: solaros-scanline 4s linear infinite;
 }
+
+/* ============ Impresión ============ */
+@media print {
+  /* Ocultar chrome de la app y controles interactivos */
+  .no-print,
+  aside,
+  nav,
+  header[data-app-header],
+  [data-sidebar],
+  [data-appshell-nav] {
+    display: none !important;
+  }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .print-area {
+    padding: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  /* Evitar cortes feos dentro de tarjetas del calendario */
+  .print-area .rounded-md,
+  .print-area .rounded-xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Forzar bordes visibles al imprimir */
+  .print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+}

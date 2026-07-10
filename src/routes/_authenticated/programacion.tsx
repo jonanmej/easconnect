@@ -8,7 +8,7 @@ import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Printer } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT } from "@/lib/servicios";
 
@@ -179,12 +179,12 @@ function Programacion() {
         : String(cursor.getFullYear());
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full print-area">
       <PageHeader
         title="Programación"
         description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
         actions={
-          <div className="inline-flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-2 flex-wrap no-print">
             <div className="inline-flex rounded-md border border-border overflow-hidden text-xs">
               {(["semana", "mes", "anio"] as Vista[]).map((v) => (
                 <button
@@ -204,6 +204,13 @@ function Programacion() {
             </button>
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+              title="Imprimir vista actual"
+            >
+              <Printer className="size-3.5" /> Imprimir
             </button>
           </div>
         }
