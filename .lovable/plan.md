@@ -1,68 +1,76 @@
+## 1. Ajuste visual del logo PVSTOP
 
-# Refactor de reportes de trabajo y hallazgos
+En `src/components/BrandLogo.tsx`, calibrar `THEME_SCALE.pvstop` (actualmente `{ light: 1.0, dark: 1.0 }`) para que el wordmark se vea del mismo tamaño en ambos temas. Los PNG `pvstop-light.png` (26.8 KB) y `pvstop-dark.png` (100.3 KB) tienen diferentes márgenes/ratio internos, así que subiré el factor del tema más pequeño (típicamente el light, que aparece más chico) mediante prueba visual con Playwright.
 
-## 1. Unificación en un solo botón "Reporte diario"
-En `src/routes/_authenticated/trabajos.tsx`, dentro del diálogo de información del trabajo asignado, justo debajo de los datos básicos (folio, cliente/planta, servicio, fecha, estado), reubicar una fila de botones con:
+## 2. Nuevo módulo "Jornada laboral"
 
-- **Reporte diario** (nuevo, unificado): abre un panel que combina el formulario de reporte técnico diario + hallazgos fotográficos del día. Reemplaza los accesos separados "Reporte técnico" y "Evidencias / Hallazgos".
-- **Recursos** (existente, reubicado): genera además un PDF imprimible.
-- **Información de OT** (existente, reubicado).
-- **Historial de asignaciones** (existente, reubicado, solo admin/supervisor).
+### 2.1 Base de datos — tabla `jornadas_laborales`
 
-Las pestañas o secciones que actualmente alojan estos accesos en otra parte del diálogo se eliminan para evitar duplicados.
+Migración con columnas:
+- `id`, `tecnico_id` (uuid), `fecha` (date, `El_Salvador`)
+- `hora_inicio` (timestamptz), `hora_fin` (timestamptz, null)
+- `almuerzo_inicio` (timestamptz, null), `almuerzo_fin` (timestamptz, null)
+- `almuerzo_excedido` (bool, default false), `minutos_almuerzo` (int, generado)
+- `horas_efectivas` (numeric, generado en app)
+- `notas` (text)
+- Índice único parcial por `(tecnico_id, fecha)` para una jornada abierta por día
+- RLS: técnico ve/edita solo la suya; admin/supervisor ven todas
+- GRANT completo `authenticated`/`service_role`
 
-## 2. Reporte diario unificado
-Refactor de `src/components/ReportesDiariosSection.tsx`:
+### 2.2 Server functions (`src/lib/jornadas.functions.ts`)
 
-- Un solo formulario por día con: trabajo realizado, paneles limpiados, agua, horas, clima, hallazgos, observaciones, **avance %** (sigue calculándose automático), **+ hallazgos fotográficos del día** integrados (subida a `trabajo_evidencias` ya existente, etiquetados con la `fecha` del reporte diario).
-- Listado cronológico de reportes guardados muestra textos + miniaturas de fotos por día.
-- Caso especial `st.solar@easervice.app` (PDF) se mantiene como hoy.
+- `iniciarJornada()` → crea fila, dispara correo "Inicio de jornada"
+- `iniciarAlmuerzo()` / `finalizarAlmuerzo()` → marca timestamps y calcula si excedió 60 min. Si excede, notifica staff con alerta destacada
+- `finalizarJornada({ notas })` → cierra fila, calcula horas efectivas (fin - inicio - almuerzo), dispara correo "Fin de jornada" con resumen (inicio, fin, almuerzo, horas efectivas, sobrepaso si aplica)
+- `getJornadaHoy()` → estado actual del técnico
+- `getJornadasStaff({ fecha })` → para el resumen consolidado
 
-Datos diarios alimentan el módulo de Reportes y el Dashboard (ver §5).
+### 2.3 UI en Mis trabajos
 
-## 3. Módulo de Reportes — generación
-En `src/lib/reportes.functions.ts`:
+Nuevo componente `<JornadaControl />` fijo arriba de la lista de trabajos en `src/routes/_authenticated/mis-trabajos.tsx`. Estados:
 
-- Nueva acción "Generar reporte ejecutivo del día": consume reportes diarios del rango = fecha indicada (default = hoy).
-- Acción existente "Generar reporte ejecutivo final": consolida **todos** los reportes diarios del trabajo (es la `generarEjecutivoDesdeDiarios` ya creada, se renombra etiqueta UI a "Reporte ejecutivo final").
-- Ambos guardan en `public.reportes` y entran al workflow de aprobación existente.
-
-UI en `src/routes/_authenticated/reportes.tsx`: dos botones por trabajo seleccionable — "Diario" / "Final".
-
-## 4. Recursos → PDF imprimible
-Nuevo `src/lib/pdf/RecursosDoc.tsx` reutilizando estilos de `ReporteDoc.tsx` (encabezado EA Service Connect, pie con ISO, paginación, tipografía y márgenes idénticos). Botón "Exportar PDF" dentro del panel de Recursos (que llama `descargarPDF` con el nuevo doc). Contenido: tabla de recursos con categoría, descripción, cantidad/unidad, entregado, devuelto, notas + datos del trabajo y firma.
-
-## 5. Nuevos servicios
-
-En `src/lib/servicios.ts`:
-
-```ts
-SERVICIOS_OT += "Capacitación", "Visita técnica"
-SERVICIOS_CONTRATO += "Capacitación", "Visita técnica"
+```text
+[ Iniciar jornada ]  ← estado inicial
+  ↓
+[ En jornada · 07:15 · Iniciar almuerzo | Finalizar jornada ]
+  ↓
+[ Almorzando · 12:00 (⏱ 45 min) · Regresar de almuerzo ]  ← chip amarillo si >55min, rojo si >60min
+  ↓
+[ En jornada · retorno 13:05 · Finalizar jornada ]
+  ↓
+[ Jornada finalizada · 07:15 – 16:20 · 8h 05m efectivas ]
 ```
 
-Quedan visibles en Trabajos, Programación y Contratos automáticamente (todos consumen estas constantes). Validación servidor en `upsertContrato` no requiere cambios (sólo bloquea Falla/Emergencia/Inspección).
+Timer en vivo (updates cada minuto), badge de exceso de almuerzo, botón deshabilitado si ya finalizó.
 
-## 6. Dashboard
-`src/lib/dashboard.functions.ts` y vistas:
+### 2.4 Autocompletar reporte diario
 
-- Sumar lecturas desde `trabajo_reportes_diarios` (paneles_limpiados, agua_galones, horas_trabajadas, conteo de reportes) además de `trabajo_reportes`.
-- Series semanales: incluir conteos por día desde reportes diarios para "actividad diaria".
-- KPI dashboard (`dashboard_kpis_v1`): ampliar para sumar también desde `trabajo_reportes_diarios` (migración).
-- Vista cliente y vista staff usan los mismos números.
+En `ReportesDiariosSection.tsx`, al abrir el formulario para "hoy", pre-cargar `hora_inicio`, `hora_fin` y `horas_trabajadas` desde `getJornadaHoy()` si existe una jornada cerrada. Los campos siguen editables.
 
-## 7. Notificaciones / permisos
-Sin cambios en RLS. El nuevo botón unificado respeta roles existentes (técnicos no ven Historial de asignaciones, etc.). Notificaciones a staff por reporte diario ya existen, se mantienen.
+### 2.5 Correos a administradores
+
+Reutilizar `notificarStaff` en `src/lib/notificaciones-staff.server.ts`. Añadir tipos:
+- `jornada_iniciada` (asunto: "Inicio jornada · [técnico]")
+- `jornada_finalizada` (asunto con horas efectivas y sobrepaso)
+- `almuerzo_excedido` (alerta destacada roja)
+
+### 2.6 Resumen diario consolidado
+
+Endpoint `src/routes/api/public/hooks/resumen-jornadas-diario.ts` protegido por `apikey`, invocado por pg_cron a las 18:00 hora local (23:00 UTC — Chile no tiene DST relevante aquí; usar 23:00 UTC = 17:00 SV, verificaré con `America/El_Salvador`). Envía un solo correo a admins/supervisores con tabla por técnico:
+
+| Técnico | Inicio | Fin | Almuerzo | Horas efectivas | Estado |
+
+### 2.7 Cron
+
+Migración SQL con `cron.schedule('resumen-jornadas-diario', '0 23 * * *', ...)` que hace `net.http_post` al hook con `apikey`.
 
 ## Detalles técnicos
 
-- **Archivos editados:** `src/lib/servicios.ts`, `src/components/ReportesDiariosSection.tsx`, `src/routes/_authenticated/trabajos.tsx`, `src/routes/_authenticated/reportes.tsx`, `src/lib/reportes.functions.ts`, `src/lib/dashboard.functions.ts`, `src/components/dashboard/StaffCharts.tsx`.
-- **Archivos nuevos:** `src/lib/pdf/RecursosDoc.tsx`.
-- **Migración:** redefinir `public.dashboard_kpis_v1()` para sumar también desde `trabajo_reportes_diarios`.
-- **Reusar:** `trabajo_evidencias` (ya existe) recibe fotos diarias con `fecha` del reporte diario; no se crea tabla nueva.
+- **Archivos nuevos:** `src/lib/jornadas.functions.ts`, `src/components/JornadaControl.tsx`, `src/routes/api/public/hooks/resumen-jornadas-diario.ts`
+- **Archivos editados:** `src/components/BrandLogo.tsx`, `src/routes/_authenticated/mis-trabajos.tsx`, `src/components/ReportesDiariosSection.tsx`, `src/lib/notificaciones-staff.server.ts` (nuevos tipos)
+- **Migraciones:** crear `jornadas_laborales` con RLS/GRANT + agendar cron del resumen diario
+- **Reutiliza:** `notificarStaff`, `emailLayout`, `sendGmail`, `has_role`
 
-## Confirmaciones que necesito antes de implementar
+## Confirmación previa
 
-1. ¿El **PDF de Recursos** debe incluir firma del cliente (igual que el reporte ejecutivo) o sólo es un imprimible interno?
-2. Para el **Reporte ejecutivo diario**: ¿se permite un único reporte ejecutivo por día (sobrescribe si ya existe) o varios versionados?
-3. Cuando se elimina el botón antiguo de "Hallazgos fotográficos" — ¿los hallazgos existentes (sin `fecha` diaria) los muestro en una sección "Sin fecha" dentro del reporte diario, o sólo migrarán los nuevos a partir de hoy?
+Sólo una pregunta antes de implementar: el **resumen diario consolidado** — ¿lo mando a las **17:00 hora El Salvador** (fin de jornada estándar), o prefieres otra hora?
