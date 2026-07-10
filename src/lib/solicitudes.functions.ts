@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling";
 
 const APP_URL = "https://easconnect.lovable.app";
 
@@ -245,13 +246,24 @@ export const aprobarSolicitud = createServerFn({ method: "POST" })
     if (sErr) throw new Error(sErr.message);
     if ((sol as any).estado !== "pendiente") throw new Error("Solo se pueden aprobar solicitudes pendientes");
 
+    const fechaProgramada = new Date(data.fecha_programada).toISOString();
+    const conflictosLimpieza = await findCleaningClientConflicts(supabase, {
+      plantaId: (sol as any).planta_id,
+      servicio: data.servicio,
+      fechaProgramada,
+      duracionDias: data.duracion_dias,
+    });
+    if (conflictosLimpieza.length > 0) {
+      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
+    }
+
     const folio = "T-" + Math.floor(100000 + Math.random() * 900000);
     const { data: trabajo, error: tErr } = await supabase
       .from("trabajos").insert({
         folio,
         planta_id: (sol as any).planta_id,
         servicio: data.servicio,
-        fecha_programada: new Date(data.fecha_programada).toISOString(),
+        fecha_programada: fechaProgramada,
         estado: "programado",
         duracion_dias: data.duracion_dias,
         origen: "cliente",
