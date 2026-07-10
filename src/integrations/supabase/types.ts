@@ -298,6 +298,48 @@ export type Database = {
           },
         ]
       }
+      jornadas_laborales: {
+        Row: {
+          almuerzo_excedido: boolean
+          almuerzo_fin: string | null
+          almuerzo_inicio: string | null
+          created_at: string
+          fecha: string
+          hora_fin: string | null
+          hora_inicio: string
+          id: string
+          notas: string | null
+          tecnico_id: string
+          updated_at: string
+        }
+        Insert: {
+          almuerzo_excedido?: boolean
+          almuerzo_fin?: string | null
+          almuerzo_inicio?: string | null
+          created_at?: string
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string
+          id?: string
+          notas?: string | null
+          tecnico_id: string
+          updated_at?: string
+        }
+        Update: {
+          almuerzo_excedido?: boolean
+          almuerzo_fin?: string | null
+          almuerzo_inicio?: string | null
+          created_at?: string
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string
+          id?: string
+          notas?: string | null
+          tecnico_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mantenimientos: {
         Row: {
           created_at: string
