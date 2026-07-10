@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling.server";
 
 // ============ Clientes ============
 
@@ -360,6 +361,16 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       estadoPrevio = (prev as any)?.estado ?? null;
       tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
     }
+    const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
+      plantaId: rest.planta_id,
+      servicio: rest.servicio,
+      fechaProgramada: payload.fecha_programada,
+      duracionDias: rest.duracion_dias ?? 1,
+      excluirTrabajoId: id ?? null,
+    });
+    if (conflictosLimpieza.length > 0) {
+      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
+    }
     // Validar conflicto de técnico (no permitir solapamientos con otros trabajos del mismo técnico)
     if (payload.tecnico_id) {
       const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
@@ -664,7 +675,17 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
     // Validar conflicto si hay técnico (existente o nuevo)
     const { data: trabajoActual } = await context.supabase
-      .from("trabajos").select("tecnico_id, duracion_dias").eq("id", data.id).single();
+      .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio").eq("id", data.id).single();
+    const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
+      plantaId: (trabajoActual as any)?.planta_id,
+      servicio: (trabajoActual as any)?.servicio,
+      fechaProgramada: patch.fecha_programada,
+      duracionDias: (trabajoActual as any)?.duracion_dias ?? 1,
+      excluirTrabajoId: data.id,
+    });
+    if (conflictosLimpieza.length > 0) {
+      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
+    }
     const tecnicoFinal = data.tecnico_id !== undefined
       ? (data.tecnico_id || null)
       : ((trabajoActual as any)?.tecnico_id ?? null);
