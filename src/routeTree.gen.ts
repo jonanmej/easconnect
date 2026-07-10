@@ -37,6 +37,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiPublicHooksResumenJornadasDiarioRouteImport } from './routes/api/public/hooks/resumen-jornadas-diario'
 import { Route as ApiPublicHooksNotificarProgramacionesRouteImport } from './routes/api/public/hooks/notificar-programaciones'
 import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 
@@ -189,6 +190,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksResumenJornadasDiarioRoute =
+  ApiPublicHooksResumenJornadasDiarioRouteImport.update({
+    id: '/api/public/hooks/resumen-jornadas-diario',
+    path: '/api/public/hooks/resumen-jornadas-diario',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksNotificarProgramacionesRoute =
   ApiPublicHooksNotificarProgramacionesRouteImport.update({
     id: '/api/public/hooks/notificar-programaciones',
@@ -232,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
+  '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
+  '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
+  '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
+    | '/api/public/hooks/resumen-jornadas-diario'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
+    | '/api/public/hooks/resumen-jornadas-diario'
   id:
     | '__root__'
     | '/_authenticated'
@@ -392,6 +404,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
+    | '/api/public/hooks/resumen-jornadas-diario'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -405,6 +418,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
   ApiPublicHooksNotificarProgramacionesRoute: typeof ApiPublicHooksNotificarProgramacionesRoute
+  ApiPublicHooksResumenJornadasDiarioRoute: typeof ApiPublicHooksResumenJornadasDiarioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -605,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/resumen-jornadas-diario': {
+      id: '/api/public/hooks/resumen-jornadas-diario'
+      path: '/api/public/hooks/resumen-jornadas-diario'
+      fullPath: '/api/public/hooks/resumen-jornadas-diario'
+      preLoaderRoute: typeof ApiPublicHooksResumenJornadasDiarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/notificar-programaciones': {
       id: '/api/public/hooks/notificar-programaciones'
       path: '/api/public/hooks/notificar-programaciones'
@@ -684,6 +705,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronRevisarFirmasRoute: ApiPublicCronRevisarFirmasRoute,
   ApiPublicHooksNotificarProgramacionesRoute:
     ApiPublicHooksNotificarProgramacionesRoute,
+  ApiPublicHooksResumenJornadasDiarioRoute:
+    ApiPublicHooksResumenJornadasDiarioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
