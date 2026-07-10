@@ -1094,6 +1094,79 @@ function RecursosSection({
           </div>
         </div>
       )}
+      <RecordDialog
+        open={copyOpen}
+        onOpenChange={(v) => { if (!v) setCopyOpen(false); }}
+        title="Copiar recursos desde otro trabajo"
+        description="Elige un trabajo origen. Puedes agregar sus recursos a este, o reemplazar los actuales."
+        submitLabel={null as any}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            value={copyQuery}
+            onChange={(e) => setCopyQuery(e.target.value)}
+            placeholder="Buscar por folio, planta, cliente o servicio…"
+            className={inputCls + " text-xs flex-1"}
+          />
+          <select
+            value={copyMode}
+            onChange={(e) => setCopyMode(e.target.value as any)}
+            className={inputCls + " text-xs w-40"}
+            title="Cómo aplicar los recursos"
+          >
+            <option value="agregar">Agregar</option>
+            <option value="reemplazar">Reemplazar</option>
+          </select>
+        </div>
+        <div className="border border-border rounded-md max-h-[360px] overflow-y-auto">
+          {srcList.isLoading && (
+            <p className="p-4 text-xs text-muted-foreground text-center">Cargando…</p>
+          )}
+          {srcList.data && (() => {
+            const q = copyQuery.trim().toLowerCase();
+            const items = (srcList.data as any[])
+              .filter((t) => t.id !== trabajoId)
+              .filter((t) => {
+                if (!q) return true;
+                return (
+                  (t.folio ?? "").toLowerCase().includes(q) ||
+                  (t.planta_nombre ?? "").toLowerCase().includes(q) ||
+                  (t.cliente_nombre ?? "").toLowerCase().includes(q) ||
+                  (t.servicio ?? "").toLowerCase().includes(q)
+                );
+              })
+              .slice(0, 100);
+            if (items.length === 0) {
+              return <p className="p-4 text-xs text-muted-foreground text-center">Sin trabajos con recursos.</p>;
+            }
+            return (
+              <ul className="divide-y divide-border">
+                {items.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        <span className="font-mono">{t.folio ?? "—"}</span> · {t.planta_nombre}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {t.cliente_nombre} · {t.servicio} · {t.count} recurso{t.count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={copyMut.isPending}
+                      onClick={() => copyMut.mutate(t.id)}
+                      className="h-8 px-3 text-[11px] font-medium rounded-md bg-primary text-primary-foreground disabled:opacity-50 shrink-0"
+                    >
+                      {copyMut.isPending ? "Copiando…" : "Usar este"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </div>
+      </RecordDialog>
     </div>
   );
 }
