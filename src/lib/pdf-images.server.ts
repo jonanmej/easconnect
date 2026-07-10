@@ -41,6 +41,52 @@ function readJpegInfo(bytes: Uint8Array): { w: number; h: number; components: nu
   return null;
 }
 
+function shouldKeepPhoto(bytes: Uint8Array) {
+  if (!bytes || bytes.byteLength < 12_000) return false;
+  const info = readJpegInfo(bytes);
+  if (!info) return bytes.byteLength >= 45_000;
+  if (info.components === 1) return false;
+  const shortSide = Math.min(info.w, info.h);
+  const longSide = Math.max(info.w, info.h);
+  const ratio = longSide / Math.max(1, shortSide);
+  if (ratio > 2 && bytes.byteLength < 140_000) return false;
+  if (shortSide < 120) return false;
+  if (longSide < 260 && bytes.byteLength < 70_000) return false;
+  return true;
+}
+
+function toDataUrl(bytes: Uint8Array) {
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.byteLength; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)) as any);
+  }
+  return `data:image/jpeg;base64,${btoa(bin)}`;
+}
+
+function pushJpeg(out: string[], seen: Set<string>, bytes: Uint8Array, maxImages: number) {
+  if (out.length >= maxImages) return;
+  if (!shouldKeepPhoto(bytes)) return;
+  const info = readJpegInfo(bytes);
+  const sig = `${bytes.byteLength}:${info?.w ?? 0}x${info?.h ?? 0}:${bytes[0]},${bytes[1]},${bytes[2]},${bytes[3]}`;
+  if (seen.has(sig)) return;
+  seen.add(sig);
+  out.push(toDataUrl(bytes));
+}
+
+function extractInlineJpegs(buf: Uint8Array, out: string[], seen: Set<string>, maxImages: number) {
+  for (let i = 0; i < buf.byteLength - 4 && out.length < maxImages; i++) {
+    if (buf[i] !== 0xff || buf[i + 1] !== 0xd8) continue;
+    for (let j = i + 2; j < buf.byteLength - 1; j++) {
+      if (buf[j] === 0xff && buf[j + 1] === 0xd9) {
+        pushJpeg(out, seen, buf.subarray(i, j + 2), maxImages);
+        i = j + 1;
+        break;
+      }
+    }
+  }
+}
+
 export async function extractJpegImagesFromPdf(
   buf: Uint8Array,
   opts: { maxImages?: number; minBytes?: number } = {},
@@ -85,39 +131,15 @@ export async function extractJpegImagesFromPdf(
       if (isSMask) continue;
       if (colorSpace.includes("DeviceGray") || colorSpace.includes("CalGray")) continue;
 
-      const info = readJpegInfo(bytes);
-      if (info) {
-        // JPEG con 1 componente = escala de grises (firmas escaneadas,
-        // sellos monocromos). Los registros fotográficos reales son RGB (3).
-        if (info.components === 1) continue;
-        const shortSide = Math.min(info.w, info.h);
-        const longSide = Math.max(info.w, info.h);
-        const ratio = longSide / Math.max(1, shortSide);
-        // Firmas manuscritas suelen ser tiras muy alargadas (ratio > 2.5)
-        // y de peso moderado. Filtramos esa forma.
-        if (ratio > 2 && bytes.byteLength < 120_000) continue;
-        // Logos/isotipos/membretes: peso muy bajo y dimensiones de plantilla.
-        // En los reportes reales revisados, las fotos útiles arrancan sobre
-        // ~37KB; logos corporativos aparecen entre ~5KB y ~20KB.
-        const parecesLogo = bytes.byteLength < 25_000 || (shortSide < 500 && bytes.byteLength < 80_000);
-        if (parecesLogo) continue;
-      } else {
-        // No pudimos leer SOF: por prudencia exigimos peso mínimo de foto.
-        if (bytes.byteLength < 60_000) continue;
-      }
-      // Deduplicar por tamaño + primeros bytes (evita repetir la misma foto).
-      const sig = `${bytes.byteLength}:${bytes[0]},${bytes[1]},${bytes[2]},${bytes[3]}`;
-      if (seen.has(sig)) continue;
-      seen.add(sig);
-      let bin = "";
-      const CHUNK = 0x8000;
-      for (let i = 0; i < bytes.byteLength; i += CHUNK) {
-        bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)) as any);
-      }
-      out.push(`data:image/jpeg;base64,${btoa(bin)}`);
+      pushJpeg(out, seen, bytes, maxImages);
     }
+    // Fallback robusto para PDFs producidos por sistemas que no exponen bien
+    // las fotos como XObject al parser, pero sí contienen los JPEG embebidos.
+    if (out.length === 0) extractInlineJpegs(buf, out, seen, maxImages);
     return out;
   } catch {
-    return [];
+    const out: string[] = [];
+    extractInlineJpegs(buf, out, new Set<string>(), maxImages);
+    return out;
   }
 }
