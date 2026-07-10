@@ -104,15 +104,59 @@ function Programacion() {
   const trabajos = (list.data as any[] | undefined) ?? [];
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
+  // Filtros de impresión
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printPaper, setPrintPaper] = useState<"A4" | "A3">("A4");
+  const [printOrient, setPrintOrient] = useState<"landscape" | "portrait">("landscape");
+  const [printCliente, setPrintCliente] = useState<string>("");
+  const [printServicio, setPrintServicio] = useState<string>("");
+  const [printFolio, setPrintFolio] = useState<string>("");
+  const [printing, setPrinting] = useState(false);
+
   const clientesUnicos = useMemo(() => {
     const map = new Map<string, string>();
     trabajos.forEach((t) => { if (t.cliente_id) map.set(t.cliente_id, t.cliente_nombre ?? "—"); });
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [trabajos]);
-  const trabajosFiltrados = useMemo(
-    () => (clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos),
-    [trabajos, clienteFilter],
-  );
+  const trabajosFiltrados = useMemo(() => {
+    let arr = clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos;
+    if (printing) {
+      if (printCliente) arr = arr.filter((t) => t.cliente_id === printCliente);
+      if (printServicio) arr = arr.filter((t) => String(t.servicio ?? "").toLocaleLowerCase("es") === printServicio.toLocaleLowerCase("es"));
+      if (printFolio.trim()) {
+        const q = printFolio.trim().toLocaleLowerCase("es");
+        arr = arr.filter((t) => String(t.folio ?? "").toLocaleLowerCase("es").includes(q));
+      }
+    }
+    return arr;
+  }, [trabajos, clienteFilter, printing, printCliente, printServicio, printFolio]);
+
+  // Inyecta @page y dispara window.print() cuando `printing` pasa a true.
+  useEffect(() => {
+    if (!printing) return;
+    const style = document.createElement("style");
+    style.id = "print-page-config";
+    style.textContent = `@media print { @page { size: ${printPaper} ${printOrient}; margin: 12mm; } }`;
+    document.head.appendChild(style);
+    const done = () => {
+      setPrinting(false);
+      style.remove();
+      window.removeEventListener("afterprint", done);
+    };
+    window.addEventListener("afterprint", done);
+    const t = window.setTimeout(() => {
+      try { window.print(); } catch (_e) { done(); }
+    }, 60);
+    return () => { window.clearTimeout(t); style.remove(); window.removeEventListener("afterprint", done); };
+  }, [printing, printPaper, printOrient]);
+
+  function launchPrint() {
+    setPrintOpen(false);
+    setPrinting(true);
+  }
+  function resetPrintFilters() {
+    setPrintCliente(""); setPrintServicio(""); setPrintFolio("");
+  }
 
   // Solo Lun-Vie
   const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
