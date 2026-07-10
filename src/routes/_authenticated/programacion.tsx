@@ -249,13 +249,63 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
-            <button
-              onClick={() => window.print()}
-              className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
-              title="Imprimir vista actual"
-            >
-              <Printer className="size-3.5" /> Imprimir
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setPrintOpen((v) => !v)}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                title="Opciones de impresión"
+              >
+                <Printer className="size-3.5" /> Imprimir
+              </button>
+              {printOpen && (
+                <div className="absolute right-0 mt-2 w-80 z-30 bg-popover text-popover-foreground border border-border rounded-md shadow-lg p-3 space-y-2 text-xs">
+                  <p className="font-semibold text-sm">Opciones de impresión</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1">
+                      <span className="text-muted-foreground">Papel</span>
+                      <select value={printPaper} onChange={(e) => setPrintPaper(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                        <option value="A4">A4</option>
+                        <option value="A3">A3</option>
+                      </select>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-muted-foreground">Orientación</span>
+                      <select value={printOrient} onChange={(e) => setPrintOrient(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                        <option value="landscape">Horizontal</option>
+                        <option value="portrait">Vertical</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Cliente</span>
+                    <select value={printCliente} onChange={(e) => setPrintCliente(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <option value="">Todos</option>
+                      {clientesUnicos.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Servicio</span>
+                    <select value={printServicio} onChange={(e) => setPrintServicio(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <option value="">Todos</option>
+                      {SERVICIOS_OT.map((s) => (<option key={s} value={s}>{s}</option>))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 block">
+                    <span className="text-muted-foreground">Orden de trabajo (folio contiene)</span>
+                    <input value={printFolio} onChange={(e) => setPrintFolio(e.target.value)} placeholder="Ej: T-2026-0046" className="w-full h-8 px-2 rounded border border-input bg-background" />
+                  </label>
+                  <div className="flex items-center justify-between pt-1">
+                    <button onClick={resetPrintFilters} className="text-muted-foreground hover:text-foreground underline underline-offset-2">Limpiar filtros</button>
+                    <div className="inline-flex gap-2">
+                      <button onClick={() => setPrintOpen(false)} className="h-8 px-3 rounded border border-border hover:bg-secondary">Cancelar</button>
+                      <button onClick={launchPrint} className="h-8 px-3 rounded bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5">
+                        <Printer className="size-3.5" /> Imprimir / Guardar PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         }
       />
