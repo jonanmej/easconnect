@@ -219,7 +219,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </p>
           <div className="flex flex-col items-start gap-3 px-2">
             <ChemitekLogo className="w-44 h-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors" accentClassName="text-primary" />
-            <BrandLogo variant="pvstop" className="h-9" />
+            <BrandLogo variant="pvstop" className="h-16 w-44 justify-start" />
           </div>
         </div>
         <div className="flex items-center gap-3 p-2">
