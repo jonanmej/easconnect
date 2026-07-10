@@ -389,7 +389,8 @@ function DiarioForm({
             type="number"
             min={0}
             step="0.25"
-            value={horasCalc != null ? String(horasCalc) : undefined}
+            key={horasCalc != null ? "calc" : "manual"}
+            defaultValue={horasCalc != null ? String(horasCalc) : ""}
             readOnly={horasCalc != null}
             placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
             className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
