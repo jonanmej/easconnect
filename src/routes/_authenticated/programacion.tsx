@@ -491,7 +491,7 @@ function YearView({ year, byDay, onPickMonth }: {
   year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 print-year-grid">
       {Array.from({ length: 12 }, (_, m) => (
         <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
       ))}
@@ -514,7 +514,7 @@ function MiniMonth({ year, month, byDay, onClick }: {
   }
   const today = new Date();
   return (
-    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors">
+    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors print-mini-month">
       <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
         {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
       </p>
