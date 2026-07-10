@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "83f62ea5-1a31-4f27-a938-ff587a7fd251",
+  "asset_id": "6d9c4ecf-3454-4a14-8663-2705fdf6d2ac",
   "project_id": "4a1d8dfa-3473-4ec4-a07c-e2cd9feba391",
-  "url": "/__l5e/assets-v1/83f62ea5-1a31-4f27-a938-ff587a7fd251/brand-pvstop-light.png",
-  "r2_key": "a/v1/4a1d8dfa-3473-4ec4-a07c-e2cd9feba391/83f62ea5-1a31-4f27-a938-ff587a7fd251/brand-pvstop-light.png",
-  "original_filename": "brand-pvstop-light.png",
-  "size": 44926,
+  "url": "/__l5e/assets-v1/6d9c4ecf-3454-4a14-8663-2705fdf6d2ac/pvstop-light.png",
+  "r2_key": "a/v1/4a1d8dfa-3473-4ec4-a07c-e2cd9feba391/6d9c4ecf-3454-4a14-8663-2705fdf6d2ac/pvstop-light.png",
+  "original_filename": "pvstop-light.png",
+  "size": 32082,
   "content_type": "image/png",
-  "created_at": "2026-07-10T21:41:42Z"
+  "created_at": "2026-07-10T21:43:37Z"
 }
