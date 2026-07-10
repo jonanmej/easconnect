@@ -137,3 +137,84 @@ export const toggleRecursoFlag = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Copiar recursos entre trabajos (cualquier planta/cliente) ----------
+
+export const listTrabajosConRecursos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("trabajo_recursos")
+      .select(
+        "trabajo_id, trabajos!inner(id, folio, servicio, fecha_programada, plantas(nombre, clientes(nombre)))",
+      );
+    if (error) throw new Error(error.message);
+    const map = new Map<string, any>();
+    for (const r of (data as any[] | null) ?? []) {
+      const t = r.trabajos;
+      if (!t) continue;
+      const cur = map.get(t.id);
+      if (cur) {
+        cur.count += 1;
+      } else {
+        map.set(t.id, {
+          id: t.id,
+          folio: t.folio,
+          servicio: t.servicio,
+          fecha_programada: t.fecha_programada,
+          planta_nombre: t.plantas?.nombre ?? "—",
+          cliente_nombre: t.plantas?.clientes?.nombre ?? "—",
+          count: 1,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      (b.fecha_programada ?? "").localeCompare(a.fecha_programada ?? ""),
+    );
+  });
+
+export const copiarTrabajoRecursos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      source_trabajo_id: z.string().uuid(),
+      target_trabajo_id: z.string().uuid(),
+      modo: z.enum(["agregar", "reemplazar"]).default("agregar"),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    if (data.source_trabajo_id === data.target_trabajo_id) {
+      throw new Error("El trabajo origen y destino no pueden ser el mismo.");
+    }
+    const { data: src, error: e1 } = await context.supabase
+      .from("trabajo_recursos")
+      .select("categoria, descripcion, cantidad, unidad, item_id, equipo_id, notas")
+      .eq("trabajo_id", data.source_trabajo_id);
+    if (e1) throw new Error(e1.message);
+    const rows = (src ?? []) as any[];
+    if (rows.length === 0) throw new Error("El trabajo origen no tiene recursos.");
+
+    if (data.modo === "reemplazar") {
+      const { error: eDel } = await context.supabase
+        .from("trabajo_recursos")
+        .delete()
+        .eq("trabajo_id", data.target_trabajo_id);
+      if (eDel) throw new Error(eDel.message);
+    }
+
+    const payload = rows.map((r) => ({
+      trabajo_id: data.target_trabajo_id,
+      categoria: r.categoria,
+      descripcion: r.descripcion,
+      cantidad: r.cantidad,
+      unidad: r.unidad,
+      item_id: r.item_id,
+      equipo_id: r.equipo_id,
+      notas: r.notas,
+      entregado: false,
+      devuelto: false,
+    }));
+    const { error: eIns } = await context.supabase.from("trabajo_recursos").insert(payload);
+    if (eIns) throw new Error(eIns.message);
+    return { ok: true, copiados: payload.length };
+  });

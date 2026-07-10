@@ -30,6 +30,8 @@ import {
   upsertTrabajoRecurso,
   deleteTrabajoRecurso,
   listTrabajoEquipos,
+  listTrabajosConRecursos,
+  copiarTrabajoRecursos,
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 import { generarYDescargarRecursosPdf } from "@/lib/pdf/descargar";
@@ -873,6 +875,28 @@ function RecursosSection({
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] }); },
   });
 
+  // Copiar desde otro trabajo (cualquier planta / cliente)
+  const fListSrc = useServerFn(listTrabajosConRecursos);
+  const fCopy = useServerFn(copiarTrabajoRecursos);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyQuery, setCopyQuery] = useState("");
+  const [copyMode, setCopyMode] = useState<"agregar" | "reemplazar">("agregar");
+  const srcList = useQuery({
+    queryKey: ["trabajos-con-recursos"],
+    queryFn: () => fListSrc(),
+    enabled: copyOpen,
+  });
+  const copyMut = useMutation({
+    mutationFn: (source_trabajo_id: string) =>
+      fCopy({ data: { source_trabajo_id, target_trabajo_id: trabajoId, modo: copyMode } }),
+    onSuccess: (r: any) => {
+      toast.success(`${r.copiados} recurso${r.copiados === 1 ? "" : "s"} copiado${r.copiados === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["trabajo-recursos", trabajoId] });
+      setCopyOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // No usamos <form> anidado (RecordDialog ya monta un <form> padre).
   // Un <form> dentro de otro es HTML inválido: React ignora el submit
   // del interno y el "+" no guardaba nada. Usamos refs + click handler.
@@ -984,6 +1008,17 @@ function RecursosSection({
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setCopyOpen(true)}
+              className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary"
+              title="Copiar recursos desde otro trabajo (cualquier cliente / planta)"
+            >
+              <Copy className="size-3.5" />
+              Copiar de otro trabajo
+            </button>
+          )}
           <button
             type="button"
             onClick={exportarPdf}
@@ -1059,6 +1094,79 @@ function RecursosSection({
           </div>
         </div>
       )}
+      <RecordDialog
+        open={copyOpen}
+        onOpenChange={(v) => { if (!v) setCopyOpen(false); }}
+        title="Copiar recursos desde otro trabajo"
+        description="Elige un trabajo origen. Puedes agregar sus recursos a este, o reemplazar los actuales."
+        submitLabel="Cerrar"
+        onSubmit={(e) => { e.preventDefault(); setCopyOpen(false); }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            value={copyQuery}
+            onChange={(e) => setCopyQuery(e.target.value)}
+            placeholder="Buscar por folio, planta, cliente o servicio…"
+            className={inputCls + " text-xs flex-1"}
+          />
+          <select
+            value={copyMode}
+            onChange={(e) => setCopyMode(e.target.value as any)}
+            className={inputCls + " text-xs w-40"}
+            title="Cómo aplicar los recursos"
+          >
+            <option value="agregar">Agregar</option>
+            <option value="reemplazar">Reemplazar</option>
+          </select>
+        </div>
+        <div className="border border-border rounded-md max-h-[360px] overflow-y-auto">
+          {srcList.isLoading && (
+            <p className="p-4 text-xs text-muted-foreground text-center">Cargando…</p>
+          )}
+          {srcList.data && (() => {
+            const q = copyQuery.trim().toLowerCase();
+            const items = (srcList.data as any[])
+              .filter((t) => t.id !== trabajoId)
+              .filter((t) => {
+                if (!q) return true;
+                return (
+                  (t.folio ?? "").toLowerCase().includes(q) ||
+                  (t.planta_nombre ?? "").toLowerCase().includes(q) ||
+                  (t.cliente_nombre ?? "").toLowerCase().includes(q) ||
+                  (t.servicio ?? "").toLowerCase().includes(q)
+                );
+              })
+              .slice(0, 100);
+            if (items.length === 0) {
+              return <p className="p-4 text-xs text-muted-foreground text-center">Sin trabajos con recursos.</p>;
+            }
+            return (
+              <ul className="divide-y divide-border">
+                {items.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        <span className="font-mono">{t.folio ?? "—"}</span> · {t.planta_nombre}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {t.cliente_nombre} · {t.servicio} · {t.count} recurso{t.count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={copyMut.isPending}
+                      onClick={() => copyMut.mutate(t.id)}
+                      className="h-8 px-3 text-[11px] font-medium rounded-md bg-primary text-primary-foreground disabled:opacity-50 shrink-0"
+                    >
+                      {copyMut.isPending ? "Copiando…" : "Usar este"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </div>
+      </RecordDialog>
     </div>
   );
 }
