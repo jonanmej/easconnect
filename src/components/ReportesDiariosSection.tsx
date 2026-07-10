@@ -23,6 +23,11 @@ const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background t
 const textareaCls = "w-full px-3 py-2 rounded-md border border-input bg-background text-sm";
 
 function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" }); }
+function fmtHora(h?: string | null): string {
+  if (!h) return "—";
+  const m = /^(\d{2}):(\d{2})/.exec(h);
+  return m ? `${m[1]}:${m[2]}` : String(h);
+}
 
 export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
   const { user, roles } = useAuth();
