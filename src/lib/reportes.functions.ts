@@ -521,6 +521,11 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     const hallazgos = parseBullets(section("Hallazgos"));
     const recomendaciones = parseBullets(section("Recomendaciones"));
     const resumen = section("Resumen ejecutivo");
+    const folioReporte = (() => {
+      const markdown = String((rep as any).contenido_markdown ?? "");
+      const m = markdown.match(/\*\*OT:\*\*\s*([^·\n]+)/i) || markdown.match(/\bOT\s*[:#-]?\s*([A-Z0-9-]{6,})/i);
+      return m?.[1]?.trim() ?? null;
+    })();
 
     // Trabajos del periodo
     const desde = (rep as any).desde ?? null;
@@ -537,6 +542,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       .order("fecha_programada");
     if (desde) qb = qb.gte("fecha_programada", desde);
     if (hasta) qb = qb.lte("fecha_programada", hasta);
+    if (folioReporte) qb = qb.eq("folio", folioReporte);
     const { data: trabajos } = await qb;
 
     const trabajoIds = (trabajos ?? []).map((t) => t.id);
