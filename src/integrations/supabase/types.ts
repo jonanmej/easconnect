@@ -1285,6 +1285,8 @@ export type Database = {
           created_at: string
           fecha: string
           hallazgos: string | null
+          hora_fin: string | null
+          hora_inicio: string | null
           horas_trabajadas: number | null
           id: string
           observaciones: string | null
@@ -1302,6 +1304,8 @@ export type Database = {
           created_at?: string
           fecha?: string
           hallazgos?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
           horas_trabajadas?: number | null
           id?: string
           observaciones?: string | null
@@ -1319,6 +1323,8 @@ export type Database = {
           created_at?: string
           fecha?: string
           hallazgos?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
           horas_trabajadas?: number | null
           id?: string
           observaciones?: string | null
