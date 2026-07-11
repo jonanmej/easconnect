@@ -175,7 +175,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
         <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
           <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
           <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
-          <Text style={styles.headerSub}>ISO 9001:2015</Text>
+          <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
         </View>
       </View>
       <View style={styles.headerRight}>
