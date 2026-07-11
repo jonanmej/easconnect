@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { AppShell } from "@/components/AppShell";
 import { RoleGate } from "@/components/RoleGate";
 import { useNavigate } from "@tanstack/react-router";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -22,12 +23,18 @@ function AuthenticatedLayout() {
       <PerfilGate>
         <AppShell>
           <RoleGate>
+            <RealtimeSyncMount />
             <Outlet />
           </RoleGate>
         </AppShell>
       </PerfilGate>
     </AuthProvider>
   );
+}
+
+function RealtimeSyncMount() {
+  useRealtimeSync();
+  return null;
 }
 
 /** Redirige a /completar-perfil cuando el usuario aún no ha completado sus datos. */

@@ -1,76 +1,50 @@
-## 1. Ajuste visual del logo PVSTOP
+## Objetivo
+Sincronizar en tiempo real los datos compartidos entre roles (admin, supervisor, técnico, cliente) sin alterar RLS ni jerarquías, y auditar la visibilidad para que cada rol vea exactamente lo que le corresponde de los mismos datos.
 
-En `src/components/BrandLogo.tsx`, calibrar `THEME_SCALE.pvstop` (actualmente `{ light: 1.0, dark: 1.0 }`) para que el wordmark se vea del mismo tamaño en ambos temas. Los PNG `pvstop-light.png` (26.8 KB) y `pvstop-dark.png` (100.3 KB) tienen diferentes márgenes/ratio internos, así que subiré el factor del tema más pequeño (típicamente el light, que aparece más chico) mediante prueba visual con Playwright.
+## 1. Realtime en la base de datos
+Habilitar la publicación `supabase_realtime` para las tablas que alimentan las vistas compartidas:
 
-## 2. Nuevo módulo "Jornada laboral"
+- `trabajos`, `trabajo_reportes`, `trabajo_reportes_diarios`, `trabajo_reportes_pdf`
+- `trabajo_evidencias`, `trabajo_recursos`, `trabajo_aprobaciones`
+- `notificaciones_usuario`, `jornadas_laborales`
+- `inventario_items`, `inventario_movimientos`, `equipos`
+- `solicitudes_visita`, `mantenimientos`
 
-### 2.1 Base de datos — tabla `jornadas_laborales`
+RLS ya filtra las filas emitidas por rol, así que la jerarquía no cambia.
 
-Migración con columnas:
-- `id`, `tecnico_id` (uuid), `fecha` (date, `El_Salvador`)
-- `hora_inicio` (timestamptz), `hora_fin` (timestamptz, null)
-- `almuerzo_inicio` (timestamptz, null), `almuerzo_fin` (timestamptz, null)
-- `almuerzo_excedido` (bool, default false), `minutos_almuerzo` (int, generado)
-- `horas_efectivas` (numeric, generado en app)
-- `notas` (text)
-- Índice único parcial por `(tecnico_id, fecha)` para una jornada abierta por día
-- RLS: técnico ve/edita solo la suya; admin/supervisor ven todas
-- GRANT completo `authenticated`/`service_role`
+## 2. Hook de sincronización cliente
+Crear `src/hooks/useRealtimeSync.ts` que:
 
-### 2.2 Server functions (`src/lib/jornadas.functions.ts`)
+- Se suscribe a una tabla (o lista) por `postgres_changes`.
+- Al recibir un evento invalida las queries de TanStack Query indicadas (`queryClient.invalidateQueries`).
+- Se limpia con `supabase.removeChannel` en el unmount.
+- Un solo canal por tabla, compartido entre vistas mediante un pequeño registro interno para no reabrir suscripciones.
 
-- `iniciarJornada()` → crea fila, dispara correo "Inicio de jornada"
-- `iniciarAlmuerzo()` / `finalizarAlmuerzo()` → marca timestamps y calcula si excedió 60 min. Si excede, notifica staff con alerta destacada
-- `finalizarJornada({ notas })` → cierra fila, calcula horas efectivas (fin - inicio - almuerzo), dispara correo "Fin de jornada" con resumen (inicio, fin, almuerzo, horas efectivas, sobrepaso si aplica)
-- `getJornadaHoy()` → estado actual del técnico
-- `getJornadasStaff({ fecha })` → para el resumen consolidado
+## 3. Wire-up por módulo
+Montar el hook en las páginas ya existentes, invalidando las claves reales que usan:
 
-### 2.3 UI en Mis trabajos
+- **Trabajos y programación** (`/trabajos`, `/programacion`, `/mis-trabajos`, `/terreno`, dashboard KPIs): invalidar `["trabajos"]`, `["dashboard-kpis"]`, `["dashboard-series"]`, `["trabajos-sla"]`.
+- **Reportes diarios y PDFs** (`/reportes`, detalle de trabajo): invalidar `["reportes-diarios"]`, `["trabajo-detalle"]`, `["reportes"]`, `["trabajo-reportes-pdf"]`.
+- **Notificaciones y jornadas** (campanita global + `JornadaControl`): invalidar `["notificaciones"]`, `["jornada-actual"]`, `["jornadas"]`.
+- **Inventario y equipos** (`/inventario`, `/equipos`, dashboard): invalidar `["inventario"]`, `["equipos"]`, `["dashboard-kpis"]`.
 
-Nuevo componente `<JornadaControl />` fijo arriba de la lista de trabajos en `src/routes/_authenticated/mis-trabajos.tsx`. Estados:
+Las suscripciones se registran solo dentro del layout `_authenticated`, así solo usuarios autenticados abren canales.
 
-```text
-[ Iniciar jornada ]  ← estado inicial
-  ↓
-[ En jornada · 07:15 · Iniciar almuerzo | Finalizar jornada ]
-  ↓
-[ Almorzando · 12:00 (⏱ 45 min) · Regresar de almuerzo ]  ← chip amarillo si >55min, rojo si >60min
-  ↓
-[ En jornada · retorno 13:05 · Finalizar jornada ]
-  ↓
-[ Jornada finalizada · 07:15 – 16:20 · 8h 05m efectivas ]
-```
+## 4. Consolidación de KPIs
+Verificar que `dashboardKpis`, `dashboardSeries` y `dashboardAlertas` (server fns) son la única fuente de números en dashboards de admin/supervisor/técnico/cliente y que los widgets del cliente y técnico consumen los mismos endpoints con sus filtros de RLS (no cálculos locales divergentes). Ajustar los que aún calculen en el cliente para leer del server fn.
 
-Timer en vivo (updates cada minuto), badge de exceso de almuerzo, botón deshabilitado si ya finalizó.
-
-### 2.4 Autocompletar reporte diario
-
-En `ReportesDiariosSection.tsx`, al abrir el formulario para "hoy", pre-cargar `hora_inicio`, `hora_fin` y `horas_trabajadas` desde `getJornadaHoy()` si existe una jornada cerrada. Los campos siguen editables.
-
-### 2.5 Correos a administradores
-
-Reutilizar `notificarStaff` en `src/lib/notificaciones-staff.server.ts`. Añadir tipos:
-- `jornada_iniciada` (asunto: "Inicio jornada · [técnico]")
-- `jornada_finalizada` (asunto con horas efectivas y sobrepaso)
-- `almuerzo_excedido` (alerta destacada roja)
-
-### 2.6 Resumen diario consolidado
-
-Endpoint `src/routes/api/public/hooks/resumen-jornadas-diario.ts` protegido por `apikey`, invocado por pg_cron a las 18:00 hora local (23:00 UTC — Chile no tiene DST relevante aquí; usar 23:00 UTC = 17:00 SV, verificaré con `America/El_Salvador`). Envía un solo correo a admins/supervisores con tabla por técnico:
-
-| Técnico | Inicio | Fin | Almuerzo | Horas efectivas | Estado |
-
-### 2.7 Cron
-
-Migración SQL con `cron.schedule('resumen-jornadas-diario', '0 23 * * *', ...)` que hace `net.http_post` al hook con `apikey`.
+## 5. Auditoría de visibilidad (sin ampliar permisos)
+Revisar cada tabla priorizada y confirmar que existe al menos una policy SELECT por rol activo (admin/supervisor/técnico asignado, cliente por `current_cliente_id()`), sin agregar accesos que no existan hoy. Si detecto una fila que un rol debería ver por jerarquía pero una policy omite (ej. supervisor sin lectura en `trabajo_reportes_pdf`), lo reporto y propongo el fix puntual antes de aplicarlo; no se relajan restricciones existentes.
 
 ## Detalles técnicos
+- Un solo `onAuthStateChange` sigue en `__root.tsx`; el hook no duplica listeners.
+- Los canales realtime se filtran por `event: "*"` sobre la tabla; el filtrado fino lo hace RLS + TanStack Query al refetch.
+- No se toca `src/integrations/supabase/*` (auto-generados).
+- Migración solo agrega tablas al `publication supabase_realtime` (idempotente con `IF NOT EXISTS` via `DO $$`).
 
-- **Archivos nuevos:** `src/lib/jornadas.functions.ts`, `src/components/JornadaControl.tsx`, `src/routes/api/public/hooks/resumen-jornadas-diario.ts`
-- **Archivos editados:** `src/components/BrandLogo.tsx`, `src/routes/_authenticated/mis-trabajos.tsx`, `src/components/ReportesDiariosSection.tsx`, `src/lib/notificaciones-staff.server.ts` (nuevos tipos)
-- **Migraciones:** crear `jornadas_laborales` con RLS/GRANT + agendar cron del resumen diario
-- **Reutiliza:** `notificarStaff`, `emailLayout`, `sendGmail`, `has_role`
-
-## Confirmación previa
-
-Sólo una pregunta antes de implementar: el **resumen diario consolidado** — ¿lo mando a las **17:00 hora El Salvador** (fin de jornada estándar), o prefieres otra hora?
+## Entregables
+- Migración SQL (publicación realtime).
+- `src/hooks/useRealtimeSync.ts`.
+- Ediciones puntuales en las páginas listadas para montar el hook.
+- Ajustes menores de KPI si detecto cálculo divergente.
+- Informe corto de la auditoría de visibilidad al final.
