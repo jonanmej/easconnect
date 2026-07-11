@@ -247,6 +247,11 @@
   [data-appshell-nav] {
     display: none !important;
   }
+  /* Excepción: elementos marcados como parte del documento imprimible */
+  header.print-doc-header,
+  .print-doc-header {
+    display: block !important;
+  }
   html, body {
     background: #fff !important;
     color: #000 !important;
@@ -259,6 +264,80 @@
   .print-area * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* ---- Cabecera / pie ISO 9001:2015 ---- */
+  .print-only { display: block !important; }
+  .print-doc-header {
+    border-bottom: 1.5pt solid #2E4A87;
+    padding-bottom: 6pt;
+    margin-bottom: 10pt;
+    color: #1f2937;
+  }
+  .print-doc-header__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16pt;
+  }
+  .print-doc-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+  }
+  .print-doc-header__brand img {
+    width: 28pt;
+    height: 28pt;
+    object-fit: contain;
+  }
+  .print-doc-header__brand-title {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 1pt;
+    color: #2E4A87;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .print-doc-header__brand-sub {
+    font-size: 7.5pt;
+    color: #64748b;
+    letter-spacing: 0.5pt;
+    text-transform: uppercase;
+    margin: 1pt 0 0;
+  }
+  .print-doc-header__meta { text-align: right; }
+  .print-doc-header__meta-top {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+  }
+  .print-doc-header__meta-line {
+    font-size: 7.5pt;
+    color: #64748b;
+    letter-spacing: 0.4pt;
+    margin: 1pt 0 0;
+  }
+  .print-doc-header__filters {
+    margin-top: 6pt;
+    padding-top: 4pt;
+    border-top: 0.5pt solid #e2e8f0;
+    font-size: 8pt;
+    color: #334155;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12pt;
+  }
+  .print-doc-footer {
+    margin-top: 12pt;
+    padding-top: 6pt;
+    border-top: 0.75pt solid #2E4A87;
+    display: flex;
+    justify-content: space-between;
+    gap: 8pt;
+    flex-wrap: wrap;
+    font-size: 7.5pt;
+    color: #64748b;
   }
 
   /* Tarjetas de OT nunca se cortan */
@@ -297,3 +376,6 @@
 
   /* @page se inyecta dinámicamente desde la UI (#print-page-config) */
 }
+
+/* Fuera de impresión, ocultar helpers marcados como print-only */
+.print-only { display: none; }

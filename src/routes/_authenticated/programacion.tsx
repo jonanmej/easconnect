@@ -11,6 +11,7 @@ import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Printer } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT } from "@/lib/servicios";
+import { PrintDocHeader, PrintDocFooter } from "@/components/PrintDocFrame";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -224,6 +225,20 @@ function Programacion() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full print-area">
+      <PrintDocHeader
+        titulo={`Programación · ${headerTitle}`}
+        subtitulo={vista === "semana" ? "Calendario semanal" : vista === "mes" ? "Calendario mensual" : "Calendario anual"}
+        codigo="EA-PRG"
+        version="1.0"
+        clasificacion="Uso interno"
+        clausulaIso="§8.1 / §8.5"
+        filtros={[
+          printCliente ? { label: "Cliente", value: clientesUnicos.find((c) => c.id === printCliente)?.nombre ?? "—" } : null,
+          printServicio ? { label: "Servicio", value: printServicio } : null,
+          printFolio.trim() ? { label: "OT", value: printFolio.trim() } : null,
+          { label: "Papel", value: `${printPaper} ${printOrient === "landscape" ? "Horizontal" : "Vertical"}` },
+        ].filter(Boolean) as { label: string; value: string }[]}
+      />
       <PageHeader
         title="Programación"
         description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
@@ -403,6 +418,7 @@ function Programacion() {
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
         </div>
       </div>
+      <PrintDocFooter codigo="EA-PRG" version="1.0" />
     </div>
   );
 }
