@@ -418,6 +418,7 @@ function Programacion() {
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
         </div>
       </div>
+      <PrintDocFooter codigo="EA-PRG" version="1.0" />
     </div>
   );
 }
