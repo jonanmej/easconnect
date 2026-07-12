@@ -137,7 +137,18 @@ function Programacion() {
     if (!printing) return;
     const style = document.createElement("style");
     style.id = "print-page-config";
-    style.textContent = `@media print { @page { size: ${printPaper} ${printOrient}; margin: 12mm; } }`;
+    // margin:0 elimina el encabezado (URL + título "Programación · EA Service Connect")
+    // y pie (fecha de impresión) que agregan los navegadores. Compensamos con
+    // padding interno en .print-area. Escalado según tamaño/orientación para
+    // que el contenido no se corte en A4.
+    const isA4Portrait = printPaper === "A4" && printOrient === "portrait";
+    const isA4Land = printPaper === "A4" && printOrient === "landscape";
+    const scale = isA4Portrait ? 0.72 : isA4Land ? 0.85 : 1;
+    style.textContent = `@media print {
+      @page { size: ${printPaper} ${printOrient}; margin: 0; }
+      html, body { margin: 0 !important; padding: 0 !important; }
+      .print-area { padding: 8mm 10mm !important; transform: scale(${scale}); transform-origin: top left; width: ${(100 / scale).toFixed(2)}% !important; }
+    }`;
     document.head.appendChild(style);
     const done = () => {
       setPrinting(false);
