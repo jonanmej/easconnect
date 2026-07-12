@@ -498,9 +498,8 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                     >
                       <div className="font-medium truncate">{t.planta_nombre}</div>
                       <div className="opacity-70 truncate">
-                        {(t.__duracion ?? 1) > 1
-                          ? `d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}`
-                          : t.folio}
+                        {t.servicio}
+                        {(t.__duracion ?? 1) > 1 ? ` · d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
                       </div>
                     </div>
                   ))}
