@@ -89,7 +89,6 @@ function Programacion() {
   const role = highestRole(roles);
   const canEdit = role === "admin" || role === "supervisor";
   const isCliente = role === "cliente";
-  if (isCliente) return <ClienteCalendar />;
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const [vista, setVista] = useState<Vista>("semana");
@@ -430,6 +429,11 @@ function Programacion() {
         </div>
       </div>
       <PrintDocFooter codigo="EA-PRG" version="1.0" />
+      {isCliente && (
+        <div className="mt-10 no-print">
+          <ClienteCalendar />
+        </div>
+      )}
     </div>
   );
 }
@@ -494,9 +498,8 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                     >
                       <div className="font-medium truncate">{t.planta_nombre}</div>
                       <div className="opacity-70 truncate">
-                        {(t.__duracion ?? 1) > 1
-                          ? `d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}`
-                          : t.folio}
+                        {t.servicio}
+                        {(t.__duracion ?? 1) > 1 ? ` · d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
                       </div>
                     </div>
                   ))}
