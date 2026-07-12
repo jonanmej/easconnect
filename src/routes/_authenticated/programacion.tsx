@@ -89,7 +89,6 @@ function Programacion() {
   const role = highestRole(roles);
   const canEdit = role === "admin" || role === "supervisor";
   const isCliente = role === "cliente";
-  if (isCliente) return <ClienteCalendar />;
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const [vista, setVista] = useState<Vista>("semana");
