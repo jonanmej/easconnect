@@ -14,6 +14,7 @@ const TABLE_TO_KEYS: Record<string, string[][]> = {
     ["alertas-sidebar"], ["cumplimiento-anual"], ["disponibilidad"],
     ["trabajos-con-recursos"], ["asignaciones-log"],
   ],
+  contratos_servicio: [["cumplimiento-anual"], ["contratos"], ["trabajos"]],
   trabajo_reportes: [["reportes"], ["reporte"], ["reporte-auditoria"], ["dashboard-stats"], ["agua-por-planta"]],
   trabajo_reportes_diarios: [["reportes-diarios"], ["reportes"], ["dashboard-stats"], ["agua-por-planta"]],
   trabajo_reportes_pdf: [["reportes"], ["reporte"], ["trabajo-reportes-pdf"]],
