@@ -429,6 +429,11 @@ function Programacion() {
         </div>
       </div>
       <PrintDocFooter codigo="EA-PRG" version="1.0" />
+      {isCliente && (
+        <div className="mt-10 no-print">
+          <ClienteCalendar />
+        </div>
+      )}
     </div>
   );
 }
