@@ -473,6 +473,17 @@ function DiarioForm({
         </FieldS>
         <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <FieldS label="TDS (PPM)">
+          <input name="tds_ppm" type="number" min={0} step="1" placeholder="Ej. 150" className={inputCls} />
+        </FieldS>
+        <FieldS label="Ángulo de inclinación (°)">
+          <input name="angulo_inclinacion" type="number" step="0.1" placeholder="Ej. 15" className={inputCls} />
+        </FieldS>
+        <FieldS label="Presión de agua (PSI)">
+          <input name="presion_agua_psi" type="number" min={0} step="1" placeholder="Ej. 60" className={inputCls} />
+        </FieldS>
+      </div>
       <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
       <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
       <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
