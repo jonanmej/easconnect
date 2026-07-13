@@ -295,6 +295,7 @@ function DiarioForm({
 }) {
   const [open, setOpen] = useState(false);
   const [panelesDia, setPanelesDia] = useState<string>("");
+  const [wattsPanel, setWattsPanel] = useState<string>("");
   const [horaInicio, setHoraInicio] = useState<string>("");
   const [horaFin, setHoraFin] = useState<string>("");
   const formRef = useRef<HTMLDivElement>(null);
@@ -337,6 +338,12 @@ function DiarioForm({
     if (diff < 0) diff += 24 * 60;
     return Math.round((diff / 60) * 100) / 100;
   }, [horaInicio, horaFin]);
+  const wattsTotales = useMemo(() => {
+    const p = Number(panelesDia);
+    const w = Number(wattsPanel);
+    if (!Number.isFinite(p) || !Number.isFinite(w) || p <= 0 || w <= 0) return null;
+    return Math.round(p * w);
+  }, [panelesDia, wattsPanel]);
   async function submit(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault(); e.stopPropagation();
     const root = formRef.current;
@@ -355,6 +362,7 @@ function DiarioForm({
         avance_pct: avancePct,
         paneles_limpiados: num("paneles_limpiados"),
         agua_galones: num("agua_galones"),
+        watts_panel: num("watts_panel"),
         horas_trabajadas: horasCalc ?? num("horas_trabajadas"),
         hora_inicio: horaInicio || null,
         hora_fin: horaFin || null,
@@ -369,6 +377,7 @@ function DiarioForm({
         if (node.type !== "date") node.value = "";
       });
       setPanelesDia("");
+      setWattsPanel("");
       setHoraInicio("");
       setHoraFin("");
       setOpen(false);
@@ -429,6 +438,26 @@ function DiarioForm({
           />
         </FieldS>
         <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" className={inputCls} /></FieldS>
+        <FieldS label="Watts del panel instalado">
+          <input
+            name="watts_panel"
+            type="number"
+            min={0}
+            step="1"
+            value={wattsPanel}
+            onChange={(e) => setWattsPanel(e.currentTarget.value)}
+            placeholder="Ej. 550"
+            className={inputCls}
+          />
+        </FieldS>
+        <FieldS label="Watts totales (calculado)">
+          <input
+            value={wattsTotales == null ? "" : `${wattsTotales.toLocaleString("es-CL")} W`}
+            readOnly
+            placeholder="Paneles × Watts"
+            className={inputCls + " bg-secondary/50 text-muted-foreground"}
+          />
+        </FieldS>
         <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
       <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
