@@ -185,6 +185,13 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                       <Stat label="Hora fin" value={fmtHora(d.hora_fin)} />
                     </div>
                   )}
+                  {(d.tds_ppm != null || d.angulo_inclinacion != null || d.presion_agua_psi != null) && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      <Stat label="TDS (PPM)" value={d.tds_ppm ?? "—"} />
+                      <Stat label="Ángulo (°)" value={d.angulo_inclinacion ?? "—"} />
+                      <Stat label="Presión (PSI)" value={d.presion_agua_psi ?? "—"} />
+                    </div>
+                  )}
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
