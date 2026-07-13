@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, upsertTrabajo, listTecnicos } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
-import { Camera, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon } from "lucide-react";
+import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon } from "lucide-react";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/_authenticated/terreno")({
@@ -159,6 +159,7 @@ function TrabajoCard({
   online: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -215,14 +216,24 @@ function TrabajoCard({
           <Play className="size-4 mb-0.5" />
           Iniciar
         </button>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold"
-        >
-          <Camera className="size-4 mb-0.5" />
-          Evidencia
-        </button>
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-[10px] font-semibold"
+          >
+            <Camera className="size-4 mb-0.5" />
+            Cámara
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryRef.current?.click()}
+            className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-[10px] font-semibold"
+          >
+            <Images className="size-4 mb-0.5" />
+            Galería
+          </button>
+        </div>
         <button
           type="button"
           onClick={onCompletar}
@@ -236,6 +247,13 @@ function TrabajoCard({
           type="file"
           accept="image/*"
           capture="environment"
+          className="hidden"
+          onChange={onPickFile}
+        />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
           className="hidden"
           onChange={onPickFile}
         />
