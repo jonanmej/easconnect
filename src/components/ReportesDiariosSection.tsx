@@ -166,6 +166,19 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                     <Stat label="Horas" value={d.horas_trabajadas ?? "—"} />
                     <Stat label="Clima" value={d.clima ?? "—"} />
                   </div>
+                  {(d.watts_panel || d.paneles_limpiados) && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <Stat label="Watts / panel" value={d.watts_panel ? `${d.watts_panel} W` : "—"} />
+                      <Stat
+                        label="Watts totales"
+                        value={
+                          d.watts_panel && d.paneles_limpiados
+                            ? `${Number(d.watts_panel * d.paneles_limpiados).toLocaleString("es-CL")} W`
+                            : "—"
+                        }
+                      />
+                    </div>
+                  )}
                   {(d.hora_inicio || d.hora_fin) && (
                     <div className="grid grid-cols-2 gap-2">
                       <Stat label="Hora inicio" value={fmtHora(d.hora_inicio)} />
