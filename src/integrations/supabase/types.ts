@@ -1337,6 +1337,7 @@ export type Database = {
           trabajo_id: string
           trabajo_realizado: string | null
           updated_at: string
+          watts_panel: number | null
         }
         Insert: {
           agua_galones?: number | null
@@ -1356,6 +1357,7 @@ export type Database = {
           trabajo_id: string
           trabajo_realizado?: string | null
           updated_at?: string
+          watts_panel?: number | null
         }
         Update: {
           agua_galones?: number | null
@@ -1375,6 +1377,7 @@ export type Database = {
           trabajo_id?: string
           trabajo_realizado?: string | null
           updated_at?: string
+          watts_panel?: number | null
         }
         Relationships: [
           {

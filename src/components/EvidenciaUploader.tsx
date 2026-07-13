@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImagePlus, Trash2, ExternalLink, AlertTriangle, X, Loader2, CheckCircle2, RefreshCw, CloudOff } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listEvidencias, recordEvidencia, deleteEvidencia } from "@/lib/evidencias.functions";
 import { useAuth } from "@/lib/auth-context";
@@ -50,6 +51,7 @@ export function EvidenciaUploader({
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const procesandoRef = useRef<Set<string>>(new Set());
   const [categoria, setCategoria] = useState<Categoria>("antes");
   const [cola, setCola] = useState<ItemSubida[]>([]);
@@ -273,21 +275,39 @@ export function EvidenciaUploader({
             ref={inputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             multiple
             onChange={onPick}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="w-full border border-dashed border-border rounded-lg p-4 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            <ImagePlus className="size-4" />
-            {subiendoN > 0
-              ? `Subiendo ${subiendoN}…`
-              : `Subir / tomar fotos para "${CATEGORIAS.find((c) => c.value === categoria)?.label}"`}
-          </button>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onPick}
+            className="hidden"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="border border-dashed border-border rounded-lg p-3 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground flex items-center justify-center gap-2"
+            >
+              <Camera className="size-4" />
+              {subiendoN > 0 ? `Subiendo ${subiendoN}…` : "Tomar foto"}
+            </button>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="border border-dashed border-border rounded-lg p-3 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground flex items-center justify-center gap-2"
+            >
+              <Images className="size-4" />
+              Desde galería
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center mt-1">
+            Categoría: {CATEGORIAS.find((c) => c.value === categoria)?.label}
+          </p>
         </div>
       )}
 
