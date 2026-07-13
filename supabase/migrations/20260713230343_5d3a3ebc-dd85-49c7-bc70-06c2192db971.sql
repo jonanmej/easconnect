@@ -1,0 +1,1 @@
+ALTER TABLE public.trabajo_reportes_diarios ADD COLUMN IF NOT EXISTS watts_panel numeric;
