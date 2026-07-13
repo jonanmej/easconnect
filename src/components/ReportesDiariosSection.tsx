@@ -185,6 +185,13 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                       <Stat label="Hora fin" value={fmtHora(d.hora_fin)} />
                     </div>
                   )}
+                  {(d.tds_ppm != null || d.angulo_inclinacion != null || d.presion_agua_psi != null) && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      <Stat label="TDS (PPM)" value={d.tds_ppm ?? "—"} />
+                      <Stat label="Ángulo (°)" value={d.angulo_inclinacion ?? "—"} />
+                      <Stat label="Presión (PSI)" value={d.presion_agua_psi ?? "—"} />
+                    </div>
+                  )}
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
@@ -377,6 +384,9 @@ function DiarioForm({
         agua_galones: num("agua_galones"),
         watts_panel: num("watts_panel"),
         horas_trabajadas: horasCalc ?? num("horas_trabajadas"),
+        tds_ppm: num("tds_ppm"),
+        angulo_inclinacion: num("angulo_inclinacion"),
+        presion_agua_psi: num("presion_agua_psi"),
         hora_inicio: horaInicio || null,
         hora_fin: horaFin || null,
         clima: get("clima") || null,
@@ -472,6 +482,17 @@ function DiarioForm({
           />
         </FieldS>
         <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <FieldS label="TDS (PPM)">
+          <input name="tds_ppm" type="number" min={0} step="1" placeholder="Ej. 150" className={inputCls} />
+        </FieldS>
+        <FieldS label="Ángulo de inclinación (°)">
+          <input name="angulo_inclinacion" type="number" step="0.1" placeholder="Ej. 15" className={inputCls} />
+        </FieldS>
+        <FieldS label="Presión de agua (PSI)">
+          <input name="presion_agua_psi" type="number" min={0} step="1" placeholder="Ej. 60" className={inputCls} />
+        </FieldS>
       </div>
       <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
       <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
