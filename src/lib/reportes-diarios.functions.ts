@@ -11,6 +11,7 @@ const ZDiario = z.object({
   avance_pct: z.number().int().min(0).max(100).nullable().optional(),
   paneles_limpiados: z.number().int().min(0).nullable().optional(),
   agua_galones: z.number().min(0).nullable().optional(),
+  watts_panel: z.number().min(0).nullable().optional(),
   horas_trabajadas: z.number().min(0).nullable().optional(),
   clima: z.string().nullable().optional(),
   trabajo_realizado: z.string().nullable().optional(),
