@@ -1321,6 +1321,7 @@ export type Database = {
       trabajo_reportes_diarios: {
         Row: {
           agua_galones: number | null
+          angulo_inclinacion: number | null
           avance_pct: number | null
           bloqueos: string | null
           clima: string | null
@@ -1333,6 +1334,8 @@ export type Database = {
           id: string
           observaciones: string | null
           paneles_limpiados: number | null
+          presion_agua_psi: number | null
+          tds_ppm: number | null
           tecnico_id: string
           trabajo_id: string
           trabajo_realizado: string | null
@@ -1341,6 +1344,7 @@ export type Database = {
         }
         Insert: {
           agua_galones?: number | null
+          angulo_inclinacion?: number | null
           avance_pct?: number | null
           bloqueos?: string | null
           clima?: string | null
@@ -1353,6 +1357,8 @@ export type Database = {
           id?: string
           observaciones?: string | null
           paneles_limpiados?: number | null
+          presion_agua_psi?: number | null
+          tds_ppm?: number | null
           tecnico_id: string
           trabajo_id: string
           trabajo_realizado?: string | null
@@ -1361,6 +1367,7 @@ export type Database = {
         }
         Update: {
           agua_galones?: number | null
+          angulo_inclinacion?: number | null
           avance_pct?: number | null
           bloqueos?: string | null
           clima?: string | null
@@ -1373,6 +1380,8 @@ export type Database = {
           id?: string
           observaciones?: string | null
           paneles_limpiados?: number | null
+          presion_agua_psi?: number | null
+          tds_ppm?: number | null
           tecnico_id?: string
           trabajo_id?: string
           trabajo_realizado?: string | null
