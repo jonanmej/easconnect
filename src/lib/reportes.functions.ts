@@ -999,6 +999,29 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     }
     if (!ok) throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${lastErr?.message ?? ""})`);
 
+    // Corregir nombres propios en la respuesta del modelo (evita "Apopa" → "Appopa").
+    {
+      const { normalizarNombresCanonicos } = await import("@/lib/normalizar-nombres");
+      const { data: plantasCliente } = await supabase
+        .from("plantas").select("nombre").eq("cliente_id", cliente.id);
+      const { data: clientesTodos } = await supabase.from("clientes").select("nombre");
+      const canonicos = [
+        cliente?.nombre ?? "",
+        planta?.nombre ?? "",
+        ...((plantasCliente ?? []).map((p: any) => p.nombre)),
+        ...((clientesTodos ?? []).map((c: any) => c.nombre)),
+      ];
+      const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+      aiResult = {
+        ...aiResult,
+        titulo: fix(aiResult.titulo),
+        resumen: fix(aiResult.resumen),
+        kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
+        hallazgos: aiResult.hallazgos.map(fix),
+        recomendaciones: aiResult.recomendaciones.map(fix),
+      };
+    }
+
     const periodo = (() => {
       const fechas = diarios.map((d: any) => d.fecha).filter(Boolean).sort();
       if (!fechas.length) return new Date().toISOString().slice(0, 10);
