@@ -233,9 +233,24 @@ function StaffDashboard() {
   })();
   const incidentes = Number(stats.data?.anomalias_detectadas ?? 0);
 
+  // Paneles limpiados vs. parque de las plantas con al menos un trabajo cerrado.
+  const panelesResumen = (() => {
+    const filas = (panelesQ.data?.filas as any[] | undefined) ?? [];
+    const limpiados = filas.reduce((s, f) => s + Number(f.paneles_limpiados ?? 0), 0);
+    const parque = filas.reduce((s, f) => s + Number(f.paneles_planta ?? 0), 0);
+    return { limpiados, parque };
+  })();
+
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
-    { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString("es-SV", ), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString("es-SV", )}` : "acumulado", tone: "accent" as const },
+    {
+      label: "Paneles limpiados",
+      value: panelesResumen.limpiados.toLocaleString("es-SV"),
+      delta: panelesResumen.parque
+        ? `de ${panelesResumen.parque.toLocaleString("es-SV")} en plantas trabajadas`
+        : "sin trabajos cerrados",
+      tone: "accent" as const,
+    },
     { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
     { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString("es-SV", ), delta: "galones", tone: "accent" as const },
     { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
