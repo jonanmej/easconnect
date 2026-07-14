@@ -189,7 +189,7 @@ export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
       if (!pid) continue;
       const paneles = panelesPorTrabajo.get(t.id) ?? 0;
       if (paneles === 0) continue;
-      const fila = mapa.get(pid) ?? {
+      const fila: Fila = mapa.get(pid) ?? {
         planta_id: pid,
         planta: t.plantas?.nombre ?? "—",
         cliente: t.plantas?.clientes?.nombre ?? "—",
