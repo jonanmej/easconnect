@@ -804,7 +804,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
 
     const [diariosRes, pdfsRes] = await Promise.all([
       supabase.from("trabajo_reportes_diarios")
-        .select("fecha, tecnico_id, avance_pct, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, bloqueos, observaciones")
+        .select("fecha, tecnico_id, avance_pct, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, bloqueos, observaciones, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
         .eq("trabajo_id", data.trabajo_id)
         .order("fecha", { ascending: true }),
       supabase.from("trabajo_reportes_pdf")
