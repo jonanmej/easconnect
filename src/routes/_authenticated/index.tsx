@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
-import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
+import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -113,6 +113,7 @@ function StaffDashboard() {
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
   const fetchAgua = useServerFn(aguaPorPlanta);
+  const fetchPaneles = useServerFn(panelesLimpiadosPorPlanta);
   // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
   const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
@@ -120,6 +121,7 @@ function StaffDashboard() {
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
+  const panelesQ = useQuery({ queryKey: ["paneles-por-planta"], queryFn: () => fetchPaneles(), ...qOpts });
   const fetchTrabajos = useServerFn(listTrabajos);
   const trabajosQ = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos(), ...qOpts });
 
