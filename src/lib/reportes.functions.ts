@@ -466,6 +466,28 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       console.warn("[generarReporte] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
+    // Corregir ortografía de nombres propios que la IA pueda haber alterado
+    // (p.ej. "Apopa" → "Appopa"). Se toman los nombres canónicos de la base.
+    const { normalizarNombresCanonicos } = await import("@/lib/normalizar-nombres");
+    const { data: plantasCliente } = await supabase
+      .from("plantas").select("nombre").eq("cliente_id", data.cliente_id);
+    const { data: clientesTodos } = await supabase.from("clientes").select("nombre");
+    const canonicos = [
+      cliente?.nombre ?? "",
+      planta?.nombre ?? "",
+      ...((plantasCliente ?? []).map((p: any) => p.nombre)),
+      ...((clientesTodos ?? []).map((c: any) => c.nombre)),
+    ];
+    const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+    aiResult = {
+      ...aiResult,
+      titulo: fix(aiResult.titulo),
+      resumen: fix(aiResult.resumen),
+      kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
+      hallazgos: aiResult.hallazgos.map(fix),
+      recomendaciones: aiResult.recomendaciones.map(fix),
+    };
+
     const markdown = [
       `# ${aiResult.titulo}`,
       ``,
