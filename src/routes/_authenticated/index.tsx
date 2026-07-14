@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
-import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta } from "@/lib/dashboard.functions";
+import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -39,6 +39,87 @@ function Index() {
   const { roles } = useAuth();
   if (highestRole(roles) === "cliente") return <ClienteDashboard />;
   return <StaffDashboard />;
+}
+
+function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: boolean }) {
+  const filas = (data?.filas as any[] | undefined) ?? [];
+  const totalPaneles = Number(data?.total_paneles ?? 0);
+  const totalCiclos = Number(data?.total_ciclos ?? 0);
+  return (
+    <section className="bg-card border border-border rounded-xl p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Paneles limpiados por ciclo cerrado (trabajo completado) para cada cliente y planta con historial registrado.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-mono font-semibold text-accent tracking-tight">
+            {totalPaneles.toLocaleString("es-SV")}
+          </p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            en {totalCiclos} ciclo{totalCiclos === 1 ? "" : "s"} completado{totalCiclos === 1 ? "" : "s"}
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : filas.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-6">
+          Aún no hay ciclos de limpieza cerrados con paneles registrados.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead className="text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Cliente</th>
+                <th className="px-3 py-2 text-left">Planta</th>
+                <th className="px-3 py-2 text-right">Ciclos</th>
+                <th className="px-3 py-2 text-right">Paneles limpiados</th>
+                <th className="px-3 py-2 text-right">Parque</th>
+                <th className="px-3 py-2 text-left">Detalle por ciclo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filas.map((f) => (
+                <tr key={f.planta_id} className="align-top">
+                  <td className="px-3 py-2">{f.cliente}</td>
+                  <td className="px-3 py-2">{f.planta}</td>
+                  <td className="px-3 py-2 text-right font-mono">{f.ciclos.length}</td>
+                  <td className="px-3 py-2 text-right font-mono text-accent">
+                    {Number(f.paneles_limpiados).toLocaleString("es-SV")}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                    {f.paneles_planta ? Number(f.paneles_planta).toLocaleString("es-SV") : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-primary hover:underline">
+                        Ver {f.ciclos.length} ciclo{f.ciclos.length === 1 ? "" : "s"}
+                      </summary>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {f.ciclos.map((c: any) => (
+                          <li key={c.trabajo_id} className="flex items-center justify-between gap-3 border-l-2 border-accent/40 pl-2">
+                            <span className="font-mono text-muted-foreground">{c.folio}</span>
+                            <span className="text-muted-foreground">
+                              {c.fecha ? new Date(c.fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
+                            </span>
+                            <span className="font-mono font-semibold">{Number(c.paneles).toLocaleString("es-SV")}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
 }
 
 function CumplimientoContratos() {
@@ -113,6 +194,7 @@ function StaffDashboard() {
   const fetchAlertas = useServerFn(dashboardAlertas);
   const fetchSla = useServerFn(listTrabajosSla);
   const fetchAgua = useServerFn(aguaPorPlanta);
+  const fetchPaneles = useServerFn(panelesLimpiadosPorPlanta);
   // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
   const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
@@ -120,6 +202,7 @@ function StaffDashboard() {
   const alertas = useQuery({ queryKey: ["alertas-sidebar"], queryFn: () => fetchAlertas(), ...qOpts });
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
+  const panelesQ = useQuery({ queryKey: ["paneles-por-planta"], queryFn: () => fetchPaneles(), ...qOpts });
   const fetchTrabajos = useServerFn(listTrabajos);
   const trabajosQ = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos(), ...qOpts });
 
@@ -150,9 +233,24 @@ function StaffDashboard() {
   })();
   const incidentes = Number(stats.data?.anomalias_detectadas ?? 0);
 
+  // Paneles limpiados vs. parque de las plantas con al menos un trabajo cerrado.
+  const panelesResumen = (() => {
+    const filas = (panelesQ.data?.filas as any[] | undefined) ?? [];
+    const limpiados = filas.reduce((s, f) => s + Number(f.paneles_limpiados ?? 0), 0);
+    const parque = filas.reduce((s, f) => s + Number(f.paneles_planta ?? 0), 0);
+    return { limpiados, parque };
+  })();
+
   const kpis = [
     { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
-    { label: "Paneles limpiados", value: (stats.data?.paneles_limpiados ?? 0).toLocaleString("es-SV", ), delta: stats.data?.paneles_parque ? `de ${stats.data.paneles_parque.toLocaleString("es-SV", )}` : "acumulado", tone: "accent" as const },
+    {
+      label: "Paneles limpiados",
+      value: panelesResumen.limpiados.toLocaleString("es-SV"),
+      delta: panelesResumen.parque
+        ? `de ${panelesResumen.parque.toLocaleString("es-SV")} en plantas trabajadas`
+        : "sin trabajos cerrados",
+      tone: "accent" as const,
+    },
     { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
     { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString("es-SV", ), delta: "galones", tone: "accent" as const },
     { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
@@ -225,27 +323,7 @@ function StaffDashboard() {
 
       <CumplimientoContratos />
 
-      <section className="bg-gradient-to-br from-accent/10 to-primary/5 border border-accent/20 rounded-xl p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Suma total de paneles limpiados por cada ciclo (trabajo completado). Se incrementa constantemente.
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-4xl md:text-5xl font-mono font-semibold text-accent tracking-tight">
-              {(stats.data?.paneles_limpiados ?? 0).toLocaleString("es-SV", )}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              en <span className="font-mono font-semibold">{ciclos}</span> ciclo{ciclos === 1 ? "" : "s"} completado{ciclos === 1 ? "" : "s"}
-              {ciclos > 0 && (
-                <> · <span className="font-mono">{Math.round((stats.data?.paneles_limpiados ?? 0) / ciclos).toLocaleString("es-SV", )}</span> promedio/ciclo</>
-              )}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PanelesLimpiadosHistorico data={panelesQ.data} loading={panelesQ.isLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">

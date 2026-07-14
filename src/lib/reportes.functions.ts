@@ -240,7 +240,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     // Reportes diarios cargados por técnicos día a día (fuente principal desde el refactor).
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct")
+          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
@@ -294,6 +294,11 @@ export const generarReporte = createServerFn({ method: "POST" })
         trabajo_realizado: r.trabajo_realizado,
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
+        watts_panel: r.watts_panel,
+        watts_totales: r.watts_panel && r.paneles_limpiados ? Math.round(Number(r.watts_panel) * Number(r.paneles_limpiados)) : null,
+        tds_ppm: r.tds_ppm,
+        angulo_inclinacion: r.angulo_inclinacion,
+        presion_agua_psi: r.presion_agua_psi,
       })),
     };
 
@@ -372,6 +377,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
+      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
     ].join(" ");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
@@ -460,6 +466,28 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       // Avisar en consola para diagnóstico; no romper el reporte ya generado.
       console.warn("[generarReporte] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
+
+    // Corregir ortografía de nombres propios que la IA pueda haber alterado
+    // (p.ej. "Apopa" → "Appopa"). Se toman los nombres canónicos de la base.
+    const { normalizarNombresCanonicos } = await import("@/lib/normalizar-nombres");
+    const { data: plantasCliente } = await supabase
+      .from("plantas").select("nombre").eq("cliente_id", data.cliente_id);
+    const { data: clientesTodos } = await supabase.from("clientes").select("nombre");
+    const canonicos = [
+      cliente?.nombre ?? "",
+      planta?.nombre ?? "",
+      ...((plantasCliente ?? []).map((p: any) => p.nombre)),
+      ...((clientesTodos ?? []).map((c: any) => c.nombre)),
+    ];
+    const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+    aiResult = {
+      ...aiResult,
+      titulo: fix(aiResult.titulo),
+      resumen: fix(aiResult.resumen),
+      kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
+      hallazgos: aiResult.hallazgos.map(fix),
+      recomendaciones: aiResult.recomendaciones.map(fix),
+    };
 
     const markdown = [
       `# ${aiResult.titulo}`,
@@ -799,7 +827,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
 
     const [diariosRes, pdfsRes] = await Promise.all([
       supabase.from("trabajo_reportes_diarios")
-        .select("fecha, tecnico_id, avance_pct, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, bloqueos, observaciones")
+        .select("fecha, tecnico_id, avance_pct, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, bloqueos, observaciones, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
         .eq("trabajo_id", data.trabajo_id)
         .order("fecha", { ascending: true }),
       supabase.from("trabajo_reportes_pdf")
@@ -895,6 +923,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "NUNCA menciones los archivos PDF adjuntos: nada de nombres de archivo, fechas de subida, notas del PDF ni frases como 'según el PDF' o 'en el documento adjunto'. Integra la información como propia del análisis.",
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
+      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
     ].join(" ");
     const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
 
@@ -971,6 +1000,29 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       }
     }
     if (!ok) throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${lastErr?.message ?? ""})`);
+
+    // Corregir nombres propios en la respuesta del modelo (evita "Apopa" → "Appopa").
+    {
+      const { normalizarNombresCanonicos } = await import("@/lib/normalizar-nombres");
+      const { data: plantasCliente } = await supabase
+        .from("plantas").select("nombre").eq("cliente_id", cliente.id);
+      const { data: clientesTodos } = await supabase.from("clientes").select("nombre");
+      const canonicos = [
+        cliente?.nombre ?? "",
+        planta?.nombre ?? "",
+        ...((plantasCliente ?? []).map((p: any) => p.nombre)),
+        ...((clientesTodos ?? []).map((c: any) => c.nombre)),
+      ];
+      const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+      aiResult = {
+        ...aiResult,
+        titulo: fix(aiResult.titulo),
+        resumen: fix(aiResult.resumen),
+        kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
+        hallazgos: aiResult.hallazgos.map(fix),
+        recomendaciones: aiResult.recomendaciones.map(fix),
+      };
+    }
 
     const periodo = (() => {
       const fechas = diarios.map((d: any) => d.fecha).filter(Boolean).sort();
