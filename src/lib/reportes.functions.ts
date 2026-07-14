@@ -240,7 +240,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     // Reportes diarios cargados por técnicos día a día (fuente principal desde el refactor).
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct")
+          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
@@ -294,6 +294,11 @@ export const generarReporte = createServerFn({ method: "POST" })
         trabajo_realizado: r.trabajo_realizado,
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
+        watts_panel: r.watts_panel,
+        watts_totales: r.watts_panel && r.paneles_limpiados ? Math.round(Number(r.watts_panel) * Number(r.paneles_limpiados)) : null,
+        tds_ppm: r.tds_ppm,
+        angulo_inclinacion: r.angulo_inclinacion,
+        presion_agua_psi: r.presion_agua_psi,
       })),
     };
 
