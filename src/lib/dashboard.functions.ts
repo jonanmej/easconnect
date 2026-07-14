@@ -137,3 +137,78 @@ export const aguaPorPlanta = createServerFn({ method: "GET" })
     const total = filas.reduce((s, r) => s + r.galones, 0);
     return { filas, total };
   });
+
+/**
+ * Paneles limpiados por ciclo cerrado (trabajo completado de limpieza),
+ * agrupados por cliente y planta. Cada fila incluye la lista de ciclos
+ * (folio, fecha, paneles) para poder mostrar el detalle en el dashboard.
+ */
+export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase;
+    // 1. Trabajos completados que corresponden a limpieza.
+    const { data: trabajos, error } = await supabase
+      .from("trabajos")
+      .select("id, folio, servicio, fecha_completado, planta_id, plantas(nombre, paneles, clientes(nombre))")
+      .eq("estado", "completado")
+      .ilike("servicio", "%limpieza%")
+      .order("fecha_completado", { ascending: false });
+    if (error) throw new Error(error.message);
+    const trabajosArr = (trabajos ?? []) as any[];
+    if (trabajosArr.length === 0) return { filas: [], total_paneles: 0, total_ciclos: 0 };
+
+    // 2. Sumar paneles limpiados desde reportes diarios y reportes base.
+    const ids = trabajosArr.map((t) => t.id);
+    const [diariosRes, baseRes] = await Promise.all([
+      supabase.from("trabajo_reportes_diarios")
+        .select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
+      supabase.from("trabajo_reportes")
+        .select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
+    ]);
+    const panelesPorTrabajo = new Map<string, number>();
+    for (const r of [...(diariosRes.data ?? []), ...(baseRes.data ?? [])] as any[]) {
+      const val = Number(r.paneles_limpiados ?? 0);
+      if (!val) continue;
+      panelesPorTrabajo.set(r.trabajo_id, (panelesPorTrabajo.get(r.trabajo_id) ?? 0) + val);
+    }
+
+    // 3. Agrupar por planta.
+    type Ciclo = { trabajo_id: string; folio: string; fecha: string | null; paneles: number };
+    type Fila = {
+      planta_id: string;
+      planta: string;
+      cliente: string;
+      paneles_planta: number;
+      ciclos: Ciclo[];
+      paneles_limpiados: number;
+    };
+    const mapa = new Map<string, Fila>();
+    for (const t of trabajosArr) {
+      const pid = t.planta_id;
+      if (!pid) continue;
+      const paneles = panelesPorTrabajo.get(t.id) ?? 0;
+      if (paneles === 0) continue;
+      const fila = mapa.get(pid) ?? {
+        planta_id: pid,
+        planta: t.plantas?.nombre ?? "—",
+        cliente: t.plantas?.clientes?.nombre ?? "—",
+        paneles_planta: Number(t.plantas?.paneles ?? 0),
+        ciclos: [],
+        paneles_limpiados: 0,
+      };
+      fila.ciclos.push({
+        trabajo_id: t.id,
+        folio: t.folio,
+        fecha: t.fecha_completado,
+        paneles,
+      });
+      fila.paneles_limpiados += paneles;
+      mapa.set(pid, fila);
+    }
+
+    const filas = Array.from(mapa.values()).sort((a, b) => b.paneles_limpiados - a.paneles_limpiados);
+    const total_paneles = filas.reduce((s, f) => s + f.paneles_limpiados, 0);
+    const total_ciclos = filas.reduce((s, f) => s + f.ciclos.length, 0);
+    return { filas, total_paneles, total_ciclos };
+  });
