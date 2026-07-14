@@ -41,6 +41,87 @@ function Index() {
   return <StaffDashboard />;
 }
 
+function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: boolean }) {
+  const filas = (data?.filas as any[] | undefined) ?? [];
+  const totalPaneles = Number(data?.total_paneles ?? 0);
+  const totalCiclos = Number(data?.total_ciclos ?? 0);
+  return (
+    <section className="bg-card border border-border rounded-xl p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Paneles limpiados por ciclo cerrado (trabajo completado) para cada cliente y planta con historial registrado.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-mono font-semibold text-accent tracking-tight">
+            {totalPaneles.toLocaleString("es-SV")}
+          </p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            en {totalCiclos} ciclo{totalCiclos === 1 ? "" : "s"} completado{totalCiclos === 1 ? "" : "s"}
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : filas.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-6">
+          Aún no hay ciclos de limpieza cerrados con paneles registrados.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead className="text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Cliente</th>
+                <th className="px-3 py-2 text-left">Planta</th>
+                <th className="px-3 py-2 text-right">Ciclos</th>
+                <th className="px-3 py-2 text-right">Paneles limpiados</th>
+                <th className="px-3 py-2 text-right">Parque</th>
+                <th className="px-3 py-2 text-left">Detalle por ciclo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filas.map((f) => (
+                <tr key={f.planta_id} className="align-top">
+                  <td className="px-3 py-2">{f.cliente}</td>
+                  <td className="px-3 py-2">{f.planta}</td>
+                  <td className="px-3 py-2 text-right font-mono">{f.ciclos.length}</td>
+                  <td className="px-3 py-2 text-right font-mono text-accent">
+                    {Number(f.paneles_limpiados).toLocaleString("es-SV")}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                    {f.paneles_planta ? Number(f.paneles_planta).toLocaleString("es-SV") : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-primary hover:underline">
+                        Ver {f.ciclos.length} ciclo{f.ciclos.length === 1 ? "" : "s"}
+                      </summary>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {f.ciclos.map((c: any) => (
+                          <li key={c.trabajo_id} className="flex items-center justify-between gap-3 border-l-2 border-accent/40 pl-2">
+                            <span className="font-mono text-muted-foreground">{c.folio}</span>
+                            <span className="text-muted-foreground">
+                              {c.fecha ? new Date(c.fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
+                            </span>
+                            <span className="font-mono font-semibold">{Number(c.paneles).toLocaleString("es-SV")}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function CumplimientoContratos() {
   const fCump = useServerFn(cumplimientoAnual);
   const cump = useQuery({ queryKey: ["cumplimiento-anual"], queryFn: () => fCump(), staleTime: 60_000 });
