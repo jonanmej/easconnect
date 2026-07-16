@@ -139,19 +139,19 @@ export const aguaPorPlanta = createServerFn({ method: "GET" })
   });
 
 /**
- * Paneles limpiados por ciclo cerrado (trabajo completado de limpieza),
- * agrupados por cliente y planta. Cada fila incluye la lista de ciclos
- * (folio, fecha, paneles) para poder mostrar el detalle en el dashboard.
+ * Paneles limpiados por trabajo de limpieza (completado o en curso),
+ * agrupados por cliente y planta. Cada fila incluye la lista de trabajos
+ * (folio, fecha, estado, paneles) para poder mostrar el detalle en el dashboard.
  */
 export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const supabase = context.supabase;
-    // 1. Trabajos completados que corresponden a limpieza.
+    // 1. Trabajos de limpieza completados o en curso.
     const { data: trabajos, error } = await supabase
       .from("trabajos")
-      .select("id, folio, servicio, fecha_completado, planta_id, plantas(nombre, paneles, clientes(nombre))")
-      .eq("estado", "completado")
+      .select("id, folio, servicio, estado, fecha_programada, fecha_completado, planta_id, plantas(nombre, paneles, clientes(nombre))")
+      .in("estado", ["completado", "en_progreso"])
       .ilike("servicio", "%limpieza%")
       .order("fecha_completado", { ascending: false });
     if (error) throw new Error(error.message);
@@ -174,7 +174,7 @@ export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
     }
 
     // 3. Agrupar por planta.
-    type Ciclo = { trabajo_id: string; folio: string; fecha: string | null; paneles: number };
+    type Ciclo = { trabajo_id: string; folio: string; fecha: string | null; estado: string; paneles: number };
     type Fila = {
       planta_id: string;
       planta: string;
@@ -200,7 +200,8 @@ export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
       fila.ciclos.push({
         trabajo_id: t.id,
         folio: t.folio,
-        fecha: t.fecha_completado,
+        fecha: t.fecha_completado ?? t.fecha_programada,
+        estado: t.estado,
         paneles,
       });
       fila.paneles_limpiados += paneles;
@@ -211,4 +212,95 @@ export const panelesLimpiadosPorPlanta = createServerFn({ method: "GET" })
     const total_paneles = filas.reduce((s, f) => s + f.paneles_limpiados, 0);
     const total_ciclos = filas.reduce((s, f) => s + f.ciclos.length, 0);
     return { filas, total_paneles, total_ciclos };
+  });
+
+/**
+ * Meta de limpieza: para trabajos de limpieza en curso (o programados
+ * cuya ventana ya inició), compara paneles limpiados vs paneles esperados
+ * a la fecha, en función del parque de la planta y la duración planeada.
+ *
+ * expected(t) = paneles_planta * clamp(dias_transcurridos / duracion_dias, 0, 1)
+ * actual(t)   = Σ paneles_limpiados en trabajo_reportes_diarios de ese trabajo
+ *
+ * Estado global (basado en avance total actual vs esperado):
+ *  - "superada":   actual >= expected * 1.02
+ *  - "cumpliendo": expected * 0.98 <= actual < expected * 1.02
+ *  - "desface":    actual < expected * 0.98
+ */
+export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase;
+    const { data: trabajos, error } = await supabase
+      .from("trabajos")
+      .select("id, folio, estado, servicio, fecha_programada, duracion_dias, planta_id, plantas(nombre, paneles, clientes(nombre))")
+      .in("estado", ["en_progreso", "programado"])
+      .ilike("servicio", "%limpieza%");
+    if (error) throw new Error(error.message);
+    const now = Date.now();
+    const activos = (trabajos ?? []).filter((t: any) => {
+      const inicio = new Date(t.fecha_programada).getTime();
+      return inicio <= now; // solo los que ya iniciaron
+    });
+    if (activos.length === 0) {
+      return {
+        estado: "sin_datos" as const,
+        desface_pct: 0,
+        actual: 0,
+        esperado: 0,
+        num_trabajos: 0,
+        detalle: [] as any[],
+      };
+    }
+    const ids = activos.map((t: any) => t.id);
+    const [diariosRes, baseRes] = await Promise.all([
+      supabase.from("trabajo_reportes_diarios").select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
+      supabase.from("trabajo_reportes").select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
+    ]);
+    const panelesPorTrabajo = new Map<string, number>();
+    for (const r of [...(diariosRes.data ?? []), ...(baseRes.data ?? [])] as any[]) {
+      const v = Number(r.paneles_limpiados ?? 0);
+      if (!v) continue;
+      panelesPorTrabajo.set(r.trabajo_id, (panelesPorTrabajo.get(r.trabajo_id) ?? 0) + v);
+    }
+    let totalActual = 0;
+    let totalEsperado = 0;
+    const detalle: any[] = [];
+    for (const t of activos as any[]) {
+      const parque = Number(t.plantas?.paneles ?? 0);
+      const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
+      const inicio = new Date(t.fecha_programada).getTime();
+      const diasTx = Math.max(0, (now - inicio) / 86400000);
+      const factor = Math.min(1, diasTx / duracion);
+      const esperado = Math.round(parque * factor);
+      const actual = panelesPorTrabajo.get(t.id) ?? 0;
+      const desface = actual - esperado;
+      totalActual += actual;
+      totalEsperado += esperado;
+      detalle.push({
+        trabajo_id: t.id,
+        folio: t.folio,
+        planta: t.plantas?.nombre ?? "—",
+        cliente: t.plantas?.clientes?.nombre ?? "—",
+        parque,
+        duracion_dias: duracion,
+        dias_transcurridos: Math.round(diasTx * 10) / 10,
+        actual,
+        esperado,
+        desface,
+      });
+    }
+    const ratio = totalEsperado > 0 ? totalActual / totalEsperado : 1;
+    const desface_pct = totalEsperado > 0
+      ? Math.round(((totalActual - totalEsperado) / totalEsperado) * 100)
+      : 0;
+    const estado = ratio >= 1.02 ? "superada" : ratio >= 0.98 ? "cumpliendo" : "desface";
+    return {
+      estado,
+      desface_pct,
+      actual: totalActual,
+      esperado: totalEsperado,
+      num_trabajos: activos.length,
+      detalle: detalle.sort((a, b) => a.desface - b.desface),
+    };
   });
