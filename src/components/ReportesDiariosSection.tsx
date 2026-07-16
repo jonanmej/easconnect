@@ -70,7 +70,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: { trabajo_id: trabajoId, ...v } }),
     onSuccess: async () => {
-      toast.success("Reporte diario guardado");
+      toast.success("Reporte diario guardado. Adjunta las fotos del día en «Evidencias de este día» dentro del reporte recién creado.");
       await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -245,8 +245,8 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
       {!isStSolar && (
         <Section
           icon={Camera}
-          title="Hallazgos fotográficos"
-          subtitle="Antes / Durante / Después / Anomalías"
+          title="Hallazgos fotográficos (sin día asignado)"
+          subtitle="Prefiere adjuntar las fotos dentro de cada reporte diario. Esta sección es solo para evidencia que no corresponde a un día específico."
         >
           <EvidenciaUploader trabajoId={trabajoId} />
         </Section>

@@ -49,6 +49,30 @@ export function normalizarNombresCanonicos(texto: string, nombresCanonicos: stri
   if (canonicos.length === 0) return texto;
 
   let out = texto;
+  // Pre-pass: para cada canónico, colapsar variantes con letras repetidas
+  // (ej. "APPOPA ENERGY" → "Apopa Energy") y variantes case-insensitive
+  // exactas. Este pase usa un patrón por palabra tolerante a duplicación.
+  for (const canon of canonicos) {
+    // Escapa regex y permite letras repetidas dentro de cada palabra del canónico.
+    // "Apopa" → /A+p+o+p+a+/i  y las palabras se separan por \s+
+    const words = canon.split(/\s+/).map((w) => {
+      const chars = Array.from(w);
+      return chars
+        .map((c) => {
+          const esc = c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          // Solo letras: permitir repetición
+          return /[\p{L}]/u.test(c) ? `${esc}+` : esc;
+        })
+        .join("");
+    });
+    // Frontera "de palabra" tolerante a Unicode: bordes con no-letra o inicio/fin.
+    const pattern = new RegExp(
+      `(^|[^\\p{L}\\p{N}])(${words.join("\\s+")})(?=[^\\p{L}\\p{N}]|$)`,
+      "giu",
+    );
+    out = out.replace(pattern, (_m, pre) => `${pre}${canon}`);
+  }
+
   for (const canon of canonicos) {
     const tokens = canon.split(/\s+/);
     const nTokens = tokens.length;

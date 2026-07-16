@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
-import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta } from "@/lib/dashboard.functions";
+import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta, metaCumplimientoLimpieza } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
@@ -49,9 +49,9 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
     <section className="bg-card border border-border rounded-xl p-5">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · por trabajo</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Paneles limpiados por ciclo cerrado (trabajo completado) para cada cliente y planta con historial registrado.
+            Paneles limpiados por trabajo (completado o en curso) para cada cliente y planta con registro diario ingresado.
           </p>
         </div>
         <div className="text-right">
@@ -195,6 +195,7 @@ function StaffDashboard() {
   const fetchSla = useServerFn(listTrabajosSla);
   const fetchAgua = useServerFn(aguaPorPlanta);
   const fetchPaneles = useServerFn(panelesLimpiadosPorPlanta);
+  const fetchMeta = useServerFn(metaCumplimientoLimpieza);
   // Cache durante 60s para evitar recomputos en tabs/cambios rápidos.
   const qOpts = { staleTime: 60_000, refetchOnWindowFocus: false } as const;
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: () => fetchStats(), ...qOpts });
@@ -203,6 +204,7 @@ function StaffDashboard() {
   const sla = useQuery({ queryKey: ["trabajos-sla"], queryFn: () => fetchSla(), ...qOpts });
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
   const panelesQ = useQuery({ queryKey: ["paneles-por-planta"], queryFn: () => fetchPaneles(), ...qOpts });
+  const metaQ = useQuery({ queryKey: ["meta-limpieza"], queryFn: () => fetchMeta(), ...qOpts });
   const fetchTrabajos = useServerFn(listTrabajos);
   const trabajosQ = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos(), ...qOpts });
 
@@ -231,7 +233,22 @@ function StaffDashboard() {
     const ts = (trabajosQ.data as any[] | undefined) ?? [];
     return ts.filter((t) => t.estado === "completado" && String(t.servicio ?? "").toLowerCase().includes("limpieza")).length;
   })();
-  const incidentes = Number(stats.data?.anomalias_detectadas ?? 0);
+  // Meta de limpieza: reemplaza el KPI "Incidentes de seguridad".
+  const meta = metaQ.data as any | undefined;
+  const metaKpi = (() => {
+    if (!meta || meta.estado === "sin_datos") {
+      return { value: "—", delta: "sin trabajos activos", tone: "muted" as const };
+    }
+    const signo = meta.desface_pct > 0 ? "+" : "";
+    const valor = `${signo}${meta.desface_pct}%`;
+    if (meta.estado === "superada") {
+      return { value: valor, delta: `meta superada · ${meta.num_trabajos} activo(s)`, tone: "accent" as const };
+    }
+    if (meta.estado === "cumpliendo") {
+      return { value: valor, delta: `cumpliendo meta · ${meta.num_trabajos} activo(s)`, tone: "accent" as const };
+    }
+    return { value: valor, delta: `desface · ${meta.num_trabajos} activo(s)`, tone: "danger" as const };
+  })();
 
   // Paneles limpiados vs. parque de las plantas con al menos un trabajo cerrado.
   const panelesResumen = (() => {
@@ -254,7 +271,7 @@ function StaffDashboard() {
     { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
     { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString("es-SV", ), delta: "galones", tone: "accent" as const },
     { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
-    { label: "Incidentes de seguridad", value: String(incidentes).padStart(2, "0"), delta: "objetivo: 0", tone: incidentes === 0 ? "accent" as const : "danger" as const },
+    { label: "Meta de limpieza", value: metaKpi.value, delta: metaKpi.delta, tone: metaKpi.tone },
     { label: "Equipos operativos", value: `${stats.data?.equipos_operativos ?? 0}/${stats.data?.equipos_total ?? 0}`, delta: "", tone: "muted" as const },
     { label: "Bajo stock", value: String(stats.data?.inv_bajo_stock ?? 0).padStart(2, "0"), delta: stats.data?.inv_bajo_stock ? "SKUs" : "OK", tone: stats.data?.inv_bajo_stock ? "danger" as const : "muted" as const },
   ];
