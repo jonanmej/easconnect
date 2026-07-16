@@ -70,7 +70,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: { trabajo_id: trabajoId, ...v } }),
     onSuccess: async () => {
-      toast.success("Reporte diario guardado");
+      toast.success("Reporte diario guardado. Adjunta las fotos del día en «Evidencias de este día» dentro del reporte recién creado.");
       await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
     },
     onError: (e: Error) => toast.error(e.message),
