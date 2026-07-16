@@ -245,8 +245,8 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
       {!isStSolar && (
         <Section
           icon={Camera}
-          title="Hallazgos fotográficos"
-          subtitle="Antes / Durante / Después / Anomalías"
+          title="Hallazgos fotográficos (sin día asignado)"
+          subtitle="Prefiere adjuntar las fotos dentro de cada reporte diario. Esta sección es solo para evidencia que no corresponde a un día específico."
         >
           <EvidenciaUploader trabajoId={trabajoId} />
         </Section>
