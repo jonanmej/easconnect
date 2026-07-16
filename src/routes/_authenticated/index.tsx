@@ -49,9 +49,9 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
     <section className="bg-card border border-border rounded-xl p-5">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · acumulado histórico</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · por trabajo</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Paneles limpiados por ciclo cerrado (trabajo completado) para cada cliente y planta con historial registrado.
+            Paneles limpiados por trabajo (completado o en curso) para cada cliente y planta con registro diario ingresado.
           </p>
         </div>
         <div className="text-right">
