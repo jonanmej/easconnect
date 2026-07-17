@@ -654,7 +654,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (trabajoIds.length) {
       const { data: dd } = await supabase
         .from("trabajo_reportes_diarios")
-        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct")
+        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones")
         .in("trabajo_id", trabajoIds)
         .order("fecha", { ascending: true });
       diarios = dd ?? [];
