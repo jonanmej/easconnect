@@ -146,6 +146,18 @@ export type ReporteData = {
   kpis: { label: string; value: string }[];
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
   evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[];
+  reportes_diarios?: {
+    fecha: string;
+    folio?: string | null;
+    paneles_limpiados?: number | null;
+    watts_panel?: number | null;
+    watts_totales?: number | null;
+    tds_ppm?: number | null;
+    angulo_inclinacion?: number | null;
+    presion_agua_psi?: number | null;
+    agua_galones?: number | null;
+    horas_trabajadas?: number | null;
+  }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
@@ -412,6 +424,42 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             </>
           );
         })()}
+        {data.reportes_diarios && data.reportes_diarios.length > 0 && (
+          <>
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
+              <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
+                Registro operativo por día: paneles limpiados, potencia recuperada y parámetros de calidad de limpieza (TDS, ángulo, presión).
+              </Text>
+              <View style={styles.table}>
+                <View style={styles.tr}>
+                  <Text style={[styles.th, { width: "12%" }]}>Fecha</Text>
+                  <Text style={[styles.th, { width: "16%" }]}>Folio</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>Paneles</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>W/panel</Text>
+                  <Text style={[styles.th, { width: "12%" }]}>W totales</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>TDS (ppm)</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>Ángulo (°)</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>Presión (PSI)</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>Horas</Text>
+                </View>
+                {data.reportes_diarios.map((d, i, arr) => (
+                  <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                    <Text style={[styles.td, { width: "12%" }]}>{d.fecha}</Text>
+                    <Text style={[styles.td, { width: "16%", fontFamily: "Courier", fontSize: 7.5 }]}>{d.folio ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.paneles_limpiados ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.watts_panel ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "12%" }]}>{d.watts_totales ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.tds_ppm ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.presion_agua_psi ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.horas_trabajadas ?? "—"}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
         <PageFooter data={data} />
       </Page>
 

@@ -378,6 +378,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
+      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS promedio (ppm) del agua utilizada, ángulo de inclinación promedio (°) de los paneles limpiados, presión de agua promedio (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
     ].join(" ");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
@@ -654,7 +655,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (trabajoIds.length) {
       const { data: dd } = await supabase
         .from("trabajo_reportes_diarios")
-        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct")
+        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones")
         .in("trabajo_id", trabajoIds)
         .order("fecha", { ascending: true });
       diarios = dd ?? [];
@@ -774,6 +775,26 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       evidencias,
       evidencias_pdf: evidenciasPdf,
       graficas,
+      reportes_diarios: (() => {
+        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        return (diarios ?? [])
+          .slice()
+          .sort((a: any, b: any) => String(a.fecha).localeCompare(String(b.fecha)))
+          .map((d: any) => ({
+            fecha: String(d.fecha ?? ""),
+            folio: folioPorId.get(d.trabajo_id) ?? null,
+            paneles_limpiados: d.paneles_limpiados ?? null,
+            watts_panel: d.watts_panel ?? null,
+            watts_totales: d.watts_panel && d.paneles_limpiados
+              ? Math.round(Number(d.watts_panel) * Number(d.paneles_limpiados))
+              : null,
+            tds_ppm: d.tds_ppm ?? null,
+            angulo_inclinacion: d.angulo_inclinacion ?? null,
+            presion_agua_psi: d.presion_agua_psi ?? null,
+            agua_galones: d.agua_galones ?? null,
+            horas_trabajadas: d.horas_trabajadas ?? null,
+          }));
+      })(),
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
     };
