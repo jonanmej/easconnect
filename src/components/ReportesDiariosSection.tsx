@@ -145,14 +145,18 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
             {!diarios.isLoading && diariosArr.length === 0 && (
               <p className="text-xs text-muted-foreground">Sin reportes diarios todavía.</p>
             )}
-            {diariosArr.map((d) => {
+            {diariosArr.map((d, idx) => {
             const mine = d.tecnico_id === user?.id;
             const canDelete = mine || isStaff;
             return (
-              <details key={d.id} className="rounded-md border border-border bg-card group">
-                <summary className="px-3 py-2 flex items-center gap-2 cursor-pointer text-sm">
+              <details key={d.id} open={idx === 0} className="rounded-md border border-border bg-card group">
+                <summary className="px-3 py-2 flex items-center gap-2 cursor-pointer text-sm list-none [&::-webkit-details-marker]:hidden">
+                  <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
                   <span className="font-mono text-xs text-muted-foreground">{d.fecha}</span>
                     <span className="font-medium truncate">{d.tecnico_nombre}</span>
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-primary">
+                    <Camera className="size-3" /> Fotos del día
+                  </span>
                   {typeof d.avance_pct === "number" && (
                     <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                       {d.avance_pct}%
