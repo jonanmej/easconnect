@@ -146,6 +146,18 @@ export type ReporteData = {
   kpis: { label: string; value: string }[];
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
   evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[];
+  reportes_diarios?: {
+    fecha: string;
+    folio?: string | null;
+    paneles_limpiados?: number | null;
+    watts_panel?: number | null;
+    watts_totales?: number | null;
+    tds_ppm?: number | null;
+    angulo_inclinacion?: number | null;
+    presion_agua_psi?: number | null;
+    agua_galones?: number | null;
+    horas_trabajadas?: number | null;
+  }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
