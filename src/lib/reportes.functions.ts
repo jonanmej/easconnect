@@ -378,6 +378,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
+      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS promedio (ppm) del agua utilizada, ángulo de inclinación promedio (°) de los paneles limpiados, presión de agua promedio (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
     ].join(" ");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
