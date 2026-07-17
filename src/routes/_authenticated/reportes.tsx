@@ -506,6 +506,8 @@ function PeriodoTrimestralFields() {
   const [manual, setManual] = useState(false);
   const [periodo, setPeriodo] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [modo, setModo] = useState<"rango" | "dia">("rango");
+  const [diaEspecifico, setDiaEspecifico] = useState("");
 
   // Rehidratar: primero cache local (rápido), luego perfil (autoritativo cross-device).
   useEffect(() => {
@@ -573,8 +575,51 @@ function PeriodoTrimestralFields() {
     return () => clearTimeout(t);
   }, [desde, hasta, periodo, manual, hydrated, invalidRange]);
 
+  // Sincronizar el modo "día específico" con desde/hasta y etiqueta.
+  useEffect(() => {
+    if (modo !== "dia") return;
+    if (!diaEspecifico) return;
+    setDesde(diaEspecifico);
+    setHasta(diaEspecifico);
+    if (!manual) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(diaEspecifico);
+      setPeriodo(m ? `${m[3]}-${m[2]}-${m[1]}` : diaEspecifico);
+    }
+  }, [modo, diaEspecifico, manual]);
+
   return (
     <>
+      <Field label="Cobertura del reporte">
+        <div className="inline-flex rounded-md border border-border overflow-hidden text-xs">
+          <button
+            type="button"
+            onClick={() => setModo("rango")}
+            className={"px-3 h-9 " + (modo === "rango" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-secondary")}
+          >Rango de fechas</button>
+          <button
+            type="button"
+            onClick={() => setModo("dia")}
+            className={"px-3 h-9 border-l border-border " + (modo === "dia" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-secondary")}
+          >Un día específico</button>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Elige "Un día específico" para generar el reporte ejecutivo con lo reportado ese día únicamente.
+        </p>
+      </Field>
+      {modo === "dia" && (
+        <Field label="Día del reporte">
+          <input
+            type="date"
+            required
+            value={diaEspecifico}
+            onChange={(e) => setDiaEspecifico(e.currentTarget.value)}
+            className={inputCls}
+          />
+          {/* Hidden mirrors para que el submit reciba desde/hasta */}
+          <input type="hidden" name="desde" value={diaEspecifico} />
+          <input type="hidden" name="hasta" value={diaEspecifico} />
+        </Field>
+      )}
       <Field label="Etiqueta del periodo (trimestre auto)">
         <input
           name="periodo"
@@ -596,6 +641,7 @@ function PeriodoTrimestralFields() {
           </p>
         )}
       </Field>
+      {modo === "rango" && (
       <div className="grid grid-cols-2 gap-3">
         <Field label="Desde">
           <input name="desde" type="date" required value={desde} max={hasta || undefined}
@@ -610,7 +656,8 @@ function PeriodoTrimestralFields() {
             className={inputCls + (invalidRange ? " border-destructive" : "")} />
         </Field>
       </div>
-      {invalidRange && (
+      )}
+      {modo === "rango" && invalidRange && (
         <p className="text-[11px] text-destructive">La fecha "Desde" no puede ser posterior a "Hasta".</p>
       )}
     </>
