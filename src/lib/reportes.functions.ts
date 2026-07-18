@@ -189,27 +189,36 @@ export const generarReporte = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
 
-    const [trabajosRes, equiposRes] = await Promise.all([
+    // Traemos todos los trabajos de las plantas (filtrando por servicio si
+    // aplica) y luego dejamos únicamente los que SOLAPAN con la ventana
+    // [desde, hasta]. Esto asegura que un servicio programado para varios
+    // días aparezca en el reporte aunque el usuario elija un día intermedio.
+    const [trabajosRawRes, equiposRes] = await Promise.all([
       plantasIds.length
         ? (data.servicio
             ? supabase.from("trabajos")
-                .select("folio, servicio, estado, fecha_programada")
+                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
                 .in("planta_id", plantasIds)
-                .gte("fecha_programada", desdeTs)
-                .lte("fecha_programada", hastaTs)
                 .eq("servicio", data.servicio)
             : supabase.from("trabajos")
-                .select("folio, servicio, estado, fecha_programada")
-                .in("planta_id", plantasIds)
-                .gte("fecha_programada", desdeTs)
-                .lte("fecha_programada", hastaTs))
+                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
+                .in("planta_id", plantasIds))
         : Promise.resolve({ data: [] as any[] }),
       plantasIds.length
         ? supabase.from("equipos").select("codigo, nombre, estado, salud").in("planta_id", plantasIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
-
-    const trabajos = trabajosRes.data ?? [];
+    const desdeMs = new Date(desdeTs).getTime();
+    const hastaMs = new Date(hastaTs).getTime();
+    const solapa = (t: any) => {
+      const ini = new Date(t.fecha_programada).getTime();
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      const fin = ini + dur * 86400000 - 1;
+      return ini <= hastaMs && fin >= desdeMs;
+    };
+    const trabajosFull = (trabajosRawRes.data ?? []).filter(solapa);
+    const trabajos = trabajosFull.map(({ id: _id, duracion_dias: _d, ...rest }: any) => rest);
+    const trabajosRes = { data: trabajos } as { data: any[] };
     const equipos = equiposRes.data ?? [];
     const equipoIds = equipos.length
       ? (await supabase.from("equipos").select("id").in("planta_id", plantasIds)).data?.map((e: any) => e.id) ?? []
@@ -221,27 +230,27 @@ export const generarReporte = createServerFn({ method: "POST" })
     const saludVals = equipos.map((e: any) => e.salud).filter((s: any) => typeof s === "number");
     const saludProm = saludVals.length ? Math.round(saludVals.reduce((a: number, b: number) => a + b, 0) / saludVals.length) : null;
 
-    // Reportes base llenados por técnicos en cada OT
-    const trabajoIds = (trabajosRes.data ?? []).map((t: any) => t.folio ? t : null).filter(Boolean);
-    let tIdsQb: any = null;
-    if (plantasIds.length) {
-      tIdsQb = supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", desdeTs).lte("fecha_programada", hastaTs);
-      if (data.servicio) tIdsQb = tIdsQb.eq("servicio", data.servicio);
-    }
-    const { data: tIds } = tIdsQb ? await tIdsQb : { data: [] as any[] };
-    const tIdsArr = (tIds ?? []).map((t: any) => t.id);
-    const folioPorId = new Map((tIds ?? []).map((t: any) => [t.id, t.folio]));
+    // OTs relevantes: las que solapan la ventana. Antes se re-consultaban con
+    // el mismo filtro por fecha_programada y perdíamos los trabajos multi-día.
+    const tIdsArr = trabajosFull.map((t: any) => t.id);
+    const folioPorId = new Map(trabajosFull.map((t: any) => [t.id, t.folio]));
     const { data: reportesBase } = tIdsArr.length
       ? await supabase.from("trabajo_reportes")
           .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, materiales_usados, cliente_observaciones")
           .in("trabajo_id", tIdsArr)
       : { data: [] as any[] };
 
-    // Reportes diarios cargados por técnicos día a día (fuente principal desde el refactor).
+    // Reportes diarios cargados por técnicos día a día. Filtramos por la
+    // ventana [desde, hasta] para que un reporte de un día específico solo
+    // contenga los diarios de ese día.
+    const diariosDesde = isDateOnly(data.desde) ? data.desde : new Date(desdeTs).toISOString().slice(0, 10);
+    const diariosHasta = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
           .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
+          .gte("fecha", diariosDesde)
+          .lte("fecha", diariosHasta)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
 
@@ -583,19 +592,27 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (trabajoIds.length) {
       const { data: evs } = await supabase
         .from("trabajo_evidencias")
-        .select("trabajo_id, storage_path, descripcion")
+        .select("trabajo_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
-        .limit(40);
+        .order("categoria", { ascending: true })
+        .limit(80);
       if (evs?.length) {
         const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
         const { data: signed } = await supabase.storage
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
         const urlByPath = new Map((signed ?? []).map((s) => [s.path!, s.signedUrl]));
-        evidencias = evs.map((e) => ({
+        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3 };
+        const evsOrdenadas = [...evs].sort((a: any, b: any) => {
+          const ca = String(a.categoria ?? "").toLowerCase();
+          const cb = String(b.categoria ?? "").toLowerCase();
+          return (orden[ca] ?? 9) - (orden[cb] ?? 9);
+        });
+        evidencias = evsOrdenadas.map((e: any) => ({
           trabajo: folioPorId.get(e.trabajo_id) ?? "—",
-          descripcion: e.descripcion ?? null,
+          descripcion: e.descripcion ?? (e.categoria ? String(e.categoria).toUpperCase() : null),
           url: urlByPath.get(e.storage_path) ?? "",
+          categoria: (e.categoria ?? null) as string | null,
         })).filter((e) => e.url);
       }
 
@@ -662,25 +679,34 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     if (diarios.length) {
       const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
-      // Último avance registrado por trabajo (el más reciente).
-      const ultimoPorTrabajo = new Map<string, { fecha: string; pct: number }>();
-      for (const d of diarios) {
-        const pct = Number(d.avance_pct ?? 0);
-        if (!Number.isFinite(pct)) continue;
-        const prev = ultimoPorTrabajo.get(d.trabajo_id);
-        if (!prev || String(d.fecha) > prev.fecha) {
-          ultimoPorTrabajo.set(d.trabajo_id, { fecha: String(d.fecha), pct });
-        }
+      // Paneles por planta para cada trabajo (parque instalado). Se usa como
+      // 100% para calcular el avance ejecutado.
+      const { data: trabPlantas } = await supabase
+        .from("trabajos").select("id, plantas(paneles)").in("id", trabajoIds);
+      const parquePorTrabajo = new Map<string, number>();
+      for (const t of (trabPlantas ?? []) as any[]) {
+        parquePorTrabajo.set(t.id, Number(t.plantas?.paneles ?? 0));
       }
-      const avanceSeries = Array.from(ultimoPorTrabajo.entries())
-        .map(([tid, v]) => ({ label: folioPorId.get(tid) ?? "—", value: Math.min(100, Math.max(0, Math.round(v.pct))) }))
+      // Paneles acumulados por trabajo (suma de reportes diarios).
+      const acumPorTrabajo = new Map<string, number>();
+      for (const d of diarios) {
+        const v = Number(d.paneles_limpiados ?? 0);
+        if (!v) continue;
+        acumPorTrabajo.set(d.trabajo_id, (acumPorTrabajo.get(d.trabajo_id) ?? 0) + v);
+      }
+      const avanceSeries = Array.from(acumPorTrabajo.entries())
+        .map(([tid, acum]) => {
+          const parque = parquePorTrabajo.get(tid) ?? 0;
+          const pct = parque > 0 ? Math.min(100, Math.round((acum / parque) * 100)) : 0;
+          return { label: folioPorId.get(tid) ?? "—", value: pct };
+        })
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
       if (avanceSeries.length) {
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
-          descripcion: "Último porcentaje de avance reportado por el equipo en cada orden de trabajo del periodo.",
-          fuente: "Reportes diarios · campo avance_pct",
+            descripcion: "Paneles limpiados acumulados vs. total instalado en la planta del cliente.",
+            fuente: "Reportes diarios · paneles_limpiados / plantas.paneles",
           unidad: "%",
           series: avanceSeries,
         });
