@@ -189,27 +189,36 @@ export const generarReporte = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
 
-    const [trabajosRes, equiposRes] = await Promise.all([
+    // Traemos todos los trabajos de las plantas (filtrando por servicio si
+    // aplica) y luego dejamos únicamente los que SOLAPAN con la ventana
+    // [desde, hasta]. Esto asegura que un servicio programado para varios
+    // días aparezca en el reporte aunque el usuario elija un día intermedio.
+    const [trabajosRawRes, equiposRes] = await Promise.all([
       plantasIds.length
         ? (data.servicio
             ? supabase.from("trabajos")
-                .select("folio, servicio, estado, fecha_programada")
+                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
                 .in("planta_id", plantasIds)
-                .gte("fecha_programada", desdeTs)
-                .lte("fecha_programada", hastaTs)
                 .eq("servicio", data.servicio)
             : supabase.from("trabajos")
-                .select("folio, servicio, estado, fecha_programada")
-                .in("planta_id", plantasIds)
-                .gte("fecha_programada", desdeTs)
-                .lte("fecha_programada", hastaTs))
+                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
+                .in("planta_id", plantasIds))
         : Promise.resolve({ data: [] as any[] }),
       plantasIds.length
         ? supabase.from("equipos").select("codigo, nombre, estado, salud").in("planta_id", plantasIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
-
-    const trabajos = trabajosRes.data ?? [];
+    const desdeMs = new Date(desdeTs).getTime();
+    const hastaMs = new Date(hastaTs).getTime();
+    const solapa = (t: any) => {
+      const ini = new Date(t.fecha_programada).getTime();
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      const fin = ini + dur * 86400000 - 1;
+      return ini <= hastaMs && fin >= desdeMs;
+    };
+    const trabajosFull = (trabajosRawRes.data ?? []).filter(solapa);
+    const trabajos = trabajosFull.map(({ id: _id, duracion_dias: _d, ...rest }: any) => rest);
+    const trabajosRes = { data: trabajos } as { data: any[] };
     const equipos = equiposRes.data ?? [];
     const equipoIds = equipos.length
       ? (await supabase.from("equipos").select("id").in("planta_id", plantasIds)).data?.map((e: any) => e.id) ?? []
@@ -221,16 +230,10 @@ export const generarReporte = createServerFn({ method: "POST" })
     const saludVals = equipos.map((e: any) => e.salud).filter((s: any) => typeof s === "number");
     const saludProm = saludVals.length ? Math.round(saludVals.reduce((a: number, b: number) => a + b, 0) / saludVals.length) : null;
 
-    // Reportes base llenados por técnicos en cada OT
-    const trabajoIds = (trabajosRes.data ?? []).map((t: any) => t.folio ? t : null).filter(Boolean);
-    let tIdsQb: any = null;
-    if (plantasIds.length) {
-      tIdsQb = supabase.from("trabajos").select("id, folio").in("planta_id", plantasIds).gte("fecha_programada", desdeTs).lte("fecha_programada", hastaTs);
-      if (data.servicio) tIdsQb = tIdsQb.eq("servicio", data.servicio);
-    }
-    const { data: tIds } = tIdsQb ? await tIdsQb : { data: [] as any[] };
-    const tIdsArr = (tIds ?? []).map((t: any) => t.id);
-    const folioPorId = new Map((tIds ?? []).map((t: any) => [t.id, t.folio]));
+    // OTs relevantes: las que solapan la ventana. Antes se re-consultaban con
+    // el mismo filtro por fecha_programada y perdíamos los trabajos multi-día.
+    const tIdsArr = trabajosFull.map((t: any) => t.id);
+    const folioPorId = new Map(trabajosFull.map((t: any) => [t.id, t.folio]));
     const { data: reportesBase } = tIdsArr.length
       ? await supabase.from("trabajo_reportes")
           .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, materiales_usados, cliente_observaciones")
