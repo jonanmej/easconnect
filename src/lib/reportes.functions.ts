@@ -240,11 +240,17 @@ export const generarReporte = createServerFn({ method: "POST" })
           .in("trabajo_id", tIdsArr)
       : { data: [] as any[] };
 
-    // Reportes diarios cargados por técnicos día a día (fuente principal desde el refactor).
+    // Reportes diarios cargados por técnicos día a día. Filtramos por la
+    // ventana [desde, hasta] para que un reporte de un día específico solo
+    // contenga los diarios de ese día.
+    const diariosDesde = isDateOnly(data.desde) ? data.desde : new Date(desdeTs).toISOString().slice(0, 10);
+    const diariosHasta = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
           .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
+          .gte("fecha", diariosDesde)
+          .lte("fecha", diariosHasta)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
 
