@@ -495,6 +495,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
                       />
                     </View>
                     <Text style={styles.evidCaption}>
+                      {e.categoria ? `[${String(e.categoria).toUpperCase()}] ` : ""}
                       {e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}
                     </Text>
                   </View>
