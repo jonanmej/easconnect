@@ -592,19 +592,27 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (trabajoIds.length) {
       const { data: evs } = await supabase
         .from("trabajo_evidencias")
-        .select("trabajo_id, storage_path, descripcion")
+        .select("trabajo_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
-        .limit(40);
+        .order("categoria", { ascending: true })
+        .limit(80);
       if (evs?.length) {
         const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
         const { data: signed } = await supabase.storage
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
         const urlByPath = new Map((signed ?? []).map((s) => [s.path!, s.signedUrl]));
-        evidencias = evs.map((e) => ({
+        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3 };
+        const evsOrdenadas = [...evs].sort((a: any, b: any) => {
+          const ca = String(a.categoria ?? "").toLowerCase();
+          const cb = String(b.categoria ?? "").toLowerCase();
+          return (orden[ca] ?? 9) - (orden[cb] ?? 9);
+        });
+        evidencias = evsOrdenadas.map((e: any) => ({
           trabajo: folioPorId.get(e.trabajo_id) ?? "—",
-          descripcion: e.descripcion ?? null,
+          descripcion: e.descripcion ?? (e.categoria ? String(e.categoria).toUpperCase() : null),
           url: urlByPath.get(e.storage_path) ?? "",
+          categoria: (e.categoria ?? null) as string | null,
         })).filter((e) => e.url);
       }
 
