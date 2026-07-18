@@ -145,7 +145,7 @@ export type ReporteData = {
   recomendaciones: string[];
   kpis: { label: string; value: string }[];
   trabajos: { folio: string; servicio: string; fecha: string; estado: string; tecnico?: string | null; notas?: string | null }[];
-  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[];
+  evidencias: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null; categoria?: string | null }[];
   reportes_diarios?: {
     fecha: string;
     folio?: string | null;
@@ -464,9 +464,16 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       </Page>
 
       {data.evidencias.length > 0 && (() => {
-        // Ordenamos por orientación para que la grilla se vea uniforme:
-        // primero apaisadas (landscape), luego verticales (portrait).
-        const ordenadas = [...data.evidencias].slice(0, ejec ? 8 : 30).sort((a, b) => {
+        // Ordenamos por categoría (ANTES → DURANTE → DESPUÉS → ANOMALÍAS)
+        // y dentro de cada categoría por orientación (apaisadas primero)
+        // para mantener la grilla uniforme.
+        const catOrden: Record<string, number> = {
+          antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3,
+        };
+        const ordenadas = [...data.evidencias].slice(0, ejec ? 12 : 40).sort((a, b) => {
+          const ca = catOrden[String(a.categoria ?? "").toLowerCase()] ?? 9;
+          const cb = catOrden[String(b.categoria ?? "").toLowerCase()] ?? 9;
+          if (ca !== cb) return ca - cb;
           const ar = (a.aspect ?? 1) >= 1 ? 0 : 1;
           const br = (b.aspect ?? 1) >= 1 ? 0 : 1;
           return ar - br;
