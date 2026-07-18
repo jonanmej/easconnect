@@ -679,25 +679,34 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     if (diarios.length) {
       const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
-      // Último avance registrado por trabajo (el más reciente).
-      const ultimoPorTrabajo = new Map<string, { fecha: string; pct: number }>();
-      for (const d of diarios) {
-        const pct = Number(d.avance_pct ?? 0);
-        if (!Number.isFinite(pct)) continue;
-        const prev = ultimoPorTrabajo.get(d.trabajo_id);
-        if (!prev || String(d.fecha) > prev.fecha) {
-          ultimoPorTrabajo.set(d.trabajo_id, { fecha: String(d.fecha), pct });
-        }
+      // Paneles por planta para cada trabajo (parque instalado). Se usa como
+      // 100% para calcular el avance ejecutado.
+      const { data: trabPlantas } = await supabase
+        .from("trabajos").select("id, plantas(paneles)").in("id", trabajoIds);
+      const parquePorTrabajo = new Map<string, number>();
+      for (const t of (trabPlantas ?? []) as any[]) {
+        parquePorTrabajo.set(t.id, Number(t.plantas?.paneles ?? 0));
       }
-      const avanceSeries = Array.from(ultimoPorTrabajo.entries())
-        .map(([tid, v]) => ({ label: folioPorId.get(tid) ?? "—", value: Math.min(100, Math.max(0, Math.round(v.pct))) }))
+      // Paneles acumulados por trabajo (suma de reportes diarios).
+      const acumPorTrabajo = new Map<string, number>();
+      for (const d of diarios) {
+        const v = Number(d.paneles_limpiados ?? 0);
+        if (!v) continue;
+        acumPorTrabajo.set(d.trabajo_id, (acumPorTrabajo.get(d.trabajo_id) ?? 0) + v);
+      }
+      const avanceSeries = Array.from(acumPorTrabajo.entries())
+        .map(([tid, acum]) => {
+          const parque = parquePorTrabajo.get(tid) ?? 0;
+          const pct = parque > 0 ? Math.min(100, Math.round((acum / parque) * 100)) : 0;
+          return { label: folioPorId.get(tid) ?? "—", value: pct };
+        })
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
       if (avanceSeries.length) {
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
-          descripcion: "Último porcentaje de avance reportado por el equipo en cada orden de trabajo del periodo.",
-          fuente: "Reportes diarios · campo avance_pct",
+            descripcion: "Paneles limpiados acumulados vs. total instalado en la planta del cliente.",
+            fuente: "Reportes diarios · paneles_limpiados / plantas.paneles",
           unidad: "%",
           series: avanceSeries,
         });
