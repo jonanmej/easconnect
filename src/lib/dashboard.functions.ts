@@ -237,10 +237,19 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       .in("estado", ["en_progreso", "programado"])
       .ilike("servicio", "%limpieza%");
     if (error) throw new Error(error.message);
-    const now = Date.now();
+    // Referencia de negocio: sábado/domingo no son días laborables, por lo
+    // que la ventana de referencia es el viernes previo. Así el KPI muestra
+    // el estado real al último día trabajado.
+    const nowSv = new Date(new Date().toLocaleString("en-US", { timeZone: "America/El_Salvador" }));
+    const dowSv = nowSv.getDay();
+    const refDate = new Date(nowSv);
+    refDate.setHours(23, 59, 59, 999);
+    if (dowSv === 0) refDate.setDate(refDate.getDate() - 2);
+    else if (dowSv === 6) refDate.setDate(refDate.getDate() - 1);
+    const refMs = refDate.getTime();
     const activos = (trabajos ?? []).filter((t: any) => {
       const inicio = new Date(t.fecha_programada).getTime();
-      return inicio <= now; // solo los que ya iniciaron
+      return inicio <= refMs;
     });
     if (activos.length === 0) {
       return {
@@ -263,6 +272,20 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       if (!v) continue;
       panelesPorTrabajo.set(r.trabajo_id, (panelesPorTrabajo.get(r.trabajo_id) ?? 0) + v);
     }
+    // Días hábiles transcurridos (Lun–Vie) desde el inicio del trabajo hasta la fecha de referencia.
+    const bizDaysBetween = (startMs: number, endMs: number) => {
+      if (endMs < startMs) return 0;
+      const s = new Date(startMs); s.setHours(0, 0, 0, 0);
+      const e = new Date(endMs); e.setHours(0, 0, 0, 0);
+      let count = 0;
+      const cur = new Date(s);
+      while (cur <= e) {
+        const d = cur.getDay();
+        if (d !== 0 && d !== 6) count++;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return count;
+    };
     let totalActual = 0;
     let totalEsperado = 0;
     const detalle: any[] = [];
@@ -270,7 +293,7 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       const parque = Number(t.plantas?.paneles ?? 0);
       const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
       const inicio = new Date(t.fecha_programada).getTime();
-      const diasTx = Math.max(0, (now - inicio) / 86400000);
+      const diasTx = bizDaysBetween(inicio, refMs);
       const factor = Math.min(1, diasTx / duracion);
       const esperado = Math.round(parque * factor);
       const actual = panelesPorTrabajo.get(t.id) ?? 0;
@@ -284,7 +307,7 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
         cliente: t.plantas?.clientes?.nombre ?? "—",
         parque,
         duracion_dias: duracion,
-        dias_transcurridos: Math.round(diasTx * 10) / 10,
+        dias_transcurridos: diasTx,
         actual,
         esperado,
         desface,
