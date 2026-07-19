@@ -231,75 +231,88 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const supabase = context.supabase;
+    const {
+      ahoraSV,
+      esNoLaborableSV,
+      diaHabilAnteriorSV,
+      siguienteDiaHabilSV,
+      formatearDiaHabilSV,
+    } = await import("@/lib/dias-habiles");
     const { data: trabajos, error } = await supabase
       .from("trabajos")
       .select("id, folio, estado, servicio, fecha_programada, duracion_dias, planta_id, plantas(nombre, paneles, clientes(nombre))")
       .in("estado", ["en_progreso", "programado"])
       .ilike("servicio", "%limpieza%");
     if (error) throw new Error(error.message);
-    // Referencia de negocio: sábado/domingo no son días laborables, por lo
-    // que la ventana de referencia es el viernes previo. Así el KPI muestra
-    // el estado real al último día trabajado.
-    const nowSv = new Date(new Date().toLocaleString("en-US", { timeZone: "America/El_Salvador" }));
-    const dowSv = nowSv.getDay();
-    const refDate = new Date(nowSv);
-    refDate.setHours(23, 59, 59, 999);
-    if (dowSv === 0) refDate.setDate(refDate.getDate() - 2);
-    else if (dowSv === 6) refDate.setDate(refDate.getDate() - 1);
-    const refMs = refDate.getTime();
+    // Día de referencia: hoy si es hábil; si no, el último día hábil previo.
+    const nowSv = ahoraSV();
+    const refDay = new Date(nowSv); refDay.setHours(0, 0, 0, 0);
+    if (esNoLaborableSV(refDay)) {
+      const prev = diaHabilAnteriorSV(refDay);
+      refDay.setTime(prev.getTime());
+    }
+    const dia_no_laborable = esNoLaborableSV(new Date(nowSv.getFullYear(), nowSv.getMonth(), nowSv.getDate()));
+    const siguiente_dia_habil = dia_no_laborable
+      ? formatearDiaHabilSV(siguienteDiaHabilSV(new Date(nowSv), false))
+      : null;
+    const refStart = refDay.getTime();
+    const refEnd = refStart + 86400000 - 1;
     const activos = (trabajos ?? []).filter((t: any) => {
       const inicio = new Date(t.fecha_programada).getTime();
-      return inicio <= refMs;
+      return inicio <= refEnd;
     });
     if (activos.length === 0) {
       return {
         estado: "sin_datos" as const,
-        desface_pct: 0,
-        actual: 0,
-        esperado: 0,
+        cumplimiento_pct: 0,
+        limpiados_dia: 0,
+        meta_diaria: 0,
         num_trabajos: 0,
+        dia_no_laborable,
+        siguiente_dia_habil,
+        fecha_ref: refDay.toISOString(),
         detalle: [] as any[],
       };
     }
     const ids = activos.map((t: any) => t.id);
-    const [diariosRes, baseRes] = await Promise.all([
-      supabase.from("trabajo_reportes_diarios").select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
-      supabase.from("trabajo_reportes").select("trabajo_id, paneles_limpiados").in("trabajo_id", ids),
+    // Solo reportes diarios del día de referencia (limpiados hoy / último día hábil).
+    const refStartIso = new Date(refStart).toISOString();
+    const refEndIso = new Date(refEnd).toISOString();
+    const [diariosDiaRes, diariosTotRes] = await Promise.all([
+      supabase
+        .from("trabajo_reportes_diarios")
+        .select("trabajo_id, paneles_limpiados, fecha")
+        .in("trabajo_id", ids)
+        .gte("fecha", refStartIso)
+        .lte("fecha", refEndIso),
+      supabase
+        .from("trabajo_reportes_diarios")
+        .select("trabajo_id, paneles_limpiados")
+        .in("trabajo_id", ids),
     ]);
-    const panelesPorTrabajo = new Map<string, number>();
-    for (const r of [...(diariosRes.data ?? []), ...(baseRes.data ?? [])] as any[]) {
+    const dia_por_trabajo = new Map<string, number>();
+    for (const r of (diariosDiaRes.data ?? []) as any[]) {
       const v = Number(r.paneles_limpiados ?? 0);
       if (!v) continue;
-      panelesPorTrabajo.set(r.trabajo_id, (panelesPorTrabajo.get(r.trabajo_id) ?? 0) + v);
+      dia_por_trabajo.set(r.trabajo_id, (dia_por_trabajo.get(r.trabajo_id) ?? 0) + v);
     }
-    // Días hábiles transcurridos (Lun–Vie) desde el inicio del trabajo hasta la fecha de referencia.
-    const bizDaysBetween = (startMs: number, endMs: number) => {
-      if (endMs < startMs) return 0;
-      const s = new Date(startMs); s.setHours(0, 0, 0, 0);
-      const e = new Date(endMs); e.setHours(0, 0, 0, 0);
-      let count = 0;
-      const cur = new Date(s);
-      while (cur <= e) {
-        const d = cur.getDay();
-        if (d !== 0 && d !== 6) count++;
-        cur.setDate(cur.getDate() + 1);
-      }
-      return count;
-    };
-    let totalActual = 0;
-    let totalEsperado = 0;
+    const total_por_trabajo = new Map<string, number>();
+    for (const r of (diariosTotRes.data ?? []) as any[]) {
+      const v = Number(r.paneles_limpiados ?? 0);
+      if (!v) continue;
+      total_por_trabajo.set(r.trabajo_id, (total_por_trabajo.get(r.trabajo_id) ?? 0) + v);
+    }
+    let limpiados_dia = 0;
+    let meta_diaria = 0;
     const detalle: any[] = [];
     for (const t of activos as any[]) {
       const parque = Number(t.plantas?.paneles ?? 0);
       const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
-      const inicio = new Date(t.fecha_programada).getTime();
-      const diasTx = bizDaysBetween(inicio, refMs);
-      const factor = Math.min(1, diasTx / duracion);
-      const esperado = Math.round(parque * factor);
-      const actual = panelesPorTrabajo.get(t.id) ?? 0;
-      const desface = actual - esperado;
-      totalActual += actual;
-      totalEsperado += esperado;
+      // Meta diaria por trabajo = paneles del parque / días de duración planeada.
+      const metaTrab = Math.round(parque / duracion);
+      const diaTrab = dia_por_trabajo.get(t.id) ?? 0;
+      limpiados_dia += diaTrab;
+      meta_diaria += metaTrab;
       detalle.push({
         trabajo_id: t.id,
         folio: t.folio,
@@ -307,23 +320,31 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
         cliente: t.plantas?.clientes?.nombre ?? "—",
         parque,
         duracion_dias: duracion,
-        dias_transcurridos: diasTx,
-        actual,
-        esperado,
-        desface,
+        meta_diaria: metaTrab,
+        limpiados_dia: diaTrab,
+        limpiados_acumulado: total_por_trabajo.get(t.id) ?? 0,
+        desface: diaTrab - metaTrab,
       });
     }
-    const ratio = totalEsperado > 0 ? totalActual / totalEsperado : 1;
-    const desface_pct = totalEsperado > 0
-      ? Math.round(((totalActual - totalEsperado) / totalEsperado) * 100)
+    const cumplimiento_pct = meta_diaria > 0
+      ? Math.round((limpiados_dia / meta_diaria) * 100)
       : 0;
-    const estado = ratio >= 1.02 ? "superada" : ratio >= 0.98 ? "cumpliendo" : "desface";
+    const estado = meta_diaria === 0
+      ? "sin_datos"
+      : cumplimiento_pct >= 102
+        ? "superada"
+        : cumplimiento_pct >= 98
+          ? "cumpliendo"
+          : "desface";
     return {
       estado,
-      desface_pct,
-      actual: totalActual,
-      esperado: totalEsperado,
+      cumplimiento_pct,
+      limpiados_dia,
+      meta_diaria,
       num_trabajos: activos.length,
+      dia_no_laborable,
+      siguiente_dia_habil,
+      fecha_ref: refDay.toISOString(),
       detalle: detalle.sort((a, b) => a.desface - b.desface),
     };
   });
