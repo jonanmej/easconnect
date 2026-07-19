@@ -239,15 +239,11 @@ function StaffDashboard() {
     if (!meta || meta.estado === "sin_datos") {
       return { value: "—", delta: "sin trabajos activos", tone: "muted" as const };
     }
-    const signo = meta.desface_pct > 0 ? "+" : "";
-    const valor = `${signo}${meta.desface_pct}%`;
-    if (meta.estado === "superada") {
-      return { value: valor, delta: `meta superada · ${meta.num_trabajos} activo(s)`, tone: "accent" as const };
-    }
-    if (meta.estado === "cumpliendo") {
-      return { value: valor, delta: `cumpliendo meta · ${meta.num_trabajos} activo(s)`, tone: "accent" as const };
-    }
-    return { value: valor, delta: `desface · ${meta.num_trabajos} activo(s)`, tone: "danger" as const };
+    const valor = `${meta.cumplimiento_pct}%`;
+    const detalle = `${Number(meta.limpiados_dia).toLocaleString("es-SV")}/${Number(meta.meta_diaria).toLocaleString("es-SV")} paneles${meta.dia_no_laborable ? " · último día hábil" : " · hoy"}`;
+    const tone: "accent" | "danger" | "muted" =
+      meta.estado === "desface" ? "danger" : "accent";
+    return { value: valor, delta: detalle, tone };
   })();
 
   // Paneles limpiados vs. parque de las plantas con al menos un trabajo cerrado.
@@ -258,8 +254,38 @@ function StaffDashboard() {
     return { limpiados, parque };
   })();
 
+  const trabajosHoyKpi = (() => {
+    const s: any = stats.data;
+    if (s?.dia_no_laborable) {
+      return {
+        value: "Pausa",
+        delta: s.siguiente_dia_habil ? `Se reanuda el ${s.siguiente_dia_habil}` : "Día no laborable",
+        tone: "muted" as const,
+      };
+    }
+    return {
+      value: String(s?.trabajos_hoy ?? "—"),
+      delta: `${s?.trabajos_total ?? 0} totales`,
+      tone: "accent" as const,
+    };
+  })();
+
+  const avanceLimpiezaKpi = (() => {
+    const s: any = stats.data;
+    const pct = Number(s?.avance_limpieza ?? 0);
+    const limp = Number(s?.avance_limpiados ?? 0);
+    const parque = Number(s?.avance_parque ?? 0);
+    return {
+      value: `${pct}%`,
+      delta: parque > 0
+        ? `${limp.toLocaleString("es-SV")}/${parque.toLocaleString("es-SV")} paneles en curso`
+        : "sin OT en progreso",
+      tone: parque > 0 ? ("accent" as const) : ("muted" as const),
+    };
+  })();
+
   const kpis = [
-    { label: "Trabajos hoy", value: String(stats.data?.trabajos_hoy ?? "—"), delta: `${stats.data?.trabajos_total ?? 0} totales`, tone: "accent" as const },
+    { label: "Trabajos hoy", value: trabajosHoyKpi.value, delta: trabajosHoyKpi.delta, tone: trabajosHoyKpi.tone },
     {
       label: "Paneles limpiados",
       value: panelesResumen.limpiados.toLocaleString("es-SV"),
@@ -268,7 +294,7 @@ function StaffDashboard() {
         : "sin trabajos cerrados",
       tone: "accent" as const,
     },
-    { label: "Avance de limpieza", value: `${stats.data?.avance_limpieza ?? 0}%`, delta: "del parque", tone: "accent" as const },
+    { label: "Avance de limpieza", value: avanceLimpiezaKpi.value, delta: avanceLimpiezaKpi.delta, tone: avanceLimpiezaKpi.tone },
     { label: "Agua utilizada", value: (stats.data?.agua_galones ?? 0).toLocaleString("es-SV", ), delta: "galones", tone: "accent" as const },
     { label: "Cumplimiento cronograma", value: `${cumplimientoCronograma.pct}%`, delta: `${cumplimientoCronograma.num}/${cumplimientoCronograma.den} a tiempo`, tone: cumplimientoCronograma.pct >= 90 ? "accent" as const : cumplimientoCronograma.pct >= 70 ? "muted" as const : "danger" as const },
     { label: "Meta de limpieza", value: metaKpi.value, delta: metaKpi.delta, tone: metaKpi.tone },
