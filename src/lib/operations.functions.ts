@@ -745,11 +745,72 @@ export const dashboardStats = createServerFn({ method: "GET" })
     const k: any = data ?? {};
     const paneles_parque = Number(k.paneles_parque ?? 0);
     const paneles_limpiados = Number(k.paneles_limpiados ?? 0);
-    const avance_limpieza = paneles_parque > 0
-      ? Math.min(100, Math.round((paneles_limpiados / paneles_parque) * 100))
+
+    // ---- Ajustes de negocio ----
+    // Sábado/Domingo no son días laborables: si hoy es fin de semana,
+    // la referencia se corre al viernes anterior para "Trabajos hoy".
+    const nowSv = new Date(new Date().toLocaleString("en-US", { timeZone: "America/El_Salvador" }));
+    const dow = nowSv.getDay(); // 0=Dom, 6=Sab
+    const refBiz = new Date(nowSv);
+    refBiz.setHours(0, 0, 0, 0);
+    if (dow === 0) refBiz.setDate(refBiz.getDate() - 2);
+    else if (dow === 6) refBiz.setDate(refBiz.getDate() - 1);
+    const refStart = refBiz.toISOString();
+    const refEnd = new Date(refBiz.getTime() + 86400000).toISOString();
+
+    const { data: trabajosRef } = await context.supabase
+      .from("trabajos")
+      .select("id, fecha_programada, duracion_dias, estado")
+      .neq("estado", "cancelado");
+    const trabajos_hoy = (trabajosRef ?? []).filter((t: any) => {
+      const start = new Date(t.fecha_programada).getTime();
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      const end = start + dur * 86400000;
+      return start < new Date(refEnd).getTime() && end > new Date(refStart).getTime();
+    }).length;
+
+    // "Avance de limpieza" = paneles realmente reportados / parque total (solo
+    // plantas con al menos un trabajo de limpieza registrado). Ya no asume
+    // parque completo por cada ciclo cerrado, para que un trabajo aún abierto
+    // no aparezca al 100%.
+    const [{ data: repDiarios }, { data: repBase }, { data: trabLimpieza }] = await Promise.all([
+      context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("paneles_limpiados, trabajos!inner(planta_id, servicio)")
+        .not("paneles_limpiados", "is", null),
+      context.supabase
+        .from("trabajo_reportes")
+        .select("paneles_limpiados, trabajos!inner(planta_id, servicio)")
+        .not("paneles_limpiados", "is", null),
+      context.supabase
+        .from("trabajos")
+        .select("planta_id, servicio")
+        .ilike("servicio", "%limpieza%"),
+    ]);
+    let limpiadosReal = 0;
+    const plantasLimpieza = new Set<string>();
+    for (const r of [...(repDiarios ?? []), ...(repBase ?? [])] as any[]) {
+      const s = String(r.trabajos?.servicio ?? "").toLowerCase();
+      if (!s.includes("limpieza")) continue;
+      limpiadosReal += Number(r.paneles_limpiados ?? 0);
+    }
+    for (const t of (trabLimpieza ?? []) as any[]) {
+      if (t.planta_id) plantasLimpieza.add(t.planta_id);
+    }
+    let parqueLimpieza = 0;
+    if (plantasLimpieza.size > 0) {
+      const { data: plantasRows } = await context.supabase
+        .from("plantas")
+        .select("id, paneles")
+        .in("id", Array.from(plantasLimpieza));
+      parqueLimpieza = (plantasRows ?? []).reduce((s: number, p: any) => s + Number(p.paneles ?? 0), 0);
+    }
+    const avance_limpieza = parqueLimpieza > 0
+      ? Math.min(100, Math.round((limpiadosReal / parqueLimpieza) * 100))
       : 0;
+
     return {
-      trabajos_hoy: Number(k.trabajos_hoy ?? 0),
+      trabajos_hoy,
       equipos_operativos: Number(k.equipos_operativos ?? 0),
       equipos_total: Number(k.equipos_total ?? 0),
       eficiencia: String(k.eficiencia ?? "--"),
