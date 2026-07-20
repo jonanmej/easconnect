@@ -38,7 +38,7 @@ function BrandStrip() {
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 105, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1, marginLeft: 8 },

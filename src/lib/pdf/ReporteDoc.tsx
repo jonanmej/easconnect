@@ -51,7 +51,7 @@ const COL = {
 const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 105, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
