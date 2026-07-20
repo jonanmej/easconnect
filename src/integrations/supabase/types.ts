@@ -50,6 +50,7 @@ export type Database = {
       clientes: {
         Row: {
           capacidad: string | null
+          color_acento: string | null
           contacto: string | null
           contrato_om: boolean
           created_at: string
@@ -70,6 +71,7 @@ export type Database = {
         }
         Insert: {
           capacidad?: string | null
+          color_acento?: string | null
           contacto?: string | null
           contrato_om?: boolean
           created_at?: string
@@ -90,6 +92,7 @@ export type Database = {
         }
         Update: {
           capacidad?: string | null
+          color_acento?: string | null
           contacto?: string | null
           contrato_om?: boolean
           created_at?: string
