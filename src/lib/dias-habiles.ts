@@ -61,6 +61,27 @@ export function ahoraSV(): Date {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "America/El_Salvador" }));
 }
 
+/** Convierte un ISO/string a Date en zona horaria de El Salvador. */
+export function fechaEnSV(value: string | Date): Date {
+  const d = value instanceof Date ? value : new Date(value);
+  return new Date(d.toLocaleString("en-US", { timeZone: "America/El_Salvador" }));
+}
+
+/** ¿Es no laborable (sábado, domingo o feriado SV) el instante dado, evaluado en zona SV? */
+export function esNoLaborableSVFromISO(value: string | Date): boolean {
+  return esNoLaborableSV(fechaEnSV(value));
+}
+
+/** Etiqueta legible del motivo de no laborabilidad, o null si es hábil. */
+export function motivoNoLaborableSV(value: string | Date): string | null {
+  const d = fechaEnSV(value);
+  const dow = d.getDay();
+  if (dow === 0) return "domingo";
+  if (dow === 6) return "sábado";
+  if (feriadosSV(d.getFullYear()).has(ymd(d))) return "feriado";
+  return null;
+}
+
 /** Siguiente día hábil (>= start si include=true, > start si false). */
 export function siguienteDiaHabilSV(start: Date, include = false): Date {
   const d = new Date(start);
