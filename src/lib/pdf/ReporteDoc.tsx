@@ -51,7 +51,7 @@ const COL = {
 const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  page: { paddingTop: 82, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -128,28 +128,28 @@ const styles = StyleSheet.create({
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
 });
 
-// Franja superior con los tres logos institucionales.
+// Franja superior con los tres logos institucionales que aparece en la
+// cabecera de cada página (queda sobre la cabecera existente).
 const brandStripStyles = StyleSheet.create({
   strip: {
-    position: "absolute",
-    top: 18,
-    left: 85,
-    right: 45,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 26,
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COL.border,
   },
-  logo: { height: 22, objectFit: "contain" },
-  logoPV: { height: 24, objectFit: "contain" },
-  logoCh: { height: 18, objectFit: "contain" },
+  logoEa: { height: 20, objectFit: "contain" },
+  logoPv: { height: 22, objectFit: "contain" },
+  logoCh: { height: 16, objectFit: "contain" },
 });
 
 function BrandStrip() {
   return (
-    <View style={brandStripStyles.strip} fixed>
-      <Image src={LOGO_EA()} style={brandStripStyles.logo} />
-      <Image src={LOGO_PVSTOP()} style={brandStripStyles.logoPV} />
+    <View style={brandStripStyles.strip}>
+      <Image src={LOGO_EA()} style={brandStripStyles.logoEa} />
+      <Image src={LOGO_PVSTOP()} style={brandStripStyles.logoPv} />
       <Image src={LOGO_CHEMITEK()} style={brandStripStyles.logoCh} />
     </View>
   );
