@@ -755,7 +755,11 @@ function Trabajos() {
         </div>
 
         {editing?.id && tab === "diarios" && (
-          <ReportesDiariosSection trabajoId={editing.id} />
+          <ReportesDiariosSection
+            trabajoId={editing.id}
+            readOnly
+            hint="El llenado de reportes diarios y sus fotos se realiza desde el módulo A.T. (Terreno). Aquí puedes consultarlos."
+          />
         )}
         {editing?.id && tab === "recursos" && (
           <RecursosSection

@@ -30,7 +30,17 @@ function fmtHora(h?: string | null): string {
   return m ? `${m[1]}:${m[2]}` : String(h);
 }
 
-export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
+export function ReportesDiariosSection({
+  trabajoId,
+  readOnly = false,
+  hint,
+}: {
+  trabajoId: string;
+  /** Cuando es true, el formulario y el uploader de fotos quedan deshabilitados. */
+  readOnly?: boolean;
+  /** Aviso mostrado sobre la sección (por ejemplo: "Se llena desde A.T."). */
+  hint?: string;
+}) {
   const { user, roles } = useAuth();
   const role = highestRole(roles);
   const isStaff = role === "admin" || role === "supervisor";
@@ -105,6 +115,11 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
 
   return (
     <div className="pt-2 border-t border-border space-y-3">
+      {hint && (
+        <p className="text-[11px] text-muted-foreground bg-secondary/50 border border-border rounded-md px-2.5 py-1.5">
+          {hint}
+        </p>
+      )}
       {/* Resumen + CTA ejecutivo */}
       <div className="flex flex-wrap items-center gap-2">
         {!isStSolar && (
@@ -134,12 +149,14 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
           count={diariosArr.length}
           defaultOpen
         >
-          <DiarioForm
-            onSave={(v) => save.mutateAsync(v)}
-            saving={save.isPending}
-            panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
-            duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
-          />
+          {!readOnly && (
+            <DiarioForm
+              onSave={(v) => save.mutateAsync(v)}
+              saving={save.isPending}
+              panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+              duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+            />
+          )}
           <div className="space-y-1.5 mt-2">
             {diarios.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
             {!diarios.isLoading && diariosArr.length === 0 && (
@@ -203,9 +220,13 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
                     <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">
                       Evidencias de este día
                     </p>
-                    <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={d.id} />
+                    {readOnly ? (
+                      <EvidenciaUploaderReadOnly trabajoId={trabajoId} reporteDiarioId={d.id} />
+                    ) : (
+                      <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={d.id} />
+                    )}
                   </div>
-                  {canDelete && (
+                  {canDelete && !readOnly && (
                     <div className="flex justify-end">
                       <button
                         type="button"
@@ -236,7 +257,7 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
           trabajoId={trabajoId}
           pdfs={pdfsArr}
           loading={pdfs.isLoading}
-          canUpload={isStSolar || isStaff}
+          canUpload={!readOnly && (isStSolar || isStaff)}
           onUploaded={() => qc.invalidateQueries({ queryKey: ["diarios-pdf", trabajoId] })}
           onDelete={(id) => delPdf.mutate(id)}
           registrar={fRegPdf}
@@ -244,17 +265,18 @@ export function ReportesDiariosSection({ trabajoId }: { trabajoId: string }) {
           isStaff={isStaff}
         />
       </Section>
+    </div>
+  );
+}
 
-      {/* Evidencias */}
-      {!isStSolar && (
-        <Section
-          icon={Camera}
-          title="Hallazgos fotográficos (sin día asignado)"
-          subtitle="Prefiere adjuntar las fotos dentro de cada reporte diario. Esta sección es solo para evidencia que no corresponde a un día específico."
-        >
-          <EvidenciaUploader trabajoId={trabajoId} />
-        </Section>
-      )}
+/** Uploader deshabilitado: sólo muestra las fotos ya adjuntas al reporte diario. */
+function EvidenciaUploaderReadOnly({ trabajoId, reporteDiarioId }: { trabajoId: string; reporteDiarioId: string }) {
+  return (
+    <div>
+      <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={reporteDiarioId} readOnly />
+      <p className="text-[10px] text-muted-foreground mt-1">
+        La subida de fotos está disponible desde el módulo <strong>A.T.</strong> (Terreno).
+      </p>
     </div>
   );
 }

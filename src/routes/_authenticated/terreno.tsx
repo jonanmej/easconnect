@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, upsertTrabajo, listTecnicos } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
-import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon } from "lucide-react";
+import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon, ClipboardList, X } from "lucide-react";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
+import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 
 export const Route = createFileRoute("/_authenticated/terreno")({
   head: () => ({
@@ -160,6 +161,7 @@ function TrabajoCard({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const [reporteOpen, setReporteOpen] = useState(false);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -260,12 +262,56 @@ function TrabajoCard({
       </div>
       )}
 
+      {!soloLectura && inProgress && (
+        <button
+          type="button"
+          onClick={() => setReporteOpen(true)}
+          className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10"
+        >
+          <ClipboardList className="size-4" />
+          Reporte diario del día
+        </button>
+      )}
+
       <Link
         to="/trabajos"
         className="block text-center text-[11px] text-muted-foreground hover:text-foreground"
       >
         Ver detalle completo →
       </Link>
+
+      {reporteOpen && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setReporteOpen(false)}
+        >
+          <div
+            className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto bg-background rounded-t-xl sm:rounded-xl border border-border shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase text-primary font-semibold">{trabajo.folio}</p>
+                <p className="text-sm font-medium truncate">{trabajo.servicio}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReporteOpen(false)}
+                className="size-8 grid place-items-center rounded-md hover:bg-secondary"
+                aria-label="Cerrar"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="p-4">
+              <ReportesDiariosSection
+                trabajoId={trabajo.id}
+                hint="Este es el único punto de captura del reporte diario y sus fotos. Adjunta la evidencia dentro del reporte del día."
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

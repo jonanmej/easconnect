@@ -45,9 +45,11 @@ function fileToDataURL(file: File | Blob): Promise<string> {
 export function EvidenciaUploader({
   trabajoId,
   reporteDiarioId,
+  readOnly = false,
 }: {
   trabajoId: string;
   reporteDiarioId?: string | null;
+  readOnly?: boolean;
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,7 @@ export function EvidenciaUploader({
   const [online, setOnline] = useState<boolean>(typeof navigator === "undefined" ? true : navigator.onLine);
   const { roles } = useAuth();
   const role = highestRole(roles);
-  const canEdit = role && ["admin", "supervisor", "tecnico"].includes(role);
+  const canEdit = !readOnly && role && ["admin", "supervisor", "tecnico"].includes(role);
 
   const fetchList = useServerFn(listEvidencias);
   const fetchRecord = useServerFn(recordEvidencia);
