@@ -508,6 +508,19 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         }).catch(() => {});
       } catch { /* silenciar */ }
     }
+    // Notificar evento de trabajo (creado / reprogramado / cancelado)
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      const trabajoId = (row as any).id as string;
+      const evento = !id
+        ? "creado"
+        : (rest.estado === "cancelado" && estadoPrevio !== "cancelado")
+          ? "cancelado"
+          : "reprogramado";
+      // Emitimos "reprogramado" solo si realmente cambió la fecha o hubo edición relevante.
+      // Para simplificar, notificamos siempre en updates: reduce ruido dedupe in-app en cliente.
+      await notificarEventoTrabajo({ evento, trabajoId, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     return row;
   });
 
@@ -515,6 +528,10 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      await notificarEventoTrabajo({ evento: "cancelado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     const { error } = await context.supabase.from("trabajos").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
