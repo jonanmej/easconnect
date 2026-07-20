@@ -638,8 +638,13 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     })();
 
     // Trabajos del periodo
-    const desde = (rep as any).desde ?? null;
-    const hasta = (rep as any).hasta ?? null;
+    const inferredRange = !(rep as any).desde || !(rep as any).hasta
+      ? parseLegacySingleDayPeriod((rep as any).periodo)
+      : null;
+    const desde = (rep as any).desde ?? inferredRange?.desde ?? null;
+    const hasta = (rep as any).hasta ?? inferredRange?.hasta ?? null;
+    const desdeMs = desde ? new Date(desde).getTime() : null;
+    const hastaMs = hasta ? new Date(hasta).getTime() : null;
     let plantasIds: string[] = [];
     if ((rep as any).planta_id) plantasIds = [(rep as any).planta_id];
     else {
@@ -647,15 +652,34 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
     let qb = supabase.from("trabajos")
-      .select("id, folio, servicio, fecha_programada, estado, notas, tecnico_id")
+      .select("id, folio, servicio, fecha_programada, duracion_dias, estado, notas, tecnico_id")
       .in("planta_id", plantasIds)
       .order("fecha_programada");
-    if (desde) qb = qb.gte("fecha_programada", desde);
     if (hasta) qb = qb.lte("fecha_programada", hasta);
     if (folioReporte) qb = qb.eq("folio", folioReporte);
-    const { data: trabajos } = await qb;
+    const { data: trabajosRaw } = await qb;
+    const trabajos = (trabajosRaw ?? []).filter((t: any) => {
+      if (desdeMs === null || hastaMs === null) return true;
+      const inicio = new Date(t.fecha_programada).getTime();
+      const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
+      const fin = inicio + duracion * 86400000 - 1;
+      return inicio <= hastaMs && fin >= desdeMs;
+    });
 
-    const trabajoIds = (trabajos ?? []).map((t) => t.id);
+    const trabajoIds = trabajos.map((t) => t.id);
+    let diarios: any[] = [];
+    if (trabajoIds.length) {
+      let diariosQb = supabase
+        .from("trabajo_reportes_diarios")
+        .select("id, trabajo_id, fecha, tecnico_id, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones, trabajo_realizado, hallazgos, observaciones, bloqueos")
+        .in("trabajo_id", trabajoIds)
+        .order("fecha", { ascending: true });
+      if (desde) diariosQb = diariosQb.gte("fecha", new Date(desde).toISOString().slice(0, 10));
+      if (hasta) diariosQb = diariosQb.lte("fecha", new Date(hasta).toISOString().slice(0, 10));
+      const { data: dd } = await diariosQb;
+      diarios = dd ?? [];
+    }
+    const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
     let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
     // Imágenes extraídas de los PDFs subidos (fotos/gráficas embebidas).
     // Se agregan al final como "evidencia" para que aparezcan en la sección
