@@ -171,8 +171,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   return (
     <View style={styles.header} fixed>
       <View style={styles.headerLeft}>
-        <EALogoMark size={22} theme={data.theme ?? "light"} />
-        <View style={[styles.headerLeftText, { marginLeft: 8 }]}>
+        <View style={styles.headerLeftText}>
           <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
           <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
           <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
