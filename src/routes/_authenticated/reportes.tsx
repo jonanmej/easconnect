@@ -143,7 +143,15 @@ function Reportes() {
         documento_version: "1.0",
         documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
         evidencias: evidenciasFinal,
-      }, `EA-Service-Connect-${modo}-${data.periodo.replace(/\s+/g, "_")}.pdf`);
+      }, (() => {
+        const servicio = String(data.servicio ?? "General")
+          .replace(/[\\/:*?"<>|]+/g, "")
+          .replace(/\s+/g, "_")
+          .trim() || "General";
+        const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+        const suf = modo === "interno" ? "-interno" : "";
+        return `Reporte-${servicio}-${fecha}${suf}.pdf`;
+      })());
       toast.success("PDF descargado");
     } catch (e: any) {
       toast.error(e.message ?? "Error al generar PDF");
