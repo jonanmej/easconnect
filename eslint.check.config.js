@@ -9,6 +9,9 @@ export default tseslint.config(
   { ignores: ["dist", ".output", ".vinxi", "node_modules", "src/routeTree.gen.ts"] },
   {
     files: ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
+    },
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       // Registrado como stub para que las directivas inline
