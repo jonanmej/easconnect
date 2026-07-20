@@ -303,9 +303,16 @@ function Trabajos() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const fecha = String(f.get("fecha_programada") ?? "");
-    if (isWeekend(fecha)) {
-      toast.error("No se pueden programar trabajos en sábado o domingo.");
-      return;
+    {
+      const motivo = motivoNoLaborable(fecha);
+      if (motivo) {
+        toast.error(
+          motivo === "feriado"
+            ? "No se pueden programar trabajos en un día feriado."
+            : "No se pueden programar trabajos en sábado o domingo.",
+        );
+        return;
+      }
     }
     // Convertir "YYYY-MM-DDTHH:mm" (hora local del navegador) a ISO UTC
     // para que el servidor (UTC) no reinterprete el valor.
@@ -637,12 +644,17 @@ function Trabajos() {
               defaultValue={toLocalInput(editing?.fecha_programada)}
               className={inputCls}
               onChange={(e) => {
-                if (isWeekend(e.currentTarget.value)) {
-                  toast.warning("Sábado y domingo no son días laborables.");
+                const motivo = motivoNoLaborable(e.currentTarget.value);
+                if (motivo) {
+                  toast.warning(
+                    motivo === "feriado"
+                      ? "Ese día es feriado; no es laborable."
+                      : "Sábado y domingo no son días laborables.",
+                  );
                 }
               }}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes).</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes, excluyendo feriados).</p>
           </Field>
           <Field label="Duración (días)">
             <input name="duracion_dias" type="number" min={1} max={60}
