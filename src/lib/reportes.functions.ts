@@ -686,14 +686,20 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // de Evidencias Fotográficas del reporte ejecutivo.
     const evidenciasPdf: { trabajo: string; descripcion: string | null; dataUrl: string }[] = [];
     if (trabajoIds.length) {
-      const { data: evs } = await supabase
+      let evidenciasQb = supabase
         .from("trabajo_evidencias")
-        .select("trabajo_id, storage_path, descripcion, categoria")
+        .select("trabajo_id, reporte_diario_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
         .order("categoria", { ascending: true })
         .limit(80);
+      if (desde || hasta) {
+        evidenciasQb = diarioIds.length
+          ? evidenciasQb.in("reporte_diario_id", diarioIds)
+          : evidenciasQb.eq("reporte_diario_id", "00000000-0000-0000-0000-000000000000");
+      }
+      const { data: evs } = await evidenciasQb;
       if (evs?.length) {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
         const { data: signed } = await supabase.storage
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
@@ -717,18 +723,26 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       // "evidencia" adicional en el reporte sin citar el origen documental.
       const { data: pdfsRows } = await supabase
         .from("trabajo_reportes_pdf")
-        .select("trabajo_id, storage_path")
+        .select("trabajo_id, fecha, storage_path")
         .in("trabajo_id", trabajoIds)
         .limit(20);
       if (pdfsRows?.length) {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
+        const desdeDia = desde ? new Date(desde).toISOString().slice(0, 10) : null;
+        const hastaDia = hasta ? new Date(hasta).toISOString().slice(0, 10) : null;
+        const pdfsFiltrados = (pdfsRows as any[]).filter((p: any) => {
+          if (!desdeDia && !hastaDia) return true;
+          if (!p.fecha) return false;
+          const fecha = String(p.fecha).slice(0, 10);
+          return (!desdeDia || fecha >= desdeDia) && (!hastaDia || fecha <= hastaDia);
+        });
         const { data: signedPdfs } = await supabase.storage
           .from("trabajos-evidencia")
-          .createSignedUrls(pdfsRows.map((p: any) => p.storage_path), 600);
+          .createSignedUrls(pdfsFiltrados.map((p: any) => p.storage_path), 600);
         const urlByPath = new Map((signedPdfs ?? []).map((s: any) => [s.path!, s.signedUrl]));
         const { extractJpegImagesFromPdf } = await import("@/lib/pdf-images.server");
         const MAX_TOTAL_IMGS = 12;
-        for (const p of pdfsRows as any[]) {
+        for (const p of pdfsFiltrados) {
           if (evidenciasPdf.length >= MAX_TOTAL_IMGS) break;
           const url = urlByPath.get(p.storage_path);
           if (!url) continue;
@@ -764,17 +778,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // ---- Avance diario vs. objetivo por trabajo -----------------------------
     // Fuente: trabajo_reportes_diarios.avance_pct (0–100) — el técnico marca
     // el avance por día, comparado contra el 100% que debe finalizarse.
-    let diarios: any[] = [];
-    if (trabajoIds.length) {
-      const { data: dd } = await supabase
-        .from("trabajo_reportes_diarios")
-        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones")
-        .in("trabajo_id", trabajoIds)
-        .order("fecha", { ascending: true });
-      diarios = dd ?? [];
-    }
     if (diarios.length) {
-      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
       // Paneles por planta para cada trabajo (parque instalado). Se usa como
       // 100% para calcular el avance ejecutado.
       const { data: trabPlantas } = await supabase
@@ -884,13 +889,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           .from("trabajo_reportes")
           .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, cliente_observaciones")
           .in("trabajo_id", trabajoIds),
-        supabase
-          .from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, trabajo_realizado, hallazgos, observaciones, bloqueos")
-          .in("trabajo_id", trabajoIds)
-          .order("fecha", { ascending: true }),
+        Promise.resolve({ data: diarios }),
       ]);
-      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
       const resumenBloques: string[] = [];
       const hallazgosBloques: string[] = [];
       const recBloques: string[] = [];
@@ -919,23 +920,33 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // Nombres de técnicos por trabajo (principal + extras de trabajo_tecnicos)
     const tecnicosPorTrabajo = new Map<string, string[]>();
     {
-      const principalIds = Array.from(new Set((trabajos ?? []).map((t: any) => t.tecnico_id).filter(Boolean)));
+      const principalIds = Array.from(new Set(trabajos.map((t: any) => t.tecnico_id).filter(Boolean)));
       const { data: extras } = trabajoIds.length
         ? await supabase.from("trabajo_tecnicos").select("trabajo_id, tecnico_id").in("trabajo_id", trabajoIds)
         : { data: [] as any[] };
       const extraIds = (extras ?? []).map((e: any) => e.tecnico_id);
-      const allIds = Array.from(new Set([...principalIds, ...extraIds])) as string[];
+      const diarioTecnicoIds = diarios.map((d: any) => d.tecnico_id).filter(Boolean);
+      const allIds = Array.from(new Set([...principalIds, ...extraIds, ...diarioTecnicoIds])) as string[];
       const nombrePorId = new Map<string, string>();
       if (allIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, nombre").in("id", allIds);
-        for (const p of (profs ?? []) as any[]) nombrePorId.set(p.id, p.nombre ?? "—");
+        const { data: profs } = await supabase.from("profiles").select("id, display_name, nombres, apellidos").in("id", allIds);
+        for (const p of (profs ?? []) as any[]) {
+          const nombre = toProfileName(p);
+          if (nombre) nombrePorId.set(p.id, nombre);
+        }
       }
-      for (const t of (trabajos ?? []) as any[]) {
+      for (const t of trabajos as any[]) {
         const arr: string[] = [];
         if (t.tecnico_id && nombrePorId.get(t.tecnico_id)) arr.push(nombrePorId.get(t.tecnico_id)!);
         for (const e of (extras ?? []) as any[]) {
           if (e.trabajo_id === t.id) {
             const n = nombrePorId.get(e.tecnico_id);
+            if (n && !arr.includes(n)) arr.push(n);
+          }
+        }
+        for (const d of diarios) {
+          if (d.trabajo_id === t.id) {
+            const n = nombrePorId.get(d.tecnico_id);
             if (n && !arr.includes(n)) arr.push(n);
           }
         }
@@ -956,7 +967,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       kpis,
       hallazgos,
       recomendaciones,
-      trabajos: (trabajos ?? []).map((t) => ({
+      trabajos: trabajos.map((t) => ({
         folio: t.folio,
         servicio: t.servicio,
         fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }),
@@ -966,7 +977,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       })),
       resumen_por_planta: (() => {
         const map = new Map<string, { total: number; completados: number; servicios: Set<string> }>();
-        for (const t of (trabajos ?? [])) {
+        for (const t of trabajos) {
           const key = (rep as any).plantas?.nombre ?? "Planta";
           const cur = map.get(key) ?? { total: 0, completados: 0, servicios: new Set<string>() };
           cur.total += 1;
@@ -983,7 +994,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       })(),
       resumen_por_servicio: (() => {
         const map = new Map<string, { total: number; completados: number }>();
-        for (const t of (trabajos ?? [])) {
+        for (const t of trabajos) {
           const key = (t as any).servicio ?? "—";
           const cur = map.get(key) ?? { total: 0, completados: 0 };
           cur.total += 1;
@@ -996,7 +1007,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       evidencias_pdf: evidenciasPdf,
       graficas,
       reportes_diarios: (() => {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
         return (diarios ?? [])
           .slice()
           .sort((a: any, b: any) => String(a.fecha).localeCompare(String(b.fecha)))
