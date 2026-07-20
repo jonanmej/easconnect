@@ -55,7 +55,7 @@ export const listFeriados = createServerFn({ method: "GET" })
     if (data.anio) q = q.eq("anio", data.anio);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<{
+    return ((rows ?? []) as unknown) as Array<{
       id: string; anio: number; fecha: string; nombre: string;
       tipo: "nacional" | "personalizado"; activo: boolean;
     }>;
@@ -147,5 +147,5 @@ export const listFeriadosActivos = createServerFn({ method: "GET" })
       .eq("anio", data.anio)
       .eq("activo", true);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<{ fecha: string; nombre: string }>;
+    return ((rows ?? []) as unknown) as Array<{ fecha: string; nombre: string }>;
   });
