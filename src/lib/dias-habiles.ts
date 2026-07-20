@@ -34,9 +34,7 @@ export function feriadosSV(year: number): Set<string> {
   set.add(`${year}-05-01`); // Día del Trabajo
   set.add(`${year}-05-10`); // Día de la Madre
   set.add(`${year}-06-17`); // Día del Padre
-  // Fiestas Agostinas (San Salvador): 3, 5 y 6 de agosto son los feriados nacionales.
-  set.add(`${year}-08-03`);
-  set.add(`${year}-08-05`);
+  // Fiestas Agostinas: a nivel nacional solo el 6 de agosto es feriado.
   set.add(`${year}-08-06`);
   set.add(`${year}-09-15`); // Independencia
   set.add(`${year}-11-02`); // Día de los Difuntos
