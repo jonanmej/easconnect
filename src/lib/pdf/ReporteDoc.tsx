@@ -440,7 +440,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           </>
         )}
         {ejec && data.responsable && (
-          <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
+          <View wrap={false} style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
             <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
             <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
             {data.responsable_cargo && (
