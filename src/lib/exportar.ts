@@ -56,7 +56,16 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 
 /** Aplana un listado de trabajos a filas planas listas para exportar. */
-export function trabajosARows(trabajos: any[]): Row[] {
+export function trabajosARows(
+  trabajos: any[],
+  tecnicoNombrePorId?: Map<string, string> | Record<string, string>,
+): Row[] {
+  const getTec = (id: string | null | undefined) => {
+    if (!id) return "";
+    if (!tecnicoNombrePorId) return "";
+    if (tecnicoNombrePorId instanceof Map) return tecnicoNombrePorId.get(id) ?? "";
+    return (tecnicoNombrePorId as Record<string, string>)[id] ?? "";
+  };
   return trabajos.map((t) => ({
     Folio: t.folio ?? "",
     Cliente: t.cliente_nombre ?? "",
@@ -67,7 +76,7 @@ export function trabajosARows(trabajos: any[]): Row[] {
       ? new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })
       : "",
     "Duración (días)": t.duracion_dias ?? 1,
-    Técnico: t.tecnico_nombre ?? "",
+    Técnico: t.tecnico_nombre ?? getTec(t.tecnico_id) ?? "",
     Notas: t.notas ?? "",
   }));
 }
