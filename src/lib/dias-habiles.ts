@@ -27,8 +27,31 @@ function ymd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Caché de feriados personalizados por año. Se llena desde el hook
+ * `useFeriados` (cliente) o desde una consulta puntual (servidor). Cuando hay
+ * un valor para el año, éste sustituye a la lista fija por defecto; conserva
+ * la compatibilidad síncrona de las funciones de este módulo.
+ */
+const feriadosCache = new Map<number, Set<string>>();
+
+export function setFeriadosCache(year: number, fechas: Set<string>): void {
+  feriadosCache.set(year, new Set(fechas));
+}
+
+export function hasFeriadosCache(year: number): boolean {
+  return feriadosCache.has(year);
+}
+
+export function clearFeriadosCache(year?: number): void {
+  if (year == null) feriadosCache.clear();
+  else feriadosCache.delete(year);
+}
+
 /** Feriados oficiales de El Salvador para el año dado (YYYY-MM-DD). */
 export function feriadosSV(year: number): Set<string> {
+  const override = feriadosCache.get(year);
+  if (override) return override;
   const set = new Set<string>();
   set.add(`${year}-01-01`); // Año Nuevo
   set.add(`${year}-05-01`); // Día del Trabajo

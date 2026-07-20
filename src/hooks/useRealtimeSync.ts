@@ -30,6 +30,12 @@ const TABLE_TO_KEYS: Record<string, string[][]> = {
   mantenimientos: [["mantenimientos"]],
 };
 
+// Añadimos feriados fuera del literal para no romper el tipado estricto
+// del resto de las claves.
+(TABLE_TO_KEYS as Record<string, string[][]>).feriados = [
+  ["feriados"], ["feriados-activos"],
+];
+
 /**
  * Suscripción global a cambios en las tablas compartidas. Se monta una sola
  * vez en el layout _authenticated. RLS controla qué filas emite Postgres a
