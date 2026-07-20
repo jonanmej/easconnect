@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { RoleGate } from "@/components/RoleGate";
 import { useNavigate } from "@tanstack/react-router";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { PageTransition } from "@/components/PageTransition";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -24,7 +25,9 @@ function AuthenticatedLayout() {
         <AppShell>
           <RoleGate>
             <RealtimeSyncMount />
-            <Outlet />
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
           </RoleGate>
         </AppShell>
       </PerfilGate>
