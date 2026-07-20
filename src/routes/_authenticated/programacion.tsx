@@ -95,6 +95,10 @@ function Programacion() {
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
+  // Inyecta los feriados personalizados del año en curso al caché sincrónico
+  // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
+  // reflejen lo configurado en administración.
+  useFeriados(cursor.getFullYear());
 
   const list = useQuery({
     queryKey: ["trabajos"],
