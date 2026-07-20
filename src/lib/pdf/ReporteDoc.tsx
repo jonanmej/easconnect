@@ -1,12 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
-import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
-
-/** URL absoluta al logo EA Service Connect según tema del documento. */
-function brandLogoUrl(theme: "light" | "dark") {
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
-  return `${origin}${BRAND_LOGO_URLS["ea-main"][theme]}`;
-}
+import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
@@ -17,18 +9,8 @@ function brandLogoUrl(theme: "light" | "dark") {
 // ---------------------------------------------------------------------------
 Font.registerHyphenationCallback((word) => [word]);
 
-/**
- * Logo EA Service & Consulting reproducido vectorial en PDF.
- * Reproduce el triángulo "play" con dos tonos de naranja sobre navy,
- * fiel a la identidad de marca utilizada en la app (EALogo.tsx).
- */
-/**
- * Logo EA Service & Consulting como imagen embebida (PNG transparente).
- * Cambia automáticamente entre variante clara/oscura según el tema del PDF.
- */
-function EALogoMark({ size = 28, theme = "light" }: { size?: number; theme?: "light" | "dark" }) {
-  return <Image src={brandLogoUrl(theme)} style={{ width: size, height: size }} />;
-}
+// Nota: por decisión de negocio los reportes NO incluyen logotipos de marca.
+// Solo aparecen el nombre corporativo y los metadatos ISO.
 
 // Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
 // no negrita sintética). Esto garantiza nitidez en Acrobat, Chrome, Safari,
