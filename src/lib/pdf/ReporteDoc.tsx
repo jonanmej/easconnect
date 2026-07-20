@@ -209,19 +209,22 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View style={styles.header} fixed>
-      <View style={styles.headerLeft}>
-        <View style={styles.headerLeftText}>
-          <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
-          <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
-          <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
+    <View fixed>
+      <BrandStrip />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerLeftText}>
+            <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
+            <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
+            <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.headerRight}>
-        <Text style={styles.headerRightTop}>{data.cliente}</Text>
-        <Text style={styles.headerRightBot}>{data.periodo}</Text>
-        <Text style={styles.headerRightBot}>{codigo}</Text>
-        <Text style={styles.headerRightBot}>{clasif}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.headerRightTop}>{data.cliente}</Text>
+          <Text style={styles.headerRightBot}>{data.periodo}</Text>
+          <Text style={styles.headerRightBot}>{codigo}</Text>
+          <Text style={styles.headerRightBot}>{clasif}</Text>
+        </View>
       </View>
     </View>
   );
