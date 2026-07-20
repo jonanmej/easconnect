@@ -218,6 +218,46 @@ export const generarReporte = createServerFn({ method: "POST" })
     };
     const trabajosFull = (trabajosRawRes.data ?? []).filter(solapa);
     const trabajos = trabajosFull.map(({ id: _id, duracion_dias: _d, ...rest }: any) => rest);
+
+    // ---------------------------------------------------------------------
+    // Estado EFECTIVO por trabajo.
+    //
+    // Regla de negocio: si el servicio es de limpieza y todavía existen
+    // paneles por limpiar en la planta (acumulado < parque instalado),
+    // el trabajo NO puede marcarse como "completado" en el reporte
+    // ejecutivo aunque el estado en base de datos sea "completado".
+    // En ese caso lo reflejamos como "en_progreso" para no engañar al
+    // cliente sobre el avance real.
+    // ---------------------------------------------------------------------
+    const trabajoIdsAll = trabajosFull.map((t: any) => t.id);
+    const parqueByTrabajo = new Map<string, number>();
+    const acumByTrabajo = new Map<string, number>();
+    if (trabajoIdsAll.length) {
+      const [parqueRes, acumRes] = await Promise.all([
+        supabase.from("trabajos").select("id, plantas(paneles)").in("id", trabajoIdsAll),
+        supabase.from("trabajo_reportes_diarios").select("trabajo_id, paneles_limpiados").in("trabajo_id", trabajoIdsAll),
+      ]);
+      for (const r of (parqueRes.data ?? []) as any[]) {
+        parqueByTrabajo.set(r.id, Number(r.plantas?.paneles ?? 0));
+      }
+      for (const r of (acumRes.data ?? []) as any[]) {
+        acumByTrabajo.set(r.trabajo_id, (acumByTrabajo.get(r.trabajo_id) ?? 0) + Number(r.paneles_limpiados ?? 0));
+      }
+    }
+    const esLimpieza = (s: string) => /limpieza/i.test(s ?? "");
+    const estadoEfectivo = (t: any): string => {
+      if (t.estado !== "completado") return t.estado;
+      if (!esLimpieza(t.servicio)) return t.estado;
+      const parque = parqueByTrabajo.get(t.id) ?? 0;
+      const acum = acumByTrabajo.get(t.id) ?? 0;
+      if (parque > 0 && acum < parque) return "en_progreso";
+      return t.estado;
+    };
+    const trabajosFullEf = trabajosFull.map((t: any) => ({ ...t, estado: estadoEfectivo(t) }));
+    // Reemplazamos la lista sin id que se usa aguas abajo con el estado ajustado.
+    for (let i = 0; i < trabajos.length; i++) {
+      trabajos[i].estado = trabajosFullEf[i].estado;
+    }
     const trabajosRes = { data: trabajos } as { data: any[] };
     const equipos = equiposRes.data ?? [];
     const equipoIds = equipos.length

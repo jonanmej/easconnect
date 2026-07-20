@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 /**
  * Cabecera + pie normalizados ISO 9001:2015 para vistas imprimibles (HTML → print).
@@ -36,8 +35,7 @@ export function PrintDocHeader({
   clausulaIso = "§7.5",
   filtros,
 }: PrintDocFrameProps) {
-  // Para impresión siempre usamos la variante light del logo (fondo blanco).
-  const logoUrl = BRAND_LOGO_URLS["ea-main"].light;
+  // Por decisión de negocio los documentos imprimibles no incluyen logotipos.
   const emitido = useMemo(
     () =>
       new Date().toLocaleString("es-SV", {
@@ -51,7 +49,6 @@ export function PrintDocHeader({
     <div className="print-only print-doc-header">
       <div className="print-doc-header__row">
         <div className="print-doc-header__brand">
-          <img src={logoUrl} alt="EA Service & Consulting" />
           <div>
             <p className="print-doc-header__brand-title">EA SERVICE AND CONSULTING</p>
             <p className="print-doc-header__brand-sub">{subtitulo ?? titulo}</p>
