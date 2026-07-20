@@ -363,11 +363,17 @@ function Trabajos() {
             }} />
             <ExportButton label="Exportar filtrado (Excel)" onExport={async () => {
               const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
-              await exportarXLSX(trabajosARows(filtrados), `trabajos-filtrado-${dia}`);
+              const map = new Map<string, string>(
+                ((tecnicos.data as any[] | undefined) ?? []).map((u) => [u.id, u.nombre]),
+              );
+              await exportarXLSX(trabajosARows(filtrados, map), `trabajos-filtrado-${dia}`);
             }} />
             <ExportButton label="Exportar filtrado (CSV)" onExport={async () => {
               const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
-              exportarCSV(trabajosARows(filtrados), `trabajos-filtrado-${dia}.csv`);
+              const map = new Map<string, string>(
+                ((tecnicos.data as any[] | undefined) ?? []).map((u) => [u.id, u.nombre]),
+              );
+              exportarCSV(trabajosARows(filtrados, map), `trabajos-filtrado-${dia}.csv`);
             }} />
             {canEdit && (
               <button
