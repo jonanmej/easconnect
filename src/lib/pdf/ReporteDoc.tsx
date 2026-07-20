@@ -603,25 +603,25 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
 
         <View style={{ marginTop: 10, padding: 8, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel }}>
           <Text style={{ fontSize: 8.5, fontFamily: FONT_BOLD, color: COL.bg, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Control del documento</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
-            <View style={{ flexDirection: "row", width: "48%", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 70 }}>Identificador</Text>
+          <View style={{ flexDirection: "column" }}>
+            <View style={{ flexDirection: "row", marginBottom: 3 }}>
+              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Identificador</Text>
               <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{(data.documento_id ?? "").toUpperCase() || "—"}</Text>
             </View>
-            <View style={{ flexDirection: "row", width: "48%", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 70 }}>Código</Text>
+            <View style={{ flexDirection: "row", marginBottom: 3 }}>
+              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Código</Text>
               <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}</Text>
             </View>
-            <View style={{ flexDirection: "row", width: "48%", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 70 }}>Clasificación</Text>
+            <View style={{ flexDirection: "row", marginBottom: 3 }}>
+              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Clasificación</Text>
               <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>{data.documento_clasificacion ?? "Uso interno"}</Text>
             </View>
-            <View style={{ flexDirection: "row", width: "48%", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 70 }}>Integridad</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 16) + "…" : "—"}</Text>
+            <View style={{ flexDirection: "row", marginBottom: 3 }}>
+              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
+              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
             </View>
-            <View style={{ flexDirection: "row", width: "100%" }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 70 }}>Norma</Text>
+            <View style={{ flexDirection: "row" }}>
+              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Norma</Text>
               <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>ISO 9001:2015 §7.5 — Información documentada</Text>
             </View>
           </View>
