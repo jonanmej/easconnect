@@ -34,6 +34,21 @@ export default tseslint.config(
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Prevent redeclarations / shadowing like the `diarios` bug where a
+      // block-scoped const re-declared an outer variable and silently broke
+      // the executive PDF (photos + technician mapping). These must fail the
+      // build early, before any PDF is generated.
+      "no-redeclare": "off",
+      "@typescript-eslint/no-redeclare": ["error", { ignoreDeclarationMerge: true }],
+      "no-shadow": "off",
+      "@typescript-eslint/no-shadow": [
+        "error",
+        { hoist: "all", ignoreOnInitialization: false, allow: ["_", "resolve", "reject", "done", "cb", "err", "error"] },
+      ],
+      "no-var": "error",
+      "no-dupe-keys": "error",
+      "no-dupe-class-members": "off",
+      "@typescript-eslint/no-dupe-class-members": "error",
     },
   },
   eslintPluginPrettier,
