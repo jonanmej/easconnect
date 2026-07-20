@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, MailX, type LucideIcon } from "lucide-react";
+import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, MailX, CalendarDays, Plus, Trash2, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme, type ThemePreference } from "@/lib/theme-context";
@@ -14,6 +14,13 @@ import {
   setReportUploadEmailPaused,
   type PasswordPolicy,
 } from "@/lib/system-config.functions";
+import {
+  listFeriados,
+  upsertFeriado,
+  deleteFeriado,
+  toggleFeriadoActivo,
+  seedFeriadosAnio,
+} from "@/lib/feriados.functions";
 import { Switch } from "@/components/ui/switch";
 import { resetDatosOperacionales } from "@/lib/reportes.functions";
 import { toast } from "sonner";
@@ -131,10 +138,168 @@ function ConfiguracionPage() {
           </CardContent>
         </Card>
         {isAdmin && <PasswordPolicyCard />}
+        {isAdmin && <FeriadosCard />}
         {isOwner && <ReportEmailPauseCard />}
         {isOwner && <ResetDataCard />}
       </div>
     </div>
+  );
+}
+
+function FeriadosCard() {
+  const qc = useQueryClient();
+  const [anio, setAnio] = useState<number>(new Date().getFullYear());
+  const [fecha, setFecha] = useState<string>("");
+  const [nombre, setNombre] = useState<string>("");
+
+  const fList = useServerFn(listFeriados);
+  const fUpsert = useServerFn(upsertFeriado);
+  const fDel = useServerFn(deleteFeriado);
+  const fToggle = useServerFn(toggleFeriadoActivo);
+  const fSeed = useServerFn(seedFeriadosAnio);
+
+  const q = useQuery({
+    queryKey: ["feriados", anio],
+    queryFn: () => fList({ data: { anio } }),
+  });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["feriados", anio] });
+    qc.invalidateQueries({ queryKey: ["feriados-activos", anio] });
+  };
+  const add = useMutation({
+    mutationFn: () =>
+      fUpsert({ data: { fecha, nombre, tipo: "personalizado", activo: true } }),
+    onSuccess: () => {
+      toast.success("Feriado agregado");
+      setFecha(""); setNombre("");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const seed = useMutation({
+    mutationFn: () => fSeed({ data: { anio } }),
+    onSuccess: (r: any) => {
+      toast.success(`Feriados nacionales ${anio} precargados (${r?.insertados ?? ""}).`);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: (id: string) => fDel({ data: { id } }),
+    onSuccess: () => { toast.success("Feriado eliminado"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const toggle = useMutation({
+    mutationFn: (v: { id: string; activo: boolean }) => fToggle({ data: v }),
+    onSuccess: () => { invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rows = (q.data as any[] | undefined) ?? [];
+
+  return (
+    <Card className="max-w-3xl mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="size-4 text-primary" />
+          Calendario de feriados
+        </CardTitle>
+        <CardDescription>
+          Los días marcados como feriados se bloquean para programar y reprogramar
+          trabajos en toda la aplicación. Puedes precargar los feriados nacionales
+          de El Salvador y agregar los días adicionales que aplique tu operación.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className="text-xs font-medium block mb-1">Año</label>
+            <input
+              type="number"
+              min={2000}
+              max={2100}
+              value={anio}
+              onChange={(e) => setAnio(Number(e.target.value) || new Date().getFullYear())}
+              className="w-28 bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => seed.mutate()}
+            disabled={seed.isPending}
+            className="h-9 px-3 rounded-md border border-input bg-background text-xs font-medium hover:bg-secondary disabled:opacity-60"
+          >
+            {seed.isPending ? "Precargando…" : `Precargar nacionales ${anio}`}
+          </button>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-[auto_1fr_auto] items-end">
+          <div>
+            <label className="text-xs font-medium block mb-1">Fecha</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="p. ej. Fiesta patronal"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={!fecha || nombre.trim().length < 2 || add.isPending}
+            onClick={() => add.mutate()}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Plus className="size-3.5" />
+            {add.isPending ? "Guardando…" : "Agregar"}
+          </button>
+        </div>
+
+        <div className="border-t border-border pt-3">
+          {q.isLoading ? (
+            <p className="text-xs text-muted-foreground">Cargando…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Sin feriados registrados para {anio}. Usa «Precargar nacionales» para empezar.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-md border border-border overflow-hidden">
+              {rows.map((r: any) => (
+                <li key={r.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="font-mono text-xs text-muted-foreground w-24">{r.fecha}</span>
+                  <span className="flex-1 truncate">{r.nombre}</span>
+                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-secondary text-foreground/70">
+                    {r.tipo}
+                  </span>
+                  <Switch
+                    checked={r.activo}
+                    onCheckedChange={(v) => toggle.mutate({ id: r.id, activo: v })}
+                    aria-label="Activo"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { if (confirm("¿Eliminar este feriado?")) del.mutate(r.id); }}
+                    className="text-destructive hover:opacity-80"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

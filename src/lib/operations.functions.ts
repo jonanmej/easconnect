@@ -3,6 +3,28 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling";
 
+/**
+ * Precarga los feriados personalizados del año correspondiente a `fechaISO`
+ * en el caché sincrónico de `dias-habiles`, de modo que las validaciones
+ * subsiguientes (`motivoNoLaborableSV`) tengan en cuenta lo configurado por
+ * los administradores en el módulo de Configuración.
+ */
+async function ensureFeriadosCargados(supabase: any, fechaISO: string) {
+  try {
+    const anio = new Date(fechaISO).getUTCFullYear();
+    const { hasFeriadosCache, setFeriadosCache } = await import("@/lib/dias-habiles");
+    if (hasFeriadosCache(anio)) return;
+    const { data } = await supabase
+      .from("feriados")
+      .select("fecha")
+      .eq("anio", anio)
+      .eq("activo", true);
+    setFeriadosCache(anio, new Set(((data ?? []) as Array<{ fecha: string }>).map((r) => r.fecha)));
+  } catch {
+    /* si falla la consulta, se aplican los feriados por defecto */
+  }
+}
+
 // ============ Clientes ============
 
 const ClienteEstado = z.enum(["activo", "revision", "pausado"]);
@@ -354,6 +376,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
     {
+      await ensureFeriadosCargados(context.supabase, payload.fecha_programada);
       const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
       const motivo = motivoNoLaborableSV(payload.fecha_programada);
       if (motivo) {
@@ -685,6 +708,7 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
     {
+      await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
       const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
       const motivo = motivoNoLaborableSV(patch.fecha_programada);
       if (motivo) {

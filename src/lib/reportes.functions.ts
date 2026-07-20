@@ -535,7 +535,12 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 /** Devuelve el dataset completo necesario para armar el PDF (trabajos + evidencias firmadas). */
 export const getReporteParaPDF = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      variante: z.enum(["ejecutivo", "interno"]).optional(),
+    }).parse(d),
+  )
   .handler(async ({ context, data }) => {
     const supabase = context.supabase;
     const { data: rep, error } = await supabase
@@ -556,9 +561,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const m = /\*\*(.+?):\*\*\s*(.+)/.exec(l) ?? /^([^:]+):\s*(.+)/.exec(l);
       return m ? { label: m[1], value: m[2] } : { label: l, value: "" };
     });
-    const hallazgos = parseBullets(section("Hallazgos"));
-    const recomendaciones = parseBullets(section("Recomendaciones"));
-    const resumen = section("Resumen ejecutivo");
+    let hallazgos = parseBullets(section("Hallazgos"));
+    let recomendaciones = parseBullets(section("Recomendaciones"));
+    let resumen = section("Resumen ejecutivo");
     const folioReporte = (() => {
       const markdown = String((rep as any).contenido_markdown ?? "");
       const m = markdown.match(/\*\*OT:\*\*\s*([^·\n]+)/i) || markdown.match(/\bOT\s*[:#-]?\s*([A-Z0-9-]{6,})/i);
@@ -776,6 +781,48 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           series: Array.from(porEstado.entries()).map(([k, v]) => ({ label: k, value: v })),
         });
       }
+    }
+
+    // ----- Variante "interno": reemplazamos el texto redactado por IA con
+    // el contenido crudo que los técnicos enviaron (trabajo_reportes +
+    // trabajo_reportes_diarios). El operador ve exactamente lo ingresado,
+    // sin edición ejecutiva.
+    if (data.variante === "interno" && trabajoIds.length) {
+      const [tr, td] = await Promise.all([
+        supabase
+          .from("trabajo_reportes")
+          .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, cliente_observaciones")
+          .in("trabajo_id", trabajoIds),
+        supabase
+          .from("trabajo_reportes_diarios")
+          .select("trabajo_id, fecha, trabajo_realizado, hallazgos, observaciones, bloqueos")
+          .in("trabajo_id", trabajoIds)
+          .order("fecha", { ascending: true }),
+      ]);
+      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      const resumenBloques: string[] = [];
+      const hallazgosBloques: string[] = [];
+      const recBloques: string[] = [];
+      for (const r of ((tr.data ?? []) as any[])) {
+        const f = folioPorId.get(r.trabajo_id) ?? "—";
+        if (r.condiciones_sitio) resumenBloques.push(`[${f}] Condiciones del sitio: ${r.condiciones_sitio}`);
+        if (r.trabajo_realizado) resumenBloques.push(`[${f}] Trabajo realizado: ${r.trabajo_realizado}`);
+        if (r.cliente_observaciones) resumenBloques.push(`[${f}] Observaciones del cliente: ${r.cliente_observaciones}`);
+        if (r.hallazgos) hallazgosBloques.push(`[${f}] ${r.hallazgos}`);
+        if (r.recomendaciones) recBloques.push(`[${f}] ${r.recomendaciones}`);
+      }
+      for (const d of ((td.data ?? []) as any[])) {
+        const f = folioPorId.get(d.trabajo_id) ?? "—";
+        const fecha = String(d.fecha ?? "");
+        if (d.trabajo_realizado) resumenBloques.push(`[${f} · ${fecha}] ${d.trabajo_realizado}`);
+        if (d.observaciones) resumenBloques.push(`[${f} · ${fecha}] Observaciones: ${d.observaciones}`);
+        if (d.hallazgos) hallazgosBloques.push(`[${f} · ${fecha}] ${d.hallazgos}`);
+        if (d.bloqueos) recBloques.push(`[${f} · ${fecha}] Bloqueo/riesgo: ${d.bloqueos}`);
+      }
+      if (resumenBloques.length) resumen = resumenBloques.join("\n\n");
+      if (hallazgosBloques.length) hallazgos = hallazgosBloques;
+      if (recBloques.length) recomendaciones = recBloques;
+      if (!resumen) resumen = "Sin texto adicional cargado por los técnicos.";
     }
 
     return {
