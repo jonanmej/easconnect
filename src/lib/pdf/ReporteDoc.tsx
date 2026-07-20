@@ -288,10 +288,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
             <View style={styles.brand}>
-              <EALogoMark size={48} theme={data.theme ?? "light"} />
-              <View>
-                <Text style={styles.brandText}>EA SERVICE AND CONSULTING</Text>
-                <Text style={styles.brandSub}>Solar Operations · Quality Management</Text>
+              <View style={{ marginLeft: 0 }}>
+                <Text style={[styles.brandText, { marginLeft: 0 }]}>EA SERVICE AND CONSULTING</Text>
+                <Text style={[styles.brandSub, { marginLeft: 0 }]}>Solar Operations · Quality Management</Text>
               </View>
             </View>
             <Text style={styles.coverTag}>Reporte Ejecutivo · {data.periodo}</Text>
