@@ -580,7 +580,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
     let qb = supabase.from("trabajos")
-      .select("id, folio, servicio, fecha_programada, estado, notas")
+      .select("id, folio, servicio, fecha_programada, estado, notas, tecnico_id")
       .in("planta_id", plantasIds)
       .order("fecha_programada");
     if (desde) qb = qb.gte("fecha_programada", desde);
