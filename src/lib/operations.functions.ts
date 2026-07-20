@@ -34,7 +34,7 @@ export const listClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("clientes")
-      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, solo_capacitacion, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, created_at")
+      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, solo_capacitacion, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, color_acento, created_at")
       .order("nombre");
     if (error) throw new Error(error.message);
     // include planta count
@@ -66,11 +66,12 @@ export const upsertCliente = createServerFn({ method: "POST" })
       cuota_medios: z.coerce.number().int().min(0).optional(),
       cuota_mayores: z.coerce.number().int().min(0).optional(),
       cuota_limpiezas: z.coerce.number().int().min(0).optional(),
+      color_acento: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional().or(z.literal("")),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, email, ...rest } = data;
-    const payload: any = { ...rest, email: email || null };
+    const { id, email, color_acento, ...rest } = data;
+    const payload: any = { ...rest, email: email || null, color_acento: color_acento || null };
     const q = id
       ? context.supabase.from("clientes").update(payload).eq("id", id).select().single()
       : context.supabase.from("clientes").insert(payload).select().single();
@@ -508,6 +509,19 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         }).catch(() => {});
       } catch { /* silenciar */ }
     }
+    // Notificar evento de trabajo (creado / reprogramado / cancelado)
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      const trabajoId = (row as any).id as string;
+      const evento = !id
+        ? "creado"
+        : (rest.estado === "cancelado" && estadoPrevio !== "cancelado")
+          ? "cancelado"
+          : "reprogramado";
+      // Emitimos "reprogramado" solo si realmente cambió la fecha o hubo edición relevante.
+      // Para simplificar, notificamos siempre en updates: reduce ruido dedupe in-app en cliente.
+      await notificarEventoTrabajo({ evento, trabajoId, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     return row;
   });
 
@@ -515,6 +529,10 @@ export const deleteTrabajo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      await notificarEventoTrabajo({ evento: "cancelado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     const { error } = await context.supabase.from("trabajos").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -763,6 +781,10 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
         }).catch(() => {});
       } catch { /* silenciar */ }
     }
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      await notificarEventoTrabajo({ evento: "reprogramado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     return row;
   });
 

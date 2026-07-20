@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { exportarCSV, reportesARows } from "@/lib/exportar";
 import { Sparkles as _Sparkles, Send, CheckCircle2, XCircle, History, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
@@ -228,6 +229,7 @@ function Reportes() {
         actions={
           <>
             {!isCliente && (
+              <>
             <ExportButton onExport={async () => {
               await exportarExcel({
                 filename: `reportes-${new Date().toISOString().slice(0,10)}.xlsx`,
@@ -246,6 +248,11 @@ function Reportes() {
                 }],
               });
             }} />
+            <ExportButton label="Exportar CSV" onExport={async () => {
+              const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+              exportarCSV(reportesARows(items), `reportes-${dia}.csv`);
+            }} />
+              </>
             )}
             {canEdit && (
               <button onClick={() => setOpenGen(true)}

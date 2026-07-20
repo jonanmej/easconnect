@@ -175,6 +175,12 @@ export type ReporteData = {
   modo: "ejecutivo" | "interno";
   /** Tema visual del documento — controla la variante del logo. Por defecto "light". */
   theme?: "light" | "dark";
+  /** Color de acento personalizable por cliente (hex #RRGGBB). Reemplaza el azul EA. */
+  color_acento?: string | null;
+  /** Resumen agrupado por planta (aparece en el reporte ejecutivo). */
+  resumen_por_planta?: { planta: string; total: number; completados: number; servicios: string }[];
+  /** Resumen agrupado por servicio/equipo (aparece en el reporte ejecutivo). */
+  resumen_por_servicio?: { servicio: string; total: number; completados: number }[];
 };
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
@@ -251,6 +257,37 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
   const fechaEmision = new Date();
+  // Aplicar color de acento personalizable por cliente (mutación segura:
+  // el render de @react-pdf es síncrono, no concurre con otros renders).
+  if (data.color_acento && /^#[0-9a-fA-F]{6}$/.test(data.color_acento)) {
+    const accent = data.color_acento;
+    styles.coverBar.backgroundColor = accent;
+    styles.coverSide.backgroundColor = accent;
+    styles.coverRule.backgroundColor = accent;
+    styles.coverFooter.borderTopColor = accent;
+    styles.header.borderBottomColor = accent;
+    styles.pageTitleRule.backgroundColor = accent;
+    styles.sectionTitle.borderBottomColor = accent;
+    styles.pageFooter.borderTopColor = accent;
+    styles.kpiCard.borderLeftColor = accent;
+    (styles.bulletDot as any).color = accent;
+    styles.chartBar.backgroundColor = accent;
+    styles.th.backgroundColor = accent;
+  } else {
+    // Restaurar defaults por si un render previo mutó los estilos.
+    styles.coverBar.backgroundColor = COL.primary;
+    styles.coverSide.backgroundColor = COL.bg;
+    styles.coverRule.backgroundColor = COL.primary;
+    styles.coverFooter.borderTopColor = COL.primary;
+    styles.header.borderBottomColor = COL.primary;
+    styles.pageTitleRule.backgroundColor = COL.primary;
+    styles.sectionTitle.borderBottomColor = COL.primary;
+    styles.pageFooter.borderTopColor = COL.primary;
+    styles.kpiCard.borderLeftColor = COL.primary;
+    (styles.bulletDot as any).color = COL.primary;
+    styles.chartBar.backgroundColor = COL.primary;
+    styles.th.backgroundColor = COL.bg;
+  }
   const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", ejec ? "Ejecutivo" : "Interno"]
     .filter(Boolean).join(", ");
   return (
@@ -404,6 +441,50 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             </View>
           ))}
         </View>
+        {ejec && ((data.resumen_por_planta && data.resumen_por_planta.length > 0) || (data.resumen_por_servicio && data.resumen_por_servicio.length > 0)) && (
+          <>
+            {data.resumen_por_planta && data.resumen_por_planta.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Resumen por Planta</Text>
+                <View style={styles.table}>
+                  <View style={styles.tr}>
+                    <Text style={[styles.th, { width: "32%" }]}>Planta</Text>
+                    <Text style={[styles.th, { width: "16%" }]}>Trabajos</Text>
+                    <Text style={[styles.th, { width: "18%" }]}>Completados</Text>
+                    <Text style={[styles.th, { width: "34%" }]}>Servicios</Text>
+                  </View>
+                  {data.resumen_por_planta.map((p, i, arr) => (
+                    <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                      <Text style={[styles.td, { width: "32%" }]}>{p.planta}</Text>
+                      <Text style={[styles.td, { width: "16%" }]}>{p.total}</Text>
+                      <Text style={[styles.td, { width: "18%" }]}>{p.completados}</Text>
+                      <Text style={[styles.td, { width: "34%", color: COL.muted }]}>{p.servicios}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+            {data.resumen_por_servicio && data.resumen_por_servicio.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Resumen por Servicio / Equipo</Text>
+                <View style={styles.table}>
+                  <View style={styles.tr}>
+                    <Text style={[styles.th, { width: "60%" }]}>Servicio</Text>
+                    <Text style={[styles.th, { width: "20%" }]}>Trabajos</Text>
+                    <Text style={[styles.th, { width: "20%" }]}>Completados</Text>
+                  </View>
+                  {data.resumen_por_servicio.map((s, i, arr) => (
+                    <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                      <Text style={[styles.td, { width: "60%" }]}>{s.servicio}</Text>
+                      <Text style={[styles.td, { width: "20%" }]}>{s.total}</Text>
+                      <Text style={[styles.td, { width: "20%" }]}>{s.completados}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </>
+        )}
         {!ejec && data.trabajos.some((t) => t.notas) && (() => {
           const notas = data.trabajos.filter((t) => t.notas);
           return (

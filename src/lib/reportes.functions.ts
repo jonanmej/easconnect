@@ -545,7 +545,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const { data: rep, error } = await supabase
       .from("reportes")
-      .select("*, clientes(nombre, contacto), plantas(nombre)")
+      .select("*, clientes(nombre, contacto, color_acento), plantas(nombre)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
 
@@ -829,6 +829,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       titulo: (rep as any).titulo,
       cliente: (rep as any).clientes?.nombre ?? "—",
       contacto: (rep as any).clientes?.contacto ?? null,
+      color_acento: (rep as any).clientes?.color_acento ?? null,
       planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
       periodo: (rep as any).periodo,
       modelo: (rep as any).model_used,
@@ -845,6 +846,34 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         tecnico: null,
         notas: t.notas,
       })),
+      resumen_por_planta: (() => {
+        const map = new Map<string, { total: number; completados: number; servicios: Set<string> }>();
+        for (const t of (trabajos ?? [])) {
+          const key = (rep as any).plantas?.nombre ?? "Planta";
+          const cur = map.get(key) ?? { total: 0, completados: 0, servicios: new Set<string>() };
+          cur.total += 1;
+          if ((t as any).estado === "completado") cur.completados += 1;
+          cur.servicios.add((t as any).servicio ?? "—");
+          map.set(key, cur);
+        }
+        return Array.from(map.entries()).map(([planta, v]) => ({
+          planta,
+          total: v.total,
+          completados: v.completados,
+          servicios: Array.from(v.servicios).join(", "),
+        }));
+      })(),
+      resumen_por_servicio: (() => {
+        const map = new Map<string, { total: number; completados: number }>();
+        for (const t of (trabajos ?? [])) {
+          const key = (t as any).servicio ?? "—";
+          const cur = map.get(key) ?? { total: 0, completados: 0 };
+          cur.total += 1;
+          if ((t as any).estado === "completado") cur.completados += 1;
+          map.set(key, cur);
+        }
+        return Array.from(map.entries()).map(([servicio, v]) => ({ servicio, total: v.total, completados: v.completados }));
+      })(),
       evidencias,
       evidencias_pdf: evidenciasPdf,
       graficas,

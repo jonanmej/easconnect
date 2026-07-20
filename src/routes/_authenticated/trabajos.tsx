@@ -25,6 +25,7 @@ import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { JornadaControl } from "@/components/JornadaControl";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { exportarCSV, exportarXLSX, trabajosARows } from "@/lib/exportar";
 import {
   listTrabajoRecursos,
   upsertTrabajoRecurso,
@@ -359,6 +360,14 @@ function Trabajos() {
                   filas: rows,
                 }],
               });
+            }} />
+            <ExportButton label="Exportar filtrado (Excel)" onExport={async () => {
+              const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+              await exportarXLSX(trabajosARows(filtrados), `trabajos-filtrado-${dia}`);
+            }} />
+            <ExportButton label="Exportar filtrado (CSV)" onExport={async () => {
+              const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+              exportarCSV(trabajosARows(filtrados), `trabajos-filtrado-${dia}.csv`);
             }} />
             {canEdit && (
               <button
