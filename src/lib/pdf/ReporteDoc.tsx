@@ -1,4 +1,14 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+function absUrl(path: string) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${path}`;
+}
+const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek?.light ?? BRAND_LOGO_URLS["ea-main"].light);
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
@@ -9,8 +19,11 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/
 // ---------------------------------------------------------------------------
 Font.registerHyphenationCallback((word) => [word]);
 
-// Nota: por decisión de negocio los reportes NO incluyen logotipos de marca.
-// Solo aparecen el nombre corporativo y los metadatos ISO.
+// Cabecera institucional: los reportes muestran los tres logos de marca
+// (EA Service & Consulting · PVSTOP El Salvador · Chemitek Solar) en la
+// franja superior de cada página, cumpliendo con ISO 9001:2015 §7.5.
+// Los logos NO aparecen en el registro fotográfico para evitar que se
+// confundan con evidencias subidas por los técnicos.
 
 // Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
 // no negrita sintética). Esto garantiza nitidez en Acrobat, Chrome, Safari,
