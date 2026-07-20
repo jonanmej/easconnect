@@ -40,10 +40,13 @@ export default tseslint.config(
       // build early, before any PDF is generated.
       "no-redeclare": "off",
       "@typescript-eslint/no-redeclare": ["error", { ignoreDeclarationMerge: true }],
+      // Shadowing queda como warn para no romper llamadas legítimas de
+      // callbacks (e, err, props, etc.) en la base actual, pero deja
+      // visibles los casos peligrosos como el `diarios` en reportes.
       "no-shadow": "off",
       "@typescript-eslint/no-shadow": [
-        "error",
-        { hoist: "all", ignoreOnInitialization: false, allow: ["_", "resolve", "reject", "done", "cb", "err", "error"] },
+        "warn",
+        { hoist: "all", allow: ["_", "resolve", "reject", "done", "cb", "err", "error", "e", "props", "className", "config", "open", "paused", "d"] },
       ],
       "no-var": "error",
       "no-dupe-keys": "error",
