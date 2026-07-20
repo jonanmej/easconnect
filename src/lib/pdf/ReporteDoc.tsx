@@ -8,7 +8,7 @@ function absUrl(path: string) {
 }
 const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
 const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
-const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek?.light ?? BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
