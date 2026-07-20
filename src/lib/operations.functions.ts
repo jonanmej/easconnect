@@ -780,6 +780,10 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
         }).catch(() => {});
       } catch { /* silenciar */ }
     }
+    try {
+      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+      await notificarEventoTrabajo({ evento: "reprogramado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
+    } catch { /* silenciar */ }
     return row;
   });
 
