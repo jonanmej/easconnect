@@ -272,8 +272,8 @@ export function ReportesDiariosSection({
 /** Uploader deshabilitado: sólo muestra las fotos ya adjuntas al reporte diario. */
 function EvidenciaUploaderReadOnly({ trabajoId, reporteDiarioId }: { trabajoId: string; reporteDiarioId: string }) {
   return (
-    <div className="opacity-90">
-      <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={reporteDiarioId} />
+    <div>
+      <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={reporteDiarioId} readOnly />
       <p className="text-[10px] text-muted-foreground mt-1">
         La subida de fotos está disponible desde el módulo <strong>A.T.</strong> (Terreno).
       </p>
