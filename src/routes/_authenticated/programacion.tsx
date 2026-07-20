@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
+import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Printer } from "lucide-react";
@@ -59,8 +60,7 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 function isWorkday(d: Date) {
-  const w = d.getDay();
-  return w !== 0 && w !== 6;
+  return !esNoLaborableSV(d);
 }
 function addWorkdays(start: Date, workdays: number) {
   // Devuelve las N fechas laborables consecutivas (L-V) desde start (inclusive).
@@ -204,7 +204,16 @@ function Programacion() {
 
   function onDrop(targetDay: Date) {
     if (!dragId) return;
-    if (!isWorkday(targetDay)) { toast.error("No se permite programar en fin de semana"); setDragId(null); return; }
+    if (!isWorkday(targetDay)) {
+      const motivo = motivoNoLaborableSV(targetDay);
+      toast.error(
+        motivo === "feriado"
+          ? "No se puede programar en un día feriado."
+          : "No se puede programar en fin de semana.",
+      );
+      setDragId(null);
+      return;
+    }
     const original = trabajos.find((t) => t.id === dragId);
     if (!original) return;
     const prev = new Date(original.fecha_programada);

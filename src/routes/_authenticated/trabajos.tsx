@@ -35,6 +35,7 @@ import {
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 import { generarYDescargarRecursosPdf } from "@/lib/pdf/descargar";
+import { motivoNoLaborableSV } from "@/lib/dias-habiles";
 
 function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: string }) {
   const fSolicitar = useServerFn(solicitarAprobacion);
@@ -108,11 +109,9 @@ function toLocalInput(value?: string) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function isWeekend(value: string) {
-  if (!value) return false;
-  const d = new Date(value);
-  const day = d.getDay();
-  return day === 0 || day === 6;
+function motivoNoLaborable(value: string): string | null {
+  if (!value) return null;
+  return motivoNoLaborableSV(new Date(value));
 }
 
 function Trabajos() {
@@ -304,9 +303,16 @@ function Trabajos() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const fecha = String(f.get("fecha_programada") ?? "");
-    if (isWeekend(fecha)) {
-      toast.error("No se pueden programar trabajos en sábado o domingo.");
-      return;
+    {
+      const motivo = motivoNoLaborable(fecha);
+      if (motivo) {
+        toast.error(
+          motivo === "feriado"
+            ? "No se pueden programar trabajos en un día feriado."
+            : "No se pueden programar trabajos en sábado o domingo.",
+        );
+        return;
+      }
     }
     // Convertir "YYYY-MM-DDTHH:mm" (hora local del navegador) a ISO UTC
     // para que el servidor (UTC) no reinterprete el valor.
@@ -638,12 +644,17 @@ function Trabajos() {
               defaultValue={toLocalInput(editing?.fecha_programada)}
               className={inputCls}
               onChange={(e) => {
-                if (isWeekend(e.currentTarget.value)) {
-                  toast.warning("Sábado y domingo no son días laborables.");
+                const motivo = motivoNoLaborable(e.currentTarget.value);
+                if (motivo) {
+                  toast.warning(
+                    motivo === "feriado"
+                      ? "Ese día es feriado; no es laborable."
+                      : "Sábado y domingo no son días laborables.",
+                  );
                 }
               }}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes).</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes, excluyendo feriados).</p>
           </Field>
           <Field label="Duración (días)">
             <input name="duracion_dias" type="number" min={1} max={60}
