@@ -441,6 +441,50 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             </View>
           ))}
         </View>
+        {ejec && ((data.resumen_por_planta && data.resumen_por_planta.length > 0) || (data.resumen_por_servicio && data.resumen_por_servicio.length > 0)) && (
+          <>
+            {data.resumen_por_planta && data.resumen_por_planta.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Resumen por Planta</Text>
+                <View style={styles.table}>
+                  <View style={styles.tr}>
+                    <Text style={[styles.th, { width: "32%" }]}>Planta</Text>
+                    <Text style={[styles.th, { width: "16%" }]}>Trabajos</Text>
+                    <Text style={[styles.th, { width: "18%" }]}>Completados</Text>
+                    <Text style={[styles.th, { width: "34%" }]}>Servicios</Text>
+                  </View>
+                  {data.resumen_por_planta.map((p, i, arr) => (
+                    <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                      <Text style={[styles.td, { width: "32%" }]}>{p.planta}</Text>
+                      <Text style={[styles.td, { width: "16%" }]}>{p.total}</Text>
+                      <Text style={[styles.td, { width: "18%" }]}>{p.completados}</Text>
+                      <Text style={[styles.td, { width: "34%", color: COL.muted }]}>{p.servicios}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+            {data.resumen_por_servicio && data.resumen_por_servicio.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Resumen por Servicio / Equipo</Text>
+                <View style={styles.table}>
+                  <View style={styles.tr}>
+                    <Text style={[styles.th, { width: "60%" }]}>Servicio</Text>
+                    <Text style={[styles.th, { width: "20%" }]}>Trabajos</Text>
+                    <Text style={[styles.th, { width: "20%" }]}>Completados</Text>
+                  </View>
+                  {data.resumen_por_servicio.map((s, i, arr) => (
+                    <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                      <Text style={[styles.td, { width: "60%" }]}>{s.servicio}</Text>
+                      <Text style={[styles.td, { width: "20%" }]}>{s.total}</Text>
+                      <Text style={[styles.td, { width: "20%" }]}>{s.completados}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </>
+        )}
         {!ejec && data.trabajos.some((t) => t.notas) && (() => {
           const notas = data.trabajos.filter((t) => t.notas);
           return (
