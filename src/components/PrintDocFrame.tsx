@@ -51,7 +51,7 @@ export function PrintDocHeader({
   return (
     <div className="print-only print-doc-header">
       <div className="print-doc-header__logos">
-        <img src={BRAND_LOGO_URLS["ea-main"].light} alt="EA Service & Consulting" />
+        <img src={BRAND_LOGO_URLS["ea-main"].light} alt="EA Service & Consulting" className="print-doc-header__logo-ea" />
         <img src={BRAND_LOGO_URLS.pvstop.light} alt="PVSTOP El Salvador" className="print-doc-header__logo-pv" />
         <img src={BRAND_LOGO_URLS.chemitek.light} alt="Chemitek Solar" className="print-doc-header__logo-ch" />
       </div>
