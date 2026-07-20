@@ -3,6 +3,7 @@
 // redeclaración o duplicación como la de `diarios` que rompió el PDF del
 // reporte ejecutivo, sin depender del resto de reglas de estilo/prettier.
 import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
   { ignores: ["dist", ".output", ".vinxi", "node_modules", "src/routeTree.gen.ts"] },
@@ -10,6 +11,10 @@ export default tseslint.config(
     files: ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
+      // Registrado como stub para que las directivas inline
+      // `eslint-disable react-hooks/*` de la base actual no fallen esta
+      // verificación mínima; no habilitamos sus reglas aquí.
+      "react-hooks": reactHooks,
     },
     languageOptions: {
       parser: tseslint.parser,
