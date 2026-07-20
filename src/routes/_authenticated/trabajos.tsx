@@ -35,6 +35,7 @@ import {
 } from "@/lib/trabajo-detalle.functions";
 import { solicitarAprobacion } from "@/lib/aprobaciones.functions";
 import { generarYDescargarRecursosPdf } from "@/lib/pdf/descargar";
+import { motivoNoLaborableSV } from "@/lib/dias-habiles";
 
 function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: string }) {
   const fSolicitar = useServerFn(solicitarAprobacion);
