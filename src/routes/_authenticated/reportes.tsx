@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { exportarCSV, reportesARows } from "@/lib/exportar";
 import { Sparkles as _Sparkles, Send, CheckCircle2, XCircle, History, GitBranch } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
