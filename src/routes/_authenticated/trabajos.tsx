@@ -108,11 +108,9 @@ function toLocalInput(value?: string) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function isWeekend(value: string) {
-  if (!value) return false;
-  const d = new Date(value);
-  const day = d.getDay();
-  return day === 0 || day === 6;
+function motivoNoLaborable(value: string): string | null {
+  if (!value) return null;
+  return motivoNoLaborableSV(new Date(value));
 }
 
 function Trabajos() {
