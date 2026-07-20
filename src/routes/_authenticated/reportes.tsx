@@ -247,6 +247,10 @@ function Reportes() {
                 }],
               });
             }} />
+            <ExportButton label="Exportar CSV" onExport={async () => {
+              const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+              exportarCSV(reportesARows(items), `reportes-${dia}.csv`);
+            }} />
             )}
             {canEdit && (
               <button onClick={() => setOpenGen(true)}
