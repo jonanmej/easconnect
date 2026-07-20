@@ -9,7 +9,7 @@
     "build:dev": "bun run check:redeclare && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "check:redeclare": "eslint . --no-eslintrc --config eslint.check.config.js",
+    "check:redeclare": "eslint . --config eslint.check.config.js",
     "format": "prettier --write ."
   },
   "dependencies": {
