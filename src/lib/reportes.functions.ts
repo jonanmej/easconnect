@@ -535,7 +535,12 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 /** Devuelve el dataset completo necesario para armar el PDF (trabajos + evidencias firmadas). */
 export const getReporteParaPDF = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      variante: z.enum(["ejecutivo", "interno"]).optional(),
+    }).parse(d),
+  )
   .handler(async ({ context, data }) => {
     const supabase = context.supabase;
     const { data: rep, error } = await supabase
@@ -556,9 +561,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const m = /\*\*(.+?):\*\*\s*(.+)/.exec(l) ?? /^([^:]+):\s*(.+)/.exec(l);
       return m ? { label: m[1], value: m[2] } : { label: l, value: "" };
     });
-    const hallazgos = parseBullets(section("Hallazgos"));
-    const recomendaciones = parseBullets(section("Recomendaciones"));
-    const resumen = section("Resumen ejecutivo");
+    let hallazgos = parseBullets(section("Hallazgos"));
+    let recomendaciones = parseBullets(section("Recomendaciones"));
+    let resumen = section("Resumen ejecutivo");
     const folioReporte = (() => {
       const markdown = String((rep as any).contenido_markdown ?? "");
       const m = markdown.match(/\*\*OT:\*\*\s*([^·\n]+)/i) || markdown.match(/\bOT\s*[:#-]?\s*([A-Z0-9-]{6,})/i);
