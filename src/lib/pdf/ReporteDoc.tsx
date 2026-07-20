@@ -140,9 +140,12 @@ const brandStripStyles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: COL.border,
   },
-  logoEa: { height: 28, objectFit: "contain" },
-  logoPv: { height: 22, objectFit: "contain" },
-  logoCh: { height: 16, objectFit: "contain" },
+  // El PNG de EA tiene mucho margen transparente alrededor del contenido,
+  // por eso necesita bastante más altura de caja para que el wordmark quede
+  // ópticamente igual de visible que PVSTOP y Chemitek.
+  logoEa: { height: 52, objectFit: "contain" },
+  logoPv: { height: 26, objectFit: "contain" },
+  logoCh: { height: 20, objectFit: "contain" },
 });
 
 function BrandStrip() {
@@ -331,9 +334,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 40, paddingBottom: 14, borderBottomWidth: 0.75, borderBottomColor: COL.border }}>
-              <Image src={LOGO_EA()} style={{ height: 34, objectFit: "contain" }} />
-              <Image src={LOGO_PVSTOP()} style={{ height: 36, objectFit: "contain" }} />
-              <Image src={LOGO_CHEMITEK()} style={{ height: 28, objectFit: "contain" }} />
+              <Image src={LOGO_EA()} style={{ height: 68, objectFit: "contain" }} />
+              <Image src={LOGO_PVSTOP()} style={{ height: 40, objectFit: "contain" }} />
+              <Image src={LOGO_CHEMITEK()} style={{ height: 32, objectFit: "contain" }} />
             </View>
             <View style={styles.brand}>
               <View style={{ marginLeft: 0 }}>

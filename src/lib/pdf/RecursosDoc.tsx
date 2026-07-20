@@ -30,9 +30,9 @@ const FONT_OBL = "Helvetica-Oblique";
 function BrandStrip() {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.5, borderBottomColor: COL.border }}>
-      <Image src={LOGO_EA()} style={{ height: 28, objectFit: "contain" }} />
-      <Image src={LOGO_PVSTOP()} style={{ height: 22, objectFit: "contain" }} />
-      <Image src={LOGO_CHEMITEK()} style={{ height: 16, objectFit: "contain" }} />
+      <Image src={LOGO_EA()} style={{ height: 52, objectFit: "contain" }} />
+      <Image src={LOGO_PVSTOP()} style={{ height: 26, objectFit: "contain" }} />
+      <Image src={LOGO_CHEMITEK()} style={{ height: 20, objectFit: "contain" }} />
     </View>
   );
 }
