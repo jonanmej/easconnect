@@ -434,13 +434,28 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={styles.sectionTitle}>Recomendaciones Priorizadas</Text>
               <View style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{data.recomendaciones[0]}</Text></View>
             </View>
-            {data.recomendaciones.slice(1).map((h, i) => (
+            {data.recomendaciones.slice(1, -1).map((h, i) => (
               <View key={i} style={styles.bullet} wrap={false}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{h}</Text></View>
             ))}
+            {/* El último bullet se agrupa con "Generado por" para que el bloque de firma nunca quede solo en su propia página. */}
+            <View wrap={false}>
+              {data.recomendaciones.length > 1 && (
+                <View style={styles.bullet}><Text style={styles.bulletDot}>›</Text><Text style={styles.bulletText}>{data.recomendaciones[data.recomendaciones.length - 1]}</Text></View>
+              )}
+              {ejec && data.responsable && (
+                <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
+                  <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
+                  {data.responsable_cargo && (
+                    <Text style={{ fontSize: 10, color: COL.muted }}>{data.responsable_cargo}</Text>
+                  )}
+                </View>
+              )}
+            </View>
           </>
         )}
-        {ejec && data.responsable && (
-          <View style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
+        {ejec && data.recomendaciones.length === 0 && data.responsable && (
+          <View wrap={false} style={{ marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: COL.border }}>
             <Text style={{ fontSize: 9, color: COL.muted, textTransform: "uppercase", letterSpacing: 1 }}>Generado por</Text>
             <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, marginTop: 2 }}>{data.responsable}</Text>
             {data.responsable_cargo && (
