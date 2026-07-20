@@ -98,7 +98,6 @@ export function diasHabilesEntreSV(startMs: number, endMs: number): number {
 /** Formatea una fecha para mostrar en español SV. */
 export function formatearDiaHabilSV(d: Date): string {
   return d.toLocaleDateString("es-SV", {
-    timeZone: "America/El_Salvador",
     weekday: "long",
     day: "2-digit",
     month: "long",
