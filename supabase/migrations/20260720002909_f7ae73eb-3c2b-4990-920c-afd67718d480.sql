@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.contrato_cumplimiento FROM PUBLIC, anon;
