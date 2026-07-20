@@ -204,6 +204,42 @@ export type Database = {
           },
         ]
       }
+      feriados: {
+        Row: {
+          activo: boolean
+          anio: number
+          created_at: string
+          fecha: string
+          id: string
+          nombre: string
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          anio: number
+          created_at?: string
+          fecha: string
+          id?: string
+          nombre: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          anio?: number
+          created_at?: string
+          fecha?: string
+          id?: string
+          nombre?: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       inventario_items: {
         Row: {
           categoria: Database["public"]["Enums"]["inventario_categoria"]
