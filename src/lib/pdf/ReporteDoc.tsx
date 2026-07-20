@@ -140,7 +140,7 @@ const brandStripStyles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: COL.border,
   },
-  logoEa: { height: 20, objectFit: "contain" },
+  logoEa: { height: 28, objectFit: "contain" },
   logoPv: { height: 22, objectFit: "contain" },
   logoCh: { height: 16, objectFit: "contain" },
 });

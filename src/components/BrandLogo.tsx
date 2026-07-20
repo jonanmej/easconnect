@@ -45,7 +45,7 @@ const DEFAULT_ALT: Record<Variant, string> = {
  */
 // Ratios medidos empíricamente sobre los PNG (altura del wordmark / altura total).
 const WORDMARK_RATIO: Record<Variant, number> = {
-  "ea-main": 0.45,
+  "ea-main": 0.58,
   "ea-connect": 0.28,
   pvstop: 0.68,
   chemitek: 0.55,
