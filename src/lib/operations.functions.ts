@@ -353,6 +353,17 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
+    {
+      const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
+      const motivo = motivoNoLaborableSV(payload.fecha_programada);
+      if (motivo) {
+        throw new Error(
+          motivo === "feriado"
+            ? "No se pueden programar trabajos en un día feriado."
+            : "No se pueden programar trabajos en sábado o domingo.",
+        );
+      }
+    }
     let estadoPrevio: string | null = null;
     let tecnicoPrevio: string | null = null;
     if (id) {
