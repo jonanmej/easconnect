@@ -109,6 +109,7 @@ function Clientes() {
       cuota_medios: Number(f.get("cuota_medios") ?? 0),
       cuota_mayores: Number(f.get("cuota_mayores") ?? 0),
       cuota_limpiezas: Number(f.get("cuota_limpiezas") ?? 0),
+      color_acento: (f.get("color_acento") as string | null) || null,
     });
   }
 
