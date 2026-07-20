@@ -825,6 +825,33 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       if (!resumen) resumen = "Sin texto adicional cargado por los técnicos.";
     }
 
+    // Nombres de técnicos por trabajo (principal + extras de trabajo_tecnicos)
+    const tecnicosPorTrabajo = new Map<string, string[]>();
+    {
+      const principalIds = Array.from(new Set((trabajos ?? []).map((t: any) => t.tecnico_id).filter(Boolean)));
+      const { data: extras } = trabajoIds.length
+        ? await supabase.from("trabajo_tecnicos").select("trabajo_id, tecnico_id").in("trabajo_id", trabajoIds)
+        : { data: [] as any[] };
+      const extraIds = (extras ?? []).map((e: any) => e.tecnico_id);
+      const allIds = Array.from(new Set([...principalIds, ...extraIds])) as string[];
+      const nombrePorId = new Map<string, string>();
+      if (allIds.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, nombre").in("id", allIds);
+        for (const p of (profs ?? []) as any[]) nombrePorId.set(p.id, p.nombre ?? "—");
+      }
+      for (const t of (trabajos ?? []) as any[]) {
+        const arr: string[] = [];
+        if (t.tecnico_id && nombrePorId.get(t.tecnico_id)) arr.push(nombrePorId.get(t.tecnico_id)!);
+        for (const e of (extras ?? []) as any[]) {
+          if (e.trabajo_id === t.id) {
+            const n = nombrePorId.get(e.tecnico_id);
+            if (n && !arr.includes(n)) arr.push(n);
+          }
+        }
+        tecnicosPorTrabajo.set(t.id, arr);
+      }
+    }
+
     return {
       titulo: (rep as any).titulo,
       cliente: (rep as any).clientes?.nombre ?? "—",
@@ -843,7 +870,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         servicio: t.servicio,
         fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }),
         estado: t.estado,
-        tecnico: null,
+        tecnico: (tecnicosPorTrabajo.get((t as any).id) ?? []).join(", ") || null,
         notas: t.notas,
       })),
       resumen_por_planta: (() => {
