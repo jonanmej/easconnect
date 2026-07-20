@@ -781,11 +781,13 @@ export type Database = {
           cliente_id: string
           contenido_markdown: string
           created_at: string
+          desde: string | null
           enviado_a: string | null
           enviado_at: string | null
           enviado_por: string | null
           estado: Database["public"]["Enums"]["reporte_estado"]
           generado_por: string | null
+          hasta: string | null
           id: string
           insight_resumen: string | null
           model_used: string | null
@@ -805,11 +807,13 @@ export type Database = {
           cliente_id: string
           contenido_markdown: string
           created_at?: string
+          desde?: string | null
           enviado_a?: string | null
           enviado_at?: string | null
           enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
+          hasta?: string | null
           id?: string
           insight_resumen?: string | null
           model_used?: string | null
@@ -829,11 +833,13 @@ export type Database = {
           cliente_id?: string
           contenido_markdown?: string
           created_at?: string
+          desde?: string | null
           enviado_a?: string | null
           enviado_at?: string | null
           enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
           generado_por?: string | null
+          hasta?: string | null
           id?: string
           insight_resumen?: string | null
           model_used?: string | null
