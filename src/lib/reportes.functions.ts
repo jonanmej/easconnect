@@ -5,6 +5,33 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const SV_OFFSET = "-06:00";
+const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+function parseLegacySingleDayPeriod(periodo: unknown): { desde: string; hasta: string } | null {
+  const raw = String(periodo ?? "").trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const day = `${iso[1]}-${iso[2]}-${iso[3]}`;
+    return { desde: `${day}T00:00:00.000${SV_OFFSET}`, hasta: `${day}T23:59:59.999${SV_OFFSET}` };
+  }
+  const dmy = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) {
+    const day = `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    return { desde: `${day}T00:00:00.000${SV_OFFSET}`, hasta: `${day}T23:59:59.999${SV_OFFSET}` };
+  }
+  return null;
+}
+
+function toProfileName(profile: any): string | null {
+  const displayName = String(profile?.display_name ?? "").trim();
+  const fullName = [profile?.nombres, profile?.apellidos]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return displayName || fullName || null;
+}
+
 /**
  * Extrae el texto de un PDF (buffer) usando unpdf (compatible con Workers).
  * Devuelve una cadena limpia y truncada a maxChars para no reventar el prompt.
@@ -172,8 +199,6 @@ export const generarReporte = createServerFn({ method: "POST" })
     // cualquier hora de esa fecha. Sin esto, "hasta=2026-07-03" se interpreta
     // como 2026-07-03T00:00:00Z y excluye todo lo ocurrido durante ese día.
     // Zona horaria operativa: América/El Salvador (UTC-6, sin DST).
-    const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-    const SV_OFFSET = "-06:00";
     const desdeTs = isDateOnly(data.desde) ? `${data.desde}T00:00:00.000${SV_OFFSET}` : data.desde;
     const hastaTs = isDateOnly(data.hasta) ? `${data.hasta}T23:59:59.999${SV_OFFSET}` : data.hasta;
     const { data: cliente } = await supabase.from("clientes").select("nombre").eq("id", data.cliente_id).single();
@@ -567,6 +592,8 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       estado: "borrador",
       generado_por: context.userId,
       model_used: modelUsed,
+      desde: desdeTs,
+      hasta: hastaTs,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
