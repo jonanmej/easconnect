@@ -125,7 +125,7 @@ function Reportes() {
   async function descargarPdf(id: string, modo: "ejecutivo" | "interno") {
     setDownloadingId(id + modo);
     try {
-      const data: any = await fPdf({ data: { id } });
+      const data: any = await fPdf({ data: { id, variante: modo } });
       const evidencias = await buildEvidencias(data.evidencias);
       // Las imágenes extraídas de los PDFs subidos ya vienen como dataURL
       // desde el servidor; se agregan al final del set de evidencias.
