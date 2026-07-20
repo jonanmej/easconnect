@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 /**
  * Cabecera + pie normalizados ISO 9001:2015 para vistas imprimibles (HTML → print).
@@ -35,7 +36,9 @@ export function PrintDocHeader({
   clausulaIso = "§7.5",
   filtros,
 }: PrintDocFrameProps) {
-  // Por decisión de negocio los documentos imprimibles no incluyen logotipos.
+  // Franja institucional: los documentos imprimibles muestran los tres
+  // logos corporativos (EA · PVSTOP · Chemitek) en la cabecera para
+  // cumplir con la identidad ISO 9001:2015.
   const emitido = useMemo(
     () =>
       new Date().toLocaleString("es-SV", {
@@ -47,6 +50,11 @@ export function PrintDocHeader({
   );
   return (
     <div className="print-only print-doc-header">
+      <div className="print-doc-header__logos">
+        <img src={BRAND_LOGO_URLS["ea-main"].light} alt="EA Service & Consulting" />
+        <img src={BRAND_LOGO_URLS.pvstop.light} alt="PVSTOP El Salvador" className="print-doc-header__logo-pv" />
+        <img src={BRAND_LOGO_URLS.chemitek.light} alt="Chemitek Solar" className="print-doc-header__logo-ch" />
+      </div>
       <div className="print-doc-header__row">
         <div className="print-doc-header__brand">
           <div>

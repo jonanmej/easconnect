@@ -274,6 +274,22 @@
     margin-bottom: 10pt;
     color: #1f2937;
   }
+  .print-doc-header__logos {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12pt;
+    padding-bottom: 6pt;
+    margin-bottom: 6pt;
+    border-bottom: 0.5pt solid #e2e8f0;
+  }
+  .print-doc-header__logos img {
+    height: 22pt;
+    width: auto;
+    object-fit: contain;
+  }
+  .print-doc-header__logos img.print-doc-header__logo-pv { height: 24pt; }
+  .print-doc-header__logos img.print-doc-header__logo-ch { height: 18pt; }
   .print-doc-header__row {
     display: flex;
     justify-content: space-between;

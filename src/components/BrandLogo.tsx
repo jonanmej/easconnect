@@ -7,8 +7,10 @@ import eaConnectLight from "@/assets/brand-ea-connect-light.png.asset.json";
 import eaConnectDark from "@/assets/brand-ea-connect-dark.png.asset.json";
 import pvstopLight from "@/assets/brand-pvstop-light.png.asset.json";
 import pvstopDark from "@/assets/brand-pvstop-dark.png.asset.json";
+import chemitekLight from "@/assets/brand-chemitek-light.png.asset.json";
+import chemitekDark from "@/assets/brand-chemitek-dark.png.asset.json";
 
-type Variant = "ea-main" | "ea-connect" | "pvstop";
+type Variant = "ea-main" | "ea-connect" | "pvstop" | "chemitek";
 
 /**
  * Mapa central de logos por marca y por tema.
@@ -19,12 +21,14 @@ export const BRAND_LOGO_URLS: Record<Variant, { light: string; dark: string }> =
   "ea-main": { light: eaMainLight.url, dark: eaMainDark.url },
   "ea-connect": { light: eaConnectLight.url, dark: eaConnectDark.url },
   pvstop: { light: pvstopLight.url, dark: pvstopDark.url },
+  chemitek: { light: chemitekLight.url, dark: chemitekDark.url },
 };
 
 const DEFAULT_ALT: Record<Variant, string> = {
   "ea-main": "EA Service & Consulting",
   "ea-connect": "EA Service Connect",
   pvstop: "PVSTOP El Salvador",
+  chemitek: "Chemitek Solar",
 };
 
 /**
@@ -44,6 +48,7 @@ const WORDMARK_RATIO: Record<Variant, number> = {
   "ea-main": 0.45,
   "ea-connect": 0.28,
   pvstop: 0.68,
+  chemitek: 0.55,
 };
 // Usamos el ratio más alto (pvstop) como referencia → nunca escalamos > 1.5x
 // para evitar que un logo se desborde de su caja.
@@ -56,6 +61,7 @@ const THEME_SCALE: Record<Variant, { light: number; dark: number }> = {
   // El PNG oscuro es más alto (247px vs 218px del light), así que a igual
   // altura de caja el wordmark se ve más chico. Compensamos con 247/218 ≈ 1.13.
   pvstop: { light: 1.0, dark: 1.13 },
+  chemitek: { light: 1.0, dark: 1.0 },
 };
 
 function scaleFor(variant: Variant, theme: "light" | "dark"): number {

@@ -1,4 +1,14 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+function absUrl(path: string) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${path}`;
+}
+const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
 
 // ---------------------------------------------------------------------------
 // Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
@@ -9,8 +19,11 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/
 // ---------------------------------------------------------------------------
 Font.registerHyphenationCallback((word) => [word]);
 
-// Nota: por decisión de negocio los reportes NO incluyen logotipos de marca.
-// Solo aparecen el nombre corporativo y los metadatos ISO.
+// Cabecera institucional: los reportes muestran los tres logos de marca
+// (EA Service & Consulting · PVSTOP El Salvador · Chemitek Solar) en la
+// franja superior de cada página, cumpliendo con ISO 9001:2015 §7.5.
+// Los logos NO aparecen en el registro fotográfico para evitar que se
+// confundan con evidencias subidas por los técnicos.
 
 // Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
 // no negrita sintética). Esto garantiza nitidez en Acrobat, Chrome, Safari,
@@ -38,7 +51,7 @@ const COL = {
 const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  page: { paddingTop: 64, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -115,6 +128,33 @@ const styles = StyleSheet.create({
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
 });
 
+// Franja superior con los tres logos institucionales que aparece en la
+// cabecera de cada página (queda sobre la cabecera existente).
+const brandStripStyles = StyleSheet.create({
+  strip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COL.border,
+  },
+  logoEa: { height: 20, objectFit: "contain" },
+  logoPv: { height: 22, objectFit: "contain" },
+  logoCh: { height: 16, objectFit: "contain" },
+});
+
+function BrandStrip() {
+  return (
+    <View style={brandStripStyles.strip}>
+      <Image src={LOGO_EA()} style={brandStripStyles.logoEa} />
+      <Image src={LOGO_PVSTOP()} style={brandStripStyles.logoPv} />
+      <Image src={LOGO_CHEMITEK()} style={brandStripStyles.logoCh} />
+    </View>
+  );
+}
+
 export type ReporteData = {
   titulo: string;
   cliente: string;
@@ -169,19 +209,22 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View style={styles.header} fixed>
-      <View style={styles.headerLeft}>
-        <View style={styles.headerLeftText}>
-          <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
-          <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
-          <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
+    <View fixed>
+      <BrandStrip />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerLeftText}>
+            <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
+            <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
+            <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.headerRight}>
-        <Text style={styles.headerRightTop}>{data.cliente}</Text>
-        <Text style={styles.headerRightBot}>{data.periodo}</Text>
-        <Text style={styles.headerRightBot}>{codigo}</Text>
-        <Text style={styles.headerRightBot}>{clasif}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.headerRightTop}>{data.cliente}</Text>
+          <Text style={styles.headerRightBot}>{data.periodo}</Text>
+          <Text style={styles.headerRightBot}>{codigo}</Text>
+          <Text style={styles.headerRightBot}>{clasif}</Text>
+        </View>
       </View>
     </View>
   );
@@ -287,6 +330,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverBar} />
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 40, paddingBottom: 14, borderBottomWidth: 0.75, borderBottomColor: COL.border }}>
+              <Image src={LOGO_EA()} style={{ height: 34, objectFit: "contain" }} />
+              <Image src={LOGO_PVSTOP()} style={{ height: 36, objectFit: "contain" }} />
+              <Image src={LOGO_CHEMITEK()} style={{ height: 28, objectFit: "contain" }} />
+            </View>
             <View style={styles.brand}>
               <View style={{ marginLeft: 0 }}>
                 <Text style={[styles.brandText, { marginLeft: 0 }]}>EA SERVICE AND CONSULTING</Text>
