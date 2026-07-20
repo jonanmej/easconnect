@@ -354,6 +354,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
     {
+      await ensureFeriadosCargados(context.supabase, payload.fecha_programada);
       const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
       const motivo = motivoNoLaborableSV(payload.fecha_programada);
       if (motivo) {
@@ -685,6 +686,7 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
     {
+      await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
       const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
       const motivo = motivoNoLaborableSV(patch.fecha_programada);
       if (motivo) {
