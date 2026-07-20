@@ -229,6 +229,7 @@ function Reportes() {
         actions={
           <>
             {!isCliente && (
+              <>
             <ExportButton onExport={async () => {
               await exportarExcel({
                 filename: `reportes-${new Date().toISOString().slice(0,10)}.xlsx`,
@@ -251,6 +252,7 @@ function Reportes() {
               const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
               exportarCSV(reportesARows(items), `reportes-${dia}.csv`);
             }} />
+              </>
             )}
             {canEdit && (
               <button onClick={() => setOpenGen(true)}
