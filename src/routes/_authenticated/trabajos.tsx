@@ -25,6 +25,7 @@ import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { JornadaControl } from "@/components/JornadaControl";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { exportarCSV, exportarXLSX, trabajosARows } from "@/lib/exportar";
 import {
   listTrabajoRecursos,
   upsertTrabajoRecurso,
