@@ -51,7 +51,9 @@ const COL = {
 const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  page: { paddingTop: 105, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // paddingTop debe ser mayor que el alto real de los elementos "fixed"
+  // (BrandStrip ~64pt + header ~52pt = ~116pt). Dejamos 132pt de margen.
+  page: { paddingTop: 132, paddingBottom: 72, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -70,7 +72,7 @@ const styles = StyleSheet.create({
   coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1 },
   headerRight: { width: 150, alignItems: "flex-end" },
@@ -98,7 +100,7 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 24, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 26, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
   evidTile: {
     width: "50%",
