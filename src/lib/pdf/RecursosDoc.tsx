@@ -30,15 +30,15 @@ const FONT_OBL = "Helvetica-Oblique";
 function BrandStrip() {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.5, borderBottomColor: COL.border }}>
-      <Image src={LOGO_EA()} style={{ height: 28, objectFit: "contain" }} />
-      <Image src={LOGO_PVSTOP()} style={{ height: 22, objectFit: "contain" }} />
-      <Image src={LOGO_CHEMITEK()} style={{ height: 16, objectFit: "contain" }} />
+      <Image src={LOGO_EA()} style={{ height: 52, objectFit: "contain" }} />
+      <Image src={LOGO_PVSTOP()} style={{ height: 26, objectFit: "contain" }} />
+      <Image src={LOGO_CHEMITEK()} style={{ height: 20, objectFit: "contain" }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 105, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1, marginLeft: 8 },
