@@ -66,11 +66,12 @@ export const upsertCliente = createServerFn({ method: "POST" })
       cuota_medios: z.coerce.number().int().min(0).optional(),
       cuota_mayores: z.coerce.number().int().min(0).optional(),
       cuota_limpiezas: z.coerce.number().int().min(0).optional(),
+      color_acento: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional().or(z.literal("")),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, email, ...rest } = data;
-    const payload: any = { ...rest, email: email || null };
+    const { id, email, color_acento, ...rest } = data;
+    const payload: any = { ...rest, email: email || null, color_acento: color_acento || null };
     const q = id
       ? context.supabase.from("clientes").update(payload).eq("id", id).select().single()
       : context.supabase.from("clientes").insert(payload).select().single();
