@@ -128,6 +128,33 @@ const styles = StyleSheet.create({
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
 });
 
+// Franja superior con los tres logos institucionales.
+const brandStripStyles = StyleSheet.create({
+  strip: {
+    position: "absolute",
+    top: 18,
+    left: 85,
+    right: 45,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 26,
+  },
+  logo: { height: 22, objectFit: "contain" },
+  logoPV: { height: 24, objectFit: "contain" },
+  logoCh: { height: 18, objectFit: "contain" },
+});
+
+function BrandStrip() {
+  return (
+    <View style={brandStripStyles.strip} fixed>
+      <Image src={LOGO_EA()} style={brandStripStyles.logo} />
+      <Image src={LOGO_PVSTOP()} style={brandStripStyles.logoPV} />
+      <Image src={LOGO_CHEMITEK()} style={brandStripStyles.logoCh} />
+    </View>
+  );
+}
+
 export type ReporteData = {
   titulo: string;
   cliente: string;
