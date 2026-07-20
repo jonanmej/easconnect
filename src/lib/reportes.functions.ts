@@ -545,7 +545,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const { data: rep, error } = await supabase
       .from("reportes")
-      .select("*, clientes(nombre, contacto), plantas(nombre)")
+      .select("*, clientes(nombre, contacto, color_acento), plantas(nombre)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
 
