@@ -330,6 +330,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverBar} />
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 40, paddingBottom: 14, borderBottomWidth: 0.75, borderBottomColor: COL.border }}>
+              <Image src={LOGO_EA()} style={{ height: 34, objectFit: "contain" }} />
+              <Image src={LOGO_PVSTOP()} style={{ height: 36, objectFit: "contain" }} />
+              <Image src={LOGO_CHEMITEK()} style={{ height: 28, objectFit: "contain" }} />
+            </View>
             <View style={styles.brand}>
               <View style={{ marginLeft: 0 }}>
                 <Text style={[styles.brandText, { marginLeft: 0 }]}>EA SERVICE AND CONSULTING</Text>
