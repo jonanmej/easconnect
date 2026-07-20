@@ -293,6 +293,19 @@ function Clientes() {
         <Field label="Capacidad declarada">
           <input name="capacidad" defaultValue={editing?.capacidad ?? ""} className={inputCls} placeholder="48 MW" />
         </Field>
+        <Field label="Color de acento para PDF ejecutivo">
+          <div className="flex items-center gap-2">
+            <input
+              name="color_acento"
+              type="color"
+              defaultValue={(editing as any)?.color_acento ?? "#2E4A87"}
+              className="h-9 w-16 rounded-md border border-input bg-background cursor-pointer"
+            />
+            <span className="text-[11px] text-muted-foreground">
+              Se aplica en portada, títulos y KPIs del reporte ejecutivo.
+            </span>
+          </div>
+        </Field>
         <div className="pt-3 border-t border-border">
           <label className="flex items-center gap-2 text-xs font-medium mb-3">
             <input type="checkbox" name="contrato_om" defaultChecked={!!editing?.contrato_om} />
