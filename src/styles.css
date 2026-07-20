@@ -290,7 +290,7 @@
   }
   .print-doc-header__logos img.print-doc-header__logo-ea { height: 30pt; }
   .print-doc-header__logos img.print-doc-header__logo-pv { height: 24pt; }
-  .print-doc-header__logos img.print-doc-header__logos-ch { height: 18pt; }
+  .print-doc-header__logos img.print-doc-header__logo-ch { height: 18pt; }
   .print-doc-header__row {
     display: flex;
     justify-content: space-between;
