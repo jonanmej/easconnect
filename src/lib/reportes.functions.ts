@@ -5,6 +5,33 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const SV_OFFSET = "-06:00";
+const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+function parseLegacySingleDayPeriod(periodo: unknown): { desde: string; hasta: string } | null {
+  const raw = String(periodo ?? "").trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const day = `${iso[1]}-${iso[2]}-${iso[3]}`;
+    return { desde: `${day}T00:00:00.000${SV_OFFSET}`, hasta: `${day}T23:59:59.999${SV_OFFSET}` };
+  }
+  const dmy = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) {
+    const day = `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    return { desde: `${day}T00:00:00.000${SV_OFFSET}`, hasta: `${day}T23:59:59.999${SV_OFFSET}` };
+  }
+  return null;
+}
+
+function toProfileName(profile: any): string | null {
+  const displayName = String(profile?.display_name ?? "").trim();
+  const fullName = [profile?.nombres, profile?.apellidos]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return displayName || fullName || null;
+}
+
 /**
  * Extrae el texto de un PDF (buffer) usando unpdf (compatible con Workers).
  * Devuelve una cadena limpia y truncada a maxChars para no reventar el prompt.
@@ -172,8 +199,6 @@ export const generarReporte = createServerFn({ method: "POST" })
     // cualquier hora de esa fecha. Sin esto, "hasta=2026-07-03" se interpreta
     // como 2026-07-03T00:00:00Z y excluye todo lo ocurrido durante ese día.
     // Zona horaria operativa: América/El Salvador (UTC-6, sin DST).
-    const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-    const SV_OFFSET = "-06:00";
     const desdeTs = isDateOnly(data.desde) ? `${data.desde}T00:00:00.000${SV_OFFSET}` : data.desde;
     const hastaTs = isDateOnly(data.hasta) ? `${data.hasta}T23:59:59.999${SV_OFFSET}` : data.hasta;
     const { data: cliente } = await supabase.from("clientes").select("nombre").eq("id", data.cliente_id).single();
@@ -567,6 +592,8 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       estado: "borrador",
       generado_por: context.userId,
       model_used: modelUsed,
+      desde: desdeTs,
+      hasta: hastaTs,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
@@ -611,8 +638,13 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     })();
 
     // Trabajos del periodo
-    const desde = (rep as any).desde ?? null;
-    const hasta = (rep as any).hasta ?? null;
+    const inferredRange = !(rep as any).desde || !(rep as any).hasta
+      ? parseLegacySingleDayPeriod((rep as any).periodo)
+      : null;
+    const desde = (rep as any).desde ?? inferredRange?.desde ?? null;
+    const hasta = (rep as any).hasta ?? inferredRange?.hasta ?? null;
+    const desdeMs = desde ? new Date(desde).getTime() : null;
+    const hastaMs = hasta ? new Date(hasta).getTime() : null;
     let plantasIds: string[] = [];
     if ((rep as any).planta_id) plantasIds = [(rep as any).planta_id];
     else {
@@ -620,29 +652,54 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
     let qb = supabase.from("trabajos")
-      .select("id, folio, servicio, fecha_programada, estado, notas, tecnico_id")
+      .select("id, folio, servicio, fecha_programada, duracion_dias, estado, notas, tecnico_id")
       .in("planta_id", plantasIds)
       .order("fecha_programada");
-    if (desde) qb = qb.gte("fecha_programada", desde);
     if (hasta) qb = qb.lte("fecha_programada", hasta);
     if (folioReporte) qb = qb.eq("folio", folioReporte);
-    const { data: trabajos } = await qb;
+    const { data: trabajosRaw } = await qb;
+    const trabajos = (trabajosRaw ?? []).filter((t: any) => {
+      if (desdeMs === null || hastaMs === null) return true;
+      const inicio = new Date(t.fecha_programada).getTime();
+      const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
+      const fin = inicio + duracion * 86400000 - 1;
+      return inicio <= hastaMs && fin >= desdeMs;
+    });
 
-    const trabajoIds = (trabajos ?? []).map((t) => t.id);
+    const trabajoIds = trabajos.map((t) => t.id);
+    let diarios: any[] = [];
+    if (trabajoIds.length) {
+      let diariosQb = supabase
+        .from("trabajo_reportes_diarios")
+        .select("id, trabajo_id, fecha, tecnico_id, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones, trabajo_realizado, hallazgos, observaciones, bloqueos")
+        .in("trabajo_id", trabajoIds)
+        .order("fecha", { ascending: true });
+      if (desde) diariosQb = diariosQb.gte("fecha", new Date(desde).toISOString().slice(0, 10));
+      if (hasta) diariosQb = diariosQb.lte("fecha", new Date(hasta).toISOString().slice(0, 10));
+      const { data: dd } = await diariosQb;
+      diarios = dd ?? [];
+    }
+    const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
     let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
     // Imágenes extraídas de los PDFs subidos (fotos/gráficas embebidas).
     // Se agregan al final como "evidencia" para que aparezcan en la sección
     // de Evidencias Fotográficas del reporte ejecutivo.
     const evidenciasPdf: { trabajo: string; descripcion: string | null; dataUrl: string }[] = [];
     if (trabajoIds.length) {
-      const { data: evs } = await supabase
+      let evidenciasQb = supabase
         .from("trabajo_evidencias")
-        .select("trabajo_id, storage_path, descripcion, categoria")
+        .select("trabajo_id, reporte_diario_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
         .order("categoria", { ascending: true })
         .limit(80);
+      if (desde || hasta) {
+        evidenciasQb = diarioIds.length
+          ? evidenciasQb.in("reporte_diario_id", diarioIds)
+          : evidenciasQb.eq("reporte_diario_id", "00000000-0000-0000-0000-000000000000");
+      }
+      const { data: evs } = await evidenciasQb;
       if (evs?.length) {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
         const { data: signed } = await supabase.storage
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
@@ -666,18 +723,26 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       // "evidencia" adicional en el reporte sin citar el origen documental.
       const { data: pdfsRows } = await supabase
         .from("trabajo_reportes_pdf")
-        .select("trabajo_id, storage_path")
+        .select("trabajo_id, fecha, storage_path")
         .in("trabajo_id", trabajoIds)
         .limit(20);
       if (pdfsRows?.length) {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
+        const desdeDia = desde ? new Date(desde).toISOString().slice(0, 10) : null;
+        const hastaDia = hasta ? new Date(hasta).toISOString().slice(0, 10) : null;
+        const pdfsFiltrados = (pdfsRows as any[]).filter((p: any) => {
+          if (!desdeDia && !hastaDia) return true;
+          if (!p.fecha) return false;
+          const fecha = String(p.fecha).slice(0, 10);
+          return (!desdeDia || fecha >= desdeDia) && (!hastaDia || fecha <= hastaDia);
+        });
         const { data: signedPdfs } = await supabase.storage
           .from("trabajos-evidencia")
-          .createSignedUrls(pdfsRows.map((p: any) => p.storage_path), 600);
+          .createSignedUrls(pdfsFiltrados.map((p: any) => p.storage_path), 600);
         const urlByPath = new Map((signedPdfs ?? []).map((s: any) => [s.path!, s.signedUrl]));
         const { extractJpegImagesFromPdf } = await import("@/lib/pdf-images.server");
         const MAX_TOTAL_IMGS = 12;
-        for (const p of pdfsRows as any[]) {
+        for (const p of pdfsFiltrados) {
           if (evidenciasPdf.length >= MAX_TOTAL_IMGS) break;
           const url = urlByPath.get(p.storage_path);
           if (!url) continue;
@@ -713,17 +778,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // ---- Avance diario vs. objetivo por trabajo -----------------------------
     // Fuente: trabajo_reportes_diarios.avance_pct (0–100) — el técnico marca
     // el avance por día, comparado contra el 100% que debe finalizarse.
-    let diarios: any[] = [];
-    if (trabajoIds.length) {
-      const { data: dd } = await supabase
-        .from("trabajo_reportes_diarios")
-        .select("trabajo_id, fecha, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones")
-        .in("trabajo_id", trabajoIds)
-        .order("fecha", { ascending: true });
-      diarios = dd ?? [];
-    }
     if (diarios.length) {
-      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
       // Paneles por planta para cada trabajo (parque instalado). Se usa como
       // 100% para calcular el avance ejecutado.
       const { data: trabPlantas } = await supabase
@@ -833,13 +889,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           .from("trabajo_reportes")
           .select("trabajo_id, condiciones_sitio, trabajo_realizado, hallazgos, recomendaciones, cliente_observaciones")
           .in("trabajo_id", trabajoIds),
-        supabase
-          .from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, trabajo_realizado, hallazgos, observaciones, bloqueos")
-          .in("trabajo_id", trabajoIds)
-          .order("fecha", { ascending: true }),
+        Promise.resolve({ data: diarios }),
       ]);
-      const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+      const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
       const resumenBloques: string[] = [];
       const hallazgosBloques: string[] = [];
       const recBloques: string[] = [];
@@ -868,23 +920,33 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // Nombres de técnicos por trabajo (principal + extras de trabajo_tecnicos)
     const tecnicosPorTrabajo = new Map<string, string[]>();
     {
-      const principalIds = Array.from(new Set((trabajos ?? []).map((t: any) => t.tecnico_id).filter(Boolean)));
+      const principalIds = Array.from(new Set(trabajos.map((t: any) => t.tecnico_id).filter(Boolean)));
       const { data: extras } = trabajoIds.length
         ? await supabase.from("trabajo_tecnicos").select("trabajo_id, tecnico_id").in("trabajo_id", trabajoIds)
         : { data: [] as any[] };
       const extraIds = (extras ?? []).map((e: any) => e.tecnico_id);
-      const allIds = Array.from(new Set([...principalIds, ...extraIds])) as string[];
+      const diarioTecnicoIds = diarios.map((d: any) => d.tecnico_id).filter(Boolean);
+      const allIds = Array.from(new Set([...principalIds, ...extraIds, ...diarioTecnicoIds])) as string[];
       const nombrePorId = new Map<string, string>();
       if (allIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, nombre").in("id", allIds);
-        for (const p of (profs ?? []) as any[]) nombrePorId.set(p.id, p.nombre ?? "—");
+        const { data: profs } = await supabase.from("profiles").select("id, display_name, nombres, apellidos").in("id", allIds);
+        for (const p of (profs ?? []) as any[]) {
+          const nombre = toProfileName(p);
+          if (nombre) nombrePorId.set(p.id, nombre);
+        }
       }
-      for (const t of (trabajos ?? []) as any[]) {
+      for (const t of trabajos as any[]) {
         const arr: string[] = [];
         if (t.tecnico_id && nombrePorId.get(t.tecnico_id)) arr.push(nombrePorId.get(t.tecnico_id)!);
         for (const e of (extras ?? []) as any[]) {
           if (e.trabajo_id === t.id) {
             const n = nombrePorId.get(e.tecnico_id);
+            if (n && !arr.includes(n)) arr.push(n);
+          }
+        }
+        for (const d of diarios) {
+          if (d.trabajo_id === t.id) {
+            const n = nombrePorId.get(d.tecnico_id);
             if (n && !arr.includes(n)) arr.push(n);
           }
         }
@@ -905,7 +967,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       kpis,
       hallazgos,
       recomendaciones,
-      trabajos: (trabajos ?? []).map((t) => ({
+      trabajos: trabajos.map((t) => ({
         folio: t.folio,
         servicio: t.servicio,
         fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }),
@@ -915,7 +977,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       })),
       resumen_por_planta: (() => {
         const map = new Map<string, { total: number; completados: number; servicios: Set<string> }>();
-        for (const t of (trabajos ?? [])) {
+        for (const t of trabajos) {
           const key = (rep as any).plantas?.nombre ?? "Planta";
           const cur = map.get(key) ?? { total: 0, completados: 0, servicios: new Set<string>() };
           cur.total += 1;
@@ -932,7 +994,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       })(),
       resumen_por_servicio: (() => {
         const map = new Map<string, { total: number; completados: number }>();
-        for (const t of (trabajos ?? [])) {
+        for (const t of trabajos) {
           const key = (t as any).servicio ?? "—";
           const cur = map.get(key) ?? { total: 0, completados: 0 };
           cur.total += 1;
@@ -945,7 +1007,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       evidencias_pdf: evidenciasPdf,
       graficas,
       reportes_diarios: (() => {
-        const folioPorId = new Map((trabajos ?? []).map((t) => [t.id, t.folio]));
+        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
         return (diarios ?? [])
           .slice()
           .sort((a: any, b: any) => String(a.fecha).localeCompare(String(b.fecha)))
