@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { motion, LayoutGroup } from "framer-motion";
 import {
   LayoutDashboard,
   CalendarRange,
@@ -174,6 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Link>
 
       <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
+        <LayoutGroup id="sidebar-nav">
         {groups.map((group) => {
           const items = group.items;
           if (items.length === 0) return null;
@@ -191,22 +193,30 @@ export function AppShell({ children }: { children: ReactNode }) {
                     to={item.to}
                     aria-current={active ? "page" : undefined}
                     className={
-                      "flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
+                      "relative flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
                       (active
-                        ? "bg-primary/12 text-primary font-semibold shadow-[inset_3px_0_0_0_var(--color-primary)]"
-                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground")
+                        ? "text-primary font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground hover:translate-x-0.5 transition-transform")
                     }
                   >
-                    <Icon className="size-[18px] shrink-0" aria-hidden="true" />
-                    <span className="flex-1 truncate">{item.label}</span>
+                    {active && (
+                      <motion.span
+                        layoutId="sidebar-active-pill"
+                        className="absolute inset-0 rounded-md bg-primary/12 shadow-[inset_3px_0_0_0_var(--color-primary)]"
+                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <Icon className={"relative size-[18px] shrink-0 transition-transform " + (active ? "scale-110" : "group-hover:scale-110")} aria-hidden="true" />
+                    <span className="relative flex-1 truncate">{item.label}</span>
                     {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
-                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className="text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.sla_vencidos}</span>
+                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className="relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.sla_vencidos}</span>
                     ) : null}
                     {item.to === "/inventario" && alertas.data?.stock_critico ? (
-                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className="text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.stock_critico}</span>
+                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className="relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.stock_critico}</span>
                     ) : null}
                     {item.to === "/solicitudes" && alertas.data?.solicitudes_estancadas ? (
-                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className="text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary">{alertas.data.solicitudes_estancadas}</span>
+                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className="relative text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary">{alertas.data.solicitudes_estancadas}</span>
                     ) : null}
                   </Link>
                 );
@@ -214,6 +224,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           );
         })}
+        </LayoutGroup>
       </nav>
 
       <div className="p-4 border-t border-border">
