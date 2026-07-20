@@ -1,11 +1,14 @@
 import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
-function brandLogoUrl(theme: "light" | "dark") {
+function absUrl(path: string) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
-  return `${origin}${BRAND_LOGO_URLS["ea-main"][theme]}`;
+  return `${origin}${path}`;
 }
+const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -24,12 +27,18 @@ const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
 
-function EALogoMark({ size = 22, theme = "light" }: { size?: number; theme?: "light" | "dark" }) {
-  return <Image src={brandLogoUrl(theme)} style={{ width: size, height: size }} />;
+function BrandStrip() {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.5, borderBottomColor: COL.border }}>
+      <Image src={LOGO_EA()} style={{ height: 20, objectFit: "contain" }} />
+      <Image src={LOGO_PVSTOP()} style={{ height: 22, objectFit: "contain" }} />
+      <Image src={LOGO_CHEMITEK()} style={{ height: 16, objectFit: "contain" }} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 64, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 78, paddingBottom: 70, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1, marginLeft: 8 },
@@ -95,20 +104,22 @@ function PageHeader({ data }: { data: RecursosData }) {
   const codigo = `${data.documento_codigo ?? "EA-REC"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View style={styles.header} fixed>
-      <View style={styles.headerLeft}>
-        <EALogoMark size={22} theme={data.theme ?? "light"} />
-        <View style={styles.headerLeftText}>
-          <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
-          <Text style={styles.headerSub}>Checklist de Recursos · OT {data.folio}</Text>
-          <Text style={styles.headerSub}>ISO 9001:2015 · §7.1 / §8.5</Text>
+    <View fixed>
+      <BrandStrip />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerLeftText}>
+            <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
+            <Text style={styles.headerSub}>Checklist de Recursos · OT {data.folio}</Text>
+            <Text style={styles.headerSub}>ISO 9001:2015 · §7.1 / §8.5</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.headerRight}>
-        <Text style={styles.headerRightTop}>{data.cliente}</Text>
-        <Text style={styles.headerRightBot}>{data.planta}</Text>
-        <Text style={styles.headerRightBot}>{codigo}</Text>
-        <Text style={styles.headerRightBot}>{clasif}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.headerRightTop}>{data.cliente}</Text>
+          <Text style={styles.headerRightBot}>{data.planta}</Text>
+          <Text style={styles.headerRightBot}>{codigo}</Text>
+          <Text style={styles.headerRightBot}>{clasif}</Text>
+        </View>
       </View>
     </View>
   );
