@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
+import { useFeriados } from "@/hooks/useFeriados";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Printer } from "lucide-react";
