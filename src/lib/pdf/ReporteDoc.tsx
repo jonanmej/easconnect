@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   // El PageHeader se ancla en position:absolute top:20; paddingTop reserva
   // el alto real del bloque (franja de logos + cabecera institucional) para
   // que el cuerpo NO se solape con la cabecera fija.
-  page: { paddingTop: 118, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 132, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: COL.primary },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1 },
   headerRight: { width: 150, alignItems: "flex-end" },
