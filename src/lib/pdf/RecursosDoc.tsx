@@ -38,7 +38,9 @@ function BrandStrip() {
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 132, paddingBottom: 72, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // Margen izquierdo ampliado (~34 mm) para dejar zona de perforado segura
+  // al archivar el reporte en AMPO de 2 orificios; margen derecho equilibrado.
+  page: { paddingTop: 132, paddingBottom: 72, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1, marginLeft: 8 },
@@ -59,7 +61,7 @@ const styles = StyleSheet.create({
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 26, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 26, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   badge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, alignSelf: "flex-start", color: "#fff", marginBottom: 4 },
   signRow: { flexDirection: "row", marginTop: 40, gap: 20 },
   signCol: { flex: 1 },
