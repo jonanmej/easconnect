@@ -332,7 +332,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       modificationDate={fechaEmision}
     >
       {ejec && (
-        <Page size="LETTER" style={styles.cover}>
+        <Page size="A4" style={styles.cover}>
           <View style={styles.coverBar} />
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
@@ -375,7 +375,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         </Page>
       )}
 
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <PageHeader data={data} pageName={ejec ? "Resumen Ejecutivo" : "Resumen Interno"} />
         <Text style={styles.pageTitle}>{ejec ? "Resumen Ejecutivo" : "Reporte Interno"}</Text>
         {ejec && data.resumen && <Text style={styles.paragraph}>{data.resumen}</Text>}
@@ -467,7 +467,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <PageFooter data={data} />
       </Page>
 
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <PageHeader data={data} pageName="Detalle de Trabajos" />
         <Text style={styles.pageTitle}>Detalle de Trabajos del Periodo</Text>
         <View style={styles.table}>
@@ -609,7 +609,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           return ar - br;
         });
         return (
-          <Page size="LETTER" style={styles.page} wrap>
+          <Page size="A4" style={styles.page} wrap>
             <PageHeader data={data} pageName="Evidencias" />
             <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
             <View style={styles.pageTitleRule} />
@@ -637,7 +637,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         );
       })()}
 
-      <Page size="LETTER" style={styles.page} wrap>
+      <Page size="A4" style={styles.page} wrap>
         <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
         <Text style={styles.pageTitle}>{ejec ? "Cierre, Política Documental y Cumplimiento" : "Política Documental y Cumplimiento"}</Text>
 
