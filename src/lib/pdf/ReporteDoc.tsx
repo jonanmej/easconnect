@@ -54,12 +54,17 @@ const styles = StyleSheet.create({
   // El PageHeader se ancla en position:absolute top:20; paddingTop reserva
   // el alto real del bloque (franja de logos + cabecera institucional) para
   // que el cuerpo NO se solape con la cabecera fija.
-  page: { paddingTop: 132, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // Márgenes calibrados para archivo físico en AMPO (2 orificios, ~80 mm
+  // entre centros, ~12 mm desde el borde). El paddingLeft de 96pt (~34 mm)
+  // deja una zona de perforado segura sin invadir el contenido; el
+  // paddingRight (54pt ~19 mm) equilibra ópticamente la página al cerrar
+  // el archivador.
+  page: { paddingTop: 132, paddingBottom: 68, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
   coverSide: { position: "absolute", top: 0, bottom: 0, left: 0, width: 14, backgroundColor: COL.bg },
- coverInner: { paddingTop: 90, paddingBottom: 110, paddingLeft: 95, paddingRight: 60 },
+ coverInner: { paddingTop: 90, paddingBottom: 110, paddingLeft: 108, paddingRight: 60 },
   brand: { flexDirection: "row", alignItems: "center", marginBottom: 90 },
   brandText: { fontSize: 15, fontFamily: FONT_BOLD, letterSpacing: 1, color: COL.bg, marginLeft: 14 },
   brandSub: { fontSize: 8, color: COL.muted, letterSpacing: 2, marginLeft: 14, marginTop: 2, textTransform: "uppercase" },
@@ -70,7 +75,7 @@ const styles = StyleSheet.create({
  metaRow: { flexDirection: "row", marginBottom: 5, alignItems: "flex-start" },
  metaLabel: { width: 110, fontSize: 8.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, paddingRight: 6 },
  metaValue: { flex: 1, fontSize: 10, fontFamily: FONT_BOLD, color: COL.text },
-  coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
+  coverFooter: { position: "absolute", bottom: 40, left: 108, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: COL.primary },
@@ -101,7 +106,7 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 26, left: 85, right: 45, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 26, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
   evidTile: {
     width: "50%",
