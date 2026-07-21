@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
   // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
   // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
   // paddingTop debe ser mayor que el alto real de los elementos "fixed"
-  // (BrandStrip ~64pt + header ~52pt = ~116pt). Dejamos 132pt de margen.
-  page: { paddingTop: 132, paddingBottom: 72, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // (BrandStrip ~36pt + header ~46pt = ~82pt). Dejamos 96pt de margen.
+  page: { paddingTop: 96, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   coverFooter: { position: "absolute", bottom: 40, left: 95, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 10 },
 
   // Contenido
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1 },
   headerRight: { width: 150, alignItems: "flex-end" },
@@ -137,17 +137,17 @@ const brandStripStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 6,
-    paddingBottom: 6,
+    marginBottom: 3,
+    paddingBottom: 3,
     borderBottomWidth: 0.5,
     borderBottomColor: COL.border,
   },
-  // El PNG de EA tiene mucho margen transparente alrededor del contenido,
-  // por eso necesita bastante más altura de caja para que el wordmark quede
-  // ópticamente igual de visible que PVSTOP y Chemitek.
-  logoEa: { height: 52, objectFit: "contain" },
-  logoPv: { height: 26, objectFit: "contain" },
-  logoCh: { height: 20, objectFit: "contain" },
+  // El PNG de EA tiene margen transparente alrededor del contenido; se
+  // compensa dejando su caja ~30% más alta que PVSTOP/Chemitek para que
+  // el wordmark quede ópticamente equivalente sin inflar la cabecera.
+  logoEa: { height: 34, objectFit: "contain" },
+  logoPv: { height: 18, objectFit: "contain" },
+  logoCh: { height: 14, objectFit: "contain" },
 });
 
 function BrandStrip() {
