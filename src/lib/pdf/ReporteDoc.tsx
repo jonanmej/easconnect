@@ -49,11 +49,12 @@ const COL = {
 };
 
 const styles = StyleSheet.create({
-  // Página tamaño carta (US Letter) — márgenes pensados para perforar y anexar a AMPO:
-  // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 54pt, inf. 64pt.
-  // paddingTop debe ser mayor que el alto real de los elementos "fixed"
-  // (BrandStrip ~36pt + header ~46pt = ~82pt). Dejamos 96pt de margen.
-  page: { paddingTop: 96, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // Página A4 (210 x 297 mm) — márgenes pensados para perforar y anexar a AMPO:
+  // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 20pt, inf. 64pt.
+  // El PageHeader se ancla en position:absolute top:20; paddingTop reserva
+  // el alto real del bloque (franja de logos + cabecera institucional) para
+  // que el cuerpo NO se solape con la cabecera fija.
+  page: { paddingTop: 118, paddingBottom: 64, paddingLeft: 85, paddingRight: 45, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -137,17 +138,17 @@ const brandStripStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 3,
-    paddingBottom: 3,
+    marginBottom: 4,
+    paddingBottom: 4,
     borderBottomWidth: 0.5,
     borderBottomColor: COL.border,
   },
   // El PNG de EA tiene margen transparente alrededor del contenido; se
-  // compensa dejando su caja ~30% más alta que PVSTOP/Chemitek para que
-  // el wordmark quede ópticamente equivalente sin inflar la cabecera.
-  logoEa: { height: 34, objectFit: "contain" },
-  logoPv: { height: 18, objectFit: "contain" },
-  logoCh: { height: 14, objectFit: "contain" },
+  // compensa dejando su caja más alta que PVSTOP/Chemitek para que el
+  // wordmark quede ópticamente equivalente sin inflar la cabecera.
+  logoEa: { height: 50, objectFit: "contain" },
+  logoPv: { height: 26, objectFit: "contain" },
+  logoCh: { height: 20, objectFit: "contain" },
 });
 
 function BrandStrip() {
@@ -214,7 +215,7 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View fixed>
+    <View fixed style={{ position: "absolute", top: 20, left: 45, right: 45 }}>
       <BrandStrip />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -331,7 +332,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       modificationDate={fechaEmision}
     >
       {ejec && (
-        <Page size="LETTER" style={styles.cover}>
+        <Page size="A4" style={styles.cover}>
           <View style={styles.coverBar} />
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
@@ -374,7 +375,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         </Page>
       )}
 
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <PageHeader data={data} pageName={ejec ? "Resumen Ejecutivo" : "Resumen Interno"} />
         <Text style={styles.pageTitle}>{ejec ? "Resumen Ejecutivo" : "Reporte Interno"}</Text>
         {ejec && data.resumen && <Text style={styles.paragraph}>{data.resumen}</Text>}
@@ -466,7 +467,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <PageFooter data={data} />
       </Page>
 
-      <Page size="LETTER" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <PageHeader data={data} pageName="Detalle de Trabajos" />
         <Text style={styles.pageTitle}>Detalle de Trabajos del Periodo</Text>
         <View style={styles.table}>
@@ -608,7 +609,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           return ar - br;
         });
         return (
-          <Page size="LETTER" style={styles.page} wrap>
+          <Page size="A4" style={styles.page} wrap>
             <PageHeader data={data} pageName="Evidencias" />
             <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
             <View style={styles.pageTitleRule} />
@@ -636,7 +637,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         );
       })()}
 
-      <Page size="LETTER" style={styles.page} wrap>
+      <Page size="A4" style={styles.page} wrap>
         <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
         <Text style={styles.pageTitle}>{ejec ? "Cierre, Política Documental y Cumplimiento" : "Política Documental y Cumplimiento"}</Text>
 
