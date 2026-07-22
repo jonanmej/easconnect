@@ -27,20 +27,12 @@ const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 const FONT_OBL = "Helvetica-Oblique";
 
-function BrandStrip() {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottomWidth: 0.5, borderBottomColor: COL.border }}>
-      <Image src={LOGO_EA()} style={{ height: 52, objectFit: "contain" }} />
-      <Image src={LOGO_PVSTOP()} style={{ height: 26, objectFit: "contain" }} />
-      <Image src={LOGO_CHEMITEK()} style={{ height: 20, objectFit: "contain" }} />
-    </View>
-  );
-}
+// Cabecera institucional: solo el logo EA arriba; PVSTOP y Chemitek en el pie.
 
 const styles = StyleSheet.create({
   // Margen izquierdo ampliado (~34 mm) para dejar zona de perforado segura
   // al archivar el reporte en AMPO de 2 orificios; margen derecho equilibrado.
-  page: { paddingTop: 132, paddingBottom: 72, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  page: { paddingTop: 96, paddingBottom: 84, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1.5, borderBottomColor: COL.primary },
   headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
   headerLeftText: { flex: 1, marginLeft: 8 },
@@ -61,7 +53,7 @@ const styles = StyleSheet.create({
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 26, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 24, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   badge: { fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, alignSelf: "flex-start", color: "#fff", marginBottom: 4 },
   signRow: { flexDirection: "row", marginTop: 40, gap: 20 },
   signCol: { flex: 1 },
@@ -106,14 +98,13 @@ function PageHeader({ data }: { data: RecursosData }) {
   const codigo = `${data.documento_codigo ?? "EA-REC"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View fixed>
-      <BrandStrip />
+    <View fixed style={{ position: "absolute", top: 24, left: 96, right: 54 }}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <Image src={LOGO_EA()} style={{ height: 34, objectFit: "contain", marginRight: 10 }} />
           <View style={styles.headerLeftText}>
             <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
             <Text style={styles.headerSub}>Checklist de Recursos · OT {data.folio}</Text>
-            <Text style={styles.headerSub}>ISO 9001:2015 · §7.1 / §8.5</Text>
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -135,9 +126,13 @@ function PageFooter({ data }: { data: RecursosData }) {
   const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
   return (
     <View style={styles.pageFooter} fixed>
-      <View style={{ flexDirection: "column" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Image src={LOGO_PVSTOP()} style={{ height: 16, objectFit: "contain" }} />
+        <Image src={LOGO_CHEMITEK()} style={{ height: 12, objectFit: "contain" }} />
+      </View>
+      <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
         <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
-        <Text>Retención: 5 años · ISO 9001:2015 §7.5 · Responsable: {responsable}</Text>
+        <Text>Responsable: {responsable}</Text>
       </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
@@ -160,9 +155,9 @@ export function RecursosDoc({ data }: { data: RecursosData }) {
       title={`Checklist de recursos · ${data.folio}`}
       author={data.responsable ?? "EA SERVICE AND CONSULTING"}
       subject={`Checklist de recursos · ${data.cliente} · ${data.planta}`}
-      keywords={[data.cliente, data.planta, data.folio, "Recursos", "ISO 9001:2015"].join(", ")}
+      keywords={[data.cliente, data.planta, data.folio, "Recursos"].join(", ")}
       creator="EA Service Connect"
-      producer="EA Service Connect — Cumplimiento ISO 9001:2015"
+      producer="EA Service Connect"
       creationDate={fecha}
       modificationDate={fecha}
     >
