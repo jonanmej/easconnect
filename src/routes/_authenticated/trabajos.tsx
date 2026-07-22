@@ -1054,7 +1054,7 @@ function RecursosSection({
             onClick={exportarPdf}
             disabled={downloading || rows.length === 0}
             className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
-            title="Descargar checklist imprimible ISO 9001:2015"
+            title="Descargar checklist imprimible"
           >
             <FileDown className="size-3.5" />
             {downloading ? "Generando…" : "PDF imprimible"}

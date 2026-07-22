@@ -11,19 +11,13 @@ const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
 const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
 
 // ---------------------------------------------------------------------------
-// Tipografía: @react-pdf/renderer en Helvetica con fontWeight numérico aplica
-// un "fake bold" que en algunos visores produce letras dobladas/separadas
-// ("EA SERVIICE", "Halllazgos"). Forzamos la familia Helvetica-Bold real
-// para todo texto en negrita y desactivamos la hifenación que partía
-// palabras como "Man- tenimiento".
+// Tipografía: forzamos Helvetica-Bold real (no "fake bold") y desactivamos
+// hifenación automática para evitar cortes como "Man- tenimiento".
 // ---------------------------------------------------------------------------
 Font.registerHyphenationCallback((word) => [word]);
 
-// Cabecera institucional: los reportes muestran los tres logos de marca
-// (EA Service & Consulting · PVSTOP El Salvador · Chemitek Solar) en la
-// franja superior de cada página, cumpliendo con ISO 9001:2015 §7.5.
-// Los logos NO aparecen en el registro fotográfico para evitar que se
-// confundan con evidencias subidas por los técnicos.
+// Cabecera institucional: el logo EA aparece en el encabezado de cada
+// página; los logos de PVSTOP y Chemitek se ubican en el pie institucional.
 
 // Fuentes PDF estándar (Helvetica-Bold es una fuente real embebida en PDF,
 // no negrita sintética). Esto garantiza nitidez en Acrobat, Chrome, Safari,
@@ -49,17 +43,10 @@ const COL = {
 };
 
 const styles = StyleSheet.create({
-  // Página A4 (210 x 297 mm) — márgenes pensados para perforar y anexar a AMPO:
-  // izq. 85pt (~3 cm) para folio de perforación, der. 40pt, sup. 20pt, inf. 64pt.
-  // El PageHeader se ancla en position:absolute top:20; paddingTop reserva
-  // el alto real del bloque (franja de logos + cabecera institucional) para
-  // que el cuerpo NO se solape con la cabecera fija.
-  // Márgenes calibrados para archivo físico en AMPO (2 orificios, ~80 mm
-  // entre centros, ~12 mm desde el borde). El paddingLeft de 96pt (~34 mm)
-  // deja una zona de perforado segura sin invadir el contenido; el
-  // paddingRight (54pt ~19 mm) equilibra ópticamente la página al cerrar
-  // el archivador.
-  page: { paddingTop: 132, paddingBottom: 68, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
+  // Página A4 — márgenes pensados para perforar y anexar a AMPO (izq. amplio).
+  // paddingTop reserva el alto de la cabecera fija (logo EA + meta),
+  // paddingBottom reserva el pie con los logos institucionales secundarios.
+  page: { paddingTop: 96, paddingBottom: 84, paddingLeft: 96, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
   // Portada
   cover: { padding: 0 },
   coverBar: { position: "absolute", top: 0, left: 0, right: 0, height: 10, backgroundColor: COL.primary },
@@ -106,7 +93,8 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 26, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooter: { position: "absolute", bottom: 24, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 12 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
   evidTile: {
     width: "50%",
@@ -136,35 +124,12 @@ const styles = StyleSheet.create({
   chartSource: { fontSize: 7, color: COL.muted, marginTop: 6, fontFamily: FONT_OBL },
 });
 
-// Franja superior con los tres logos institucionales que aparece en la
-// cabecera de cada página (queda sobre la cabecera existente).
-const brandStripStyles = StyleSheet.create({
-  strip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-    paddingBottom: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: COL.border,
-  },
-  // El PNG de EA tiene margen transparente alrededor del contenido; se
-  // compensa dejando su caja más alta que PVSTOP/Chemitek para que el
-  // wordmark quede ópticamente equivalente sin inflar la cabecera.
-  logoEa: { height: 50, objectFit: "contain" },
-  logoPv: { height: 26, objectFit: "contain" },
-  logoCh: { height: 20, objectFit: "contain" },
+// Logo institucional en la cabecera de cada página (solo EA).
+const brandStyles = StyleSheet.create({
+  logoEa: { height: 34, objectFit: "contain" },
+  footerLogoPv: { height: 16, objectFit: "contain" },
+  footerLogoCh: { height: 12, objectFit: "contain" },
 });
-
-function BrandStrip() {
-  return (
-    <View style={brandStripStyles.strip}>
-      <Image src={LOGO_EA()} style={brandStripStyles.logoEa} />
-      <Image src={LOGO_PVSTOP()} style={brandStripStyles.logoPv} />
-      <Image src={LOGO_CHEMITEK()} style={brandStripStyles.logoCh} />
-    </View>
-  );
-}
 
 export type ReporteData = {
   titulo: string;
@@ -220,14 +185,13 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
   const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View fixed style={{ position: "absolute", top: 20, left: 45, right: 45 }}>
-      <BrandStrip />
+    <View fixed style={{ position: "absolute", top: 24, left: 96, right: 54 }}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <Image src={LOGO_EA()} style={[brandStyles.logoEa, { marginRight: 10 }]} />
           <View style={styles.headerLeftText}>
             <Text style={styles.headerTitle}>EA SERVICE AND CONSULTING</Text>
             <Text style={styles.headerSub}>{(data.modo === "ejecutivo" ? "Reporte Ejecutivo" : "Reporte Interno")} · {pageName}</Text>
-            <Text style={styles.headerSub}>ISO 9001:2015 · §7.5 / §9.1</Text>
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -249,9 +213,13 @@ function PageFooter({ data }: { data: ReporteData }) {
   const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
   return (
     <View style={styles.pageFooter} fixed>
-      <View style={{ flexDirection: "column" }}>
+      <View style={styles.pageFooterLogos}>
+        <Image src={LOGO_PVSTOP()} style={brandStyles.footerLogoPv} />
+        <Image src={LOGO_CHEMITEK()} style={brandStyles.footerLogoCh} />
+      </View>
+      <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
         <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
-        <Text>Retención: 5 años · ISO 9001:2015 §7.5 · Responsable: {responsable}</Text>
+        <Text>Responsable: {responsable}</Text>
       </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
     </View>
@@ -323,7 +291,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
     styles.chartBar.backgroundColor = COL.primary;
     styles.th.backgroundColor = COL.bg;
   }
-  const keywords = [data.cliente, data.planta, data.periodo, "ISO 9001:2015", ejec ? "Ejecutivo" : "Interno"]
+  const keywords = [data.cliente, data.planta, data.periodo, ejec ? "Ejecutivo" : "Interno"]
     .filter(Boolean).join(", ");
   return (
     <Document
@@ -332,7 +300,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       subject={`Reporte ${ejec ? "ejecutivo" : "interno"} · ${data.cliente} · ${data.periodo}`}
       keywords={keywords}
       creator="EA Service Connect"
-      producer="EA Service Connect — Cumplimiento ISO 9001:2015"
+      producer="EA Service Connect"
       creationDate={fechaEmision}
       modificationDate={fechaEmision}
     >
@@ -341,12 +309,8 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <View style={styles.coverBar} />
           <View style={styles.coverSide} />
           <View style={styles.coverInner}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 40, paddingBottom: 14, borderBottomWidth: 0.75, borderBottomColor: COL.border }}>
-              <Image src={LOGO_EA()} style={{ height: 68, objectFit: "contain" }} />
-              <Image src={LOGO_PVSTOP()} style={{ height: 40, objectFit: "contain" }} />
-              <Image src={LOGO_CHEMITEK()} style={{ height: 32, objectFit: "contain" }} />
-            </View>
-            <View style={styles.brand}>
+            <View style={[styles.brand, { alignItems: "center" }]}>
+              <Image src={LOGO_EA()} style={{ height: 60, objectFit: "contain" }} />
               <View style={{ marginLeft: 0 }}>
                 <Text style={[styles.brandText, { marginLeft: 0 }]}>EA SERVICE AND CONSULTING</Text>
                 <Text style={[styles.brandSub, { marginLeft: 0 }]}>Solar Operations · Quality Management</Text>
@@ -370,12 +334,15 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               )}
               <View style={styles.metaRow}><Text style={styles.metaLabel}>ID Doc.</Text><Text style={styles.metaValue}>{(data.documento_id ?? "").slice(0, 8).toUpperCase() || "—"}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Código</Text><Text style={styles.metaValue}>{data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"}</Text></View>
-              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"} · ISO 9001:2015</Text></View>
+              <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"}</Text></View>
             </View>
           </View>
           <View style={styles.coverFooter} fixed>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+              <Image src={LOGO_PVSTOP()} style={{ height: 22, objectFit: "contain" }} />
+              <Image src={LOGO_CHEMITEK()} style={{ height: 16, objectFit: "contain" }} />
+            </View>
             <Text>Confidencial · Uso del Cliente</Text>
-            <Text>SGC ISO 9001:2015</Text>
           </View>
         </Page>
       )}
@@ -648,7 +615,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
 
         {ejec && (
           <Text style={styles.paragraph}>
-            El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles, en conformidad con el Sistema de Gestión de la Calidad bajo ISO 9001:2015 (cláusulas 7.5 Información documentada, 8.5 Producción y prestación del servicio, 9.1 Seguimiento, medición, análisis y evaluación, y 10 Mejora).
+            El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles.
           </Text>
         )}
 
@@ -673,10 +640,6 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View style={{ flexDirection: "row", marginBottom: 3 }}>
               <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
               <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
-            </View>
-            <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Norma</Text>
-              <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>ISO 9001:2015 §7.5 — Información documentada</Text>
             </View>
           </View>
         </View>

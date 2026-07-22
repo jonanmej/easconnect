@@ -274,23 +274,6 @@
     margin-bottom: 10pt;
     color: #1f2937;
   }
-  .print-doc-header__logos {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12pt;
-    padding-bottom: 6pt;
-    margin-bottom: 6pt;
-    border-bottom: 0.5pt solid #e2e8f0;
-  }
-  .print-doc-header__logos img {
-    height: 22pt;
-    width: auto;
-    object-fit: contain;
-  }
-  .print-doc-header__logos img.print-doc-header__logo-ea { height: 30pt; }
-  .print-doc-header__logos img.print-doc-header__logo-pv { height: 24pt; }
-  .print-doc-header__logos img.print-doc-header__logo-ch { height: 18pt; }
   .print-doc-header__row {
     display: flex;
     justify-content: space-between;
@@ -302,9 +285,9 @@
     align-items: center;
     gap: 8pt;
   }
-  .print-doc-header__brand img {
-    width: 28pt;
-    height: 28pt;
+  .print-doc-header__brand img.print-doc-header__logo-ea {
+    height: 34pt;
+    width: auto;
     object-fit: contain;
   }
   .print-doc-header__brand-title {
@@ -351,10 +334,47 @@
     border-top: 0.75pt solid #2E4A87;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 8pt;
     flex-wrap: wrap;
     font-size: 7.5pt;
     color: #64748b;
+  }
+  .print-doc-footer__logos {
+    display: inline-flex;
+    align-items: center;
+    gap: 10pt;
+  }
+  .print-doc-footer__logos img { object-fit: contain; }
+  .print-doc-footer__logos img.print-doc-footer__logo-pv { height: 16pt; }
+  .print-doc-footer__logos img.print-doc-footer__logo-ch { height: 12pt; }
+
+  /* Programación: al imprimir mostramos una tabla-documento, no la grilla visual */
+  .print-hide-visual { display: none !important; }
+  .print-doc-programacion { display: block !important; }
+  .print-doc-programacion table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  .print-doc-programacion thead { display: table-header-group; }
+  .print-doc-programacion th, .print-doc-programacion td {
+    border: 0.5pt solid #cbd5e1;
+    padding: 4pt 6pt;
+    vertical-align: top;
+    text-align: left;
+  }
+  .print-doc-programacion th {
+    background: #2E4A87;
+    color: #fff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    font-size: 8pt;
+  }
+  .print-doc-programacion tr { break-inside: avoid; page-break-inside: avoid; }
+  .print-doc-programacion h3 {
+    font-size: 11pt;
+    color: #2E4A87;
+    margin: 10pt 0 4pt;
+    border-bottom: 0.5pt solid #cbd5e1;
+    padding-bottom: 3pt;
   }
 
   /* Tarjetas de OT nunca se cortan */
@@ -396,3 +416,4 @@
 
 /* Fuera de impresión, ocultar helpers marcados como print-only */
 .print-only { display: none; }
+.print-doc-programacion { display: none; }

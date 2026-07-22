@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo, listPlantas } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas } from "@/lib/operations.functions";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
@@ -92,6 +92,7 @@ function Programacion() {
   const isCliente = role === "cliente";
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
+  const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
@@ -147,11 +148,14 @@ function Programacion() {
     // que el contenido no se corte en A4.
     const isA4Portrait = printPaper === "A4" && printOrient === "portrait";
     const isA4Land = printPaper === "A4" && printOrient === "landscape";
-    const scale = isA4Portrait ? 0.72 : isA4Land ? 0.85 : 1;
+    void isA4Portrait; void isA4Land;
+    // Márgenes normales: dejamos que el navegador coloque el documento a
+    // tamaño real. La vista de grilla se oculta en @media print y en su
+    // lugar se imprime .print-doc-programacion (tabla profesional).
     style.textContent = `@media print {
-      @page { size: ${printPaper} ${printOrient}; margin: 0; }
+      @page { size: ${printPaper} ${printOrient}; margin: 14mm 12mm 16mm 12mm; }
       html, body { margin: 0 !important; padding: 0 !important; }
-      .print-area { padding: 8mm 10mm !important; transform: scale(${scale}); transform-origin: top left; width: ${(100 / scale).toFixed(2)}% !important; }
+      .print-area { padding: 0 !important; }
     }`;
     document.head.appendChild(style);
     const done = () => {
@@ -202,6 +206,36 @@ function Programacion() {
     mutationFn: (vars: { id: string; fecha_programada: string }) => fetchMove({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo reprogramado");
+      qc.invalidateQueries({ queryKey: ["trabajos"] });
+    },
+    onError: (e: Error, vars) => {
+      const msg = e.message ?? "";
+      const esConflictoTecnico = msg.startsWith("CONFLICTO_TECNICO::");
+      toast.error(
+        esConflictoTecnico
+          ? "El técnico ya está asignado a otro trabajo en esa fecha."
+          : msg,
+        esConflictoTecnico
+          ? {
+              action: {
+                label: "Reubicar automáticamente",
+                onClick: () => reubicar.mutate({ id: vars.id, desde: vars.fecha_programada }),
+              },
+              duration: 10000,
+            }
+          : undefined,
+      );
+    },
+  });
+
+  const reubicar = useMutation({
+    mutationFn: (vars: { id: string; desde: string; tecnico_id?: string | null }) =>
+      fetchReubicar({ data: vars }),
+    onSuccess: (row: any) => {
+      const f = row?.fecha_programada
+        ? new Date(row.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "long", year: "numeric" })
+        : "una fecha disponible";
+      toast.success(`Trabajo reubicado al ${f}.`);
       qc.invalidateQueries({ queryKey: ["trabajos"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -255,7 +289,6 @@ function Programacion() {
         codigo="EA-PRG"
         version="1.0"
         clasificacion="Uso interno"
-        clausulaIso="§8.1 / §8.5"
         filtros={[
           printCliente ? { label: "Cliente", value: clientesUnicos.find((c) => c.id === printCliente)?.nombre ?? "—" } : null,
           printServicio ? { label: "Servicio", value: printServicio } : null,
@@ -263,6 +296,7 @@ function Programacion() {
           { label: "Papel", value: `${printPaper} ${printOrient === "landscape" ? "Horizontal" : "Vertical"}` },
         ].filter(Boolean) as { label: string; value: string }[]}
       />
+      <ProgramacionPrintDoc trabajos={trabajosFiltrados} headerTitle={headerTitle} />
       <PageHeader
         title="Programación"
         description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
@@ -352,7 +386,7 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
-      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid">
+      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
         <div className="grid grid-cols-5 border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {days.map((d) => (
             <div key={d.toISOString()} className={"p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
@@ -404,11 +438,13 @@ function Programacion() {
       )}
 
       {vista === "mes" && (
-        <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDragId={setDragId} onDrop={onDrop} />
+        <div className="print-hide-visual">
+          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDragId={setDragId} onDrop={onDrop} />
+        </div>
       )}
 
       {vista === "anio" && (
-        <>
+        <div className="print-hide-visual">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <label className="text-xs text-muted-foreground">Filtrar por cliente:</label>
             <select
@@ -427,10 +463,10 @@ function Programacion() {
             </span>
           </div>
           <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
-        </>
+        </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground no-print">
         <span>
           {vista === "semana"
             ? `${totalSemana} trabajos esta semana`
@@ -612,6 +648,77 @@ function MiniMonth({ year, month, byDay, onClick }: {
 }
 
 // =============== Vista Cliente ===============
+
+// =============== Documento imprimible ===============
+// Renderiza los trabajos filtrados como tabla agrupada por fecha. Se muestra
+// solo en @media print gracias a la clase `print-doc-programacion` (oculta
+// en pantalla). Reemplaza la impresión "screenshot" de la grilla visual.
+function ProgramacionPrintDoc({ trabajos, headerTitle }: { trabajos: any[]; headerTitle: string }) {
+  const grupos = useMemo(() => {
+    const map = new Map<string, any[]>();
+    trabajos.forEach((t) => {
+      const d = new Date(t.fecha_programada);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    });
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([fecha, items]) => ({
+        fecha,
+        items: items.sort((a, b) => +new Date(a.fecha_programada) - +new Date(b.fecha_programada)),
+      }));
+  }, [trabajos]);
+
+  const fmtFecha = (iso: string) =>
+    new Date(iso + "T12:00:00").toLocaleDateString("es-SV", {
+      timeZone: "America/El_Salvador",
+      weekday: "long", day: "2-digit", month: "long", year: "numeric",
+    });
+
+  return (
+    <section className="print-doc-programacion" aria-hidden="true">
+      <p style={{ fontSize: "10pt", color: "#334155", margin: "0 0 8pt" }}>
+        <b>{headerTitle}</b> · {trabajos.length} trabajo{trabajos.length === 1 ? "" : "s"}
+      </p>
+      {grupos.length === 0 && (
+        <p style={{ fontSize: "9pt", color: "#64748b" }}>Sin trabajos programados en el rango.</p>
+      )}
+      {grupos.map((g) => (
+        <div key={g.fecha}>
+          <h3 style={{ textTransform: "capitalize" }}>{fmtFecha(g.fecha)}</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: "12%" }}>Hora</th>
+                <th style={{ width: "14%" }}>OT</th>
+                <th style={{ width: "22%" }}>Cliente</th>
+                <th style={{ width: "22%" }}>Planta</th>
+                <th style={{ width: "20%" }}>Servicio</th>
+                <th style={{ width: "10%" }}>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {g.items.map((t: any) => (
+                <tr key={t.id + "-" + (t.__diaIdx ?? 0)}>
+                  <td>{new Date(t.fecha_programada).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" })}</td>
+                  <td>{t.folio}</td>
+                  <td>{t.cliente_nombre ?? "—"}</td>
+                  <td>{t.planta_nombre ?? "—"}</td>
+                  <td>
+                    {t.servicio}
+                    {(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
+                  </td>
+                  <td style={{ textTransform: "capitalize" }}>{String(t.estado ?? "").replace("_", " ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 function startOfMonth(d: Date) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
 function fmtMonth(d: Date) { return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" }); }
