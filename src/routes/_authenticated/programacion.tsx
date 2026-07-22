@@ -649,6 +649,77 @@ function MiniMonth({ year, month, byDay, onClick }: {
 
 // =============== Vista Cliente ===============
 
+// =============== Documento imprimible ===============
+// Renderiza los trabajos filtrados como tabla agrupada por fecha. Se muestra
+// solo en @media print gracias a la clase `print-doc-programacion` (oculta
+// en pantalla). Reemplaza la impresión "screenshot" de la grilla visual.
+function ProgramacionPrintDoc({ trabajos, headerTitle }: { trabajos: any[]; headerTitle: string }) {
+  const grupos = useMemo(() => {
+    const map = new Map<string, any[]>();
+    trabajos.forEach((t) => {
+      const d = new Date(t.fecha_programada);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    });
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([fecha, items]) => ({
+        fecha,
+        items: items.sort((a, b) => +new Date(a.fecha_programada) - +new Date(b.fecha_programada)),
+      }));
+  }, [trabajos]);
+
+  const fmtFecha = (iso: string) =>
+    new Date(iso + "T12:00:00").toLocaleDateString("es-SV", {
+      timeZone: "America/El_Salvador",
+      weekday: "long", day: "2-digit", month: "long", year: "numeric",
+    });
+
+  return (
+    <section className="print-doc-programacion" aria-hidden="true">
+      <p style={{ fontSize: "10pt", color: "#334155", margin: "0 0 8pt" }}>
+        <b>{headerTitle}</b> · {trabajos.length} trabajo{trabajos.length === 1 ? "" : "s"}
+      </p>
+      {grupos.length === 0 && (
+        <p style={{ fontSize: "9pt", color: "#64748b" }}>Sin trabajos programados en el rango.</p>
+      )}
+      {grupos.map((g) => (
+        <div key={g.fecha}>
+          <h3 style={{ textTransform: "capitalize" }}>{fmtFecha(g.fecha)}</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: "12%" }}>Hora</th>
+                <th style={{ width: "14%" }}>OT</th>
+                <th style={{ width: "22%" }}>Cliente</th>
+                <th style={{ width: "22%" }}>Planta</th>
+                <th style={{ width: "20%" }}>Servicio</th>
+                <th style={{ width: "10%" }}>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {g.items.map((t: any) => (
+                <tr key={t.id + "-" + (t.__diaIdx ?? 0)}>
+                  <td>{new Date(t.fecha_programada).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" })}</td>
+                  <td>{t.folio}</td>
+                  <td>{t.cliente_nombre ?? "—"}</td>
+                  <td>{t.planta_nombre ?? "—"}</td>
+                  <td>
+                    {t.servicio}
+                    {(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
+                  </td>
+                  <td style={{ textTransform: "capitalize" }}>{String(t.estado ?? "").replace("_", " ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function startOfMonth(d: Date) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
 function fmtMonth(d: Date) { return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" }); }
 function toISODateLocal(d: Date) {
