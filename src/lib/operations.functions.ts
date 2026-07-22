@@ -788,6 +788,77 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
     return row;
   });
 
+// ---------------------------------------------------------------------------
+// Reubicación automática: busca la siguiente jornada laborable disponible
+// para el técnico asignado (o el que se pase por parámetro) y mueve la OT
+// a esa fecha. Se usa cuando el usuario recibe un conflicto de agenda al
+// arrastrar/reprogramar un trabajo y quiere continuar la programación sin
+// interrupciones.
+// ---------------------------------------------------------------------------
+export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      desde: z.string().min(1),
+      tecnico_id: z.string().uuid().nullable().optional(),
+      max_dias: z.number().int().positive().max(120).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { data: trabajo } = await context.supabase
+      .from("trabajos")
+      .select("tecnico_id, duracion_dias, planta_id, servicio")
+      .eq("id", data.id).single();
+    const tecnicoFinal = data.tecnico_id !== undefined
+      ? (data.tecnico_id || null)
+      : ((trabajo as any)?.tecnico_id ?? null);
+    const dur = Math.max(1, Number((trabajo as any)?.duracion_dias ?? 1));
+    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
+    await ensureFeriadosCargados(context.supabase, data.desde);
+    const cursor = new Date(data.desde);
+    cursor.setUTCHours(13, 0, 0, 0); // ~07:00 SV
+    const limite = data.max_dias ?? 60;
+    for (let i = 0; i < limite; i++) {
+      const fechaISO = cursor.toISOString();
+      if (!motivoNoLaborableSV(fechaISO)) {
+        // 1) Conflictos por cliente/servicio (limpieza mismo día, otro cliente)
+        const cf = await findCleaningClientConflicts(context.supabase, {
+          plantaId: (trabajo as any)?.planta_id,
+          servicio: (trabajo as any)?.servicio,
+          fechaProgramada: fechaISO,
+          duracionDias: dur,
+          excluirTrabajoId: data.id,
+        });
+        // 2) Conflictos por técnico
+        let sinTecnicoConflict = true;
+        if (tecnicoFinal) {
+          const { data: cts } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+            _tecnico_id: tecnicoFinal,
+            _fecha: fechaISO,
+            _duracion_dias: dur,
+            _excluir_trabajo_id: data.id,
+          });
+          sinTecnicoConflict = (cts ?? []).length === 0;
+        }
+        if (cf.length === 0 && sinTecnicoConflict) {
+          const patch: any = { fecha_programada: fechaISO };
+          if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
+          const { data: row, error } = await context.supabase
+            .from("trabajos").update(patch).eq("id", data.id).select().single();
+          if (error) throw new Error(error.message);
+          try {
+            const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+            await notificarEventoTrabajo({ evento: "reprogramado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
+          } catch { /* silenciar */ }
+          return row;
+        }
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    throw new Error("No se encontró un día laborable disponible en los próximos " + limite + " días.");
+  });
+
 // ============ Dashboard KPIs ============
 
 // ============ Técnicos extra por trabajo ============
