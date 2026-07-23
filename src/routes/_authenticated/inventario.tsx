@@ -309,7 +309,7 @@ function Inventario() {
           </thead>
           <tbody className="divide-y divide-border">
             {(agrupar ? [] : paginated).map((i) => {
-              const low = Number(i.stock_actual) < Number(i.stock_minimo);
+              const low = isLow(i);
               return (
                 <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
                   <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
@@ -348,7 +348,7 @@ function Inventario() {
             })}
             {agrupar && grupos.map(({ cat, rows }) => {
               const isCollapsed = !!collapsed[cat];
-              const bajos = rows.filter((r) => Number(r.stock_actual) < Number(r.stock_minimo)).length;
+              const bajos = rows.filter(isLow).length;
               return (
                 <>
                   <tr key={`grp-${cat}`} className="bg-secondary/60">
@@ -367,7 +367,7 @@ function Inventario() {
                     </td>
                   </tr>
                   {!isCollapsed && rows.map((i) => {
-                    const low = Number(i.stock_actual) < Number(i.stock_minimo);
+                    const low = isLow(i);
                     return (
                       <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
                         <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
