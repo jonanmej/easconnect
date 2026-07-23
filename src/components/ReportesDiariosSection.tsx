@@ -257,7 +257,7 @@ export function ReportesDiariosSection({
           trabajoId={trabajoId}
           pdfs={pdfsArr}
           loading={pdfs.isLoading}
-          canUpload={!readOnly && (isStSolar || isStaff)}
+          canUpload={!readOnly}
           onUploaded={() => qc.invalidateQueries({ queryKey: ["diarios-pdf", trabajoId] })}
           onDelete={(id) => delPdf.mutate(id)}
           registrar={fRegPdf}
