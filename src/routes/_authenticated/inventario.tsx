@@ -79,7 +79,7 @@ function Inventario() {
     const ql = q.trim().toLowerCase();
     let rows = items.filter((i) => {
       if (catFilter !== "todas" && i.categoria !== catFilter) return false;
-      const low = Number(i.stock_actual) < Number(i.stock_minimo);
+      const low = isLow(i);
       if (estadoFilter === "bajo" && !low) return false;
       if (estadoFilter === "ok" && low) return false;
       if (!ql) return true;
@@ -94,8 +94,8 @@ function Inventario() {
       if (sortBy === "sku") return (a.sku ?? "").localeCompare(b.sku ?? "");
       if (sortBy === "stock_asc") return Number(a.stock_actual) - Number(b.stock_actual);
       // critico: bajo stock primero, luego nombre
-      const la = Number(a.stock_actual) < Number(a.stock_minimo) ? 0 : 1;
-      const lb = Number(b.stock_actual) < Number(b.stock_minimo) ? 0 : 1;
+      const la = isLow(a) ? 0 : 1;
+      const lb = isLow(b) ? 0 : 1;
       if (la !== lb) return la - lb;
       return a.nombre.localeCompare(b.nombre);
     });
