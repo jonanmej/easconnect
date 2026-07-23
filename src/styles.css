@@ -169,6 +169,45 @@
     overscroll-behavior-y: none;
   }
 
+  /* En móvil, evita que iOS haga zoom al enfocar inputs (necesita >=16px). */
+  input, select, textarea {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input, select, textarea {
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Tap targets y prevención de doble-tap zoom en controles interactivos. */
+  button, [role="button"], a, input[type="checkbox"], input[type="radio"], summary {
+    touch-action: manipulation;
+  }
+
+  /* Envolver texto largo (URLs, IDs, correos) para que no rompa el layout. */
+  p, span, div, td, th, li, dd, dt, a, label {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  /* Excepciones donde queremos preservar espacios y no romper. */
+  pre, code, kbd, samp, [data-nowrap], .font-mono {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  /* Imágenes y media responsivas por defecto. */
+  img, svg, video, canvas, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Contenedores con scroll horizontal que preservan snap para tabs/pills. */
+  [data-scroll-x] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
   html {
     /* Fluidez de scroll programático (anchors) sin bloquear scroll manual. */
     scroll-behavior: smooth;
@@ -217,6 +256,29 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+}
+
+/* ============ Safe-area (notch iOS / gesture bar Android) ============ */
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ============ Utilidades responsive compartidas ============ */
+@utility touch-manip {
+  touch-action: manipulation;
+}
+
+/* Oculta el scrollbar visualmente pero conserva el scroll. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 @keyframes solaros-slideUp {
