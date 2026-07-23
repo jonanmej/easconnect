@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Link } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 function absUrl(path: string) {
@@ -172,10 +172,13 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
                   <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: FONT_BOLD }]}>
                     {p.cotizacion_monto != null ? `$ ${Number(p.cotizacion_monto).toFixed(2)}` : "—"}
                   </Text>
-                  <Text style={[s.td, { flex: 2, color: p.cotizacion_url ? COL.primary : COL.muted }]}
-                    src={p.cotizacion_url ?? undefined}>
-                    {p.cotizacion_url ? "Ver cotización adjunta" : "Sin adjunto"}
-                  </Text>
+                  {p.cotizacion_url ? (
+                    <Link style={[s.td, { flex: 2, color: COL.primary }]} src={p.cotizacion_url}>
+                      Ver cotización adjunta
+                    </Link>
+                  ) : (
+                    <Text style={[s.td, { flex: 2, color: COL.muted }]}>Sin adjunto</Text>
+                  )}
                 </View>
               ))}
             </View>
