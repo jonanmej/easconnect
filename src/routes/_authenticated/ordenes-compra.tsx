@@ -881,6 +881,7 @@ function RecepcionForm({
                     ))}
                   </tbody>
                 </table>
+                </div>
                 {(r.orden_compra_recepcion_items ?? []).some((ri: any) => ri.variacion_motivo) && (
                   <div className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
                     {(r.orden_compra_recepcion_items ?? [])
