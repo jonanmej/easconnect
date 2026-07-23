@@ -11,11 +11,12 @@ import {
   deleteInventarioItem,
   registrarMovimiento,
 } from "@/lib/inventario.functions";
-import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp } from "lucide-react";
+import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, FileDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel } from "@/lib/excel";
+import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
@@ -58,6 +59,70 @@ function Inventario() {
 
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
   const [movFor, setMovFor] = useState<Item | null>(null);
+  const [ordenOpen, setOrdenOpen] = useState(false);
+  const [ordenBusy, setOrdenBusy] = useState(false);
+  const [ordenCantidades, setOrdenCantidades] = useState<Record<string, number>>({});
+  const [ordenProveedor, setOrdenProveedor] = useState("");
+  const [ordenNotas, setOrdenNotas] = useState("");
+  const { user } = useAuth();
+
+  const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
+
+  function abrirOrden() {
+    if (lowStockItems.length === 0) {
+      toast.info("No hay ítems bajo el stock mínimo.");
+      return;
+    }
+    const iniciales: Record<string, number> = {};
+    lowStockItems.forEach((i) => {
+      iniciales[i.id] = Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual)));
+    });
+    setOrdenCantidades(iniciales);
+    setOrdenProveedor("");
+    setOrdenNotas("");
+    setOrdenOpen(true);
+  }
+
+  async function generarOrden() {
+    const seleccion = lowStockItems
+      .map((i) => ({ i, cantidad: Number(ordenCantidades[i.id] ?? 0) }))
+      .filter((x) => x.cantidad > 0);
+    if (seleccion.length === 0) {
+      toast.error("Ingresa cantidades a pedir para al menos un ítem.");
+      return;
+    }
+    setOrdenBusy(true);
+    try {
+      const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+      const folio = `OC-${Date.now().toString().slice(-8)}`;
+      await generarYDescargarOrdenCompraPdf(
+        {
+          folio,
+          fecha,
+          solicitante: user?.email ?? "Bodega",
+          proveedor: ordenProveedor || null,
+          notas: ordenNotas || null,
+          items: seleccion.map(({ i, cantidad }) => ({
+            sku: i.sku,
+            nombre: i.nombre,
+            categoria: catLabel[i.categoria],
+            unidad: i.unidad,
+            stock_actual: Number(i.stock_actual),
+            stock_minimo: Number(i.stock_minimo),
+            cantidad_pedida: cantidad,
+            ubicacion: i.ubicacion,
+          })),
+        },
+        `OrdenCompra-${folio}-${fecha}.pdf`,
+      );
+      toast.success("Orden de compra generada");
+      setOrdenOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar la orden");
+    } finally {
+      setOrdenBusy(false);
+    }
+  }
 
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: v }),
@@ -128,6 +193,18 @@ function Inventario() {
                 }],
               });
             }} />
+            <button
+              onClick={abrirOrden}
+              className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground rounded-md border border-border hover:bg-secondary/70"
+              title="Generar orden de compra con los ítems bajo el mínimo"
+            >
+              <FileDown className="size-3.5" /> Orden de compra
+              {lowStockItems.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[10px] font-bold">
+                  {lowStockItems.length}
+                </span>
+              )}
+            </button>
             {canEdit && (
               <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
                 className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
@@ -278,6 +355,74 @@ function Inventario() {
         </div>
         <Field label="Motivo"><input name="motivo" className={inputCls} placeholder="Compra OC-1024, consumo trabajo T-2026-..." /></Field>
       </RecordDialog>
+
+      {ordenOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm grid place-items-center p-4" onClick={() => !ordenBusy && setOrdenOpen(false)}>
+          <div className="bg-card border border-border rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="text-sm font-semibold">Generar orden de compra</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lowStockItems.length} SKU bajo el stock mínimo. Ajusta las cantidades a solicitar.
+              </p>
+            </div>
+            <div className="p-5 overflow-y-auto space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-xs">
+                  <span className="block text-muted-foreground mb-1">Proveedor sugerido</span>
+                  <input value={ordenProveedor} onChange={(e) => setOrdenProveedor(e.target.value)} className={inputCls} placeholder="Nombre del proveedor" />
+                </label>
+                <label className="text-xs">
+                  <span className="block text-muted-foreground mb-1">Notas / referencia</span>
+                  <input value={ordenNotas} onChange={(e) => setOrdenNotas(e.target.value)} className={inputCls} placeholder="Referencia interna, urgencia, etc." />
+                </label>
+              </div>
+              <div className="border border-border rounded-md overflow-x-auto">
+                <table className="w-full text-xs min-w-[600px]">
+                  <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-3 py-2 text-left">SKU</th>
+                      <th className="px-3 py-2 text-left">Item</th>
+                      <th className="px-3 py-2 text-right">Stock</th>
+                      <th className="px-3 py-2 text-right">Mínimo</th>
+                      <th className="px-3 py-2 text-right">A pedir</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {lowStockItems.map((i) => (
+                      <tr key={i.id}>
+                        <td className="px-3 py-2 font-mono">{i.sku}</td>
+                        <td className="px-3 py-2">{i.nombre}</td>
+                        <td className="px-3 py-2 text-right font-mono text-destructive">{i.stock_actual}</td>
+                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">{i.stock_minimo}</td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number" min={0} step="0.01"
+                            value={ordenCantidades[i.id] ?? 0}
+                            onChange={(e) => setOrdenCantidades((prev) => ({ ...prev, [i.id]: Number(e.target.value) }))}
+                            className="h-8 w-24 px-2 text-right rounded-md border border-input bg-background font-mono"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
+              <button
+                onClick={() => setOrdenOpen(false)}
+                disabled={ordenBusy}
+                className="h-9 px-4 text-xs rounded-md border border-border hover:bg-secondary"
+              >Cancelar</button>
+              <button
+                onClick={generarOrden}
+                disabled={ordenBusy}
+                className="h-9 px-4 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-60"
+              >{ordenBusy ? "Generando…" : "Descargar PDF"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

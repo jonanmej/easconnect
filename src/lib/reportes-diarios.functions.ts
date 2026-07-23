@@ -182,17 +182,10 @@ export const getPdfExternoParaFormato = createServerFn({ method: "POST" })
       .download(r.storage_path);
     if (dErr || !file) throw new Error(dErr?.message ?? "No se pudo leer el PDF");
     const buf = new Uint8Array(await file.arrayBuffer());
-    let texto = "";
-    try {
-      const { extractText, getDocumentProxy } = await import("unpdf");
-      const pdf = await getDocumentProxy(buf);
-      const { text } = await extractText(pdf, { mergePages: true });
-      texto = Array.isArray(text) ? text.join("\n\n") : String(text ?? "");
-      texto = texto.replace(/\u0000/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-    } catch (e: any) {
-      throw new Error("No se pudo extraer el texto del PDF: " + (e?.message ?? "error"));
-    }
-    if (!texto) throw new Error("El PDF no contiene texto extraíble (posible escaneo). No se puede reformatear.");
+    // Codifica a base64 sin usar Buffer para evitar depender de node en el worker.
+    let bin = "";
+    for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
+    const base64 = btoa(bin);
     return {
       id: r.id,
       fecha: r.fecha,
@@ -202,6 +195,6 @@ export const getPdfExternoParaFormato = createServerFn({ method: "POST" })
       servicio: t?.servicio ?? null,
       planta: t?.plantas?.nombre ?? null,
       cliente: t?.plantas?.clientes?.nombre ?? null,
-      texto,
+      pdf_base64: base64,
     };
   });

@@ -18,7 +18,7 @@ import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
-import { generarYDescargarPdfExterno } from "@/lib/pdf/descargar";
+import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envolverExterno";
 
 const BUCKET = "trabajos-evidencia";
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
@@ -571,21 +571,16 @@ function PDFSection({
     try {
       const info: any = await descargarFormatoEA({ data: { id } });
       const filename = `Reporte-EA-${(info.servicio ?? "externo").replace(/[^a-z0-9]+/gi, "-")}-${info.fecha}.pdf`;
-      await generarYDescargarPdfExterno(
-        {
-          titulo: info.nombre_original ?? "Reporte externo",
-          cliente: info.cliente,
-          planta: info.planta,
-          folio: info.folio,
-          servicio: info.servicio,
-          fecha: info.fecha,
-          nombre_original: info.nombre_original ?? "reporte.pdf",
-          notas: info.notas,
-          texto: info.texto,
-        },
-        filename,
-      );
-      toast.success("PDF reformateado con encabezado EA");
+      const blob = await envolverPdfExternoConEncabezadoEA(info.pdf_base64, {
+        cliente: info.cliente,
+        planta: info.planta,
+        folio: info.folio,
+        servicio: info.servicio,
+        fecha: info.fecha,
+        nombre_original: info.nombre_original ?? "reporte.pdf",
+      });
+      await descargarBlob(blob, filename);
+      toast.success("PDF reformateado con encabezado EA (contenido original preservado)");
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo reformatear el PDF");
     } finally {

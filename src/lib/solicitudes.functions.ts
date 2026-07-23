@@ -108,32 +108,37 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    // Traemos trabajos cuya fecha_programada esté en una ventana extendida (hasta 30 días antes de "desde")
     const desdeExt = addDaysStr(data.desde, -30);
     const hastaPlus = addDaysStr(data.hasta, 1);
-    const { data: trabajos, error } = await context.supabase
-      .from("trabajos")
-      .select("id, fecha_programada, duracion_dias, estado, folio, servicio, planta_id, plantas(nombre)")
-      .gte("fecha_programada", desdeExt + "T00:00:00Z")
-      .lt("fecha_programada", hastaPlus + "T00:00:00Z")
-      .neq("estado", "cancelado");
-    if (error) throw new Error(error.message);
 
     // Determinar si el usuario es cliente para saber si "propio" aplica.
     const { data: prof } = await context.supabase
       .from("profiles").select("cliente_id").eq("id", context.userId).maybeSingle();
     const clienteId = (prof as any)?.cliente_id ?? null;
 
-    // Marca cada día ocupado si algún trabajo cubre [start, start+duracion).
-    // Además, agrupa las asignaciones propias del cliente por día (nombre de planta).
+    // Para que el calendario del cliente refleje TODA la ocupación (no solo
+    // sus propios trabajos) usamos el cliente admin: los clientes solo verán
+    // que el día está reservado, sin datos de otros clientes.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const dataClient = clienteId ? supabaseAdmin : context.supabase;
+    const { data: trabajos, error } = await dataClient
+      .from("trabajos")
+      .select("id, fecha_programada, duracion_dias, estado, folio, servicio, planta_id, plantas(nombre, cliente_id)")
+      .gte("fecha_programada", desdeExt + "T00:00:00Z")
+      .lt("fecha_programada", hastaPlus + "T00:00:00Z")
+      .neq("estado", "cancelado");
+    if (error) throw new Error(error.message);
+
     const ocupados = new Set<string>();
     const asignacionesPorDia = new Map<string, Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean }>>();
     (trabajos ?? []).forEach((t: any) => {
       const start = new Date(t.fecha_programada);
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      const plantaNombre = t.plantas?.nombre ?? "—";
-      // Nota: RLS ya limita al cliente sus propios trabajos; para staff mostramos todos.
-      const propio = true;
+      const trabajoClienteId = t.plantas?.cliente_id ?? null;
+      const propio = clienteId ? trabajoClienteId === clienteId : true;
+      const plantaNombre = propio ? (t.plantas?.nombre ?? "—") : "Reservado";
+      const folio = propio ? (t.folio ?? "") : "";
+      const servicio = propio ? (t.servicio ?? "") : "";
       for (let i = 0; i < dur; i++) {
         const day = new Date(start);
         day.setUTCHours(0, 0, 0, 0);
@@ -141,12 +146,7 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
         const key = toISODate(day);
         ocupados.add(key);
         if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
-        asignacionesPorDia.get(key)!.push({
-          planta_nombre: plantaNombre,
-          folio: t.folio ?? "",
-          servicio: t.servicio ?? "",
-          propio,
-        });
+        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio, propio });
       }
     });
 
@@ -160,8 +160,6 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
       });
       cur = addDaysStr(cur, 1);
     }
-    // Silenciar warning de no-uso cuando el usuario no es cliente.
-    void clienteId;
     return result;
   });
 
