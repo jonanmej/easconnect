@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo } from "@/lib/operations.functions";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
@@ -93,9 +93,18 @@ function Programacion() {
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
+  const fetchMoverDia = useServerFn(moverDiaTrabajo);
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
-  const [dragId, setDragId] = useState<string | null>(null);
+  // Ahora arrastramos UN DÍA específico (no toda la OT). El drag lleva la
+  // fecha real que se está moviendo y la fecha original (para escribir la
+  // excepción sin depender del día base calculado en cliente).
+  const [drag, setDrag] = useState<
+    | null
+    | { id: string; fechaOriginal: string; duracion: number }
+  >(null);
+  const dragId = drag?.id ?? null;
+  const setDragId = (id: string | null) => { if (id === null) setDrag(null); };
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
   // reflejen lo configurado en administración. Consumimos `map` para forzar
@@ -191,10 +200,24 @@ function Programacion() {
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
       // Marcar el trabajo en cada día laborable (L-V) que abarque su duración.
       const dias = addWorkdays(dt, dur);
-      dias.forEach((d, i) => {
-        const key = d.toDateString();
+      const excepciones: Array<{ fecha_original: string; fecha_movida: string }> =
+        (t.excepciones_dia as any[]) ?? [];
+      const excByOriginal = new Map(excepciones.map((e) => [e.fecha_original, e.fecha_movida]));
+      dias.forEach((baseD, i) => {
+        const fechaOriginal = toISODateLocal(baseD);
+        const movida = excByOriginal.get(fechaOriginal);
+        const efectiva = movida
+          ? new Date(`${movida}T${String(baseD.getHours()).padStart(2, "0")}:${String(baseD.getMinutes()).padStart(2, "0")}:00`)
+          : baseD;
+        const key = efectiva.toDateString();
         if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push({ ...t, __diaIdx: i, __duracion: dur });
+        map.get(key)!.push({
+          ...t,
+          __diaIdx: i,
+          __duracion: dur,
+          __fechaOriginal: fechaOriginal,
+          __movido: !!movida,
+        });
       });
     });
     return map;
