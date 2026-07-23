@@ -387,7 +387,49 @@ function Inventario() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs">
                   <span className="block text-muted-foreground mb-1">Proveedor sugerido</span>
-                  <input value={ordenProveedor} onChange={(e) => setOrdenProveedor(e.target.value)} className={inputCls} placeholder="Nombre del proveedor" />
+                  <div className="flex gap-2">
+                    <input
+                      value={ordenProveedorInput}
+                      onChange={(e) => setOrdenProveedorInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          agregarProveedor();
+                        }
+                      }}
+                      className={inputCls}
+                      placeholder="Nombre del proveedor (Enter para agregar)"
+                    />
+                    <button
+                      type="button"
+                      onClick={agregarProveedor}
+                      className="px-3 py-2 text-xs rounded-md border border-border hover:bg-secondary shrink-0"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  {ordenProveedores.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {ordenProveedores.map((p) => (
+                        <span
+                          key={p}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary border border-border text-[11px]"
+                        >
+                          {p}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOrdenProveedores((prev) => prev.filter((x) => x !== p))
+                            }
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label={`Quitar ${p}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </label>
                 <label className="text-xs">
                   <span className="block text-muted-foreground mb-1">Notas / referencia</span>
