@@ -136,7 +136,7 @@ export function CumplimientoDoc({ data }: { data: CumplimientoData }) {
   const pct = Math.max(0, Math.min(100, data.cumplimiento_pct));
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={s.page}>
+      <Page size="A4" orientation="portrait" style={s.page}>
         <PageHeader data={data} />
         <Text style={s.title}>Cumplimiento de servicios contratados</Text>
         <Text style={s.subtitle}>{data.cliente} · Ejercicio {data.anio}</Text>
@@ -167,23 +167,23 @@ export function CumplimientoDoc({ data }: { data: CumplimientoData }) {
 
         <View style={s.table}>
           <View style={s.tr}>
-            <Text style={[s.th, { flex: 2.8 }]}>Planta</Text>
-            <Text style={[s.th, { flex: 2 }]}>Servicio</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Contrat.</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Complet.</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Program.</Text>
-            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>%</Text>
-            <Text style={[s.th, { flex: 1.7 }]}>Próxima</Text>
+            <Text style={[s.th, { flex: 2.2 }]}>Planta</Text>
+            <Text style={[s.th, { flex: 1.6 }]}>Servicio</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Contratados</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Completados</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Programados</Text>
+            <Text style={[s.th, { flex: 0.7, textAlign: "right" }]}>%</Text>
+            <Text style={[s.th, { flex: 1.4 }]}>Próxima</Text>
           </View>
           {data.filas.map((f, i) => (
             <View key={f.contrato_id} style={[s.tr, i === data.filas.length - 1 ? { borderBottomWidth: 0 } : {}]}>
-              <Text style={[s.td, { flex: 2.8 }]}>{f.planta_nombre}</Text>
-              <Text style={[s.td, { flex: 2 }]}>{f.servicio}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier" }]}>{f.cantidad_anual}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier", color: COL.ok }]}>{f.completados}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier" }]}>{f.programados}</Text>
-              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: FONT_BOLD, color: toneColor(Number(f.cumplimiento_pct)) }]}>{Number(f.cumplimiento_pct)}%</Text>
-              <Text style={[s.td, { flex: 1.7 }]}>{f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</Text>
+              <Text style={[s.td, { flex: 2.2 }]}>{f.planta_nombre}</Text>
+              <Text style={[s.td, { flex: 1.6 }]}>{f.servicio}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>{f.cantidad_anual}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier", color: COL.ok }]}>{f.completados}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>{f.programados}</Text>
+              <Text style={[s.td, { flex: 0.7, textAlign: "right", fontFamily: FONT_BOLD, color: toneColor(Number(f.cumplimiento_pct)) }]}>{Number(f.cumplimiento_pct)}%</Text>
+              <Text style={[s.td, { flex: 1.4 }]}>{f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</Text>
             </View>
           ))}
           {data.filas.length === 0 && (
