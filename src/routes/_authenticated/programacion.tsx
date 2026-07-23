@@ -294,8 +294,42 @@ function Programacion() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Mutación para mover un solo día de una OT multi-día. Actualiza el caché
+  // de forma optimista añadiendo/actualizando la excepción del trabajo.
+  const moverDia = useMutation({
+    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string }) =>
+      fetchMoverDia({ data: vars }),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["trabajos"] });
+      const prev = qc.getQueryData<any[]>(["trabajos"]);
+      qc.setQueryData<any[]>(["trabajos"], (curr) =>
+        (curr ?? []).map((t) => {
+          if (t.id !== vars.trabajo_id) return t;
+          const excs: Array<{ fecha_original: string; fecha_movida: string }> = [...(t.excepciones_dia ?? [])];
+          const idx = excs.findIndex((e) => e.fecha_original === vars.fecha_original);
+          if (vars.fecha_original === vars.fecha_destino) {
+            if (idx >= 0) excs.splice(idx, 1);
+          } else if (idx >= 0) {
+            excs[idx] = { ...excs[idx], fecha_movida: vars.fecha_destino };
+          } else {
+            excs.push({ fecha_original: vars.fecha_original, fecha_movida: vars.fecha_destino });
+          }
+          return { ...t, excepciones_dia: excs };
+        }),
+      );
+      return { prev };
+    },
+    onSuccess: () => {
+      toast.success("Día movido");
+    },
+    onError: (e: Error, _vars, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["trabajos"], ctx.prev);
+      toast.error(e.message);
+    },
+  });
+
   function onDrop(targetDay: Date) {
-    if (!dragId) return;
+    if (!drag) return;
     if (!isWorkday(targetDay)) {
       const motivo = motivoNoLaborableSV(targetDay);
       toast.error(
@@ -303,17 +337,29 @@ function Programacion() {
           ? "No se puede programar en un día feriado."
           : "No se puede programar en fin de semana.",
       );
-      setDragId(null);
+      setDrag(null);
       return;
     }
-    const original = trabajos.find((t) => t.id === dragId);
-    if (!original) return;
-    const prev = new Date(original.fecha_programada);
-    if (sameDay(prev, targetDay)) { setDragId(null); return; }
-    const nd = new Date(targetDay);
-    nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-    move.mutate({ id: dragId, fecha_programada: nd.toISOString() });
-    setDragId(null);
+    const fechaDestino = toISODateLocal(targetDay);
+    if (drag.fechaOriginal === fechaDestino) { setDrag(null); return; }
+    // Si la OT dura 1 día, movemos toda la OT (fecha_programada). Para
+    // OTs multi-día registramos una excepción del día específico para no
+    // afectar los demás días programados de la misma planta.
+    if (drag.duracion <= 1) {
+      const original = trabajos.find((t) => t.id === drag.id);
+      if (!original) { setDrag(null); return; }
+      const prev = new Date(original.fecha_programada);
+      const nd = new Date(targetDay);
+      nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
+      move.mutate({ id: drag.id, fecha_programada: nd.toISOString() });
+    } else {
+      moverDia.mutate({
+        trabajo_id: drag.id,
+        fecha_original: drag.fechaOriginal,
+        fecha_destino: fechaDestino,
+      });
+    }
+    setDrag(null);
   }
 
   function nav(delta: number) {
