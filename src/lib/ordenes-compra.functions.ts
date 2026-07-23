@@ -226,6 +226,10 @@ export const registrarRecepcionOC = createServerFn({ method: "POST" })
             cantidad: z.coerce.number().positive(),
             costo_unitario: z.coerce.number().min(0).default(0),
             item_id_override: z.string().uuid().nullable().optional(),
+            moneda: z.string().min(1).max(8).optional(),
+            impuesto_pct: z.coerce.number().min(0).max(100).optional(),
+            precio_esperado: z.coerce.number().min(0).nullable().optional(),
+            variacion_motivo: z.string().nullable().optional(),
           }),
         )
         .min(1),
@@ -242,6 +246,42 @@ export const registrarRecepcionOC = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { recepcion_id: rec as string };
+  });
+
+/* =================== EDITAR LÍNEA DE RECEPCIÓN =================== */
+
+export const editarRecepcionItemOC = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      recepcion_item_id: z.string().uuid(),
+      nueva_cantidad: z.coerce.number().positive(),
+      nuevo_costo: z.coerce.number().min(0),
+      motivo: z.string().min(3, "Motivo requerido"),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase.rpc("editar_recepcion_item_oc", {
+      _recepcion_item_id: data.recepcion_item_id,
+      _nueva_cantidad: data.nueva_cantidad,
+      _nuevo_costo: data.nuevo_costo,
+      _motivo: data.motivo,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listVariacionesOC = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orden_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("orden_compra_variaciones")
+      .select("*")
+      .eq("orden_id", data.orden_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
 
 /* ========================= COTIZACIONES ========================= */
