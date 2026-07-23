@@ -62,7 +62,8 @@ function Inventario() {
   const [ordenOpen, setOrdenOpen] = useState(false);
   const [ordenBusy, setOrdenBusy] = useState(false);
   const [ordenCantidades, setOrdenCantidades] = useState<Record<string, number>>({});
-  const [ordenProveedor, setOrdenProveedor] = useState("");
+  const [ordenProveedores, setOrdenProveedores] = useState<string[]>([]);
+  const [ordenProveedorInput, setOrdenProveedorInput] = useState("");
   const [ordenNotas, setOrdenNotas] = useState("");
   const { user } = useAuth();
 
@@ -78,9 +79,21 @@ function Inventario() {
       iniciales[i.id] = Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual)));
     });
     setOrdenCantidades(iniciales);
-    setOrdenProveedor("");
+    setOrdenProveedores([]);
+    setOrdenProveedorInput("");
     setOrdenNotas("");
     setOrdenOpen(true);
+  }
+
+  function agregarProveedor() {
+    const v = ordenProveedorInput.trim();
+    if (!v) return;
+    if (ordenProveedores.includes(v)) {
+      setOrdenProveedorInput("");
+      return;
+    }
+    setOrdenProveedores((prev) => [...prev, v]);
+    setOrdenProveedorInput("");
   }
 
   async function generarOrden() {
@@ -100,7 +113,12 @@ function Inventario() {
           folio,
           fecha,
           solicitante: user?.email ?? "Bodega",
-          proveedor: ordenProveedor || null,
+          proveedor:
+            ordenProveedores.length > 0
+              ? ordenProveedores
+              : ordenProveedorInput.trim()
+                ? [ordenProveedorInput.trim()]
+                : null,
           notas: ordenNotas || null,
           items: seleccion.map(({ i, cantidad }) => ({
             sku: i.sku,
