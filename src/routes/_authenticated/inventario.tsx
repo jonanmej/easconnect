@@ -46,6 +46,7 @@ const catLabel: Record<Item["categoria"], string> = {
 
 function Inventario() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const fList = useServerFn(listInventario);
   const fUpsert = useServerFn(upsertInventarioItem);
   const fDelete = useServerFn(deleteInventarioItem);
@@ -59,154 +60,29 @@ function Inventario() {
 
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
   const [movFor, setMovFor] = useState<Item | null>(null);
-  const [ordenOpen, setOrdenOpen] = useState(false);
-  const [ordenBusy, setOrdenBusy] = useState(false);
-  const [ordenProveedores, setOrdenProveedores] = useState<string[]>([]);
-  const [ordenProveedorInput, setOrdenProveedorInput] = useState("");
-  const [ordenNotas, setOrdenNotas] = useState("");
-  type Fila = {
-    key: string;
-    source: "inventario" | "libre";
-    sku: string;
-    nombre: string;
-    categoria: string;
-    unidad: string;
-    stock_actual: number;
-    stock_minimo: number;
-    ubicacion: string | null;
-    cantidad_pedida: number;
-    proveedor: string;
-  };
-  const [ordenFilas, setOrdenFilas] = useState<Fila[]>([]);
-  const { user } = useAuth();
 
   const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
 
-  function abrirOrden() {
-    const iniciales: Fila[] = lowStockItems.map((i) => ({
-      key: `inv-${i.id}`,
-      source: "inventario",
-      sku: i.sku,
-      nombre: i.nombre,
-      categoria: catLabel[i.categoria],
-      unidad: i.unidad,
-      stock_actual: Number(i.stock_actual),
-      stock_minimo: Number(i.stock_minimo),
-      ubicacion: i.ubicacion,
-      cantidad_pedida: Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual))),
-      proveedor: "",
-    }));
-    setOrdenFilas(iniciales);
-    setOrdenProveedores([]);
-    setOrdenProveedorInput("");
-    setOrdenNotas("");
-    setOrdenOpen(true);
-  }
-
-  function agregarFilaLibre() {
-    setOrdenFilas((prev) => [
-      ...prev,
-      {
-        key: `libre-${Date.now()}-${prev.length}`,
-        source: "libre",
-        sku: "",
-        nombre: "",
-        categoria: "Insumo",
-        unidad: "un",
-        stock_actual: 0,
-        stock_minimo: 0,
-        ubicacion: null,
-        cantidad_pedida: 1,
-        proveedor: "",
-      },
-    ]);
-  }
-
-  function agregarDesdeInventario(item: Item) {
-    setOrdenFilas((prev) => {
-      if (prev.some((f) => f.source === "inventario" && f.sku === item.sku)) return prev;
-      return [
-        ...prev,
-        {
-          key: `inv-${item.id}`,
-          source: "inventario",
-          sku: item.sku,
-          nombre: item.nombre,
-          categoria: catLabel[item.categoria],
-          unidad: item.unidad,
-          stock_actual: Number(item.stock_actual),
-          stock_minimo: Number(item.stock_minimo),
-          ubicacion: item.ubicacion,
-          cantidad_pedida: Math.max(1, Math.ceil(Number(item.stock_minimo) - Number(item.stock_actual))),
-          proveedor: "",
-        },
-      ];
-    });
-  }
-
-  function actualizarFila(key: string, patch: Partial<Fila>) {
-    setOrdenFilas((prev) => prev.map((f) => (f.key === key ? { ...f, ...patch } : f)));
-  }
-  function quitarFila(key: string) {
-    setOrdenFilas((prev) => prev.filter((f) => f.key !== key));
-  }
-
-  function agregarProveedor() {
-    const v = ordenProveedorInput.trim();
-    if (!v) return;
-    if (ordenProveedores.includes(v)) {
-      setOrdenProveedorInput("");
-      return;
+  function irANuevaOC(prefill: boolean) {
+    if (typeof window !== "undefined") {
+      if (prefill && lowStockItems.length > 0) {
+        const payload = lowStockItems.map((i) => ({
+          item_id: i.id,
+          sku: i.sku,
+          nombre: i.nombre,
+          categoria: i.categoria,
+          unidad: i.unidad,
+          stock_actual: Number(i.stock_actual),
+          stock_minimo: Number(i.stock_minimo),
+          sugerido: Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual))),
+        }));
+        sessionStorage.setItem("oc_prefill_lowstock", JSON.stringify(payload));
+      } else {
+        sessionStorage.removeItem("oc_prefill_lowstock");
+      }
+      sessionStorage.setItem("oc_open_new", "1");
     }
-    setOrdenProveedores((prev) => [...prev, v]);
-    setOrdenProveedorInput("");
-  }
-
-  async function generarOrden() {
-    const seleccion = ordenFilas.filter(
-      (f) => Number(f.cantidad_pedida) > 0 && f.nombre.trim() !== "",
-    );
-    if (seleccion.length === 0) {
-      toast.error("Agrega al menos un ítem con nombre y cantidad.");
-      return;
-    }
-    setOrdenBusy(true);
-    try {
-      const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
-      const folio = `OC-${Date.now().toString().slice(-8)}`;
-      await generarYDescargarOrdenCompraPdf(
-        {
-          folio,
-          fecha,
-          solicitante: user?.email ?? "Bodega",
-          proveedor:
-            ordenProveedores.length > 0
-              ? ordenProveedores
-              : ordenProveedorInput.trim()
-                ? [ordenProveedorInput.trim()]
-                : null,
-          notas: ordenNotas || null,
-          items: seleccion.map((f) => ({
-            sku: f.sku || "—",
-            nombre: f.nombre.trim(),
-            categoria: f.categoria,
-            unidad: f.unidad || "un",
-            stock_actual: f.stock_actual,
-            stock_minimo: f.stock_minimo,
-            cantidad_pedida: Number(f.cantidad_pedida),
-            ubicacion: f.ubicacion,
-            proveedor: f.proveedor.trim() || null,
-          })),
-        },
-        `OrdenCompra-${folio}-${fecha}.pdf`,
-      );
-      toast.success("Orden de compra generada");
-      setOrdenOpen(false);
-    } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo generar la orden");
-    } finally {
-      setOrdenBusy(false);
-    }
+    navigate({ to: "/ordenes-compra" });
   }
 
   const save = useMutation({
