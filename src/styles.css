@@ -326,6 +326,19 @@
   .page-header-row { display: flex; flex-wrap: wrap; justify-content: space-between; }
 }
 
+/*
+ * Evita cortes letra-por-letra en encabezados y etiquetas cuando el
+ * contenedor se comprime en tablet/móvil. Sin esto, un flex-row estrecho
+ * con `min-w-0` provoca que títulos en mayúsculas se rompan vertical.
+ */
+h1, h2, h3, h4, h5, h6,
+.no-letter-break,
+[data-title] {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
 /* Oculta el scrollbar visualmente pero conserva el scroll. */
 @utility no-scrollbar {
   scrollbar-width: none;
