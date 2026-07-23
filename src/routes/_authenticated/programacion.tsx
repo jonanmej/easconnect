@@ -330,6 +330,20 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
+            {canEdit && (
+              <label
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary cursor-pointer select-none"
+                title="Permite arrastrar trabajos hacia sábados, domingos y feriados"
+              >
+                <input
+                  type="checkbox"
+                  className="size-3.5"
+                  checked={permitirNoLaborable}
+                  onChange={(e) => setPermitirNoLaborable(e.target.checked)}
+                />
+                Permitir días no laborables
+              </label>
+            )}
             <div className="relative">
               <button
                 onClick={() => setPrintOpen((v) => !v)}
