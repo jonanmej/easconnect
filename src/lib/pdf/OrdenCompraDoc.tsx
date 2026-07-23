@@ -63,6 +63,7 @@ export type OrdenCompraItem = {
   stock_minimo: number;
   cantidad_pedida: number;
   ubicacion?: string | null;
+  proveedor?: string | null;
 };
 
 export type OrdenCompraData = {
@@ -81,6 +82,17 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
     : data.proveedor && data.proveedor.trim() !== ""
       ? [data.proveedor]
       : [];
+  const SIN_PROV = "Sin proveedor asignado";
+  const grupos = data.items.reduce<Record<string, OrdenCompraItem[]>>((acc, it) => {
+    const key = (it.proveedor ?? "").trim() || SIN_PROV;
+    (acc[key] ||= []).push(it);
+    return acc;
+  }, {});
+  const grupoNombres = Object.keys(grupos).sort((a, b) => {
+    if (a === SIN_PROV) return 1;
+    if (b === SIN_PROV) return -1;
+    return a.localeCompare(b);
+  });
   return (
     <Document>
       <Page size="A4" style={s.page}>
@@ -100,7 +112,7 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
         </View>
 
         <Text style={s.title}>Orden de Compra</Text>
-        <Text style={s.subtitle}>Generada automáticamente a partir de los ítems bajo el stock mínimo definido.</Text>
+        <Text style={s.subtitle}>Detalle de ítems solicitados agrupados por proveedor.</Text>
         <View style={s.titleRule} />
 
         <View style={s.metaBox}>
@@ -128,28 +140,47 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
           </View>
         </View>
 
-        <View style={s.table}>
-          <View style={[s.tr, { backgroundColor: COL.bg }]}>
-            <Text style={[s.th, { flex: 1.4 }]}>SKU</Text>
-            <Text style={[s.th, { flex: 3.2 }]}>Descripción</Text>
-            <Text style={[s.th, { flex: 1.2 }]}>Categoría</Text>
-            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Stock</Text>
-            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Mínimo</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>A pedir</Text>
-            <Text style={[s.th, { flex: 0.7, textAlign: "center" }]}>Unidad</Text>
-          </View>
-          {data.items.map((r, i) => (
-            <View key={r.sku + i} style={[s.tr, { backgroundColor: i % 2 ? "#fff" : COL.panel }]}>
-              <Text style={[s.td, { flex: 1.4, fontFamily: FONT_BOLD }]}>{r.sku}</Text>
-              <Text style={[s.td, { flex: 3.2 }]}>{r.nombre}</Text>
-              <Text style={[s.td, { flex: 1.2, color: COL.muted }]}>{r.categoria}</Text>
-              <Text style={[s.td, { flex: 0.9, textAlign: "right", color: COL.danger, fontFamily: FONT_BOLD }]}>{r.stock_actual}</Text>
-              <Text style={[s.td, { flex: 0.9, textAlign: "right", color: COL.muted }]}>{r.stock_minimo}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: FONT_BOLD }]}>{r.cantidad_pedida}</Text>
-              <Text style={[s.td, { flex: 0.7, textAlign: "center", color: COL.muted }]}>{r.unidad}</Text>
+        {grupoNombres.map((prov) => {
+          const filas = grupos[prov];
+          const subtotal = filas.reduce((a, r) => a + Number(r.cantidad_pedida || 0), 0);
+          return (
+            <View key={prov} style={{ marginBottom: 12 }} wrap={false}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, color: COL.bg, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  Proveedor: {prov}
+                </Text>
+                <Text style={{ fontSize: 8, color: COL.muted }}>
+                  {filas.length} ítem{filas.length === 1 ? "" : "s"} · {subtotal} un.
+                </Text>
+              </View>
+              <View style={s.table}>
+                <View style={[s.tr, { backgroundColor: COL.bg }]}>
+                  <Text style={[s.th, { flex: 1.3 }]}>SKU</Text>
+                  <Text style={[s.th, { flex: 3.2 }]}>Descripción</Text>
+                  <Text style={[s.th, { flex: 1.2 }]}>Categoría</Text>
+                  <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Stock</Text>
+                  <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Mínimo</Text>
+                  <Text style={[s.th, { flex: 1, textAlign: "right" }]}>A pedir</Text>
+                  <Text style={[s.th, { flex: 0.7, textAlign: "center" }]}>Unidad</Text>
+                </View>
+                {filas.map((r, i) => {
+                  const noInv = !r.sku || r.sku === "—";
+                  return (
+                    <View key={(r.sku || r.nombre) + i} style={[s.tr, { backgroundColor: i % 2 ? "#fff" : COL.panel }]}>
+                      <Text style={[s.td, { flex: 1.3, fontFamily: FONT_BOLD, color: noInv ? COL.muted : COL.text }]}>{r.sku || "—"}</Text>
+                      <Text style={[s.td, { flex: 3.2 }]}>{r.nombre}</Text>
+                      <Text style={[s.td, { flex: 1.2, color: COL.muted }]}>{r.categoria}</Text>
+                      <Text style={[s.td, { flex: 0.9, textAlign: "right", color: noInv ? COL.muted : COL.danger, fontFamily: FONT_BOLD }]}>{noInv ? "—" : r.stock_actual}</Text>
+                      <Text style={[s.td, { flex: 0.9, textAlign: "right", color: COL.muted }]}>{noInv ? "—" : r.stock_minimo}</Text>
+                      <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: FONT_BOLD }]}>{r.cantidad_pedida}</Text>
+                      <Text style={[s.td, { flex: 0.7, textAlign: "center", color: COL.muted }]}>{r.unidad}</Text>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
-          ))}
-        </View>
+          );
+        })}
 
         <View style={s.totalRow}>
           <Text style={s.totalPill}>Total a solicitar: {totalItems} unidades · {data.items.length} SKU</Text>
