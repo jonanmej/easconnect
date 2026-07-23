@@ -4,6 +4,7 @@ import type { ReporteData } from "./ReporteDoc";
 import type { RecursosData } from "./RecursosDoc";
 import type { PdfExternoData } from "./PdfExternoDoc";
 import type { CumplimientoData } from "./CumplimientoDoc";
+import type { OrdenCompraData } from "./OrdenCompraDoc";
 
 /** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
 function currentTheme(): "light" | "dark" {
