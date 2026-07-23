@@ -1107,6 +1107,48 @@ export type Database = {
           },
         ]
       }
+      trabajo_dia_excepciones: {
+        Row: {
+          created_at: string
+          fecha_movida: string
+          fecha_original: string
+          id: string
+          trabajo_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fecha_movida: string
+          fecha_original: string
+          id?: string
+          trabajo_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fecha_movida?: string
+          fecha_original?: string
+          id?: string
+          trabajo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_dia_excepciones_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_dia_excepciones_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trabajo_equipos: {
         Row: {
           created_at: string
