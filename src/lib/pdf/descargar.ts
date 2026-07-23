@@ -241,3 +241,21 @@ export async function generarYDescargarCumplimientoPdf(data: CumplimientoData, f
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   return { documento_id, hash };
 }
+
+/** Genera y descarga el PDF de Orden de Compra por bajo stock. */
+export async function generarYDescargarOrdenCompraPdf(data: OrdenCompraData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { OrdenCompraDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./OrdenCompraDoc"),
+  ]);
+  const blob = await pdf(createElement(OrdenCompraDoc, { data }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
