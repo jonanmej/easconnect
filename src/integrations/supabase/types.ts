@@ -671,27 +671,39 @@ export type Database = {
           costo_unitario: number
           created_at: string
           id: string
+          impuesto_pct: number
           item_id: string | null
+          moneda: string
           orden_item_id: string
+          precio_esperado: number | null
           recepcion_id: string
+          variacion_motivo: string | null
         }
         Insert: {
           cantidad: number
           costo_unitario?: number
           created_at?: string
           id?: string
+          impuesto_pct?: number
           item_id?: string | null
+          moneda?: string
           orden_item_id: string
+          precio_esperado?: number | null
           recepcion_id: string
+          variacion_motivo?: string | null
         }
         Update: {
           cantidad?: number
           costo_unitario?: number
           created_at?: string
           id?: string
+          impuesto_pct?: number
           item_id?: string | null
+          moneda?: string
           orden_item_id?: string
+          precio_esperado?: number | null
           recepcion_id?: string
+          variacion_motivo?: string | null
         }
         Relationships: [
           {
@@ -752,6 +764,57 @@ export type Database = {
           },
         ]
       }
+      orden_compra_variaciones: {
+        Row: {
+          created_at: string
+          id: string
+          motivo: string | null
+          orden_id: string
+          recepcion_item_id: string
+          registrado_por: string | null
+          tipo: string
+          valor_esperado: string | null
+          valor_recibido: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          orden_id: string
+          recepcion_item_id: string
+          registrado_por?: string | null
+          tipo: string
+          valor_esperado?: string | null
+          valor_recibido?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          orden_id?: string
+          recepcion_item_id?: string
+          registrado_por?: string | null
+          tipo?: string
+          valor_esperado?: string | null
+          valor_recibido?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_compra_variaciones_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_compra_variaciones_recepcion_item_id_fkey"
+            columns: ["recepcion_item_id"]
+            isOneToOne: false
+            referencedRelation: "orden_compra_recepcion_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordenes_compra: {
         Row: {
           created_at: string
@@ -763,6 +826,8 @@ export type Database = {
           fecha_recibida: string | null
           folio: string
           id: string
+          impuesto_pct: number
+          moneda: string
           notas: string | null
           proveedores: Json
           solicitante: string
@@ -778,6 +843,8 @@ export type Database = {
           fecha_recibida?: string | null
           folio: string
           id?: string
+          impuesto_pct?: number
+          moneda?: string
           notas?: string | null
           proveedores?: Json
           solicitante?: string
@@ -793,6 +860,8 @@ export type Database = {
           fecha_recibida?: string | null
           folio?: string
           id?: string
+          impuesto_pct?: number
+          moneda?: string
           notas?: string | null
           proveedores?: Json
           solicitante?: string
@@ -2000,6 +2069,15 @@ export type Database = {
       }
       current_cliente_id: { Args: never; Returns: string }
       dashboard_kpis_v1: { Args: never; Returns: Json }
+      editar_recepcion_item_oc: {
+        Args: {
+          _motivo: string
+          _nueva_cantidad: number
+          _nuevo_costo: number
+          _recepcion_item_id: string
+        }
+        Returns: undefined
+      }
       firmar_aprobacion: {
         Args: {
           _firma_storage_path: string
