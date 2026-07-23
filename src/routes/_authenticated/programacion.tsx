@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo } from "@/lib/operations.functions";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
@@ -93,9 +93,18 @@ function Programacion() {
   const fetchList = useServerFn(listTrabajos);
   const fetchMove = useServerFn(reprogramarTrabajo);
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
+  const fetchMoverDia = useServerFn(moverDiaTrabajo);
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
-  const [dragId, setDragId] = useState<string | null>(null);
+  // Ahora arrastramos UN DÍA específico (no toda la OT). El drag lleva la
+  // fecha real que se está moviendo y la fecha original (para escribir la
+  // excepción sin depender del día base calculado en cliente).
+  const [drag, setDrag] = useState<
+    | null
+    | { id: string; fechaOriginal: string; duracion: number }
+  >(null);
+  const dragId = drag?.id ?? null;
+  const setDragId = (id: string | null) => { if (id === null) setDrag(null); };
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
   // reflejen lo configurado en administración. Consumimos `map` para forzar
@@ -191,10 +200,24 @@ function Programacion() {
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
       // Marcar el trabajo en cada día laborable (L-V) que abarque su duración.
       const dias = addWorkdays(dt, dur);
-      dias.forEach((d, i) => {
-        const key = d.toDateString();
+      const excepciones: Array<{ fecha_original: string; fecha_movida: string }> =
+        (t.excepciones_dia as any[]) ?? [];
+      const excByOriginal = new Map(excepciones.map((e) => [e.fecha_original, e.fecha_movida]));
+      dias.forEach((baseD, i) => {
+        const fechaOriginal = toISODateLocal(baseD);
+        const movida = excByOriginal.get(fechaOriginal);
+        const efectiva = movida
+          ? new Date(`${movida}T${String(baseD.getHours()).padStart(2, "0")}:${String(baseD.getMinutes()).padStart(2, "0")}:00`)
+          : baseD;
+        const key = efectiva.toDateString();
         if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push({ ...t, __diaIdx: i, __duracion: dur });
+        map.get(key)!.push({
+          ...t,
+          __diaIdx: i,
+          __duracion: dur,
+          __fechaOriginal: fechaOriginal,
+          __movido: !!movida,
+        });
       });
     });
     return map;
@@ -271,8 +294,42 @@ function Programacion() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Mutación para mover un solo día de una OT multi-día. Actualiza el caché
+  // de forma optimista añadiendo/actualizando la excepción del trabajo.
+  const moverDia = useMutation({
+    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string }) =>
+      fetchMoverDia({ data: vars }),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["trabajos"] });
+      const prev = qc.getQueryData<any[]>(["trabajos"]);
+      qc.setQueryData<any[]>(["trabajos"], (curr) =>
+        (curr ?? []).map((t) => {
+          if (t.id !== vars.trabajo_id) return t;
+          const excs: Array<{ fecha_original: string; fecha_movida: string }> = [...(t.excepciones_dia ?? [])];
+          const idx = excs.findIndex((e) => e.fecha_original === vars.fecha_original);
+          if (vars.fecha_original === vars.fecha_destino) {
+            if (idx >= 0) excs.splice(idx, 1);
+          } else if (idx >= 0) {
+            excs[idx] = { ...excs[idx], fecha_movida: vars.fecha_destino };
+          } else {
+            excs.push({ fecha_original: vars.fecha_original, fecha_movida: vars.fecha_destino });
+          }
+          return { ...t, excepciones_dia: excs };
+        }),
+      );
+      return { prev };
+    },
+    onSuccess: () => {
+      toast.success("Día movido");
+    },
+    onError: (e: Error, _vars, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["trabajos"], ctx.prev);
+      toast.error(e.message);
+    },
+  });
+
   function onDrop(targetDay: Date) {
-    if (!dragId) return;
+    if (!drag) return;
     if (!isWorkday(targetDay)) {
       const motivo = motivoNoLaborableSV(targetDay);
       toast.error(
@@ -280,17 +337,29 @@ function Programacion() {
           ? "No se puede programar en un día feriado."
           : "No se puede programar en fin de semana.",
       );
-      setDragId(null);
+      setDrag(null);
       return;
     }
-    const original = trabajos.find((t) => t.id === dragId);
-    if (!original) return;
-    const prev = new Date(original.fecha_programada);
-    if (sameDay(prev, targetDay)) { setDragId(null); return; }
-    const nd = new Date(targetDay);
-    nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-    move.mutate({ id: dragId, fecha_programada: nd.toISOString() });
-    setDragId(null);
+    const fechaDestino = toISODateLocal(targetDay);
+    if (drag.fechaOriginal === fechaDestino) { setDrag(null); return; }
+    // Si la OT dura 1 día, movemos toda la OT (fecha_programada). Para
+    // OTs multi-día registramos una excepción del día específico para no
+    // afectar los demás días programados de la misma planta.
+    if (drag.duracion <= 1) {
+      const original = trabajos.find((t) => t.id === drag.id);
+      if (!original) { setDrag(null); return; }
+      const prev = new Date(original.fecha_programada);
+      const nd = new Date(targetDay);
+      nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
+      move.mutate({ id: drag.id, fecha_programada: nd.toISOString() });
+    } else {
+      moverDia.mutate({
+        trabajo_id: drag.id,
+        fecha_original: drag.fechaOriginal,
+        fecha_destino: fechaDestino,
+      });
+    }
+    setDrag(null);
   }
 
   function nav(delta: number) {
@@ -455,8 +524,8 @@ function Programacion() {
                       key={t.id}
                       data-print-card
                       draggable={canEdit && t.estado !== "completado"}
-                      onDragStart={() => setDragId(t.id)}
-                      onDragEnd={() => setDragId(null)}
+                      onDragStart={() => setDrag({ id: t.id, fechaOriginal: t.__fechaOriginal, duracion: t.__duracion ?? 1 })}
+                      onDragEnd={() => setDrag(null)}
                       title={`${t.folio} · ${t.cliente_nombre}`}
                       className={
                         "rounded-md p-2 text-[11px] border cursor-grab active:cursor-grabbing select-none " +
@@ -466,6 +535,7 @@ function Programacion() {
                     >
                       <p className="font-mono text-[10px] opacity-70">
                         {new Date(t.fecha_programada).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" })} · {t.folio}
+                        {t.__movido ? " · movido" : ""}
                       </p>
                       <p className="font-medium leading-tight mt-0.5 line-clamp-2">{t.servicio}</p>
                       <p className="text-[10px] opacity-70 truncate">{t.planta_nombre}</p>
@@ -480,7 +550,7 @@ function Programacion() {
 
       {vista === "mes" && (
         <div className="print-hide-visual">
-          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDragId={setDragId} onDrop={onDrop} />
+          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
         </div>
       )}
 
@@ -530,9 +600,11 @@ function Programacion() {
 }
 
 // ============== Vista Mes (L-V) ==============
-function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
+function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
   cursor: Date; byDay: Map<string, any[]>; canEdit: boolean;
-  dragId: string | null; setDragId: (id: string | null) => void; onDrop: (d: Date) => void;
+  dragId: string | null;
+  setDrag: (d: null | { id: string; fechaOriginal: string; duracion: number }) => void;
+  onDrop: (d: Date) => void;
 }) {
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -591,8 +663,8 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                       key={`${t.id}-${t.__diaIdx ?? 0}`}
                       data-print-card
                       draggable={canEdit && t.estado !== "completado"}
-                      onDragStart={() => setDragId(t.id)}
-                      onDragEnd={() => setDragId(null)}
+                      onDragStart={() => setDrag({ id: t.id, fechaOriginal: t.__fechaOriginal, duracion: t.__duracion ?? 1 })}
+                      onDragEnd={() => setDrag(null)}
                       title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
                         "rounded px-1.5 py-1 text-[10px] border cursor-grab leading-tight " +

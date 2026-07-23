@@ -344,11 +344,26 @@ export const listTrabajos = createServerFn({ method: "GET" })
       )
       .order("fecha_programada", { ascending: false });
     if (error) throw new Error(error.message);
+    const ids = (data ?? []).map((t: any) => t.id);
+    let excepcionesPorTrabajo: Record<string, Array<{ fecha_original: string; fecha_movida: string }>> = {};
+    if (ids.length > 0) {
+      const { data: excs } = await context.supabase
+        .from("trabajo_dia_excepciones")
+        .select("trabajo_id, fecha_original, fecha_movida")
+        .in("trabajo_id", ids);
+      (excs ?? []).forEach((e: any) => {
+        (excepcionesPorTrabajo[e.trabajo_id] ??= []).push({
+          fecha_original: e.fecha_original,
+          fecha_movida: e.fecha_movida,
+        });
+      });
+    }
     return (data ?? []).map((t: any) => ({
       ...t,
       planta_nombre: t.plantas?.nombre ?? "—",
       cliente_nombre: t.plantas?.clientes?.nombre ?? "—",
       cliente_id: t.plantas?.cliente_id ?? null,
+      excepciones_dia: excepcionesPorTrabajo[t.id] ?? [],
     }));
   });
 
@@ -857,6 +872,79 @@ export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     throw new Error("No se encontró un día laborable disponible en los próximos " + limite + " días.");
+  });
+
+// ---------------------------------------------------------------------------
+// Mover UN SOLO día de una OT multi-día hacia otra fecha, sin afectar los
+// demás días. Se registra como excepción en `trabajo_dia_excepciones`.
+// - fecha_original: la fecha (YYYY-MM-DD) del día del trabajo que se mueve
+//   (una de las N fechas hábiles que ocupa la OT desde `fecha_programada`).
+// - fecha_destino:  la nueva fecha (YYYY-MM-DD) a la que se traslada ese día.
+// Si `fecha_destino === fecha_original` se elimina la excepción existente
+// (equivale a devolver ese día a su ubicación base).
+// ---------------------------------------------------------------------------
+export const moverDiaTrabajo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      trabajo_id: z.string().uuid(),
+      fecha_original: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      fecha_destino: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { trabajo_id, fecha_original, fecha_destino } = data;
+
+    // Validar día laborable en destino
+    const destinoISO = new Date(`${fecha_destino}T13:00:00.000Z`).toISOString();
+    await ensureFeriadosCargados(context.supabase, destinoISO);
+    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
+    const motivo = motivoNoLaborableSV(destinoISO);
+    if (motivo) {
+      throw new Error(
+        motivo === "feriado"
+          ? "No se puede mover el día a un feriado."
+          : "No se puede mover el día a sábado o domingo.",
+      );
+    }
+
+    // Si vuelve a su fecha original, borrar la excepción.
+    if (fecha_original === fecha_destino) {
+      await context.supabase
+        .from("trabajo_dia_excepciones")
+        .delete()
+        .eq("trabajo_id", trabajo_id)
+        .eq("fecha_original", fecha_original);
+      return { trabajo_id, fecha_original, fecha_movida: null };
+    }
+
+    // Validar conflicto de cliente/servicio de limpieza en el día destino.
+    const { data: trabajo } = await context.supabase
+      .from("trabajos")
+      .select("planta_id, servicio")
+      .eq("id", trabajo_id)
+      .single();
+    const conflictos = await findCleaningClientConflicts(context.supabase, {
+      plantaId: (trabajo as any)?.planta_id,
+      servicio: (trabajo as any)?.servicio,
+      fechaProgramada: destinoISO,
+      duracionDias: 1,
+      excluirTrabajoId: trabajo_id,
+    });
+    if (conflictos.length > 0) {
+      throw new Error(formatCleaningClientConflict(conflictos));
+    }
+
+    const { data: row, error } = await context.supabase
+      .from("trabajo_dia_excepciones")
+      .upsert(
+        { trabajo_id, fecha_original, fecha_movida: fecha_destino },
+        { onConflict: "trabajo_id,fecha_original" },
+      )
+      .select("trabajo_id, fecha_original, fecha_movida")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
   });
 
 // ============ Dashboard KPIs ============
