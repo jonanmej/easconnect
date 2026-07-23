@@ -88,7 +88,7 @@ function PageHeader({ data }: { data: CumplimientoData }) {
   const codigo = `${data.documento_codigo ?? "EA-CUM"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View fixed style={{ position: "absolute", top: 24, left: 60, right: 54 }}>
+    <View fixed style={{ position: "absolute", top: 22, left: 54, right: 48 }}>
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Image src={LOGO_EA()} style={s.logoEa} />
