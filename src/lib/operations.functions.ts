@@ -344,11 +344,26 @@ export const listTrabajos = createServerFn({ method: "GET" })
       )
       .order("fecha_programada", { ascending: false });
     if (error) throw new Error(error.message);
+    const ids = (data ?? []).map((t: any) => t.id);
+    let excepcionesPorTrabajo: Record<string, Array<{ fecha_original: string; fecha_movida: string }>> = {};
+    if (ids.length > 0) {
+      const { data: excs } = await context.supabase
+        .from("trabajo_dia_excepciones")
+        .select("trabajo_id, fecha_original, fecha_movida")
+        .in("trabajo_id", ids);
+      (excs ?? []).forEach((e: any) => {
+        (excepcionesPorTrabajo[e.trabajo_id] ??= []).push({
+          fecha_original: e.fecha_original,
+          fecha_movida: e.fecha_movida,
+        });
+      });
+    }
     return (data ?? []).map((t: any) => ({
       ...t,
       planta_nombre: t.plantas?.nombre ?? "—",
       cliente_nombre: t.plantas?.clientes?.nombre ?? "—",
       cliente_id: t.plantas?.cliente_id ?? null,
+      excepciones_dia: excepcionesPorTrabajo[t.id] ?? [],
     }));
   });
 
