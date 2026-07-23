@@ -328,6 +328,7 @@ function UsersPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">
