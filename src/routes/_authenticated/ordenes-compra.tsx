@@ -521,7 +521,7 @@ function RecepcionForm({
     setLineas((p) => ({
       ...p,
       [id]: {
-        cantidad: 0, costo: 0, moneda: monedaOc, impuesto: impuestoOc,
+        ...({ cantidad: 0, costo: 0, moneda: monedaOc, impuesto: impuestoOc } as LineaState),
         ...(p[id] ?? {}),
         ...patch,
       },
