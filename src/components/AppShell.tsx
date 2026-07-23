@@ -8,6 +8,7 @@ import {
   Sun,
   Bot,
   Boxes,
+  ShoppingCart,
   Wrench,
   Sparkles,
   Search,
