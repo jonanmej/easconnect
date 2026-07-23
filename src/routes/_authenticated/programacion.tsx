@@ -786,13 +786,13 @@ function ClienteCalendar() {
 
   // Build grid (lunes-domingo)
   const cells = useMemo(() => {
-    const out: { fecha: string | null; ocupada?: boolean; today?: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string }> }[] = [];
+    const out: { fecha: string | null; ocupada?: boolean; today?: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string; propio?: boolean }> }[] = [];
     const first = new Date(monthStart);
     const leading = (first.getDay() + 6) % 7;
     // Solo días laborables (Lun-Vie); el leading se limita a 0..4
     const leadingWk = Math.min(leading, 4);
     for (let i = 0; i < leadingWk; i++) out.push({ fecha: null });
-    const list = (dispQ.data as Array<{ fecha: string; ocupada: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string }> }> | undefined) ?? [];
+    const list = (dispQ.data as Array<{ fecha: string; ocupada: boolean; asignaciones?: Array<{ planta_nombre: string; folio: string; servicio: string; propio?: boolean }> }> | undefined) ?? [];
     const today = toISODateLocal(new Date());
     list.forEach((d) => {
       const dow = new Date(d.fecha + "T00:00").getDay();
@@ -838,9 +838,14 @@ function ClienteCalendar() {
           {cells.map((c, i) => {
             if (!c.fecha) return <div key={i} className="aspect-square border-t border-l border-border first:border-l-0 bg-muted/20" />;
             const isPast = c.fecha < toISODateLocal(new Date());
-            const asigns = c.asignaciones ?? [];
+            const allAsigns = c.asignaciones ?? [];
+            const propios = allAsigns.filter((a) => a.propio);
+            // Si el cliente ya tiene una programación ese día, ocultamos
+            // las entradas "Reservado" de otros clientes.
+            const asigns = propios.length ? propios : allAsigns;
+            const hasPropio = propios.length > 0;
             const tooltip = asigns.length
-              ? asigns.map((a) => `• ${a.planta_nombre} — ${a.servicio}${a.folio ? ` (${a.folio})` : ""}`).join("\n")
+              ? asigns.map((a) => `• ${a.planta_nombre}${a.servicio ? ` — ${a.servicio}` : ""}${a.folio ? ` (${a.folio})` : ""}`).join("\n")
               : c.ocupada ? "No disponible" : isPast ? "Fecha pasada" : "Solicitar visita este día";
             return (
               <button
@@ -850,7 +855,9 @@ function ClienteCalendar() {
                 className={
                   "min-h-[92px] border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors overflow-hidden " +
                   (c.ocupada
-                    ? "bg-destructive/10 text-destructive cursor-not-allowed"
+                    ? (hasPropio
+                        ? "bg-primary/10 text-primary cursor-not-allowed"
+                        : "bg-destructive/10 text-destructive cursor-not-allowed")
                     : isPast
                       ? "bg-muted/30 text-muted-foreground/60 cursor-not-allowed"
                       : "hover:bg-accent/10 cursor-pointer") +
@@ -864,13 +871,18 @@ function ClienteCalendar() {
                     {asigns.slice(0, 3).map((a, ix) => (
                       <div
                         key={ix}
-                        className="text-[10px] leading-tight px-1 py-0.5 rounded bg-destructive/15 text-destructive font-medium truncate"
+                        className={
+                          "text-[10px] leading-tight px-1 py-0.5 rounded font-medium truncate " +
+                          (a.propio
+                            ? "bg-primary/15 text-primary"
+                            : "bg-destructive/15 text-destructive")
+                        }
                       >
                         {a.planta_nombre}
                       </div>
                     ))}
                     {asigns.length > 3 && (
-                      <div className="text-[9px] text-destructive/80">+{asigns.length - 3} más</div>
+                      <div className={"text-[9px] " + (hasPropio ? "text-primary/80" : "text-destructive/80")}>+{asigns.length - 3} más</div>
                     )}
                   </div>
                 )}
@@ -885,7 +897,8 @@ function ClienteCalendar() {
 
       <div className="mt-4 flex items-center justify-end gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-accent/40 border border-accent/30" /> Disponible</span>
-        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40 border border-destructive/30" /> Ocupado</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary/40 border border-primary/30" /> Tu programación</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40 border border-destructive/30" /> Reservado</span>
       </div>
 
       <RecordDialog
