@@ -419,13 +419,24 @@ function Programacion() {
         <div className="grid grid-cols-5 min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
+            const motivo = motivoNoLaborableSV(d);
             return (
               <div
                 key={d.toISOString()}
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
-                className={"border-l border-border first:border-l-0 p-2 space-y-1.5 " + (sameDay(d, new Date()) ? "bg-primary/[0.03]" : "")}
+                className={
+                  "border-l border-border first:border-l-0 p-2 space-y-1.5 " +
+                  (motivo === "feriado"
+                    ? "bg-destructive/[0.06] "
+                    : sameDay(d, new Date())
+                      ? "bg-primary/[0.03] "
+                      : "")
+                }
               >
+                {motivo === "feriado" && (
+                  <p className="text-[9px] uppercase tracking-wide text-destructive/80 font-semibold">Feriado</p>
+                )}
                 {items.length === 0 && (
                   <p className="text-[10px] text-muted-foreground/60 px-1 py-2">—</p>
                 )}
