@@ -197,7 +197,7 @@ export const cambiarEstadoOC = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("cambiar_estado_oc", {
       _orden_id: data.id,
       _nuevo_estado: data.nuevo_estado,
-      _notas: data.notas ?? null,
+      _notas: data.notas ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -237,8 +237,8 @@ export const registrarRecepcionOC = createServerFn({ method: "POST" })
     const { data: rec, error } = await context.supabase.rpc("registrar_recepcion_oc", {
       _orden_id: data.orden_id,
       _lineas: data.lineas as any,
-      _notas: data.notas ?? null,
-      _recibido_por_nombre: data.recibido_por_nombre ?? null,
+      _notas: data.notas ?? undefined,
+      _recibido_por_nombre: data.recibido_por_nombre ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { recepcion_id: rec as string };
