@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import type { FormEvent, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -27,30 +28,36 @@ export function RecordDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
+      <DialogContent
+        className={cn(
+          "w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-lg",
+          "max-h-[92dvh] overflow-y-auto",
+          className,
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4 min-w-0">
           <div className="space-y-3">{children}</div>
           {error && (
             <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2 whitespace-pre-line">
               {error}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-0">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm rounded-md border border-border hover:bg-secondary"
+              className="w-full sm:w-auto min-h-10 px-4 py-2 text-sm rounded-md border border-border hover:bg-secondary"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              className="w-full sm:w-auto min-h-10 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? "Guardando…" : submitLabel}
             </button>
@@ -62,15 +69,20 @@ export function RecordDialog({
 }
 
 export function Field({
-  label, children,
-}: { label: string; children: ReactNode }) {
+  label, children, hint, error, required,
+}: { label: string; children: ReactNode; hint?: ReactNode; error?: ReactNode; required?: boolean }) {
   return (
-    <label className="block">
-      <span className="text-xs font-medium block mb-1">{label}</span>
+    <label className="block min-w-0">
+      <span className="text-xs font-medium mb-1 flex items-center gap-1">
+        <span className="truncate">{label}</span>
+        {required ? <span aria-hidden className="text-destructive">*</span> : null}
+      </span>
       {children}
+      {hint && !error ? <span className="mt-1 block helper-text">{hint}</span> : null}
+      {error ? <span className="mt-1 block text-[11px] leading-tight text-destructive">{error}</span> : null}
     </label>
   );
 }
 
 export const inputCls =
-  "w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40";
+  "w-full min-w-0 min-h-10 bg-secondary border border-border rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:opacity-60";
