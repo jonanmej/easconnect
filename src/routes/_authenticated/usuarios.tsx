@@ -228,7 +228,8 @@ function UsersPage() {
             {(resets.data ?? []).filter((s: any) => s.estado === "pendiente").length} pendientes
           </span>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[820px]">
           <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
             <tr>
               <th className="text-left p-3">Fecha</th>
