@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
@@ -11,7 +11,7 @@ import {
   deleteInventarioItem,
   registrarMovimiento,
 } from "@/lib/inventario.functions";
-import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, ShoppingCart } from "lucide-react";
+import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, ShoppingCart, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
@@ -62,6 +62,60 @@ function Inventario() {
   const [movFor, setMovFor] = useState<Item | null>(null);
 
   const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
+
+  // --- Vista: filtros, orden, agrupación, paginación ---
+  const [q, setQ] = useState("");
+  const [catFilter, setCatFilter] = useState<"todas" | Item["categoria"]>("todas");
+  const [estadoFilter, setEstadoFilter] = useState<"todos" | "bajo" | "ok">("todos");
+  const [sortBy, setSortBy] = useState<"nombre" | "sku" | "stock_asc" | "critico">("critico");
+  const [agrupar, setAgrupar] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 25;
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const filtered = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    let rows = items.filter((i) => {
+      if (catFilter !== "todas" && i.categoria !== catFilter) return false;
+      const low = Number(i.stock_actual) < Number(i.stock_minimo);
+      if (estadoFilter === "bajo" && !low) return false;
+      if (estadoFilter === "ok" && low) return false;
+      if (!ql) return true;
+      return (
+        (i.sku ?? "").toLowerCase().includes(ql) ||
+        i.nombre.toLowerCase().includes(ql) ||
+        (i.ubicacion ?? "").toLowerCase().includes(ql)
+      );
+    });
+    rows.sort((a, b) => {
+      if (sortBy === "nombre") return a.nombre.localeCompare(b.nombre);
+      if (sortBy === "sku") return (a.sku ?? "").localeCompare(b.sku ?? "");
+      if (sortBy === "stock_asc") return Number(a.stock_actual) - Number(b.stock_actual);
+      // critico: bajo stock primero, luego nombre
+      const la = Number(a.stock_actual) < Number(a.stock_minimo) ? 0 : 1;
+      const lb = Number(b.stock_actual) < Number(b.stock_minimo) ? 0 : 1;
+      if (la !== lb) return la - lb;
+      return a.nombre.localeCompare(b.nombre);
+    });
+    return rows;
+  }, [items, q, catFilter, estadoFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages - 1);
+  const paginated = agrupar ? filtered : filtered.slice(pageSafe * PAGE_SIZE, (pageSafe + 1) * PAGE_SIZE);
+
+  const grupos = useMemo(() => {
+    if (!agrupar) return [] as Array<{ cat: Item["categoria"]; rows: Item[] }>;
+    const map = new Map<Item["categoria"], Item[]>();
+    for (const r of filtered) {
+      const arr = map.get(r.categoria) ?? [];
+      arr.push(r);
+      map.set(r.categoria, arr);
+    }
+    return Array.from(map.entries())
+      .map(([cat, rows]) => ({ cat, rows }))
+      .sort((a, b) => catLabel[a.cat].localeCompare(catLabel[b.cat]));
+  }, [filtered, agrupar]);
 
   function irANuevaOC(prefill: boolean) {
     if (typeof window !== "undefined") {
