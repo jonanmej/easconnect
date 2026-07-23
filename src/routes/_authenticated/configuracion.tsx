@@ -165,12 +165,18 @@ function FeriadosCard() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["feriados", anio] });
     qc.invalidateQueries({ queryKey: ["feriados-activos", anio] });
+    qc.invalidateQueries({ queryKey: ["trabajos"] });
   };
   const add = useMutation({
     mutationFn: () =>
       fUpsert({ data: { fecha, nombre, tipo: "personalizado", activo: true } }),
-    onSuccess: () => {
-      toast.success("Feriado agregado");
+    onSuccess: (r: any) => {
+      const n = Array.isArray(r?.reubicados) ? r.reubicados.length : 0;
+      toast.success(
+        n > 0
+          ? `Feriado agregado. Se reubicaron ${n} trabajo${n === 1 ? "" : "s"} al siguiente día hábil.`
+          : "Feriado agregado",
+      );
       setFecha(""); setNombre("");
       invalidate();
     },
@@ -191,7 +197,11 @@ function FeriadosCard() {
   });
   const toggle = useMutation({
     mutationFn: (v: { id: string; activo: boolean }) => fToggle({ data: v }),
-    onSuccess: () => { invalidate(); },
+    onSuccess: (r: any) => {
+      const n = Array.isArray(r?.reubicados) ? r.reubicados.length : 0;
+      if (n > 0) toast.success(`Feriado activado. Se reubicaron ${n} trabajo${n === 1 ? "" : "s"}.`);
+      invalidate();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
