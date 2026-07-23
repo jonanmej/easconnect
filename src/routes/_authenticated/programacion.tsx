@@ -98,8 +98,11 @@ function Programacion() {
   const [dragId, setDragId] = useState<string | null>(null);
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
-  // reflejen lo configurado en administración.
-  useFeriados(cursor.getFullYear());
+  // reflejen lo configurado en administración. Consumimos `map` para forzar
+  // el re-render cuando llega la data (el caché se llena en un `useEffect`).
+  const { map: feriadosMap } = useFeriados(cursor.getFullYear());
+  // Referencia usada como dependencia implícita en el árbol de render.
+  void feriadosMap.size;
 
   const list = useQuery({
     queryKey: ["trabajos"],
