@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useMemo } from "react";
 import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta, metaCumplimientoLimpieza } from "@/lib/dashboard.functions";
@@ -10,7 +10,6 @@ import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
 import { FileDown } from "lucide-react";
-import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
