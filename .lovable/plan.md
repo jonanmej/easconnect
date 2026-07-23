@@ -1,49 +1,87 @@
-## 1. Feriados por año administrables
+## Objetivo
 
-- Nueva tabla `public.feriados` (year, fecha, nombre, tipo `nacional|personalizado`, activo). Grants + RLS: lectura autenticada (todos los roles), escritura solo admin (`has_role(auth.uid(),'admin')`). Seed: feriados nacionales SV (los que ya usa `feriadosSV`) para el año en curso y el siguiente; el 6 de agosto queda cargado.
-- Server fns `feriados.functions.ts`: `listFeriados({ year })`, `upsertFeriado`, `toggleFeriadoActivo`, `deleteFeriado`, `seedFeriadosAnio({ year })` (solo admin).
-- Extender `src/lib/dias-habiles.ts` con un caché en memoria de feriados personalizados por año (`setFeriadosCache(year, Set)`, `getFeriadosCombinados(year)`) que se mezcla con `feriadosSV(year)` sin romper compatibilidad síncrona.
-- Hook cliente `useFeriados(year)` que carga desde la BD y llena el caché — usado por calendario, drag & drop y formularios.
-- Validación en `upsertTrabajo` / `reprogramarTrabajo`: además de `feriadosSV`, consultar la tabla `feriados` del año correspondiente antes de aceptar la fecha.
-- Nueva sección en `/configuracion` (solo admin) "Feriados y días no laborables": selector de año, tabla editable, botón "Cargar feriados nacionales de El Salvador" (que llama a `seedFeriadosAnio`), agregar/editar/quitar personalizados. Muestra el 6 de agosto ya cargado.
+Que la app funcione con fluidez en móvil pequeño (≥360px), móvil estándar (≥390px), tablet (≥768px) y desktop (≥1280px), en cualquier marca/SO. Tablas densas se convierten en **cards apiladas** en móvil y vuelven a tabla en ≥md.
 
-## 2. Calendario coloreado y drag & drop restringido
+## Principios
 
-- En `src/routes/_authenticated/programacion.tsx`:
-  - Los días sábado, domingo y feriados se pintan con clase distintiva (fondo `bg-muted/60`, texto `text-muted-foreground`, chip "Feriado · <nombre>" cuando aplica) tanto en vista Mes como Semana/Día/Año.
-  - Los slots no laborables llevan `draggable=false` y rechazan `onDragOver` / `onDrop`; se muestra toast "No se pueden programar trabajos en días no laborables (<motivo>)".
-  - Los feriados se leen mediante `useFeriados` para el año visible; al cambiar de año se recarga.
+- Mobile-first: base sin prefijo, `sm:` `md:` `lg:` para expandir.
+- Contenedores flexibles: `min-w-0` en cualquier hijo de `flex`/`grid` con texto; `shrink-0` en íconos/avatares; `truncate` en títulos.
+- Sin `overflow` accidental: reemplazar `flex flex-wrap` para headers por `grid-cols-[minmax(0,1fr)_auto]` → `sm:flex`.
+- Tap targets ≥ 44×44 en móvil (`min-h-11 min-w-11` en botones-ícono).
+- Diálogos: fullscreen en móvil (`max-w-none h-dvh sm:h-auto sm:max-w-lg`), scroll interno.
+- Navegación: sidebar desktop, drawer/bottom-tabs móvil (ya existe AppShell — se ajusta, no se reescribe).
+- Tipografía fluida: usar escalas `text-sm sm:text-base`, headings `text-xl sm:text-2xl`.
 
-## 3. PDF Interno sin edición de IA
+## Fases (multi-turno)
 
-- `getReporteParaPDF` ya devuelve los campos crudos. `ReporteDoc` acepta un flag `variante: "interno" | "cliente"`.
-  - `interno`: renderiza los textos exactamente como los ingresó el técnico/reportador (sin pasar por `redactarConIA`), sin la nota "Elaborado con asistencia IA".
-  - `cliente`: mantiene el flujo actual (usa la versión con IA cuando existe).
-- En `/reportes` los botones existentes "Descargar PDF Interno" y "Descargar PDF Cliente" pasan la variante correspondiente. El resumen imprimible interno hace lo mismo.
+### Fase 1 — Fundaciones (este turno)
+- `src/styles.css`: utilidades responsive base (`.responsive-table`, `.stack-on-mobile`, safe-area insets para notch/gesture bar, `overflow-wrap`, viewport `dvh`).
+- `src/components/PageHeader.tsx`: ya es responsive; verificar acciones que crecen bien.
+- `src/components/AppShell.tsx`: revisar breakpoints de sidebar/drawer, safe-area top/bottom, sticky headers.
+- Nuevo `src/components/ResponsiveTable.tsx`: helper que renderiza `<table>` en `md:` y una lista de cards en móvil, alimentado por la misma definición de columnas.
 
-## 4. Fotos del reporte diario independientes
+### Fase 2 — Módulos densos (tabla → cards)
+Aplicar `ResponsiveTable` a:
+- Trabajos (`/trabajos`, `/mis-trabajos`, `/terreno`)
+- Órdenes de compra (`/ordenes-compra`) — lista, ítems, recepciones, variaciones
+- Inventario (`/inventario`)
+- Usuarios (`/usuarios`), Clientes (`/clientes`), Plantas (`/plantas`), Equipos (`/equipos`)
+- Contratos, Mantenimientos, Solicitudes, Auditoría, Notificaciones
 
-- `ReportesDiariosSection`: cada tarjeta de reporte diario mantiene su propio `EvidenciaUploader` pero fuerza `reporte_diario_id = <id del reporte>` y `categoria = "diario"` al subir; muestra solo esas fotos.
-- En `evidencias.functions.ts` y en la sección "Hallazgos fotográficos" del detalle del trabajo, filtrar `WHERE reporte_diario_id IS NULL` para que las fotos de reportes ya no aparezcan mezcladas.
-- Migración de datos: `UPDATE trabajo_evidencias SET categoria = 'diario' WHERE reporte_diario_id IS NOT NULL AND categoria <> 'diario'`. No se mueven fotos entre sí; las que tienen `reporte_diario_id` quedan visibles solo dentro de su reporte, como pidió el usuario ("migrar automáticamente las que tengan reporte_diario_id").
+### Fase 3 — Vistas complejas
+- Dashboard: KPIs `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`, charts con `ResponsiveContainer` verificado, leyendas debajo en móvil.
+- Programación (calendario semana/mes/año): scroll horizontal contenido, controles apilados en móvil, filtros en `Sheet` en móvil.
+- Mapa: alto `h-[60dvh] md:h-[calc(100dvh-8rem)]`, controles flotantes con safe-area.
+- Reportes / PDF viewer: toolbar apilable, zoom con pinch nativo.
 
-## 5. Llenado del reporte diario desde A.T. (Terreno)
+### Fase 4 — Formularios y diálogos
+- Todos los `Dialog` con `>` 1 columna: `grid-cols-1 md:grid-cols-2`.
+- Diálogos grandes (nueva OC, nuevo trabajo, editar planta, evidencia): fullscreen móvil.
+- Inputs: `text-base` (evita zoom en iOS al enfocar), `inputMode` correcto, `autoComplete` correcto.
+- EvidenciaUploader / SignaturePad / JornadaControl: verificar en móvil real.
 
-- Mover el bloque de "Reportes diarios" del detalle en `/trabajos` a `/terreno`:
-  - En `terreno.tsx` cada `TrabajoCard` con estado `en_progreso` (o el técnico asignado hoy) muestra un botón "Reporte diario del día" que abre un `Sheet` con `ReportesDiariosSection` filtrado a ese trabajo y precargado con la fecha de hoy en zona SV.
-  - Se conservan hora inicio/fin (auto desde jornada), campos operativos (paneles, watts, TDS, presión, ángulo), fotos independientes y el guardado offline.
-  - En el detalle de trabajos (vista admin/supervisor/cliente) el bloque pasa a modo solo lectura con un aviso: "El llenado del reporte diario se realiza desde A.T. (módulo Terreno)". Los admins/supervisores pueden abrirlo desde A.T. directamente.
-- Roles: A.T. sigue accesible para admin, supervisor y técnico. Cliente conserva la vista de solo lectura en Trabajos.
+### Fase 5 — Pulido cross-device
+- Safe-area (iOS notch, Android gesture): `env(safe-area-inset-*)` en top-nav y bottom-nav.
+- Prevenir zoom accidental / doble-tap: `touch-action: manipulation` en botones.
+- Scroll: `overscroll-behavior` contenido en modales y drawers.
+- QA con Playwright en 4 viewports (360, 390, 768, 1280) por ruta clave, capturar y ajustar.
 
 ## Detalles técnicos
 
-- Migración SQL única: crea `feriados` (con GRANT/RLS/POLICY/trigger `updated_at`), inserta feriados nacionales SV para el año actual y el próximo, y ejecuta el `UPDATE` de categoría en `trabajo_evidencias`.
-- `dias-habiles.ts` sigue exponiendo funciones síncronas; el caché se llena antes de las validaciones vía `useFeriados` en cliente y vía un fetch inline dentro de las server fns cuando se valida una fecha.
-- El flag `variante` de `ReporteDoc` se propaga desde `pdf/descargar.ts` y desde `PrintDocFrame` para no duplicar componentes.
-- Realtime: agregar `feriados` y `trabajo_reportes_diarios` a `useRealtimeSync` para que los admins vean cambios sin recargar.
-- Idioma español de Chile en toda la UI nueva; mensajes de toast coherentes con los existentes.
+### ResponsiveTable (esqueleto)
 
-## Fuera de alcance
+```tsx
+type Column<T> = {
+  key: string;
+  header: string;
+  cell: (row: T) => ReactNode;
+  primary?: boolean;   // se muestra como título en la card
+  secondary?: boolean; // subtítulo
+  hideOnMobile?: boolean;
+  className?: string;
+};
 
-- No se migran fotos entre categorías más allá del `UPDATE` descrito ni se borra evidencia existente.
-- No se altera la vista de PDF Cliente ni el flujo actual de aprobaciones.
+<ResponsiveTable
+  data={items}
+  columns={cols}
+  rowKey={(r) => r.id}
+  onRowClick={...}
+/>
+```
+Renderiza `<table>` en `md:` y `<div>` con cards `rounded-lg border p-3` en móvil, con `primary` como `font-semibold`, `secondary` como `text-xs text-muted-foreground`, el resto como pares `label: value`.
+
+### Fix patterns aplicados en cascada
+
+- Headers de página con acciones: `grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:flex sm:flex-wrap`.
+- Tabs con muchas pestañas: `TabsList` con `overflow-x-auto` + `snap-x` en móvil.
+- Botones con texto+ícono: mostrar solo ícono en móvil (`<span className="hidden sm:inline">…</span>`).
+- Filas de KPI: usar `dvh` en alturas de layout completo para que barra de dirección iOS no rompa.
+
+### Viewport meta
+Ya está `width=device-width, initial-scale=1` en `__root.tsx`. Añadir `viewport-fit=cover` para safe-area en iOS.
+
+## Alcance de este turno
+
+Fase 1 completa: fundaciones + `ResponsiveTable` + ajustes en `AppShell`, `PageHeader`, `styles.css` y `__root.tsx` (viewport-fit). Al terminar, verifico con Playwright en 360/390/768/1280px las rutas principales, y en los siguientes turnos voy migrando los módulos por lotes.
+
+¿Confirmas y arranco con Fase 1?
