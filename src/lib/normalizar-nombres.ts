@@ -48,6 +48,8 @@ export function normalizarNombresCanonicos(texto: string, nombresCanonicos: stri
   ).sort((a, b) => b.length - a.length);
   if (canonicos.length === 0) return texto;
 
+  const canonicosLower = new Set(canonicos.map((c) => c.toLowerCase()));
+
   let out = texto;
   // Pre-pass: para cada canónico, colapsar variantes con letras repetidas
   // (ej. "APPOPA ENERGY" → "Apopa Energy") y variantes case-insensitive
@@ -95,6 +97,12 @@ export function normalizarNombresCanonicos(texto: string, nombresCanonicos: stri
               words.splice(i, size, canon);
               cambio = true;
             }
+            continue;
+          }
+          // Si la ventana ya coincide exactamente con OTRO nombre canónico
+          // (p. ej. "EL ÁNGEL TECHO 2" cuando el canónico actual es
+          // "EL ÁNGEL TECHO 1"), no la toques: es un nombre válido distinto.
+          if (canonicosLower.has(winLower)) {
             continue;
           }
           const dist = levenshtein(winLower, canonLower);
