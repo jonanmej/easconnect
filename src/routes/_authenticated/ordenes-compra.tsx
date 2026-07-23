@@ -854,7 +854,8 @@ function RecepcionForm({
                   {r.recibido_por_nombre && <span>· Recibió: {r.recibido_por_nombre}</span>}
                   {r.notas && <span>· {r.notas}</span>}
                 </div>
-                <table className="w-full text-xs">
+                <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[560px]">
                   <tbody>
                     {(r.orden_compra_recepcion_items ?? []).map((ri: any) => (
                       <tr key={ri.id} className="border-t border-border">
@@ -880,6 +881,7 @@ function RecepcionForm({
                     ))}
                   </tbody>
                 </table>
+                </div>
                 {(r.orden_compra_recepcion_items ?? []).some((ri: any) => ri.variacion_motivo) && (
                   <div className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
                     {(r.orden_compra_recepcion_items ?? [])
