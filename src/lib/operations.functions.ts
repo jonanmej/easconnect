@@ -720,23 +720,20 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       fecha_programada: z.string().min(1),
       tecnico_id: z.string().uuid().nullable().optional(),
-      permitir_no_laborable: z.boolean().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
-    if (!data.permitir_no_laborable) {
-      await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
-      const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-      const motivo = motivoNoLaborableSV(patch.fecha_programada);
-      if (motivo) {
-        throw new Error(
-          motivo === "feriado"
-            ? "No se puede reprogramar a un día feriado."
-            : "No se puede reprogramar a sábado o domingo.",
-        );
-      }
+    await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
+    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
+    const motivo = motivoNoLaborableSV(patch.fecha_programada);
+    if (motivo) {
+      throw new Error(
+        motivo === "feriado"
+          ? "No se puede reprogramar a un día feriado."
+          : "No se puede reprogramar a sábado o domingo.",
+      );
     }
     // Validar conflicto si hay técnico (existente o nuevo)
     const { data: trabajoActual } = await context.supabase
