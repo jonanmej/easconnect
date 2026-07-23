@@ -422,9 +422,9 @@ function StaffDashboard() {
             className={"animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
             style={{ animationDelay: `${i * 60}ms` }}>
             <p className={"text-[10px] font-bold uppercase tracking-wider mb-2 " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:flex-wrap gap-x-2 gap-y-1 min-w-0">
               <span className={"text-3xl font-semibold font-mono tracking-tighter " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</span>
-              <span className={"text-xs font-medium " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
+              <span className={"text-xs font-medium leading-snug break-normal [overflow-wrap:normal] " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
             </div>
           </div>
         ))}
