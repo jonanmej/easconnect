@@ -61,28 +61,94 @@ function Inventario() {
   const [movFor, setMovFor] = useState<Item | null>(null);
   const [ordenOpen, setOrdenOpen] = useState(false);
   const [ordenBusy, setOrdenBusy] = useState(false);
-  const [ordenCantidades, setOrdenCantidades] = useState<Record<string, number>>({});
   const [ordenProveedores, setOrdenProveedores] = useState<string[]>([]);
   const [ordenProveedorInput, setOrdenProveedorInput] = useState("");
   const [ordenNotas, setOrdenNotas] = useState("");
+  type Fila = {
+    key: string;
+    source: "inventario" | "libre";
+    sku: string;
+    nombre: string;
+    categoria: string;
+    unidad: string;
+    stock_actual: number;
+    stock_minimo: number;
+    ubicacion: string | null;
+    cantidad_pedida: number;
+    proveedor: string;
+  };
+  const [ordenFilas, setOrdenFilas] = useState<Fila[]>([]);
   const { user } = useAuth();
 
   const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
 
   function abrirOrden() {
-    if (lowStockItems.length === 0) {
-      toast.info("No hay ítems bajo el stock mínimo.");
-      return;
-    }
-    const iniciales: Record<string, number> = {};
-    lowStockItems.forEach((i) => {
-      iniciales[i.id] = Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual)));
-    });
-    setOrdenCantidades(iniciales);
+    const iniciales: Fila[] = lowStockItems.map((i) => ({
+      key: `inv-${i.id}`,
+      source: "inventario",
+      sku: i.sku,
+      nombre: i.nombre,
+      categoria: catLabel[i.categoria],
+      unidad: i.unidad,
+      stock_actual: Number(i.stock_actual),
+      stock_minimo: Number(i.stock_minimo),
+      ubicacion: i.ubicacion,
+      cantidad_pedida: Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual))),
+      proveedor: "",
+    }));
+    setOrdenFilas(iniciales);
     setOrdenProveedores([]);
     setOrdenProveedorInput("");
     setOrdenNotas("");
     setOrdenOpen(true);
+  }
+
+  function agregarFilaLibre() {
+    setOrdenFilas((prev) => [
+      ...prev,
+      {
+        key: `libre-${Date.now()}-${prev.length}`,
+        source: "libre",
+        sku: "",
+        nombre: "",
+        categoria: "Insumo",
+        unidad: "un",
+        stock_actual: 0,
+        stock_minimo: 0,
+        ubicacion: null,
+        cantidad_pedida: 1,
+        proveedor: "",
+      },
+    ]);
+  }
+
+  function agregarDesdeInventario(item: Item) {
+    setOrdenFilas((prev) => {
+      if (prev.some((f) => f.source === "inventario" && f.sku === item.sku)) return prev;
+      return [
+        ...prev,
+        {
+          key: `inv-${item.id}`,
+          source: "inventario",
+          sku: item.sku,
+          nombre: item.nombre,
+          categoria: catLabel[item.categoria],
+          unidad: item.unidad,
+          stock_actual: Number(item.stock_actual),
+          stock_minimo: Number(item.stock_minimo),
+          ubicacion: item.ubicacion,
+          cantidad_pedida: Math.max(1, Math.ceil(Number(item.stock_minimo) - Number(item.stock_actual))),
+          proveedor: "",
+        },
+      ];
+    });
+  }
+
+  function actualizarFila(key: string, patch: Partial<Fila>) {
+    setOrdenFilas((prev) => prev.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+  }
+  function quitarFila(key: string) {
+    setOrdenFilas((prev) => prev.filter((f) => f.key !== key));
   }
 
   function agregarProveedor() {
@@ -97,11 +163,11 @@ function Inventario() {
   }
 
   async function generarOrden() {
-    const seleccion = lowStockItems
-      .map((i) => ({ i, cantidad: Number(ordenCantidades[i.id] ?? 0) }))
-      .filter((x) => x.cantidad > 0);
+    const seleccion = ordenFilas.filter(
+      (f) => Number(f.cantidad_pedida) > 0 && f.nombre.trim() !== "",
+    );
     if (seleccion.length === 0) {
-      toast.error("Ingresa cantidades a pedir para al menos un ítem.");
+      toast.error("Agrega al menos un ítem con nombre y cantidad.");
       return;
     }
     setOrdenBusy(true);
@@ -120,15 +186,16 @@ function Inventario() {
                 ? [ordenProveedorInput.trim()]
                 : null,
           notas: ordenNotas || null,
-          items: seleccion.map(({ i, cantidad }) => ({
-            sku: i.sku,
-            nombre: i.nombre,
-            categoria: catLabel[i.categoria],
-            unidad: i.unidad,
-            stock_actual: Number(i.stock_actual),
-            stock_minimo: Number(i.stock_minimo),
-            cantidad_pedida: cantidad,
-            ubicacion: i.ubicacion,
+          items: seleccion.map((f) => ({
+            sku: f.sku || "—",
+            nombre: f.nombre.trim(),
+            categoria: f.categoria,
+            unidad: f.unidad || "un",
+            stock_actual: f.stock_actual,
+            stock_minimo: f.stock_minimo,
+            cantidad_pedida: Number(f.cantidad_pedida),
+            ubicacion: f.ubicacion,
+            proveedor: f.proveedor.trim() || null,
           })),
         },
         `OrdenCompra-${folio}-${fecha}.pdf`,
@@ -380,13 +447,13 @@ function Inventario() {
             <div className="px-5 py-4 border-b border-border">
               <h3 className="text-sm font-semibold">Generar orden de compra</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {lowStockItems.length} SKU bajo el stock mínimo. Ajusta las cantidades a solicitar.
+                Los ítems se agrupan por proveedor en el PDF. Puedes agregar ítems del inventario o crear ítems libres (que aún no existen en bodega).
               </p>
             </div>
             <div className="p-5 overflow-y-auto space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs">
-                  <span className="block text-muted-foreground mb-1">Proveedor sugerido</span>
+                  <span className="block text-muted-foreground mb-1">Proveedores disponibles</span>
                   <div className="flex gap-2">
                     <input
                       value={ordenProveedorInput}
@@ -436,34 +503,142 @@ function Inventario() {
                   <input value={ordenNotas} onChange={(e) => setOrdenNotas(e.target.value)} className={inputCls} placeholder="Referencia interna, urgencia, etc." />
                 </label>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={agregarFilaLibre}
+                  className="h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1"
+                >
+                  <Plus className="size-3" /> Ítem libre (no está en bodega)
+                </button>
+                <select
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    if (!id) return;
+                    const it = items.find((x) => x.id === id);
+                    if (it) agregarDesdeInventario(it);
+                    e.target.value = "";
+                  }}
+                  className={inputCls + " max-w-xs"}
+                  defaultValue=""
+                >
+                  <option value="">+ Agregar desde inventario…</option>
+                  {items.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.sku} · {i.nombre}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  {ordenFilas.length} ítem{ordenFilas.length === 1 ? "" : "s"}
+                </span>
+              </div>
               <div className="border border-border rounded-md overflow-x-auto">
-                <table className="w-full text-xs min-w-[600px]">
+                <table className="w-full text-xs min-w-[820px]">
                   <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
                     <tr>
-                      <th className="px-3 py-2 text-left">SKU</th>
-                      <th className="px-3 py-2 text-left">Item</th>
-                      <th className="px-3 py-2 text-right">Stock</th>
-                      <th className="px-3 py-2 text-right">Mínimo</th>
-                      <th className="px-3 py-2 text-right">A pedir</th>
+                      <th className="px-2 py-2 text-left">SKU</th>
+                      <th className="px-2 py-2 text-left">Descripción</th>
+                      <th className="px-2 py-2 text-left">Unidad</th>
+                      <th className="px-2 py-2 text-right">A pedir</th>
+                      <th className="px-2 py-2 text-left">Proveedor</th>
+                      <th className="px-2 py-2"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {lowStockItems.map((i) => (
-                      <tr key={i.id}>
-                        <td className="px-3 py-2 font-mono">{i.sku}</td>
-                        <td className="px-3 py-2">{i.nombre}</td>
-                        <td className="px-3 py-2 text-right font-mono text-destructive">{i.stock_actual}</td>
-                        <td className="px-3 py-2 text-right font-mono text-muted-foreground">{i.stock_minimo}</td>
-                        <td className="px-3 py-2 text-right">
+                    {ordenFilas.map((f) => (
+                      <tr key={f.key}>
+                        <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
+                          {f.source === "inventario" ? f.sku : <span className="text-muted-foreground">— libre —</span>}
+                        </td>
+                        <td className="px-2 py-2">
+                          {f.source === "inventario" ? (
+                            <div>
+                              <div className="font-medium">{f.nombre}</div>
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                stock {f.stock_actual} · mín {f.stock_minimo}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              <input
+                                value={f.nombre}
+                                onChange={(e) => actualizarFila(f.key, { nombre: e.target.value })}
+                                placeholder="Descripción del ítem"
+                                className="h-8 px-2 rounded-md border border-input bg-background w-full"
+                              />
+                              <input
+                                value={f.categoria}
+                                onChange={(e) => actualizarFila(f.key, { categoria: e.target.value })}
+                                placeholder="Categoría"
+                                className="h-7 px-2 rounded-md border border-input bg-background w-full text-[11px]"
+                              />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {f.source === "inventario" ? (
+                            <span className="text-muted-foreground">{f.unidad}</span>
+                          ) : (
+                            <input
+                              value={f.unidad}
+                              onChange={(e) => actualizarFila(f.key, { unidad: e.target.value })}
+                              className="h-8 w-16 px-2 rounded-md border border-input bg-background"
+                            />
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-right">
                           <input
                             type="number" min={0} step="0.01"
-                            value={ordenCantidades[i.id] ?? 0}
-                            onChange={(e) => setOrdenCantidades((prev) => ({ ...prev, [i.id]: Number(e.target.value) }))}
-                            className="h-8 w-24 px-2 text-right rounded-md border border-input bg-background font-mono"
+                            value={f.cantidad_pedida}
+                            onChange={(e) => actualizarFila(f.key, { cantidad_pedida: Number(e.target.value) })}
+                            className="h-8 w-20 px-2 text-right rounded-md border border-input bg-background font-mono"
                           />
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex gap-1">
+                            {ordenProveedores.length > 0 ? (
+                              <select
+                                value={ordenProveedores.includes(f.proveedor) ? f.proveedor : ""}
+                                onChange={(e) => actualizarFila(f.key, { proveedor: e.target.value })}
+                                className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[8rem]"
+                              >
+                                <option value="">— sin asignar —</option>
+                                {ordenProveedores.map((p) => (
+                                  <option key={p} value={p}>{p}</option>
+                                ))}
+                                <option value="__custom__">Otro (escribir)…</option>
+                              </select>
+                            ) : null}
+                            {(ordenProveedores.length === 0 || f.proveedor === "__custom__" || (f.proveedor && !ordenProveedores.includes(f.proveedor))) && (
+                              <input
+                                value={f.proveedor === "__custom__" ? "" : f.proveedor}
+                                onChange={(e) => actualizarFila(f.key, { proveedor: e.target.value })}
+                                placeholder="Proveedor"
+                                className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[8rem]"
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => quitarFila(f.key)}
+                            className="size-7 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                            aria-label="Quitar"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
+                    {ordenFilas.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-6 text-center text-xs text-muted-foreground">
+                          No hay ítems. Usa los botones de arriba para agregar desde inventario o crear un ítem libre.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
