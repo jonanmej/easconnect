@@ -165,7 +165,12 @@ export const upsertFeriado = createServerFn({ method: "POST" })
       : context.supabase.from("feriados" as any).upsert(payload, { onConflict: "fecha" }).select().single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
-    return row;
+    // Si el feriado quedó activo, reubicar los trabajos programados ese día.
+    let reubicados: Array<{ id: string; folio: string; fecha_anterior: string; fecha_nueva: string }> = [];
+    if (data.activo) {
+      reubicados = await reubicarTrabajosDeFecha(context.supabase, `${data.fecha}T13:00:00.000Z`);
+    }
+    return { row, reubicados } as any;
   });
 
 export const toggleFeriadoActivo = createServerFn({ method: "POST" })
@@ -173,10 +178,16 @@ export const toggleFeriadoActivo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), activo: z.boolean() }).parse(d))
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
+    const { data: prev } = await context.supabase
+      .from("feriados" as any).select("fecha").eq("id", data.id).single();
     const { error } = await context.supabase
       .from("feriados" as any).update({ activo: data.activo, updated_by: context.userId }).eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    let reubicados: Array<{ id: string; folio: string; fecha_anterior: string; fecha_nueva: string }> = [];
+    if (data.activo && (prev as any)?.fecha) {
+      reubicados = await reubicarTrabajosDeFecha(context.supabase, `${(prev as any).fecha}T13:00:00.000Z`);
+    }
+    return { ok: true, reubicados };
   });
 
 export const deleteFeriado = createServerFn({ method: "POST" })
