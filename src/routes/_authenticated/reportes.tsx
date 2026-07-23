@@ -343,6 +343,21 @@ function Reportes() {
                   </button>
                 </>
               )}
+              {isCliente && r.estado === "enviado" && (
+                <>
+                  <button onClick={() => aprobar.mutate(r.id)} disabled={aprobar.isPending}
+                    className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-emerald-400 text-emerald-700 rounded-md hover:bg-emerald-50 disabled:opacity-50">
+                    <CheckCircle2 className="size-3.5" /> Aprobar trabajo
+                  </button>
+                  <button onClick={() => {
+                    const motivo = prompt("Motivo del rechazo (mínimo 4 caracteres):");
+                    if (motivo && motivo.trim().length >= 4) rechazar.mutate({ id: r.id, motivo: motivo.trim() });
+                  }} disabled={rechazar.isPending}
+                    className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50">
+                    <XCircle className="size-3.5" /> Rechazar
+                  </button>
+                </>
+              )}
               {canEdit && (r.estado === "rechazado" || r.estado === "aprobado") && (
                 <button onClick={() => nuevaVer.mutate(r.id)} disabled={nuevaVer.isPending}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
