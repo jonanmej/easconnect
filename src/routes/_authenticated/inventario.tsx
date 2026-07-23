@@ -11,11 +11,12 @@ import {
   deleteInventarioItem,
   registrarMovimiento,
 } from "@/lib/inventario.functions";
-import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp } from "lucide-react";
+import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, FileDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel } from "@/lib/excel";
+import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
@@ -58,6 +59,70 @@ function Inventario() {
 
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
   const [movFor, setMovFor] = useState<Item | null>(null);
+  const [ordenOpen, setOrdenOpen] = useState(false);
+  const [ordenBusy, setOrdenBusy] = useState(false);
+  const [ordenCantidades, setOrdenCantidades] = useState<Record<string, number>>({});
+  const [ordenProveedor, setOrdenProveedor] = useState("");
+  const [ordenNotas, setOrdenNotas] = useState("");
+  const { user } = useAuth();
+
+  const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
+
+  function abrirOrden() {
+    if (lowStockItems.length === 0) {
+      toast.info("No hay ítems bajo el stock mínimo.");
+      return;
+    }
+    const iniciales: Record<string, number> = {};
+    lowStockItems.forEach((i) => {
+      iniciales[i.id] = Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual)));
+    });
+    setOrdenCantidades(iniciales);
+    setOrdenProveedor("");
+    setOrdenNotas("");
+    setOrdenOpen(true);
+  }
+
+  async function generarOrden() {
+    const seleccion = lowStockItems
+      .map((i) => ({ i, cantidad: Number(ordenCantidades[i.id] ?? 0) }))
+      .filter((x) => x.cantidad > 0);
+    if (seleccion.length === 0) {
+      toast.error("Ingresa cantidades a pedir para al menos un ítem.");
+      return;
+    }
+    setOrdenBusy(true);
+    try {
+      const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
+      const folio = `OC-${Date.now().toString().slice(-8)}`;
+      await generarYDescargarOrdenCompraPdf(
+        {
+          folio,
+          fecha,
+          solicitante: user?.email ?? "Bodega",
+          proveedor: ordenProveedor || null,
+          notas: ordenNotas || null,
+          items: seleccion.map(({ i, cantidad }) => ({
+            sku: i.sku,
+            nombre: i.nombre,
+            categoria: catLabel[i.categoria],
+            unidad: i.unidad,
+            stock_actual: Number(i.stock_actual),
+            stock_minimo: Number(i.stock_minimo),
+            cantidad_pedida: cantidad,
+            ubicacion: i.ubicacion,
+          })),
+        },
+        `OrdenCompra-${folio}-${fecha}.pdf`,
+      );
+      toast.success("Orden de compra generada");
+      setOrdenOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar la orden");
+    } finally {
+      setOrdenBusy(false);
+    }
+  }
 
   const save = useMutation({
     mutationFn: (v: any) => fUpsert({ data: v }),
@@ -128,6 +193,18 @@ function Inventario() {
                 }],
               });
             }} />
+            <button
+              onClick={abrirOrden}
+              className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground rounded-md border border-border hover:bg-secondary/70"
+              title="Generar orden de compra con los ítems bajo el mínimo"
+            >
+              <FileDown className="size-3.5" /> Orden de compra
+              {lowStockItems.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[10px] font-bold">
+                  {lowStockItems.length}
+                </span>
+              )}
+            </button>
             {canEdit && (
               <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
                 className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
