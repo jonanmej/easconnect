@@ -61,28 +61,94 @@ function Inventario() {
   const [movFor, setMovFor] = useState<Item | null>(null);
   const [ordenOpen, setOrdenOpen] = useState(false);
   const [ordenBusy, setOrdenBusy] = useState(false);
-  const [ordenCantidades, setOrdenCantidades] = useState<Record<string, number>>({});
   const [ordenProveedores, setOrdenProveedores] = useState<string[]>([]);
   const [ordenProveedorInput, setOrdenProveedorInput] = useState("");
   const [ordenNotas, setOrdenNotas] = useState("");
+  type Fila = {
+    key: string;
+    source: "inventario" | "libre";
+    sku: string;
+    nombre: string;
+    categoria: string;
+    unidad: string;
+    stock_actual: number;
+    stock_minimo: number;
+    ubicacion: string | null;
+    cantidad_pedida: number;
+    proveedor: string;
+  };
+  const [ordenFilas, setOrdenFilas] = useState<Fila[]>([]);
   const { user } = useAuth();
 
   const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
 
   function abrirOrden() {
-    if (lowStockItems.length === 0) {
-      toast.info("No hay ítems bajo el stock mínimo.");
-      return;
-    }
-    const iniciales: Record<string, number> = {};
-    lowStockItems.forEach((i) => {
-      iniciales[i.id] = Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual)));
-    });
-    setOrdenCantidades(iniciales);
+    const iniciales: Fila[] = lowStockItems.map((i) => ({
+      key: `inv-${i.id}`,
+      source: "inventario",
+      sku: i.sku,
+      nombre: i.nombre,
+      categoria: catLabel[i.categoria],
+      unidad: i.unidad,
+      stock_actual: Number(i.stock_actual),
+      stock_minimo: Number(i.stock_minimo),
+      ubicacion: i.ubicacion,
+      cantidad_pedida: Math.max(1, Math.ceil(Number(i.stock_minimo) - Number(i.stock_actual))),
+      proveedor: "",
+    }));
+    setOrdenFilas(iniciales);
     setOrdenProveedores([]);
     setOrdenProveedorInput("");
     setOrdenNotas("");
     setOrdenOpen(true);
+  }
+
+  function agregarFilaLibre() {
+    setOrdenFilas((prev) => [
+      ...prev,
+      {
+        key: `libre-${Date.now()}-${prev.length}`,
+        source: "libre",
+        sku: "",
+        nombre: "",
+        categoria: "Insumo",
+        unidad: "un",
+        stock_actual: 0,
+        stock_minimo: 0,
+        ubicacion: null,
+        cantidad_pedida: 1,
+        proveedor: "",
+      },
+    ]);
+  }
+
+  function agregarDesdeInventario(item: Item) {
+    setOrdenFilas((prev) => {
+      if (prev.some((f) => f.source === "inventario" && f.sku === item.sku)) return prev;
+      return [
+        ...prev,
+        {
+          key: `inv-${item.id}`,
+          source: "inventario",
+          sku: item.sku,
+          nombre: item.nombre,
+          categoria: catLabel[item.categoria],
+          unidad: item.unidad,
+          stock_actual: Number(item.stock_actual),
+          stock_minimo: Number(item.stock_minimo),
+          ubicacion: item.ubicacion,
+          cantidad_pedida: Math.max(1, Math.ceil(Number(item.stock_minimo) - Number(item.stock_actual))),
+          proveedor: "",
+        },
+      ];
+    });
+  }
+
+  function actualizarFila(key: string, patch: Partial<Fila>) {
+    setOrdenFilas((prev) => prev.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+  }
+  function quitarFila(key: string) {
+    setOrdenFilas((prev) => prev.filter((f) => f.key !== key));
   }
 
   function agregarProveedor() {
@@ -97,11 +163,11 @@ function Inventario() {
   }
 
   async function generarOrden() {
-    const seleccion = lowStockItems
-      .map((i) => ({ i, cantidad: Number(ordenCantidades[i.id] ?? 0) }))
-      .filter((x) => x.cantidad > 0);
+    const seleccion = ordenFilas.filter(
+      (f) => Number(f.cantidad_pedida) > 0 && f.nombre.trim() !== "",
+    );
     if (seleccion.length === 0) {
-      toast.error("Ingresa cantidades a pedir para al menos un ítem.");
+      toast.error("Agrega al menos un ítem con nombre y cantidad.");
       return;
     }
     setOrdenBusy(true);
@@ -120,15 +186,16 @@ function Inventario() {
                 ? [ordenProveedorInput.trim()]
                 : null,
           notas: ordenNotas || null,
-          items: seleccion.map(({ i, cantidad }) => ({
-            sku: i.sku,
-            nombre: i.nombre,
-            categoria: catLabel[i.categoria],
-            unidad: i.unidad,
-            stock_actual: Number(i.stock_actual),
-            stock_minimo: Number(i.stock_minimo),
-            cantidad_pedida: cantidad,
-            ubicacion: i.ubicacion,
+          items: seleccion.map((f) => ({
+            sku: f.sku || "—",
+            nombre: f.nombre.trim(),
+            categoria: f.categoria,
+            unidad: f.unidad || "un",
+            stock_actual: f.stock_actual,
+            stock_minimo: f.stock_minimo,
+            cantidad_pedida: Number(f.cantidad_pedida),
+            ubicacion: f.ubicacion,
+            proveedor: f.proveedor.trim() || null,
           })),
         },
         `OrdenCompra-${folio}-${fecha}.pdf`,
