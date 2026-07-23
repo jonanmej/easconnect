@@ -206,7 +206,8 @@ function Programacion() {
   );
 
   const move = useMutation({
-    mutationFn: (vars: { id: string; fecha_programada: string }) => fetchMove({ data: vars }),
+    mutationFn: (vars: { id: string; fecha_programada: string; permitir_no_laborable?: boolean }) =>
+      fetchMove({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo reprogramado");
       qc.invalidateQueries({ queryKey: ["trabajos"] });
