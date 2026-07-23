@@ -28,8 +28,39 @@ function levenshtein(a: string, b: string): number {
 }
 
 function maxDistanciaPermitida(canon: string): number {
-  // 1 error cada 6 caracteres, con topes razonables.
+  // 1 error cada 6 caracteres, con topes razonables. Umbrales conservadores
+  // para evitar que ventanas con palabras extra (p.ej. "en EL ÁNGEL TECHO 2")
+  // colapsen sobre nombres parecidos. Las alucinaciones tipo
+  // "APOPA" → "APOPAPARETE" se atrapan aparte con coincidePorInserciones.
   return Math.min(3, Math.max(1, Math.floor(canon.length / 6)));
+}
+
+/**
+ * Verifica si la ventana coincide con el canónico permitiendo SOLO
+ * inserciones dentro de cada token (no sustituciones ni tokens distintos).
+ * Útil para atrapar alucinaciones donde la IA agrega letras extra a un
+ * nombre propio, sin caer en la trampa de reemplazar un nombre válido
+ * por otro parecido.
+ */
+function coincidePorInserciones(windowLower: string, canonLower: string): boolean {
+  const wTokens = windowLower.split(/\s+/);
+  const cTokens = canonLower.split(/\s+/);
+  if (wTokens.length !== cTokens.length) return false;
+  for (let i = 0; i < cTokens.length; i++) {
+    const c = cTokens[i];
+    const w = wTokens[i];
+    if (w === c) continue;
+    // El token canónico debe aparecer como subsecuencia dentro del token
+    // de la ventana, y la ventana no puede ser mucho más larga.
+    if (w.length < c.length) return false;
+    if (w.length > c.length * 2 + 2) return false;
+    let j = 0;
+    for (let k = 0; k < w.length && j < c.length; k++) {
+      if (w.charCodeAt(k) === c.charCodeAt(j)) j++;
+    }
+    if (j !== c.length) return false;
+  }
+  return true;
 }
 
 /**
@@ -103,6 +134,11 @@ export function normalizarNombresCanonicos(texto: string, nombresCanonicos: stri
           // (p. ej. "EL ÁNGEL TECHO 2" cuando el canónico actual es
           // "EL ÁNGEL TECHO 1"), no la toques: es un nombre válido distinto.
           if (canonicosLower.has(winLower)) {
+            continue;
+          }
+          if (coincidePorInserciones(winLower, canonLower)) {
+            words.splice(i, size, canon);
+            cambio = true;
             continue;
           }
           const dist = levenshtein(winLower, canonLower);
