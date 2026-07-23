@@ -22,6 +22,7 @@ import { Route as AuthenticatedRutasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
 import { Route as AuthenticatedPlantasRouteImport } from './routes/_authenticated/plantas'
+import { Route as AuthenticatedOrdenesCompraRouteImport } from './routes/_authenticated/ordenes-compra'
 import { Route as AuthenticatedNotificacionesRouteImport } from './routes/_authenticated/notificaciones'
 import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenticated/mis-trabajos'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
@@ -107,6 +108,12 @@ const AuthenticatedPlantasRoute = AuthenticatedPlantasRouteImport.update({
   path: '/plantas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrdenesCompraRoute =
+  AuthenticatedOrdenesCompraRouteImport.update({
+    id: '/ordenes-compra',
+    path: '/ordenes-compra',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNotificacionesRoute =
   AuthenticatedNotificacionesRouteImport.update({
     id: '/notificaciones',
@@ -226,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
+  '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
@@ -257,6 +265,7 @@ export interface FileRoutesByTo {
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/notificaciones': typeof AuthenticatedNotificacionesRoute
+  '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/plantas': typeof AuthenticatedPlantasRoute
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
@@ -291,6 +300,7 @@ export interface FileRoutesById {
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
   '/_authenticated/notificaciones': typeof AuthenticatedNotificacionesRoute
+  '/_authenticated/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/_authenticated/plantas': typeof AuthenticatedPlantasRoute
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/mis-trabajos'
     | '/notificaciones'
+    | '/ordenes-compra'
     | '/plantas'
     | '/programacion'
     | '/reportes'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/mis-trabajos'
     | '/notificaciones'
+    | '/ordenes-compra'
     | '/plantas'
     | '/programacion'
     | '/reportes'
@@ -390,6 +402,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mapa'
     | '/_authenticated/mis-trabajos'
     | '/_authenticated/notificaciones'
+    | '/_authenticated/ordenes-compra'
     | '/_authenticated/plantas'
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
@@ -512,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/plantas'
       fullPath: '/plantas'
       preLoaderRoute: typeof AuthenticatedPlantasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ordenes-compra': {
+      id: '/_authenticated/ordenes-compra'
+      path: '/ordenes-compra'
+      fullPath: '/ordenes-compra'
+      preLoaderRoute: typeof AuthenticatedOrdenesCompraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notificaciones': {
@@ -655,6 +675,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedMisTrabajosRoute: typeof AuthenticatedMisTrabajosRoute
   AuthenticatedNotificacionesRoute: typeof AuthenticatedNotificacionesRoute
+  AuthenticatedOrdenesCompraRoute: typeof AuthenticatedOrdenesCompraRoute
   AuthenticatedPlantasRoute: typeof AuthenticatedPlantasRoute
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
@@ -678,6 +699,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedMisTrabajosRoute: AuthenticatedMisTrabajosRoute,
   AuthenticatedNotificacionesRoute: AuthenticatedNotificacionesRoute,
+  AuthenticatedOrdenesCompraRoute: AuthenticatedOrdenesCompraRoute,
   AuthenticatedPlantasRoute: AuthenticatedPlantasRoute,
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,

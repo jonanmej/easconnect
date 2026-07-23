@@ -246,6 +246,7 @@ export type Database = {
       inventario_items: {
         Row: {
           categoria: Database["public"]["Enums"]["inventario_categoria"]
+          costo_promedio: number
           created_at: string
           id: string
           nombre: string
@@ -258,6 +259,7 @@ export type Database = {
         }
         Insert: {
           categoria: Database["public"]["Enums"]["inventario_categoria"]
+          costo_promedio?: number
           created_at?: string
           id?: string
           nombre: string
@@ -270,6 +272,7 @@ export type Database = {
         }
         Update: {
           categoria?: Database["public"]["Enums"]["inventario_categoria"]
+          costo_promedio?: number
           created_at?: string
           id?: string
           nombre?: string
@@ -563,6 +566,239 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      orden_compra_estados_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          estado_anterior: Database["public"]["Enums"]["oc_estado"] | null
+          estado_nuevo: Database["public"]["Enums"]["oc_estado"]
+          id: string
+          notas: string | null
+          orden_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          estado_anterior?: Database["public"]["Enums"]["oc_estado"] | null
+          estado_nuevo: Database["public"]["Enums"]["oc_estado"]
+          id?: string
+          notas?: string | null
+          orden_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          estado_anterior?: Database["public"]["Enums"]["oc_estado"] | null
+          estado_nuevo?: Database["public"]["Enums"]["oc_estado"]
+          id?: string
+          notas?: string | null
+          orden_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_compra_estados_log_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden_compra_items: {
+        Row: {
+          cantidad_pedida: number
+          cantidad_recibida: number
+          categoria: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          nombre: string
+          orden_id: string
+          precio_unitario: number | null
+          proveedor: string | null
+          sku_texto: string | null
+          unidad: string
+        }
+        Insert: {
+          cantidad_pedida: number
+          cantidad_recibida?: number
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          nombre: string
+          orden_id: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          sku_texto?: string | null
+          unidad?: string
+        }
+        Update: {
+          cantidad_pedida?: number
+          cantidad_recibida?: number
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          nombre?: string
+          orden_id?: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          sku_texto?: string | null
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_compra_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventario_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_compra_items_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden_compra_recepcion_items: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          created_at: string
+          id: string
+          item_id: string | null
+          orden_item_id: string
+          recepcion_id: string
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          orden_item_id: string
+          recepcion_id: string
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          orden_item_id?: string
+          recepcion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_compra_recepcion_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventario_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_compra_recepcion_items_orden_item_id_fkey"
+            columns: ["orden_item_id"]
+            isOneToOne: false
+            referencedRelation: "orden_compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_compra_recepcion_items_recepcion_id_fkey"
+            columns: ["recepcion_id"]
+            isOneToOne: false
+            referencedRelation: "orden_compra_recepciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden_compra_recepciones: {
+        Row: {
+          id: string
+          notas: string | null
+          orden_id: string
+          recibido_at: string
+          recibido_por: string | null
+          recibido_por_nombre: string | null
+        }
+        Insert: {
+          id?: string
+          notas?: string | null
+          orden_id: string
+          recibido_at?: string
+          recibido_por?: string | null
+          recibido_por_nombre?: string | null
+        }
+        Update: {
+          id?: string
+          notas?: string | null
+          orden_id?: string
+          recibido_at?: string
+          recibido_por?: string | null
+          recibido_por_nombre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_compra_recepciones_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordenes_compra: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["oc_estado"]
+          fecha_cancelada: string | null
+          fecha_emision: string
+          fecha_enviada: string | null
+          fecha_recibida: string | null
+          folio: string
+          id: string
+          notas: string | null
+          proveedores: Json
+          solicitante: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["oc_estado"]
+          fecha_cancelada?: string | null
+          fecha_emision?: string
+          fecha_enviada?: string | null
+          fecha_recibida?: string | null
+          folio: string
+          id?: string
+          notas?: string | null
+          proveedores?: Json
+          solicitante?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["oc_estado"]
+          fecha_cancelada?: string | null
+          fecha_emision?: string
+          fecha_enviada?: string | null
+          fecha_recibida?: string | null
+          folio?: string
+          id?: string
+          notas?: string | null
+          proveedores?: Json
+          solicitante?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       password_reset_solicitudes: {
         Row: {
@@ -1736,6 +1972,14 @@ export type Database = {
       }
     }
     Functions: {
+      cambiar_estado_oc: {
+        Args: {
+          _notas?: string
+          _nuevo_estado: Database["public"]["Enums"]["oc_estado"]
+          _orden_id: string
+        }
+        Returns: undefined
+      }
       contrato_cumplimiento: {
         Args: { _anio: number }
         Returns: {
@@ -1776,6 +2020,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      registrar_recepcion_oc: {
+        Args: {
+          _lineas: Json
+          _notas?: string
+          _orden_id: string
+          _recibido_por_nombre?: string
+        }
+        Returns: string
       }
       reset_operational_data: { Args: never; Returns: undefined }
       validar_token_aprobacion: {
@@ -1833,6 +2086,7 @@ export type Database = {
         | "cancelado"
       mantenimiento_tipo: "preventivo" | "correctivo" | "predictivo"
       movimiento_tipo: "ingreso" | "salida" | "ajuste"
+      oc_estado: "borrador" | "enviada" | "parcial" | "recibida" | "cancelada"
       reporte_estado: "borrador" | "enviado" | "aprobado" | "rechazado"
       trabajo_estado: "programado" | "en_progreso" | "completado" | "cancelado"
     }
@@ -1987,6 +2241,7 @@ export const Constants = {
       ],
       mantenimiento_tipo: ["preventivo", "correctivo", "predictivo"],
       movimiento_tipo: ["ingreso", "salida", "ajuste"],
+      oc_estado: ["borrador", "enviada", "parcial", "recibida", "cancelada"],
       reporte_estado: ["borrador", "enviado", "aprobado", "rechazado"],
       trabajo_estado: ["programado", "en_progreso", "completado", "cancelado"],
     },

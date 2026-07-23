@@ -13,17 +13,17 @@ export const ROLE_LABEL: Record<AppRole, string> = {
 export const ROLE_ACCESS: Record<AppRole, string[]> = {
   admin: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
-    "/equipos", "/inventario", "/mantenimientos", "/reportes", "/usuarios",
+    "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes", "/usuarios",
     "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
   ],
   supervisor: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
-    "/equipos", "/inventario", "/mantenimientos", "/reportes",
+    "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes",
     "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",
-    "/inventario", "/mantenimientos", "/configuracion", "/terreno", "/rutas", "/mapa",
+    "/inventario", "/ordenes-compra", "/mantenimientos", "/configuracion", "/terreno", "/rutas", "/mapa",
   ],
   cliente: [
     "/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion",

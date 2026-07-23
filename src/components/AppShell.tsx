@@ -8,6 +8,7 @@ import {
   Sun,
   Bot,
   Boxes,
+  ShoppingCart,
   Wrench,
   Sparkles,
   Search,
@@ -80,6 +81,7 @@ const allGroups: NavGroup[] = [
       { to: "/mapa", label: "Mapa satelital", icon: Satellite },
       { to: "/equipos", label: "Equipos", icon: Bot },
       { to: "/inventario", label: "Inventario", icon: Boxes },
+      { to: "/ordenes-compra", label: "Órdenes de compra", icon: ShoppingCart },
     ],
   },
   {

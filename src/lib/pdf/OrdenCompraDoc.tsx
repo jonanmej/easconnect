@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Link } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 function absUrl(path: string) {
@@ -71,8 +71,16 @@ export type OrdenCompraData = {
   fecha: string;
   solicitante: string;
   proveedor?: string | string[] | null;
+  proveedores_detalle?: Array<{
+    nombre: string;
+    cotizacion_folio?: string | null;
+    cotizacion_fecha?: string | null;
+    cotizacion_monto?: number | null;
+    cotizacion_url?: string | null;
+  }> | null;
   notas?: string | null;
   items: OrdenCompraItem[];
+  estado?: string | null;
 };
 
 export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
@@ -112,7 +120,10 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
         </View>
 
         <Text style={s.title}>Orden de Compra</Text>
-        <Text style={s.subtitle}>Detalle de ítems solicitados agrupados por proveedor.</Text>
+        <Text style={s.subtitle}>
+          {data.estado ? `Estado: ${data.estado.toUpperCase()} · ` : ""}
+          Detalle de ítems solicitados agrupados por proveedor.
+        </Text>
         <View style={s.titleRule} />
 
         <View style={s.metaBox}>
@@ -139,6 +150,40 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
             <Text style={s.metaValue}>{data.fecha}</Text>
           </View>
         </View>
+
+        {data.proveedores_detalle && data.proveedores_detalle.length > 0 ? (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 8, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>
+              Cotizaciones por proveedor
+            </Text>
+            <View style={{ borderWidth: 0.75, borderColor: COL.border, borderRadius: 3 }}>
+              <View style={[s.tr, { backgroundColor: COL.bg }]}>
+                <Text style={[s.th, { flex: 2 }]}>Proveedor</Text>
+                <Text style={[s.th, { flex: 1.4 }]}>Cotización #</Text>
+                <Text style={[s.th, { flex: 1.2 }]}>Fecha</Text>
+                <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Monto</Text>
+                <Text style={[s.th, { flex: 2 }]}>Documento</Text>
+              </View>
+              {data.proveedores_detalle.map((p, i) => (
+                <View key={i} style={[s.tr, { backgroundColor: i % 2 ? "#fff" : COL.panel }]}>
+                  <Text style={[s.td, { flex: 2, fontFamily: FONT_BOLD }]}>{p.nombre}</Text>
+                  <Text style={[s.td, { flex: 1.4 }]}>{p.cotizacion_folio || "—"}</Text>
+                  <Text style={[s.td, { flex: 1.2 }]}>{p.cotizacion_fecha || "—"}</Text>
+                  <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: FONT_BOLD }]}>
+                    {p.cotizacion_monto != null ? `$ ${Number(p.cotizacion_monto).toFixed(2)}` : "—"}
+                  </Text>
+                  {p.cotizacion_url ? (
+                    <Link style={[s.td, { flex: 2, color: COL.primary }]} src={p.cotizacion_url}>
+                      Ver cotización adjunta
+                    </Link>
+                  ) : (
+                    <Text style={[s.td, { flex: 2, color: COL.muted }]}>Sin adjunto</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {grupoNombres.map((prov) => {
           const filas = grupos[prov];
