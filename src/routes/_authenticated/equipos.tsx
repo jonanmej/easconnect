@@ -164,28 +164,29 @@ function Equipos() {
         onSubmit={onSubmit}
       >
         {editing?.id ? (
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Código">
+          <div className="form-grid-3">
+            <Field label="Código" hint="Generado automáticamente">
               <input name="codigo" defaultValue={editing?.codigo ?? ""} className={inputCls + " font-mono bg-secondary"} readOnly />
             </Field>
-            <div className="col-span-2">
-              <Field label="Nombre">
+            <div className="sm:col-span-1 md:col-span-2">
+              <Field label="Nombre" required>
                 <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
               </Field>
             </div>
           </div>
         ) : (
           <>
-            <Field label="Nombre">
+            <Field
+              label="Nombre"
+              required
+              hint={<>El código se generará automáticamente como <span className="font-mono">EQP-TIPO-NNNNN</span> según el tipo.</>}
+            >
               <input name="nombre" required defaultValue={editing?.nombre ?? ""} className={inputCls} />
             </Field>
-            <p className="text-[10px] text-muted-foreground -mt-2">
-              El código se generará automáticamente como <span className="font-mono">EQP-TIPO-NNNNN</span> según el tipo.
-            </p>
           </>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Tipo">
+        <div className="form-grid">
+          <Field label="Tipo" required>
             <input name="tipo" required defaultValue={editing?.tipo ?? ""} className={inputCls} placeholder="Robot de Limpieza" />
           </Field>
           <Field label="Estado">
@@ -197,7 +198,7 @@ function Equipos() {
             </select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="form-grid">
           <Field label="Planta asignada">
             <select name="planta_id" defaultValue={editing?.planta_id ?? ""} className={inputCls}>
               <option value="">— En Bodega —</option>
