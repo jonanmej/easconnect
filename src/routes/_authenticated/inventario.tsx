@@ -56,12 +56,14 @@ function Inventario() {
 
   const list = useQuery({ queryKey: ["inventario"], queryFn: () => fList() });
   const items = (list.data as Item[] | undefined) ?? [];
-  const critico = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo)).length;
+  // Bajo stock = agotado (stock_actual <= 0) o por debajo del mínimo definido
+  const isLow = (i: Item) => Number(i.stock_actual) <= 0 || Number(i.stock_actual) < Number(i.stock_minimo);
+  const critico = items.filter(isLow).length;
 
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
   const [movFor, setMovFor] = useState<Item | null>(null);
 
-  const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
+  const lowStockItems = items.filter(isLow);
 
   // --- Vista: filtros, orden, agrupación, paginación ---
   const [q, setQ] = useState("");
@@ -77,7 +79,7 @@ function Inventario() {
     const ql = q.trim().toLowerCase();
     let rows = items.filter((i) => {
       if (catFilter !== "todas" && i.categoria !== catFilter) return false;
-      const low = Number(i.stock_actual) < Number(i.stock_minimo);
+      const low = isLow(i);
       if (estadoFilter === "bajo" && !low) return false;
       if (estadoFilter === "ok" && low) return false;
       if (!ql) return true;
@@ -92,8 +94,8 @@ function Inventario() {
       if (sortBy === "sku") return (a.sku ?? "").localeCompare(b.sku ?? "");
       if (sortBy === "stock_asc") return Number(a.stock_actual) - Number(b.stock_actual);
       // critico: bajo stock primero, luego nombre
-      const la = Number(a.stock_actual) < Number(a.stock_minimo) ? 0 : 1;
-      const lb = Number(b.stock_actual) < Number(b.stock_minimo) ? 0 : 1;
+      const la = isLow(a) ? 0 : 1;
+      const lb = isLow(b) ? 0 : 1;
       if (la !== lb) return la - lb;
       return a.nombre.localeCompare(b.nombre);
     });
@@ -307,7 +309,7 @@ function Inventario() {
           </thead>
           <tbody className="divide-y divide-border">
             {(agrupar ? [] : paginated).map((i) => {
-              const low = Number(i.stock_actual) < Number(i.stock_minimo);
+              const low = isLow(i);
               return (
                 <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
                   <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
@@ -346,7 +348,7 @@ function Inventario() {
             })}
             {agrupar && grupos.map(({ cat, rows }) => {
               const isCollapsed = !!collapsed[cat];
-              const bajos = rows.filter((r) => Number(r.stock_actual) < Number(r.stock_minimo)).length;
+              const bajos = rows.filter(isLow).length;
               return (
                 <>
                   <tr key={`grp-${cat}`} className="bg-secondary/60">
@@ -365,7 +367,7 @@ function Inventario() {
                     </td>
                   </tr>
                   {!isCollapsed && rows.map((i) => {
-                    const low = Number(i.stock_actual) < Number(i.stock_minimo);
+                    const low = isLow(i);
                     return (
                       <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
                         <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
