@@ -136,7 +136,7 @@ export function CumplimientoDoc({ data }: { data: CumplimientoData }) {
   const pct = Math.max(0, Math.min(100, data.cumplimiento_pct));
   return (
     <Document>
-      <Page size="A4" style={s.page}>
+      <Page size="A4" orientation="landscape" style={s.page}>
         <PageHeader data={data} />
         <Text style={s.title}>Cumplimiento de servicios contratados</Text>
         <Text style={s.subtitle}>{data.cliente} · Ejercicio {data.anio}</Text>
