@@ -174,14 +174,14 @@ function CumplimientoContratos() {
   }
   return (
     <section className="bg-card border border-border rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
+      <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold uppercase tracking-wider [overflow-wrap:normal] break-normal">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {clientesDisp.length > 1 && (
             <select
               value={clienteSel}
@@ -422,9 +422,9 @@ function StaffDashboard() {
             className={"animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
             style={{ animationDelay: `${i * 60}ms` }}>
             <p className={"text-[10px] font-bold uppercase tracking-wider mb-2 " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:flex-wrap gap-x-2 gap-y-1 min-w-0">
               <span className={"text-3xl font-semibold font-mono tracking-tighter " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</span>
-              <span className={"text-xs font-medium " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
+              <span className={"text-xs font-medium leading-snug break-normal [overflow-wrap:normal] " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
             </div>
           </div>
         ))}
