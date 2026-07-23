@@ -482,25 +482,72 @@ function OrdenDetalleDialog({
 
 function RecepcionForm({
   ordenId,
+  orden,
   items,
   invItems,
   recepciones,
   canReceive,
+  canEdit,
   onDone,
 }: {
   ordenId: string;
+  orden: any;
   items: any[];
   invItems: any[];
   recepciones: any[];
   canReceive: boolean;
+  canEdit: boolean;
   onDone: () => void;
 }) {
   const fReg = useServerFn(registrarRecepcionOC);
   const fUpsertInv = useServerFn(upsertInventarioItem);
-  const [lineas, setLineas] = useState<Record<string, { cantidad: number; costo: number; item_id_override?: string | null }>>({});
+  const fEditItem = useServerFn(editarRecepcionItemOC);
+  type LineaState = {
+    cantidad: number;
+    costo: number;
+    moneda: string;
+    impuesto: number;
+    variacion_motivo?: string;
+    item_id_override?: string | null;
+  };
+  const monedaOc: string = (orden?.moneda as string) || "USD";
+  const impuestoOc = Number(orden?.impuesto_pct ?? 0);
+  const [lineas, setLineas] = useState<Record<string, LineaState>>({});
   const [notas, setNotas] = useState("");
   const [nombreRecibe, setNombreRecibe] = useState("");
   const [busy, setBusy] = useState(false);
+
+  function upd(id: string, patch: Partial<LineaState>) {
+    setLineas((p) => ({
+      ...p,
+      [id]: {
+        cantidad: 0, costo: 0, moneda: monedaOc, impuesto: impuestoOc,
+        ...(p[id] ?? {}),
+        ...patch,
+      },
+    }));
+  }
+
+  const reconciliacion = useMemo(() => {
+    const proveedores: any[] = Array.isArray(orden?.proveedores) ? orden.proveedores : [];
+    const totalesPorProv: Record<string, { subtotal: number; impuesto: number; total: number }> = {};
+    for (const it of items) {
+      const st = lineas[it.id];
+      if (!st || !st.cantidad) continue;
+      const prov = ((it.proveedor as string) || "Sin proveedor").trim();
+      const sub = Number(st.cantidad) * Number(st.costo || 0);
+      const imp = sub * (Number(st.impuesto ?? 0) / 100);
+      const acc = totalesPorProv[prov] ?? { subtotal: 0, impuesto: 0, total: 0 };
+      acc.subtotal += sub; acc.impuesto += imp; acc.total += sub + imp;
+      totalesPorProv[prov] = acc;
+    }
+    return Object.entries(totalesPorProv).map(([prov, tot]) => {
+      const cot = proveedores.find((p: any) => ((p?.nombre as string) || "").trim() === prov);
+      const cotMonto = cot?.cotizacion_monto != null ? Number(cot.cotizacion_monto) : null;
+      const delta = cotMonto != null ? tot.total - cotMonto : null;
+      return { proveedor: prov, ...tot, cot_monto: cotMonto, delta };
+    });
+  }, [items, lineas, orden?.proveedores]);
 
   const registrar = useMutation({
     mutationFn: (payload: any) => fReg({ data: payload }),
@@ -528,7 +575,7 @@ function RecepcionForm({
           stock_minimo: 0,
         },
       });
-      setLineas((p) => ({ ...p, [oi.id]: { ...(p[oi.id] ?? { cantidad: 0, costo: 0 }), item_id_override: (nuevo as any).id } }));
+      upd(oi.id, { item_id_override: (nuevo as any).id });
       toast.success(`SKU ${(nuevo as any).sku} creado`);
     } else {
       const sku = prompt("Ingresa el SKU existente al que mapear este ítem:");
@@ -538,15 +585,35 @@ function RecepcionForm({
         toast.error("SKU no encontrado");
         return;
       }
-      setLineas((p) => ({ ...p, [oi.id]: { ...(p[oi.id] ?? { cantidad: 0, costo: 0 }), item_id_override: found.id } }));
+      upd(oi.id, { item_id_override: found.id });
       toast.success(`Mapeado a ${found.sku}`);
     }
   }
 
   async function enviar() {
-    const payload = Object.entries(lineas)
-      .filter(([, v]) => v.cantidad > 0)
-      .map(([oi_id, v]) => ({ orden_item_id: oi_id, cantidad: v.cantidad, costo_unitario: v.costo || 0, item_id_override: v.item_id_override ?? null }));
+    const payload: any[] = [];
+    for (const [oi_id, v] of Object.entries(lineas)) {
+      if (!v.cantidad || v.cantidad <= 0) continue;
+      const it = items.find((x: any) => x.id === oi_id);
+      const precioEsp = it?.precio_unitario != null ? Number(it.precio_unitario) : null;
+      const cambioPrecio = precioEsp != null && Math.abs(precioEsp - Number(v.costo || 0)) > 0.0001;
+      const cambioMoneda = (v.moneda || monedaOc) !== monedaOc;
+      const cambioImp = Number(v.impuesto ?? 0) !== impuestoOc;
+      if ((cambioPrecio || cambioMoneda || cambioImp) && (!v.variacion_motivo || v.variacion_motivo.trim().length < 3)) {
+        toast.error(`"${it?.nombre}": ingresa el motivo de la variación`);
+        return;
+      }
+      payload.push({
+        orden_item_id: oi_id,
+        cantidad: v.cantidad,
+        costo_unitario: v.costo || 0,
+        item_id_override: v.item_id_override ?? null,
+        moneda: v.moneda || monedaOc,
+        impuesto_pct: Number(v.impuesto ?? 0),
+        precio_esperado: precioEsp,
+        variacion_motivo: v.variacion_motivo || null,
+      });
+    }
     if (payload.length === 0) {
       toast.error("Ingresa cantidades a recibir");
       return;
@@ -557,6 +624,20 @@ function RecepcionForm({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function editarRi(ri: any) {
+    const cantStr = prompt(`Nueva cantidad para "${ri.inventario_items?.nombre ?? ""}" (actual: ${Number(ri.cantidad).toFixed(2)})`, String(ri.cantidad));
+    if (cantStr == null) return;
+    const costStr = prompt(`Nuevo costo unitario (actual: ${Number(ri.costo_unitario).toFixed(4)})`, String(ri.costo_unitario));
+    if (costStr == null) return;
+    const motivo = prompt("Motivo de la edición (mín. 3 caracteres):");
+    if (!motivo || motivo.trim().length < 3) { toast.error("Motivo obligatorio"); return; }
+    try {
+      await fEditItem({ data: { recepcion_item_id: ri.id, nueva_cantidad: Number(cantStr), nuevo_costo: Number(costStr), motivo } });
+      toast.success("Recepción actualizada y stock reconciliado");
+      onDone();
+    } catch (e: any) { toast.error(e.message); }
   }
 
   return (
@@ -571,6 +652,31 @@ function RecepcionForm({
               <input value={notas} onChange={(e) => setNotas(e.target.value)} className={inputCls} placeholder="Referencia, factura…" />
             </Field>
           </div>
+
+          {reconciliacion.length > 0 && (
+            <div className="border border-border rounded-md p-3 bg-secondary/40 text-xs space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Reconciliación contra cotizaciones
+              </p>
+              {reconciliacion.map((r) => (
+                <div key={r.proveedor} className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{r.proveedor}</span>
+                  <span className="text-muted-foreground">
+                    Subtotal ${r.subtotal.toFixed(2)} · Imp ${r.impuesto.toFixed(2)} · Total <b>${r.total.toFixed(2)}</b>
+                  </span>
+                  {r.cot_monto != null ? (
+                    <span className={Math.abs(r.delta ?? 0) > 0.01 ? "text-orange-600 dark:text-orange-400 inline-flex items-center gap-1" : "text-accent"}>
+                      {Math.abs(r.delta ?? 0) > 0.01 && <AlertTriangle className="size-3" />}
+                      vs cotización ${r.cot_monto.toFixed(2)} · Δ ${(r.delta ?? 0).toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground italic">Sin cotización registrada</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="border border-border rounded-md overflow-x-auto">
             <table className="w-full text-xs min-w-[800px]">
               <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
@@ -579,57 +685,102 @@ function RecepcionForm({
                   <th className="px-2 py-2 text-left">Descripción</th>
                   <th className="px-2 py-2 text-right">Pendiente</th>
                   <th className="px-2 py-2 text-right">Recibir</th>
-                  <th className="px-2 py-2 text-right">Costo unit. (USD)</th>
+                  <th className="px-2 py-2 text-right">Costo unit.</th>
+                  <th className="px-2 py-2 text-left">Moneda</th>
+                  <th className="px-2 py-2 text-right">Imp %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {items.map((it: any) => {
                   const pendiente = Number(it.cantidad_pedida) - Number(it.cantidad_recibida);
                   const libre = !it.item_id;
-                  const override = lineas[it.id]?.item_id_override;
+                  const st = lineas[it.id];
+                  const override = st?.item_id_override;
                   const skuMostrado = override
                     ? invItems.find((x: any) => x.id === override)?.sku ?? "resuelto"
                     : it.inventario_items?.sku;
+                  const precioEsp = it.precio_unitario != null ? Number(it.precio_unitario) : null;
+                  const costoActual = st?.costo ?? it.precio_unitario ?? 0;
+                  const monedaAct = st?.moneda ?? monedaOc;
+                  const impAct = st?.impuesto ?? impuestoOc;
+                  const cambioPrecio = precioEsp != null && Math.abs(precioEsp - Number(costoActual)) > 0.0001;
+                  const cambioMoneda = monedaAct !== monedaOc;
+                  const cambioImp = Number(impAct) !== impuestoOc;
+                  const hayVariacion = cambioPrecio || cambioMoneda || cambioImp;
                   return (
-                    <tr key={it.id} className={pendiente <= 0 ? "opacity-50" : ""}>
-                      <td className="px-2 py-2 font-mono">
-                        {skuMostrado ? (
-                          skuMostrado
-                        ) : (
-                          <button onClick={() => resolverItemLibre(it)} className="text-primary underline text-[11px]">
-                            Resolver…
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{it.nombre}</div>
-                        <div className="text-[10px] text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
-                        {libre && !override && <div className="text-[10px] text-orange-600 dark:text-orange-400">Ítem libre — requiere resolución</div>}
-                      </td>
-                      <td className="px-2 py-2 text-right font-mono">{pendiente.toFixed(2)}</td>
-                      <td className="px-2 py-2 text-right">
-                        <input
-                          type="number" min={0} max={pendiente} step="0.01"
-                          disabled={pendiente <= 0 || (libre && !override)}
-                          value={lineas[it.id]?.cantidad ?? 0}
-                          onChange={(e) =>
-                            setLineas((p) => ({ ...p, [it.id]: { ...(p[it.id] ?? { cantidad: 0, costo: 0 }), cantidad: Number(e.target.value) } }))
-                          }
-                          className="h-8 w-20 px-2 text-right rounded-md border border-input bg-background font-mono disabled:opacity-40"
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <input
-                          type="number" min={0} step="0.0001"
-                          disabled={pendiente <= 0}
-                          value={lineas[it.id]?.costo ?? it.precio_unitario ?? 0}
-                          onChange={(e) =>
-                            setLineas((p) => ({ ...p, [it.id]: { ...(p[it.id] ?? { cantidad: 0, costo: 0 }), costo: Number(e.target.value) } }))
-                          }
-                          className="h-8 w-24 px-2 text-right rounded-md border border-input bg-background font-mono disabled:opacity-40"
-                        />
-                      </td>
-                    </tr>
+                    <>
+                      <tr key={it.id} className={pendiente <= 0 ? "opacity-50" : ""}>
+                        <td className="px-2 py-2 font-mono">
+                          {skuMostrado ? skuMostrado : (
+                            <button onClick={() => resolverItemLibre(it)} className="text-primary underline text-[11px]">Resolver…</button>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="font-medium">{it.nombre}</div>
+                          <div className="text-[10px] text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
+                          {libre && !override && <div className="text-[10px] text-orange-600 dark:text-orange-400">Ítem libre — requiere resolución</div>}
+                          {precioEsp != null && <div className="text-[10px] text-muted-foreground">Esperado: ${precioEsp.toFixed(4)}</div>}
+                        </td>
+                        <td className="px-2 py-2 text-right font-mono">{pendiente.toFixed(2)}</td>
+                        <td className="px-2 py-2 text-right">
+                          <input
+                            type="number" min={0} max={pendiente} step="0.01"
+                            disabled={pendiente <= 0 || (libre && !override)}
+                            value={st?.cantidad ?? 0}
+                            onChange={(e) => upd(it.id, { cantidad: Number(e.target.value) })}
+                            className="h-8 w-20 px-2 text-right rounded-md border border-input bg-background font-mono disabled:opacity-40"
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <input
+                            type="number" min={0} step="0.0001"
+                            disabled={pendiente <= 0}
+                            value={costoActual}
+                            onChange={(e) => upd(it.id, { costo: Number(e.target.value) })}
+                            className={"h-8 w-24 px-2 text-right rounded-md border bg-background font-mono disabled:opacity-40 " + (cambioPrecio ? "border-orange-500/60" : "border-input")}
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            type="text"
+                            disabled={pendiente <= 0}
+                            value={monedaAct}
+                            onChange={(e) => upd(it.id, { moneda: e.target.value.toUpperCase().slice(0, 8) })}
+                            className={"h-8 w-16 px-2 rounded-md border bg-background font-mono uppercase disabled:opacity-40 " + (cambioMoneda ? "border-orange-500/60" : "border-input")}
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <input
+                            type="number" min={0} max={100} step="0.01"
+                            disabled={pendiente <= 0}
+                            value={impAct}
+                            onChange={(e) => upd(it.id, { impuesto: Number(e.target.value) })}
+                            className={"h-8 w-16 px-2 text-right rounded-md border bg-background font-mono disabled:opacity-40 " + (cambioImp ? "border-orange-500/60" : "border-input")}
+                          />
+                        </td>
+                      </tr>
+                      {hayVariacion && (st?.cantidad ?? 0) > 0 && (
+                        <tr key={it.id + "-motivo"} className="bg-orange-500/5">
+                          <td colSpan={7} className="px-2 py-2">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+                              <div className="flex-1 space-y-1">
+                                <p className="text-[10px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">
+                                  Variación detectada — motivo obligatorio
+                                </p>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: alza de proveedor, cambio de moneda, IVA aplicado…"
+                                  value={st?.variacion_motivo ?? ""}
+                                  onChange={(e) => upd(it.id, { variacion_motivo: e.target.value })}
+                                  className={inputCls}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>
@@ -673,16 +824,86 @@ function RecepcionForm({
                         <td className="py-1 font-mono text-[11px]">{ri.inventario_items?.sku ?? "—"}</td>
                         <td className="py-1">{ri.inventario_items?.nombre ?? ""}</td>
                         <td className="py-1 text-right font-mono">{Number(ri.cantidad).toFixed(2)}</td>
-                        <td className="py-1 text-right font-mono text-muted-foreground">$ {Number(ri.costo_unitario).toFixed(4)}</td>
+                        <td className="py-1 text-right font-mono text-muted-foreground">
+                          {ri.moneda || "USD"} {Number(ri.costo_unitario).toFixed(4)}
+                          {ri.impuesto_pct ? ` +${Number(ri.impuesto_pct).toFixed(1)}%` : ""}
+                        </td>
+                        <td className="py-1 text-right">
+                          {canEdit && (
+                            <button
+                              onClick={() => editarRi(ri)}
+                              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+                              title="Editar y reconciliar"
+                            >
+                              <Pencil className="size-3" /> Editar
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                {(r.orden_compra_recepcion_items ?? []).some((ri: any) => ri.variacion_motivo) && (
+                  <div className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+                    {(r.orden_compra_recepcion_items ?? [])
+                      .filter((ri: any) => ri.variacion_motivo)
+                      .map((ri: any) => (
+                        <div key={ri.id + "-mot"}>
+                          <b>{ri.inventario_items?.sku ?? "—"}:</b> {ri.variacion_motivo}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================ VARIACIONES ============================ */
+
+function VariacionesList({ rows, loading }: { rows: any[]; loading: boolean }) {
+  if (loading) return <p className="text-xs text-muted-foreground">Cargando variaciones…</p>;
+  if (!rows.length) return <p className="text-xs text-muted-foreground">Sin variaciones registradas para esta orden.</p>;
+  const badge: Record<string, string> = {
+    precio: "bg-orange-500/10 text-orange-600 border-orange-500/30 dark:text-orange-400",
+    moneda: "bg-primary/10 text-primary border-primary/30",
+    impuesto: "bg-accent/10 text-accent border-accent/30",
+    cantidad: "bg-destructive/10 text-destructive border-destructive/30",
+  };
+  return (
+    <div className="border border-border rounded-md overflow-x-auto">
+      <table className="w-full text-xs min-w-[600px]">
+        <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
+          <tr>
+            <th className="px-2 py-2 text-left">Fecha</th>
+            <th className="px-2 py-2 text-left">Tipo</th>
+            <th className="px-2 py-2 text-left">Esperado</th>
+            <th className="px-2 py-2 text-left">Recibido</th>
+            <th className="px-2 py-2 text-left">Motivo</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map((v: any) => (
+            <tr key={v.id}>
+              <td className="px-2 py-2 font-mono text-[11px] text-muted-foreground">
+                {new Date(v.created_at).toLocaleString("es-SV")}
+              </td>
+              <td className="px-2 py-2">
+                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badge[v.tipo] ?? ""}`}>
+                  {v.tipo}
+                </span>
+              </td>
+              <td className="px-2 py-2 font-mono">{v.valor_esperado ?? "—"}</td>
+              <td className="px-2 py-2 font-mono">{v.valor_recibido ?? "—"}</td>
+              <td className="px-2 py-2">{v.motivo || <span className="text-muted-foreground italic">—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
