@@ -1,6 +1,83 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findCleaningClientConflicts } from "@/lib/scheduling";
+
+/**
+ * Reubica automáticamente los trabajos programados en `fechaISO` hacia el
+ * siguiente día hábil disponible (saltando fines de semana, feriados y
+ * conflictos por cliente/servicio o técnico). Solo mueve la OT afectada —
+ * no toca otras programaciones de la misma planta que caigan en días
+ * distintos.
+ *
+ * Devuelve el detalle de cada reubicación para poder informar al usuario.
+ */
+async function reubicarTrabajosDeFecha(
+  supabase: any,
+  fechaISO: string,
+): Promise<Array<{ id: string; folio: string; fecha_anterior: string; fecha_nueva: string }>> {
+  // Rango del día en zona SV (UTC-6): 06:00Z–29:59Z aproximado.
+  const dia = new Date(fechaISO);
+  dia.setUTCHours(0, 0, 0, 0);
+  const desde = new Date(dia); desde.setUTCHours(0, 0, 0, 0);
+  const hasta = new Date(dia); hasta.setUTCHours(23, 59, 59, 999);
+  // Traer todas las OT programadas ese día que aún estén activas.
+  const { data: pend } = await supabase
+    .from("trabajos")
+    .select("id, folio, tecnico_id, duracion_dias, planta_id, servicio, fecha_programada, estado")
+    .gte("fecha_programada", desde.toISOString())
+    .lte("fecha_programada", hasta.toISOString())
+    .not("estado", "in", "(completado,cancelado)");
+  const afectados = (pend ?? []) as Array<any>;
+  if (afectados.length === 0) return [];
+
+  const { motivoNoLaborableSV, setFeriadosCache } = await import("@/lib/dias-habiles");
+  // Refrescar caché de feriados del año antes de iterar.
+  const anio = dia.getUTCFullYear();
+  const { data: fer } = await supabase
+    .from("feriados").select("fecha").eq("anio", anio).eq("activo", true);
+  setFeriadosCache(anio, new Set(((fer ?? []) as Array<{ fecha: string }>).map((r) => r.fecha)));
+
+  const movidos: Array<{ id: string; folio: string; fecha_anterior: string; fecha_nueva: string }> = [];
+  for (const t of afectados) {
+    const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+    const cursor = new Date(t.fecha_programada);
+    // Avanzamos día por día hasta encontrar uno hábil sin conflictos.
+    for (let i = 0; i < 90; i++) {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+      const candidato = cursor.toISOString();
+      if (motivoNoLaborableSV(candidato)) continue;
+      const cf = await findCleaningClientConflicts(supabase, {
+        plantaId: t.planta_id,
+        servicio: t.servicio,
+        fechaProgramada: candidato,
+        duracionDias: dur,
+        excluirTrabajoId: t.id,
+      });
+      if (cf.length > 0) continue;
+      if (t.tecnico_id) {
+        const { data: cts } = await supabase.rpc("verificar_conflicto_tecnico" as any, {
+          _tecnico_id: t.tecnico_id,
+          _fecha: candidato,
+          _duracion_dias: dur,
+          _excluir_trabajo_id: t.id,
+        });
+        if ((cts ?? []).length > 0) continue;
+      }
+      const { error } = await supabase
+        .from("trabajos").update({ fecha_programada: candidato }).eq("id", t.id);
+      if (!error) {
+        movidos.push({ id: t.id, folio: t.folio, fecha_anterior: t.fecha_programada, fecha_nueva: candidato });
+        try {
+          const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+          await notificarEventoTrabajo({ evento: "reprogramado", trabajoId: t.id }).catch(() => {});
+        } catch { /* silenciar */ }
+      }
+      break;
+    }
+  }
+  return movidos;
+}
 
 /** Base de feriados nacionales SV para precargar al crear un año nuevo. */
 function seedNacionalesSV(year: number): { fecha: string; nombre: string }[] {
