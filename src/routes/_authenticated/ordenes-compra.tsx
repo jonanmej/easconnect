@@ -11,7 +11,6 @@ import {
   cambiarEstadoOC,
   registrarRecepcionOC,
   eliminarOrdenCompra,
-  firmarUrlCotizacion,
   editarRecepcionItemOC,
   listVariacionesOC,
   guardarOrdenCompra,
