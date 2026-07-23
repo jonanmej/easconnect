@@ -524,8 +524,8 @@ function Programacion() {
                       key={t.id}
                       data-print-card
                       draggable={canEdit && t.estado !== "completado"}
-                      onDragStart={() => setDragId(t.id)}
-                      onDragEnd={() => setDragId(null)}
+                      onDragStart={() => setDrag({ id: t.id, fechaOriginal: t.__fechaOriginal, duracion: t.__duracion ?? 1 })}
+                      onDragEnd={() => setDrag(null)}
                       title={`${t.folio} · ${t.cliente_nombre}`}
                       className={
                         "rounded-md p-2 text-[11px] border cursor-grab active:cursor-grabbing select-none " +
@@ -535,6 +535,7 @@ function Programacion() {
                     >
                       <p className="font-mono text-[10px] opacity-70">
                         {new Date(t.fecha_programada).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" })} · {t.folio}
+                        {t.__movido ? " · movido" : ""}
                       </p>
                       <p className="font-medium leading-tight mt-0.5 line-clamp-2">{t.servicio}</p>
                       <p className="text-[10px] opacity-70 truncate">{t.planta_nombre}</p>
