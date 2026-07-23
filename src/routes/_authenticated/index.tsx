@@ -8,6 +8,9 @@ import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, pane
 import { cumplimientoAnual } from "@/lib/contratos.functions";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
+import { FileDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
@@ -127,6 +130,50 @@ function CumplimientoContratos() {
   const cump = useQuery({ queryKey: ["cumplimiento-anual"], queryFn: () => fCump(), staleTime: 60_000 });
   const data = cump.data;
   const filas = (data?.filas as any[] | undefined) ?? [];
+  const [clienteSel, setClienteSel] = useState<string>("all");
+  const [downloading, setDownloading] = useState(false);
+  const clientesDisp = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of filas) if (f.cliente_id) map.set(f.cliente_id, f.cliente_nombre ?? "—");
+    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [filas]);
+  async function exportarPdf() {
+    if (!data) return;
+    setDownloading(true);
+    try {
+      const filtradas = clienteSel === "all" ? filas : filas.filter((f) => f.cliente_id === clienteSel);
+      const clienteNombre = clienteSel === "all"
+        ? (clientesDisp.length === 1 ? clientesDisp[0].nombre : "Todos los clientes")
+        : (clientesDisp.find((c) => c.id === clienteSel)?.nombre ?? "Cliente");
+      const total_contratado = filtradas.reduce((s, r) => s + (r.cantidad_anual ?? 0), 0);
+      const total_completado = filtradas.reduce((s, r) => s + (r.completados ?? 0), 0);
+      const total_programado = filtradas.reduce((s, r) => s + (r.programados ?? 0), 0);
+      const pct = total_contratado > 0 ? Math.round((total_completado / total_contratado) * 1000) / 10 : 0;
+      await generarYDescargarCumplimientoPdf({
+        cliente: clienteNombre,
+        anio: data.anio,
+        filas: filtradas.map((f) => ({
+          contrato_id: f.contrato_id,
+          planta_nombre: f.planta_nombre,
+          servicio: f.servicio,
+          cantidad_anual: f.cantidad_anual,
+          completados: f.completados,
+          programados: f.programados,
+          cumplimiento_pct: Number(f.cumplimiento_pct),
+          proxima_fecha: f.proxima_fecha,
+        })),
+        total_contratado,
+        total_completado,
+        total_programado,
+        cumplimiento_pct: pct,
+        emitido_at: new Date().toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
+      }, `Cumplimiento-${clienteNombre.replace(/\s+/g, "_")}-${data.anio}.pdf`);
+    } catch (e: any) {
+      (await import("sonner")).toast.error(e?.message ?? "No se pudo generar el PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }
   return (
     <section className="bg-card border border-border rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
@@ -136,7 +183,28 @@ function CumplimientoContratos() {
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-3">
+          {clientesDisp.length > 1 && (
+            <select
+              value={clienteSel}
+              onChange={(e) => setClienteSel(e.target.value)}
+              className="h-9 px-2 text-xs border border-border rounded-md bg-background"
+              aria-label="Filtrar por cliente"
+            >
+              <option value="all">Todos los clientes</option>
+              {clientesDisp.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={exportarPdf}
+            disabled={downloading || !data || filas.length === 0}
+            className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+          >
+            <FileDown className="size-3.5" /> {downloading ? "Generando…" : "Exportar PDF"}
+          </button>
           <p className="text-2xl font-mono font-semibold">{data?.cumplimiento_pct ?? 0}%</p>
         </div>
       </div>
