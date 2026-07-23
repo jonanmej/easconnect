@@ -28,9 +28,11 @@ function levenshtein(a: string, b: string): number {
 }
 
 function maxDistanciaPermitida(canon: string): number {
-  // 1 error cada 4 caracteres, con topes razonables. Tolerante a alucinaciones
-  // de la IA que insertan letras extra (p.ej. "APOPA" → "APOPAPARETE").
-  return Math.min(8, Math.max(1, Math.floor(canon.length / 4)));
+  // 1 error cada 6 caracteres, con topes razonables. Umbrales conservadores
+  // para evitar que ventanas con palabras extra (p.ej. "en EL ÁNGEL TECHO 2")
+  // colapsen sobre nombres parecidos. Las alucinaciones tipo
+  // "APOPA" → "APOPAPARETE" se atrapan aparte con coincidePorInserciones.
+  return Math.min(3, Math.max(1, Math.floor(canon.length / 6)));
 }
 
 /**
