@@ -12,12 +12,14 @@ import {
   registrarRecepcionOC,
   eliminarOrdenCompra,
   firmarUrlCotizacion,
+  editarRecepcionItemOC,
+  listVariacionesOC,
 } from "@/lib/ordenes-compra.functions";
 import { listInventario, upsertInventarioItem } from "@/lib/inventario.functions";
 import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { FileText, Send, PackageCheck, XCircle, Trash2, Download, ExternalLink } from "lucide-react";
+import { FileText, Send, PackageCheck, XCircle, Trash2, Download, ExternalLink, Pencil, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/ordenes-compra")({
   head: () => ({
