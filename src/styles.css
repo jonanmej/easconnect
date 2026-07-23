@@ -184,10 +184,19 @@
     touch-action: manipulation;
   }
 
-  /* Envolver texto largo (URLs, IDs, correos) para que no rompa el layout. */
+  /*
+   * Envolver texto largo (URLs, IDs, correos) sin permitir rupturas
+   * letra-por-letra. `break-word` respeta la anchura mínima de la palabra
+   * más larga, mientras que `anywhere` la ignoraba y colapsaba columnas de
+   * tablas y tarjetas en tablet/móvil.
+   */
   p, span, div, td, th, li, dd, dt, a, label {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     word-break: normal;
+  }
+  /* Solo cuerpos de texto muy largos (URLs, hashes) pueden partir en cualquier lado. */
+  .break-anywhere, [data-break-anywhere] {
+    overflow-wrap: anywhere;
   }
   /* Excepciones donde queremos preservar espacios y no romper. */
   pre, code, kbd, samp, [data-nowrap], .font-mono {
