@@ -986,3 +986,398 @@ function HistorialGlobal({ items }: { items: any[] }) {
     </div>
   );
 }
+
+/* ==================== NUEVA ORDEN DIALOG ==================== */
+
+type NuevaFila = {
+  key: string;
+  source: "inventario" | "libre";
+  item_id: string | null;
+  sku_texto: string | null;
+  nombre: string;
+  categoria: string;
+  unidad: string;
+  cantidad_pedida: number;
+  precio_unitario: number | "";
+  proveedor: string;
+};
+
+type NuevoProv = {
+  key: string;
+  nombre: string;
+  cotizacion_folio: string;
+  cotizacion_fecha: string;
+  cotizacion_monto: number | "";
+  cotizacion_storage_path: string | null;
+  file: File | null;
+};
+
+function NuevaOrdenDialog({
+  prefill,
+  solicitanteDefault,
+  onClose,
+  onCreated,
+}: {
+  prefill: any[] | null;
+  solicitanteDefault: string;
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
+  const fList = useServerFn(listInventario);
+  const fSave = useServerFn(guardarOrdenCompra);
+  const fUpload = useServerFn(subirCotizacion);
+  const inv = useQuery({ queryKey: ["inventario"], queryFn: () => fList() });
+  const items = (inv.data as any[] | undefined) ?? [];
+
+  const [solicitante, setSolicitante] = useState(solicitanteDefault);
+  const [notas, setNotas] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [proveedores, setProveedores] = useState<NuevoProv[]>([]);
+  const [filas, setFilas] = useState<NuevaFila[]>(() => {
+    if (!prefill?.length) return [];
+    return prefill.map((p, i) => ({
+      key: `pre-${i}`,
+      source: "inventario",
+      item_id: p.item_id,
+      sku_texto: p.sku ?? null,
+      nombre: p.nombre,
+      categoria: p.categoria ?? "",
+      unidad: p.unidad || "un",
+      cantidad_pedida: Number(p.sugerido) || 1,
+      precio_unitario: "",
+      proveedor: "",
+    }));
+  });
+
+  function addProv() {
+    setProveedores((p) => [
+      ...p,
+      {
+        key: `prov-${Date.now()}-${p.length}`,
+        nombre: "",
+        cotizacion_folio: "",
+        cotizacion_fecha: "",
+        cotizacion_monto: "",
+        cotizacion_storage_path: null,
+        file: null,
+      },
+    ]);
+  }
+  function updProv(key: string, patch: Partial<NuevoProv>) {
+    setProveedores((p) => p.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  }
+  function rmProv(key: string) {
+    const prov = proveedores.find((x) => x.key === key);
+    setProveedores((p) => p.filter((x) => x.key !== key));
+    if (prov?.nombre) {
+      setFilas((fs) => fs.map((f) => (f.proveedor === prov.nombre ? { ...f, proveedor: "" } : f)));
+    }
+  }
+
+  function addFromInv(it: any) {
+    setFilas((fs) => [
+      ...fs,
+      {
+        key: `inv-${it.id}-${Date.now()}`,
+        source: "inventario",
+        item_id: it.id,
+        sku_texto: it.sku ?? null,
+        nombre: it.nombre,
+        categoria: it.categoria ?? "",
+        unidad: it.unidad || "un",
+        cantidad_pedida: 1,
+        precio_unitario: "",
+        proveedor: "",
+      },
+    ]);
+  }
+  function addFree() {
+    setFilas((fs) => [
+      ...fs,
+      {
+        key: `free-${Date.now()}-${fs.length}`,
+        source: "libre",
+        item_id: null,
+        sku_texto: null,
+        nombre: "",
+        categoria: "",
+        unidad: "un",
+        cantidad_pedida: 1,
+        precio_unitario: "",
+        proveedor: "",
+      },
+    ]);
+  }
+  function updFila(key: string, patch: Partial<NuevaFila>) {
+    setFilas((fs) => fs.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+  }
+  function rmFila(key: string) {
+    setFilas((fs) => fs.filter((f) => f.key !== key));
+  }
+
+  const nombresProv = useMemo(
+    () => proveedores.map((p) => p.nombre.trim()).filter((n) => n.length > 0),
+    [proveedores],
+  );
+
+  async function fileToBase64(file: File): Promise<string> {
+    const buf = await file.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  async function guardar() {
+    if (filas.length === 0) return toast.error("Agrega al menos un ítem");
+    for (const f of filas) {
+      if (!f.nombre.trim()) return toast.error("Todas las filas necesitan descripción");
+      if (!f.cantidad_pedida || f.cantidad_pedida <= 0) return toast.error("Cantidades deben ser positivas");
+    }
+    for (const p of proveedores) {
+      if (!p.nombre.trim()) return toast.error("Los proveedores necesitan nombre");
+    }
+    setBusy(true);
+    try {
+      // 1) crear orden en borrador
+      const provsPayload = proveedores.map((p) => ({
+        nombre: p.nombre.trim(),
+        cotizacion_folio: p.cotizacion_folio || null,
+        cotizacion_fecha: p.cotizacion_fecha || null,
+        cotizacion_monto: p.cotizacion_monto === "" ? null : Number(p.cotizacion_monto),
+        cotizacion_storage_path: null as string | null,
+      }));
+      const itemsPayload = filas.map((f) => ({
+        item_id: f.item_id,
+        sku_texto: f.sku_texto,
+        nombre: f.nombre.trim(),
+        categoria: f.categoria || null,
+        unidad: f.unidad || "un",
+        cantidad_pedida: Number(f.cantidad_pedida),
+        precio_unitario: f.precio_unitario === "" ? null : Number(f.precio_unitario),
+        proveedor: f.proveedor?.trim() || null,
+      }));
+      const res = await fSave({ data: { solicitante, notas: notas || null, proveedores: provsPayload, items: itemsPayload } });
+      const ordenId = (res as any).id as string;
+
+      // 2) subir cotizaciones y re-guardar rutas
+      const conFile = proveedores.filter((p) => p.file);
+      if (conFile.length > 0) {
+        const uploaded: Record<string, string> = {};
+        for (const p of conFile) {
+          try {
+            const b64 = await fileToBase64(p.file!);
+            const up = await fUpload({
+              data: {
+                orden_id: ordenId,
+                filename: p.file!.name,
+                content_type: p.file!.type || "application/octet-stream",
+                base64: b64,
+              },
+            });
+            uploaded[p.key] = (up as any).path as string;
+          } catch (e: any) {
+            toast.error(`Cotización de ${p.nombre}: ${e.message}`);
+          }
+        }
+        const provsConPath = proveedores.map((p) => ({
+          nombre: p.nombre.trim(),
+          cotizacion_folio: p.cotizacion_folio || null,
+          cotizacion_fecha: p.cotizacion_fecha || null,
+          cotizacion_monto: p.cotizacion_monto === "" ? null : Number(p.cotizacion_monto),
+          cotizacion_storage_path: uploaded[p.key] ?? null,
+        }));
+        await fSave({ data: { id: ordenId, solicitante, notas: notas || null, proveedores: provsConPath, items: itemsPayload } });
+      }
+
+      toast.success("Orden creada en Borrador");
+      onCreated(ordenId);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al guardar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm grid place-items-center p-4" onClick={() => !busy && onClose()}>
+      <div className="bg-card border border-border rounded-lg w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-border flex items-start justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Nueva orden de compra</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Se crea en estado Borrador. Podrás enviarla y registrar recepciones desde el detalle.
+            </p>
+          </div>
+          <button onClick={onClose} disabled={busy} className="text-muted-foreground hover:text-foreground text-xs">Cerrar</button>
+        </div>
+
+        <div className="p-5 overflow-y-auto space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Solicitante">
+              <input value={solicitante} onChange={(e) => setSolicitante(e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Notas / referencia">
+              <input value={notas} onChange={(e) => setNotas(e.target.value)} className={inputCls} placeholder="Urgencia, motivo, referencia interna…" />
+            </Field>
+          </div>
+
+          {/* Proveedores */}
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Proveedores y cotizaciones</h4>
+              <button type="button" onClick={addProv} className="h-7 px-2 text-[11px] rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
+                <Plus className="size-3" /> Agregar proveedor
+              </button>
+            </div>
+            {proveedores.length === 0 && (
+              <p className="text-[11px] text-muted-foreground">Opcional. Puedes cargar cotizaciones ahora o agregarlas más tarde.</p>
+            )}
+            <div className="space-y-2">
+              {proveedores.map((p) => (
+                <div key={p.key} className="border border-border rounded-md p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                  <label className="text-[11px] md:col-span-3">
+                    <span className="block text-muted-foreground mb-1">Proveedor</span>
+                    <input value={p.nombre} onChange={(e) => updProv(p.key, { nombre: e.target.value })} className={inputCls} placeholder="Nombre" />
+                  </label>
+                  <label className="text-[11px] md:col-span-2">
+                    <span className="block text-muted-foreground mb-1">Cotización #</span>
+                    <input value={p.cotizacion_folio} onChange={(e) => updProv(p.key, { cotizacion_folio: e.target.value })} className={inputCls} />
+                  </label>
+                  <label className="text-[11px] md:col-span-2">
+                    <span className="block text-muted-foreground mb-1">Fecha</span>
+                    <input type="date" value={p.cotizacion_fecha} onChange={(e) => updProv(p.key, { cotizacion_fecha: e.target.value })} className={inputCls} />
+                  </label>
+                  <label className="text-[11px] md:col-span-2">
+                    <span className="block text-muted-foreground mb-1">Monto</span>
+                    <input type="number" min={0} step="0.01" value={p.cotizacion_monto} onChange={(e) => updProv(p.key, { cotizacion_monto: e.target.value === "" ? "" : Number(e.target.value) })} className={inputCls} />
+                  </label>
+                  <label className="text-[11px] md:col-span-2">
+                    <span className="block text-muted-foreground mb-1 flex items-center gap-1"><Paperclip className="size-3" /> Adjunto</span>
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      onChange={(e) => updProv(p.key, { file: e.target.files?.[0] ?? null })}
+                      className="block w-full text-[10px]"
+                    />
+                    {p.file && <span className="block text-[10px] text-muted-foreground mt-1 truncate">{p.file.name}</span>}
+                  </label>
+                  <div className="md:col-span-1 flex justify-end">
+                    <button onClick={() => rmProv(p.key)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Quitar">
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Ítems */}
+          <section className="space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ítems solicitados</h4>
+              <div className="flex items-center gap-2">
+                <select
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    if (!id) return;
+                    const it = items.find((x) => x.id === id);
+                    if (it) addFromInv(it);
+                    e.target.value = "";
+                  }}
+                  defaultValue=""
+                  className={inputCls + " max-w-xs"}
+                >
+                  <option value="">+ Desde inventario…</option>
+                  {items.map((i) => (
+                    <option key={i.id} value={i.id}>{i.sku} · {i.nombre}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={addFree} className="h-8 px-2 text-[11px] rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
+                  <Plus className="size-3" /> Ítem libre
+                </button>
+              </div>
+            </div>
+
+            <div className="border border-border rounded-md overflow-x-auto">
+              <table className="w-full text-xs min-w-[880px]">
+                <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-2 py-2 text-left">SKU</th>
+                    <th className="px-2 py-2 text-left">Descripción</th>
+                    <th className="px-2 py-2 text-left">Unidad</th>
+                    <th className="px-2 py-2 text-right">Cantidad</th>
+                    <th className="px-2 py-2 text-right">Precio unit.</th>
+                    <th className="px-2 py-2 text-left">Proveedor</th>
+                    <th className="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filas.map((f) => (
+                    <tr key={f.key}>
+                      <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
+                        {f.source === "inventario" ? (f.sku_texto ?? "—") : <span className="text-muted-foreground">— libre —</span>}
+                      </td>
+                      <td className="px-2 py-2">
+                        {f.source === "inventario" ? (
+                          <div className="font-medium">{f.nombre}</div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <input value={f.nombre} onChange={(e) => updFila(f.key, { nombre: e.target.value })} placeholder="Descripción" className="h-8 px-2 rounded-md border border-input bg-background w-full" />
+                            <input value={f.categoria} onChange={(e) => updFila(f.key, { categoria: e.target.value })} placeholder="Categoría" className="h-7 px-2 rounded-md border border-input bg-background w-full text-[11px]" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2">
+                        {f.source === "inventario" ? (
+                          <span className="text-muted-foreground">{f.unidad}</span>
+                        ) : (
+                          <input value={f.unidad} onChange={(e) => updFila(f.key, { unidad: e.target.value })} className="h-8 w-16 px-2 rounded-md border border-input bg-background" />
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0} step="0.01" value={f.cantidad_pedida} onChange={(e) => updFila(f.key, { cantidad_pedida: Number(e.target.value) })} className="h-8 w-20 px-2 text-right rounded-md border border-input bg-background font-mono" />
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <input type="number" min={0} step="0.01" value={f.precio_unitario} onChange={(e) => updFila(f.key, { precio_unitario: e.target.value === "" ? "" : Number(e.target.value) })} className="h-8 w-24 px-2 text-right rounded-md border border-input bg-background font-mono" placeholder="—" />
+                      </td>
+                      <td className="px-2 py-2">
+                        {nombresProv.length > 0 ? (
+                          <select value={nombresProv.includes(f.proveedor) ? f.proveedor : ""} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[9rem]">
+                            <option value="">— sin asignar —</option>
+                            {nombresProv.map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        ) : (
+                          <input value={f.proveedor} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} placeholder="Proveedor" className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[9rem]" />
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <button onClick={() => rmFila(f.key)} className="size-7 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Quitar">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filas.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        Sin ítems. Agrega desde inventario o crea un ítem libre.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
+          <button onClick={onClose} disabled={busy} className="h-9 px-4 text-xs rounded-md border border-border hover:bg-secondary">Cancelar</button>
+          <button onClick={guardar} disabled={busy || filas.length === 0} className="h-9 px-4 text-xs font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-60">
+            {busy ? "Guardando…" : "Crear orden (Borrador)"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
