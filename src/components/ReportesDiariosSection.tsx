@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2 } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -11,12 +11,14 @@ import {
   listReportesPDF,
   registrarReportePDF,
   eliminarReportePDF,
+  getPdfExternoParaFormato,
 } from "@/lib/reportes-diarios.functions";
 import { getJornadaHoy } from "@/lib/jornadas.functions";
 import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { generarYDescargarPdfExterno } from "@/lib/pdf/descargar";
 
 const BUCKET = "trabajos-evidencia";
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
@@ -54,6 +56,7 @@ export function ReportesDiariosSection({
   const fRegPdf = useServerFn(registrarReportePDF);
   const fDelPdf = useServerFn(eliminarReportePDF);
   const fGen = useServerFn(generarEjecutivoDesdeDiarios);
+  const fFormato = useServerFn(getPdfExternoParaFormato);
 
   const diarios = useQuery({
     queryKey: ["diarios", trabajoId],
@@ -263,6 +266,7 @@ export function ReportesDiariosSection({
           registrar={fRegPdf}
           currentUserId={user?.id ?? ""}
           isStaff={isStaff}
+          descargarFormatoEA={fFormato}
         />
       </Section>
     </div>
@@ -544,7 +548,7 @@ function FieldS({ label, children }: { label: string; children: any }) {
 }
 
 function PDFSection({
-  trabajoId, pdfs, loading, canUpload, onUploaded, onDelete, registrar, currentUserId, isStaff,
+  trabajoId, pdfs, loading, canUpload, onUploaded, onDelete, registrar, currentUserId, isStaff, descargarFormatoEA,
 }: {
   trabajoId: string;
   pdfs: any[];
@@ -555,10 +559,39 @@ function PDFSection({
   registrar: any;
   currentUserId: string;
   isStaff: boolean;
+  descargarFormatoEA: any;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [fecha, setFecha] = useState(today());
+  const [formateandoId, setFormateandoId] = useState<string | null>(null);
+
+  async function reformatear(id: string) {
+    setFormateandoId(id);
+    try {
+      const info: any = await descargarFormatoEA({ data: { id } });
+      const filename = `Reporte-EA-${(info.servicio ?? "externo").replace(/[^a-z0-9]+/gi, "-")}-${info.fecha}.pdf`;
+      await generarYDescargarPdfExterno(
+        {
+          titulo: info.nombre_original ?? "Reporte externo",
+          cliente: info.cliente,
+          planta: info.planta,
+          folio: info.folio,
+          servicio: info.servicio,
+          fecha: info.fecha,
+          nombre_original: info.nombre_original ?? "reporte.pdf",
+          notas: info.notas,
+          texto: info.texto,
+        },
+        filename,
+      );
+      toast.success("PDF reformateado con encabezado EA");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo reformatear el PDF");
+    } finally {
+      setFormateandoId(null);
+    }
+  }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -627,6 +660,16 @@ function PDFSection({
                   <ExternalLink className="size-3" /> Abrir
                 </a>
               )}
+              <button
+                type="button"
+                onClick={() => reformatear(p.id)}
+                disabled={formateandoId === p.id}
+                className="text-primary hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+                title="Descargar con encabezado y pie institucional EA (conserva el contenido original)"
+              >
+                {formateandoId === p.id ? <Loader2 className="size-3 animate-spin" /> : <FileDown className="size-3" />}
+                Formato EA
+              </button>
               {canDelete && (
                 <button
                   type="button"

@@ -11,6 +11,29 @@ async function ensureStaff(supabase: any, userId: string) {
   return { isAdmin: !!a, isSup: !!s };
 }
 
+async function isCliente(supabase: any, userId: string) {
+  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "cliente" });
+  return !!data;
+}
+
+async function ensureStaffOrOwnerCliente(supabase: any, userId: string, reporteId: string) {
+  const [{ data: a }, { data: s }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
+  ]);
+  if (a || s) return { isStaff: true as const, isCliente: false as const };
+  // Cliente sólo puede actuar sobre reportes de su propio cliente_id.
+  const { data: rep } = await supabase
+    .from("reportes").select("cliente_id").eq("id", reporteId).single();
+  if (!rep) throw new Error("Reporte no encontrado");
+  const { data: prof } = await supabase
+    .from("profiles").select("cliente_id").eq("id", userId).single();
+  if (!prof?.cliente_id || prof.cliente_id !== (rep as any).cliente_id) {
+    throw new Error("No tienes permiso para aprobar o rechazar este reporte");
+  }
+  return { isStaff: false as const, isCliente: true as const };
+}
+
 async function logAuditoria(
   supabase: any,
   params: {
@@ -87,12 +110,12 @@ export const aprobarReporte = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), comentario: z.string().max(500).optional() }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    await ensureStaff(context.supabase, context.userId);
+    const rol = await ensureStaffOrOwnerCliente(context.supabase, context.userId, data.id);
     const { data: rep } = await context.supabase
       .from("reportes").select("estado, version, enviado_por, titulo").eq("id", data.id).single();
     if (!rep) throw new Error("Reporte no encontrado");
     if ((rep as any).estado !== "enviado") throw new Error("Solo reportes enviados pueden aprobarse");
-    if ((rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
+    if (rol.isStaff && (rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
       throw new Error("No puedes aprobar un reporte que tú mismo enviaste");
     }
     const { error } = await context.supabase.from("reportes").update({
@@ -121,12 +144,12 @@ export const rechazarReporte = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), motivo: z.string().min(4).max(500) }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    await ensureStaff(context.supabase, context.userId);
+    const rol = await ensureStaffOrOwnerCliente(context.supabase, context.userId, data.id);
     const { data: rep } = await context.supabase
       .from("reportes").select("estado, version, enviado_por, titulo").eq("id", data.id).single();
     if (!rep) throw new Error("Reporte no encontrado");
     if ((rep as any).estado !== "enviado") throw new Error("Solo reportes enviados pueden rechazarse");
-    if ((rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
+    if (rol.isStaff && (rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
       throw new Error("No puedes rechazar un reporte que tú mismo enviaste");
     }
     const { error } = await context.supabase.from("reportes").update({
@@ -187,7 +210,12 @@ export const listAuditoriaReporte = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ reporte_id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    await ensureStaff(context.supabase, context.userId);
+    // Staff y cliente-dueño del reporte pueden leer la auditoría (RLS filtra).
+    if (!(await isCliente(context.supabase, context.userId))) {
+      await ensureStaff(context.supabase, context.userId).catch(() => {
+        throw new Error("Sin permiso para leer la auditoría");
+      });
+    }
     const { data: rows, error } = await context.supabase
       .from("reporte_auditoria")
       .select("*")

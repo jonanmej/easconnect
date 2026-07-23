@@ -152,3 +152,56 @@ export const eliminarReportePDF = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Extrae el contenido textual de un PDF externo subido por el técnico y
+ * devuelve la metadata asociada (folio, planta, cliente, fecha). Se usa
+ * para regenerar el mismo contenido con el formato institucional EA/ISO
+ * sin alterar la información original.
+ */
+export const getPdfExternoParaFormato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: row, error } = await context.supabase
+      .from("trabajo_reportes_pdf")
+      .select("id, fecha, nombre_original, storage_path, notas, trabajo_id")
+      .eq("id", data.id)
+      .single();
+    if (error || !row) throw new Error(error?.message ?? "PDF no encontrado");
+    const r: any = row;
+    const { data: trab } = await context.supabase
+      .from("trabajos")
+      .select("folio, servicio, planta_id, plantas(nombre, clientes(nombre))")
+      .eq("id", r.trabajo_id)
+      .single();
+    const t: any = trab ?? {};
+    // Descargar el PDF con el cliente RLS del usuario
+    const { data: file, error: dErr } = await context.supabase.storage
+      .from(BUCKET)
+      .download(r.storage_path);
+    if (dErr || !file) throw new Error(dErr?.message ?? "No se pudo leer el PDF");
+    const buf = new Uint8Array(await file.arrayBuffer());
+    let texto = "";
+    try {
+      const { extractText, getDocumentProxy } = await import("unpdf");
+      const pdf = await getDocumentProxy(buf);
+      const { text } = await extractText(pdf, { mergePages: true });
+      texto = Array.isArray(text) ? text.join("\n\n") : String(text ?? "");
+      texto = texto.replace(/\u0000/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    } catch (e: any) {
+      throw new Error("No se pudo extraer el texto del PDF: " + (e?.message ?? "error"));
+    }
+    if (!texto) throw new Error("El PDF no contiene texto extraíble (posible escaneo). No se puede reformatear.");
+    return {
+      id: r.id,
+      fecha: r.fecha,
+      nombre_original: r.nombre_original ?? "Reporte externo",
+      notas: r.notas ?? null,
+      folio: t?.folio ?? null,
+      servicio: t?.servicio ?? null,
+      planta: t?.plantas?.nombre ?? null,
+      cliente: t?.plantas?.clientes?.nombre ?? null,
+      texto,
+    };
+  });
