@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.autolink_trabajo_contrato() FROM anon, PUBLIC;
