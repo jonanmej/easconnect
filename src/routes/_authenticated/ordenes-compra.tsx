@@ -47,13 +47,28 @@ const ESTADO_COLOR: Record<EstadoOC, string> = {
 function OrdenesCompraPage() {
   const qc = useQueryClient();
   const fList = useServerFn(listOrdenesCompra);
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const rol = highestRole(roles) ?? "";
   const canManage = ["admin", "supervisor"].includes(rol);
   const canReceive = ["admin", "supervisor", "tecnico"].includes(rol);
 
   const [filtro, setFiltro] = useState<"todas" | EstadoOC>("todas");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [prefill, setPrefill] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("oc_open_new") === "1") {
+      sessionStorage.removeItem("oc_open_new");
+      const raw = sessionStorage.getItem("oc_prefill_lowstock");
+      sessionStorage.removeItem("oc_prefill_lowstock");
+      if (raw) {
+        try { setPrefill(JSON.parse(raw)); } catch { setPrefill(null); }
+      } else setPrefill(null);
+      setNuevaOpen(true);
+    }
+  }, []);
 
   const list = useQuery({ queryKey: ["ordenes-compra"], queryFn: () => fList() });
   const rows = (list.data ?? []) as any[];
@@ -71,14 +86,24 @@ function OrdenesCompraPage() {
         title="Órdenes de compra"
         description="Ciclo completo: borrador, envío, recepciones parciales y total, con costo promedio ponderado."
         actions={
-          <select value={filtro} onChange={(e) => setFiltro(e.target.value as any)} className={inputCls}>
-            <option value="todas">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="enviada">Enviada</option>
-            <option value="parcial">Parcial</option>
-            <option value="recibida">Recibida</option>
-            <option value="cancelada">Cancelada</option>
-          </select>
+          <>
+            <select value={filtro} onChange={(e) => setFiltro(e.target.value as any)} className={inputCls}>
+              <option value="todas">Todos los estados</option>
+              <option value="borrador">Borrador</option>
+              <option value="enviada">Enviada</option>
+              <option value="parcial">Parcial</option>
+              <option value="recibida">Recibida</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+            {canManage && (
+              <button
+                onClick={() => { setPrefill(null); setNuevaOpen(true); }}
+                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+              >
+                <Plus className="size-3.5" /> Nueva orden
+              </button>
+            )}
+          </>
         }
       />
 
@@ -167,6 +192,20 @@ function OrdenesCompraPage() {
           canManage={canManage}
           canReceive={canReceive}
           onChanged={() => qc.invalidateQueries({ queryKey: ["ordenes-compra"] })}
+        />
+      )}
+
+      {nuevaOpen && (
+        <NuevaOrdenDialog
+          prefill={prefill}
+          solicitanteDefault={user?.email ?? "Bodega"}
+          onClose={() => setNuevaOpen(false)}
+          onCreated={(id) => {
+            setNuevaOpen(false);
+            qc.invalidateQueries({ queryKey: ["ordenes-compra"] });
+            qc.invalidateQueries({ queryKey: ["inventario"] });
+            setOpenId(id);
+          }}
         />
       )}
     </div>
