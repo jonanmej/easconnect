@@ -125,7 +125,8 @@ export async function envolverPdfExternoConEncabezadoEA(
   });
 
   const out = await pdf.save();
-  return new Blob([out], { type: "application/pdf" });
+  const copy = new Uint8Array(out);
+  return new Blob([copy.buffer as ArrayBuffer], { type: "application/pdf" });
 }
 
 function drawRight(page: any, text: string, xRight: number, y: number, size: number, font: any, color: any) {
