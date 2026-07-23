@@ -518,14 +518,11 @@ function RecepcionForm({
   const [busy, setBusy] = useState(false);
 
   function upd(id: string, patch: Partial<LineaState>) {
-    setLineas((p) => ({
-      ...p,
-      [id]: {
-        ...({ cantidad: 0, costo: 0, moneda: monedaOc, impuesto: impuestoOc } as LineaState),
-        ...(p[id] ?? {}),
-        ...patch,
-      },
-    }));
+    setLineas((p) => {
+      const base: LineaState = { cantidad: 0, costo: 0, moneda: monedaOc, impuesto: impuestoOc };
+      const prev = p[id] ?? base;
+      return { ...p, [id]: { ...prev, ...patch } };
+    });
   }
 
   const reconciliacion = useMemo(() => {
