@@ -208,11 +208,31 @@ function Programacion() {
   const move = useMutation({
     mutationFn: (vars: { id: string; fecha_programada: string }) =>
       fetchMove({ data: vars }),
-    onSuccess: () => {
-      toast.success("Trabajo reprogramado");
-      qc.invalidateQueries({ queryKey: ["trabajos"] });
+    // Optimistic update: parcheamos únicamente la OT movida en el caché para
+    // que la vista de Semana/Mes refresque el día afectado sin recargar el
+    // resto del calendario (evita parpadeo y recálculo completo).
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["trabajos"] });
+      const prev = qc.getQueryData<any[]>(["trabajos"]);
+      qc.setQueryData<any[]>(["trabajos"], (curr) =>
+        (curr ?? []).map((t) =>
+          t.id === vars.id ? { ...t, fecha_programada: vars.fecha_programada } : t,
+        ),
+      );
+      return { prev };
     },
-    onError: (e: Error, vars) => {
+    onSuccess: (row: any, vars) => {
+      toast.success("Trabajo reprogramado");
+      // Reemplazamos la fila optimista con la respuesta real (solo esa fila).
+      qc.setQueryData<any[]>(["trabajos"], (curr) =>
+        (curr ?? []).map((t) =>
+          t.id === vars.id ? { ...t, ...row, fecha_programada: row?.fecha_programada ?? vars.fecha_programada } : t,
+        ),
+      );
+    },
+    onError: (e: Error, vars, ctx: any) => {
+      // Revertir el cambio optimista.
+      if (ctx?.prev) qc.setQueryData(["trabajos"], ctx.prev);
       const msg = e.message ?? "";
       const esConflictoTecnico = msg.startsWith("CONFLICTO_TECNICO::");
       toast.error(
@@ -240,7 +260,13 @@ function Programacion() {
         ? new Date(row.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "long", year: "numeric" })
         : "una fecha disponible";
       toast.success(`Trabajo reubicado al ${f}.`);
-      qc.invalidateQueries({ queryKey: ["trabajos"] });
+      if (row?.id && row?.fecha_programada) {
+        qc.setQueryData<any[]>(["trabajos"], (curr) =>
+          (curr ?? []).map((t) => (t.id === row.id ? { ...t, ...row } : t)),
+        );
+      } else {
+        qc.invalidateQueries({ queryKey: ["trabajos"] });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
