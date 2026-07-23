@@ -56,12 +56,14 @@ function Inventario() {
 
   const list = useQuery({ queryKey: ["inventario"], queryFn: () => fList() });
   const items = (list.data as Item[] | undefined) ?? [];
-  const critico = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo)).length;
+  // Bajo stock = agotado (stock_actual <= 0) o por debajo del mínimo definido
+  const isLow = (i: Item) => Number(i.stock_actual) <= 0 || Number(i.stock_actual) < Number(i.stock_minimo);
+  const critico = items.filter(isLow).length;
 
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
   const [movFor, setMovFor] = useState<Item | null>(null);
 
-  const lowStockItems = items.filter((i) => Number(i.stock_actual) < Number(i.stock_minimo));
+  const lowStockItems = items.filter(isLow);
 
   // --- Vista: filtros, orden, agrupación, paginación ---
   const [q, setQ] = useState("");
