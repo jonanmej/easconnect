@@ -96,6 +96,9 @@ function Programacion() {
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
+  // Permite a admin/supervisor reprogramar hacia sábado, domingo o feriado
+  // marcando el día como "hábil" solo para esta sesión.
+  const [permitirNoLaborable, setPermitirNoLaborable] = useState(false);
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
   // reflejen lo configurado en administración.
@@ -203,7 +206,8 @@ function Programacion() {
   );
 
   const move = useMutation({
-    mutationFn: (vars: { id: string; fecha_programada: string }) => fetchMove({ data: vars }),
+    mutationFn: (vars: { id: string; fecha_programada: string; permitir_no_laborable?: boolean }) =>
+      fetchMove({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo reprogramado");
       qc.invalidateQueries({ queryKey: ["trabajos"] });
@@ -243,7 +247,7 @@ function Programacion() {
 
   function onDrop(targetDay: Date) {
     if (!dragId) return;
-    if (!isWorkday(targetDay)) {
+    if (!isWorkday(targetDay) && !permitirNoLaborable) {
       const motivo = motivoNoLaborableSV(targetDay);
       toast.error(
         motivo === "feriado"
@@ -259,7 +263,11 @@ function Programacion() {
     if (sameDay(prev, targetDay)) { setDragId(null); return; }
     const nd = new Date(targetDay);
     nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-    move.mutate({ id: dragId, fecha_programada: nd.toISOString() });
+    move.mutate({
+      id: dragId,
+      fecha_programada: nd.toISOString(),
+      permitir_no_laborable: !isWorkday(targetDay) ? true : undefined,
+    });
     setDragId(null);
   }
 
@@ -322,6 +330,20 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
+            {canEdit && (
+              <label
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary cursor-pointer select-none"
+                title="Permite arrastrar trabajos hacia sábados, domingos y feriados"
+              >
+                <input
+                  type="checkbox"
+                  className="size-3.5"
+                  checked={permitirNoLaborable}
+                  onChange={(e) => setPermitirNoLaborable(e.target.checked)}
+                />
+                Permitir días no laborables
+              </label>
+            )}
             <div className="relative">
               <button
                 onClick={() => setPrintOpen((v) => !v)}
@@ -397,13 +419,24 @@ function Programacion() {
         <div className="grid grid-cols-5 min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
+            const motivo = motivoNoLaborableSV(d);
             return (
               <div
                 key={d.toISOString()}
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
-                className={"border-l border-border first:border-l-0 p-2 space-y-1.5 " + (sameDay(d, new Date()) ? "bg-primary/[0.03]" : "")}
+                className={
+                  "border-l border-border first:border-l-0 p-2 space-y-1.5 " +
+                  (motivo === "feriado"
+                    ? "bg-destructive/[0.06] "
+                    : sameDay(d, new Date())
+                      ? "bg-primary/[0.03] "
+                      : "")
+                }
               >
+                {motivo === "feriado" && (
+                  <p className="text-[9px] uppercase tracking-wide text-destructive/80 font-semibold">Feriado</p>
+                )}
                 {items.length === 0 && (
                   <p className="text-[10px] text-muted-foreground/60 px-1 py-2">—</p>
                 )}
@@ -521,15 +554,28 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
             const inMonth = d.getMonth() === cursor.getMonth();
             const items = byDay.get(d.toDateString()) ?? [];
             const today = sameDay(d, new Date());
+            const motivo = motivoNoLaborableSV(d);
             return (
               <div
                 key={d.toISOString()}
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
-                className={"border-l border-border p-1.5 " + (today ? "bg-primary/[0.04] " : inMonth ? "" : "bg-muted/30 ")}
+                className={
+                  "border-l border-border p-1.5 " +
+                  (motivo === "feriado"
+                    ? "bg-destructive/[0.06] "
+                    : today
+                      ? "bg-primary/[0.04] "
+                      : inMonth
+                        ? ""
+                        : "bg-muted/30 ")
+                }
               >
                 <div className={"text-[11px] font-mono mb-1 " + (today ? "text-primary font-bold" : inMonth ? "text-foreground" : "text-muted-foreground/60")}>
                   {d.getDate()}
+                  {motivo === "feriado" && (
+                    <span className="ml-1 text-[9px] uppercase text-destructive/80 font-semibold">Feriado</span>
+                  )}
                 </div>
                 <div className="space-y-1">
                    {items.slice(0, 3).map((t: any) => (

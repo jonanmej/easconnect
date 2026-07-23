@@ -50,8 +50,6 @@ export function clearFeriadosCache(year?: number): void {
 
 /** Feriados oficiales de El Salvador para el año dado (YYYY-MM-DD). */
 export function feriadosSV(year: number): Set<string> {
-  const override = feriadosCache.get(year);
-  if (override) return override;
   const set = new Set<string>();
   set.add(`${year}-01-01`); // Año Nuevo
   set.add(`${year}-05-01`); // Día del Trabajo
@@ -69,6 +67,12 @@ export function feriadosSV(year: number): Set<string> {
     d.setDate(d.getDate() + offset);
     set.add(ymd(d));
   }
+  // Mezcla los feriados personalizados cargados en caché (por ejemplo, los
+  // configurados desde el módulo de administración). Se agregan sobre los
+  // nacionales por defecto, nunca los sustituyen — así el calendario nunca
+  // pierde los feriados oficiales aunque la tabla `feriados` esté vacía.
+  const extra = feriadosCache.get(year);
+  if (extra) for (const f of extra) set.add(f);
   return set;
 }
 
