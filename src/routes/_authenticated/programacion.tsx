@@ -554,15 +554,28 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
             const inMonth = d.getMonth() === cursor.getMonth();
             const items = byDay.get(d.toDateString()) ?? [];
             const today = sameDay(d, new Date());
+            const motivo = motivoNoLaborableSV(d);
             return (
               <div
                 key={d.toISOString()}
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
-                className={"border-l border-border p-1.5 " + (today ? "bg-primary/[0.04] " : inMonth ? "" : "bg-muted/30 ")}
+                className={
+                  "border-l border-border p-1.5 " +
+                  (motivo === "feriado"
+                    ? "bg-destructive/[0.06] "
+                    : today
+                      ? "bg-primary/[0.04] "
+                      : inMonth
+                        ? ""
+                        : "bg-muted/30 ")
+                }
               >
                 <div className={"text-[11px] font-mono mb-1 " + (today ? "text-primary font-bold" : inMonth ? "text-foreground" : "text-muted-foreground/60")}>
                   {d.getDate()}
+                  {motivo === "feriado" && (
+                    <span className="ml-1 text-[9px] uppercase text-destructive/80 font-semibold">Feriado</span>
+                  )}
                 </div>
                 <div className="space-y-1">
                    {items.slice(0, 3).map((t: any) => (
