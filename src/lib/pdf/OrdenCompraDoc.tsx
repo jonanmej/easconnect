@@ -69,13 +69,18 @@ export type OrdenCompraData = {
   folio: string;
   fecha: string;
   solicitante: string;
-  proveedor?: string | null;
+  proveedor?: string | string[] | null;
   notas?: string | null;
   items: OrdenCompraItem[];
 };
 
 export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
   const totalItems = data.items.reduce((a, r) => a + Number(r.cantidad_pedida || 0), 0);
+  const proveedores = Array.isArray(data.proveedor)
+    ? data.proveedor.filter((p) => (p ?? "").trim() !== "")
+    : data.proveedor && data.proveedor.trim() !== ""
+      ? [data.proveedor]
+      : [];
   return (
     <Document>
       <Page size="A4" style={s.page}>
@@ -104,8 +109,18 @@ export function OrdenCompraDoc({ data }: { data: OrdenCompraData }) {
             <Text style={s.metaValue}>{data.solicitante}</Text>
           </View>
           <View style={s.metaCol}>
-            <Text style={s.metaLabel}>Proveedor sugerido</Text>
-            <Text style={s.metaValue}>{data.proveedor ?? "Por definir"}</Text>
+            <Text style={s.metaLabel}>
+              {proveedores.length > 1 ? "Proveedores sugeridos" : "Proveedor sugerido"}
+            </Text>
+            {proveedores.length === 0 ? (
+              <Text style={s.metaValue}>Por definir</Text>
+            ) : (
+              proveedores.map((p, i) => (
+                <Text key={i} style={s.metaValue}>
+                  {proveedores.length > 1 ? `• ${p}` : p}
+                </Text>
+              ))
+            )}
           </View>
           <View style={s.metaCol}>
             <Text style={s.metaLabel}>Fecha de emisión</Text>
