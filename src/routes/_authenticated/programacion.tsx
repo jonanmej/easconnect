@@ -550,7 +550,7 @@ function Programacion() {
 
       {vista === "mes" && (
         <div className="print-hide-visual">
-          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDragId={setDragId} onDrop={onDrop} />
+          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
         </div>
       )}
 
