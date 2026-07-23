@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,12 +11,12 @@ import {
   deleteInventarioItem,
   registrarMovimiento,
 } from "@/lib/inventario.functions";
-import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, FileDown } from "lucide-react";
+import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel } from "@/lib/excel";
-import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
+
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
