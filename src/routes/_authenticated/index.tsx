@@ -174,14 +174,14 @@ function CumplimientoContratos() {
   }
   return (
     <section className="bg-card border border-border rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
+      <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold uppercase tracking-wider [overflow-wrap:normal] break-normal">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {clientesDisp.length > 1 && (
             <select
               value={clienteSel}
