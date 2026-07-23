@@ -155,11 +155,11 @@ function Inventario() {
               });
             }} />
             <button
-              onClick={abrirOrden}
+              onClick={() => irANuevaOC(lowStockItems.length > 0)}
               className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground rounded-md border border-border hover:bg-secondary/70"
-              title="Generar orden de compra con los ítems bajo el mínimo"
+              title="Ir al módulo de Órdenes de compra (pre-carga los ítems bajo mínimo)"
             >
-              <FileDown className="size-3.5" /> Orden de compra
+              <ShoppingCart className="size-3.5" /> Nueva orden de compra
               {lowStockItems.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[10px] font-bold">
                   {lowStockItems.length}
