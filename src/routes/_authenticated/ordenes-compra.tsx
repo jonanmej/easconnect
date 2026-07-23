@@ -1312,6 +1312,14 @@ function NuevaOrdenDialog({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ítems solicitados</h4>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={cargarBajoMinimo}
+                  className="h-8 px-2 text-[11px] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
+                  title="Agrega los ítems agotados o por debajo del mínimo"
+                >
+                  <AlertTriangle className="size-3" /> Cargar bajo mínimo
+                </button>
                 <select
                   onChange={(e) => {
                     const id = e.target.value;
