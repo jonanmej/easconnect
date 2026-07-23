@@ -28,33 +28,33 @@ const COL = {
 };
 
 const s = StyleSheet.create({
-  page: { paddingTop: 96, paddingBottom: 84, paddingLeft: 60, paddingRight: 54, fontSize: 10, color: COL.text, fontFamily: FONT_REG },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: COL.primary },
-  headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 12 },
+  page: { paddingTop: 90, paddingBottom: 78, paddingLeft: 54, paddingRight: 48, fontSize: 8.5, color: COL.text, fontFamily: FONT_REG },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: COL.primary },
+  headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 10 },
   headerLeftText: { flex: 1 },
-  headerRight: { width: 170, alignItems: "flex-end" },
-  headerTitle: { fontSize: 7.5, color: COL.bg, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT_BOLD },
-  headerSub: { fontSize: 7, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 2 },
-  headerRightTop: { fontSize: 8, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
-  headerRightBot: { fontSize: 7.5, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
-  logoEa: { height: 34, objectFit: "contain", marginRight: 10 },
-  footerLogoPv: { height: 16, objectFit: "contain" },
-  footerLogoCh: { height: 12, objectFit: "contain" },
-  pageFooter: { position: "absolute", bottom: 24, left: 60, right: 54, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
-  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 12 },
-  title: { fontSize: 17, fontFamily: FONT_BOLD, marginBottom: 4, color: COL.bg },
-  subtitle: { fontSize: 9, color: COL.muted, marginBottom: 12 },
-  titleRule: { width: 40, height: 2.5, backgroundColor: COL.primary, marginBottom: 14 },
-  summaryRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  summaryCard: { flex: 1, padding: 10, borderWidth: 0.75, borderColor: COL.border, borderLeftWidth: 3, borderLeftColor: COL.primary, borderRadius: 3, backgroundColor: COL.panel },
-  summaryLabel: { fontSize: 7.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT_BOLD },
-  summaryValue: { fontSize: 15, fontFamily: FONT_BOLD, color: COL.bg },
-  progressTrack: { height: 8, backgroundColor: COL.primarySoft, borderRadius: 3, overflow: "hidden", marginBottom: 14 },
+  headerRight: { width: 150, alignItems: "flex-end" },
+  headerTitle: { fontSize: 7, color: COL.bg, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_BOLD },
+  headerSub: { fontSize: 6.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 },
+  headerRightTop: { fontSize: 7.5, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
+  headerRightBot: { fontSize: 7, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
+  logoEa: { height: 30, objectFit: "contain", marginRight: 8 },
+  footerLogoPv: { height: 14, objectFit: "contain" },
+  footerLogoCh: { height: 11, objectFit: "contain" },
+  pageFooter: { position: "absolute", bottom: 22, left: 54, right: 48, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 5 },
+  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 10 },
+  title: { fontSize: 14, fontFamily: FONT_BOLD, marginBottom: 3, color: COL.bg },
+  subtitle: { fontSize: 8, color: COL.muted, marginBottom: 10 },
+  titleRule: { width: 36, height: 2, backgroundColor: COL.primary, marginBottom: 12 },
+  summaryRow: { flexDirection: "row", gap: 6, marginBottom: 12 },
+  summaryCard: { flex: 1, padding: 8, borderWidth: 0.75, borderColor: COL.border, borderLeftWidth: 3, borderLeftColor: COL.primary, borderRadius: 3, backgroundColor: COL.panel },
+  summaryLabel: { fontSize: 6.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3, fontFamily: FONT_BOLD },
+  summaryValue: { fontSize: 12, fontFamily: FONT_BOLD, color: COL.bg },
+  progressTrack: { height: 7, backgroundColor: COL.primarySoft, borderRadius: 3, overflow: "hidden", marginBottom: 12 },
   progressBar: { height: "100%", backgroundColor: COL.primary },
   table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3, marginTop: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
-  th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
-  td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
+  th: { padding: 5, fontSize: 6.5, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
+  td: { padding: 4, fontSize: 7, lineHeight: 1.3 },
 });
 
 export type CumplimientoFila = {
@@ -88,7 +88,7 @@ function PageHeader({ data }: { data: CumplimientoData }) {
   const codigo = `${data.documento_codigo ?? "EA-CUM"} · v${data.documento_version ?? "1.0"}`;
   const clasif = data.documento_clasificacion ?? "Uso interno";
   return (
-    <View fixed style={{ position: "absolute", top: 24, left: 60, right: 54 }}>
+    <View fixed style={{ position: "absolute", top: 22, left: 54, right: 48 }}>
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Image src={LOGO_EA()} style={s.logoEa} />
@@ -136,7 +136,7 @@ export function CumplimientoDoc({ data }: { data: CumplimientoData }) {
   const pct = Math.max(0, Math.min(100, data.cumplimiento_pct));
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={s.page}>
+      <Page size="A4" orientation="portrait" style={s.page}>
         <PageHeader data={data} />
         <Text style={s.title}>Cumplimiento de servicios contratados</Text>
         <Text style={s.subtitle}>{data.cliente} · Ejercicio {data.anio}</Text>
@@ -167,23 +167,23 @@ export function CumplimientoDoc({ data }: { data: CumplimientoData }) {
 
         <View style={s.table}>
           <View style={s.tr}>
-            <Text style={[s.th, { flex: 2.8 }]}>Planta</Text>
-            <Text style={[s.th, { flex: 2 }]}>Servicio</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Contrat.</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Complet.</Text>
-            <Text style={[s.th, { flex: 1.3, textAlign: "right" }]}>Program.</Text>
-            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>%</Text>
-            <Text style={[s.th, { flex: 1.7 }]}>Próxima</Text>
+            <Text style={[s.th, { flex: 2.2 }]}>Planta</Text>
+            <Text style={[s.th, { flex: 1.6 }]}>Servicio</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Contratados</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Completados</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Programados</Text>
+            <Text style={[s.th, { flex: 0.7, textAlign: "right" }]}>%</Text>
+            <Text style={[s.th, { flex: 1.4 }]}>Próxima</Text>
           </View>
           {data.filas.map((f, i) => (
             <View key={f.contrato_id} style={[s.tr, i === data.filas.length - 1 ? { borderBottomWidth: 0 } : {}]}>
-              <Text style={[s.td, { flex: 2.8 }]}>{f.planta_nombre}</Text>
-              <Text style={[s.td, { flex: 2 }]}>{f.servicio}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier" }]}>{f.cantidad_anual}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier", color: COL.ok }]}>{f.completados}</Text>
-              <Text style={[s.td, { flex: 1.3, textAlign: "right", fontFamily: "Courier" }]}>{f.programados}</Text>
-              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: FONT_BOLD, color: toneColor(Number(f.cumplimiento_pct)) }]}>{Number(f.cumplimiento_pct)}%</Text>
-              <Text style={[s.td, { flex: 1.7 }]}>{f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</Text>
+              <Text style={[s.td, { flex: 2.2 }]}>{f.planta_nombre}</Text>
+              <Text style={[s.td, { flex: 1.6 }]}>{f.servicio}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>{f.cantidad_anual}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier", color: COL.ok }]}>{f.completados}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>{f.programados}</Text>
+              <Text style={[s.td, { flex: 0.7, textAlign: "right", fontFamily: FONT_BOLD, color: toneColor(Number(f.cumplimiento_pct)) }]}>{Number(f.cumplimiento_pct)}%</Text>
+              <Text style={[s.td, { flex: 1.4 }]}>{f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</Text>
             </View>
           ))}
           {data.filas.length === 0 && (
