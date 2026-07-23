@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { ensurePdfBrowserPolyfills } from "./browser-polyfills";
 import type { ReporteData } from "./ReporteDoc";
 import type { RecursosData } from "./RecursosDoc";
+import type { PdfExternoData } from "./PdfExternoDoc";
+import type { CumplimientoData } from "./CumplimientoDoc";
 
 /** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
 function currentTheme(): "light" | "dark" {
@@ -161,6 +163,73 @@ export async function generarYDescargarRecursosPdf(data: RecursosData, filename:
   const finalData: RecursosData = { ...base, documento_hash: hash };
   const blob = await pdf(createElement(RecursosDoc, { data: finalData }) as any).toBlob();
 
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
+/**
+ * Reformatea un PDF externo con el encabezado/pie institucional EA
+ * conservando el texto original. NO reinterpreta el contenido.
+ */
+export async function generarYDescargarPdfExterno(data: PdfExternoData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { PdfExternoDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./PdfExternoDoc"),
+  ]);
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: PdfExternoData = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-REP-EXT",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(PdfExternoDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: PdfExternoData = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(PdfExternoDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
+/**
+ * Genera y descarga el PDF de Cumplimiento de servicios contratados por cliente.
+ */
+export async function generarYDescargarCumplimientoPdf(data: CumplimientoData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { CumplimientoDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./CumplimientoDoc"),
+  ]);
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: CumplimientoData = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? `EA-CUM-${data.anio}`,
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Confidencial · Cliente",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(CumplimientoDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: CumplimientoData = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(CumplimientoDoc, { data: finalData }) as any).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

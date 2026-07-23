@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2 } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -11,12 +11,14 @@ import {
   listReportesPDF,
   registrarReportePDF,
   eliminarReportePDF,
+  getPdfExternoParaFormato,
 } from "@/lib/reportes-diarios.functions";
 import { getJornadaHoy } from "@/lib/jornadas.functions";
 import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { generarYDescargarPdfExterno } from "@/lib/pdf/descargar";
 
 const BUCKET = "trabajos-evidencia";
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
@@ -54,6 +56,7 @@ export function ReportesDiariosSection({
   const fRegPdf = useServerFn(registrarReportePDF);
   const fDelPdf = useServerFn(eliminarReportePDF);
   const fGen = useServerFn(generarEjecutivoDesdeDiarios);
+  const fFormato = useServerFn(getPdfExternoParaFormato);
 
   const diarios = useQuery({
     queryKey: ["diarios", trabajoId],
@@ -263,6 +266,7 @@ export function ReportesDiariosSection({
           registrar={fRegPdf}
           currentUserId={user?.id ?? ""}
           isStaff={isStaff}
+          descargarFormatoEA={fFormato}
         />
       </Section>
     </div>
