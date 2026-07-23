@@ -1091,6 +1091,41 @@ function NuevaOrdenDialog({
       },
     ]);
   }
+  function cargarBajoMinimo() {
+    const lows = items.filter(
+      (i: any) => Number(i.stock_actual) <= 0 || Number(i.stock_actual) < Number(i.stock_minimo),
+    );
+    if (lows.length === 0) {
+      toast.info("No hay ítems bajo mínimo en inventario");
+      return;
+    }
+    setFilas((fs) => {
+      const yaCargados = new Set(fs.filter((f) => f.item_id).map((f) => f.item_id as string));
+      const nuevos: NuevaFila[] = lows
+        .filter((it: any) => !yaCargados.has(it.id))
+        .map((it: any, idx: number) => {
+          const faltante = Math.max(1, Math.ceil(Number(it.stock_minimo) - Number(it.stock_actual)));
+          return {
+            key: `low-${it.id}-${Date.now()}-${idx}`,
+            source: "inventario",
+            item_id: it.id,
+            sku_texto: it.sku ?? null,
+            nombre: it.nombre,
+            categoria: it.categoria ?? "",
+            unidad: it.unidad || "un",
+            cantidad_pedida: faltante,
+            precio_unitario: "",
+            proveedor: "",
+          };
+        });
+      if (nuevos.length === 0) {
+        toast.info("Los ítems bajo mínimo ya están cargados");
+        return fs;
+      }
+      toast.success(`Agregados ${nuevos.length} ítem(s) bajo mínimo`);
+      return [...fs, ...nuevos];
+    });
+  }
   function addFree() {
     setFilas((fs) => [
       ...fs,
