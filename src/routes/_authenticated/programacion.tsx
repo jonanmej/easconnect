@@ -600,9 +600,11 @@ function Programacion() {
 }
 
 // ============== Vista Mes (L-V) ==============
-function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
+function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
   cursor: Date; byDay: Map<string, any[]>; canEdit: boolean;
-  dragId: string | null; setDragId: (id: string | null) => void; onDrop: (d: Date) => void;
+  dragId: string | null;
+  setDrag: (d: null | { id: string; fechaOriginal: string; duracion: number }) => void;
+  onDrop: (d: Date) => void;
 }) {
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -661,8 +663,8 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDragId, onDrop }: {
                       key={`${t.id}-${t.__diaIdx ?? 0}`}
                       data-print-card
                       draggable={canEdit && t.estado !== "completado"}
-                      onDragStart={() => setDragId(t.id)}
-                      onDragEnd={() => setDragId(null)}
+                      onDragStart={() => setDrag({ id: t.id, fechaOriginal: t.__fechaOriginal, duracion: t.__duracion ?? 1 })}
+                      onDragEnd={() => setDrag(null)}
                       title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
                         "rounded px-1.5 py-1 text-[10px] border cursor-grab leading-tight " +
