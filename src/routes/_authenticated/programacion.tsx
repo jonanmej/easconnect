@@ -96,9 +96,6 @@ function Programacion() {
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
-  // Permite a admin/supervisor reprogramar hacia sábado, domingo o feriado
-  // marcando el día como "hábil" solo para esta sesión.
-  const [permitirNoLaborable, setPermitirNoLaborable] = useState(false);
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
   // reflejen lo configurado en administración.
@@ -206,7 +203,7 @@ function Programacion() {
   );
 
   const move = useMutation({
-    mutationFn: (vars: { id: string; fecha_programada: string; permitir_no_laborable?: boolean }) =>
+    mutationFn: (vars: { id: string; fecha_programada: string }) =>
       fetchMove({ data: vars }),
     onSuccess: () => {
       toast.success("Trabajo reprogramado");
@@ -247,7 +244,7 @@ function Programacion() {
 
   function onDrop(targetDay: Date) {
     if (!dragId) return;
-    if (!isWorkday(targetDay) && !permitirNoLaborable) {
+    if (!isWorkday(targetDay)) {
       const motivo = motivoNoLaborableSV(targetDay);
       toast.error(
         motivo === "feriado"
@@ -263,11 +260,7 @@ function Programacion() {
     if (sameDay(prev, targetDay)) { setDragId(null); return; }
     const nd = new Date(targetDay);
     nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-    move.mutate({
-      id: dragId,
-      fecha_programada: nd.toISOString(),
-      permitir_no_laborable: !isWorkday(targetDay) ? true : undefined,
-    });
+    move.mutate({ id: dragId, fecha_programada: nd.toISOString() });
     setDragId(null);
   }
 
@@ -330,20 +323,6 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
-            {canEdit && (
-              <label
-                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary cursor-pointer select-none"
-                title="Permite arrastrar trabajos hacia sábados, domingos y feriados"
-              >
-                <input
-                  type="checkbox"
-                  className="size-3.5"
-                  checked={permitirNoLaborable}
-                  onChange={(e) => setPermitirNoLaborable(e.target.checked)}
-                />
-                Permitir días no laborables
-              </label>
-            )}
             <div className="relative">
               <button
                 onClick={() => setPrintOpen((v) => !v)}
