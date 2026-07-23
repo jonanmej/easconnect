@@ -192,11 +192,17 @@ function OrdenDetalleDialog({
   const fEstado = useServerFn(cambiarEstadoOC);
   const fDelete = useServerFn(eliminarOrdenCompra);
   const fInv = useServerFn(listInventario);
-  const [tab, setTab] = useState<"detalle" | "recepcion" | "historial">("detalle");
+  const fVars = useServerFn(listVariacionesOC);
+  const [tab, setTab] = useState<"detalle" | "recepcion" | "variaciones" | "historial">("detalle");
 
   const det = useQuery({ queryKey: ["orden-compra", id], queryFn: () => fGet({ data: { id } }) });
   const inv = useQuery({ queryKey: ["inventario"], queryFn: () => fInv() });
   const invItems = (inv.data ?? []) as any[];
+  const vars = useQuery({
+    queryKey: ["orden-compra-variaciones", id],
+    queryFn: () => fVars({ data: { id } }),
+    enabled: tab === "variaciones",
+  });
 
   const chgEstado = useMutation({
     mutationFn: (v: { nuevo: EstadoOC; notas?: string }) =>
@@ -314,7 +320,7 @@ function OrdenDetalleDialog({
         </div>
 
         <div className="px-5 pt-3 border-b border-border flex gap-1 text-xs">
-          {(["detalle", "recepcion", "historial"] as const).map((k) => (
+          {(["detalle", "recepcion", "variaciones", "historial"] as const).map((k) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -443,17 +449,24 @@ function OrdenDetalleDialog({
           {tab === "recepcion" && (
             <RecepcionForm
               ordenId={id}
+              orden={orden}
               items={items}
               invItems={invItems}
               recepciones={recepciones}
               canReceive={canReceive && (estado === "enviada" || estado === "parcial")}
+              canEdit={canManage}
               onDone={() => {
                 qc.invalidateQueries({ queryKey: ["orden-compra", id] });
                 qc.invalidateQueries({ queryKey: ["ordenes-compra"] });
                 qc.invalidateQueries({ queryKey: ["inventario"] });
+                qc.invalidateQueries({ queryKey: ["orden-compra-variaciones", id] });
                 onChanged();
               }}
             />
+          )}
+
+          {tab === "variaciones" && (
+            <VariacionesList rows={(vars.data as any[]) ?? []} loading={vars.isLoading} />
           )}
 
           {tab === "historial" && (
