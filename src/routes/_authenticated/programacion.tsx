@@ -96,6 +96,9 @@ function Programacion() {
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
+  // Permite a admin/supervisor reprogramar hacia sábado, domingo o feriado
+  // marcando el día como "hábil" solo para esta sesión.
+  const [permitirNoLaborable, setPermitirNoLaborable] = useState(false);
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
   // de `dias-habiles`, para que `esNoLaborableSV`/`motivoNoLaborableSV`
   // reflejen lo configurado en administración.
@@ -243,7 +246,7 @@ function Programacion() {
 
   function onDrop(targetDay: Date) {
     if (!dragId) return;
-    if (!isWorkday(targetDay)) {
+    if (!isWorkday(targetDay) && !permitirNoLaborable) {
       const motivo = motivoNoLaborableSV(targetDay);
       toast.error(
         motivo === "feriado"
@@ -259,7 +262,11 @@ function Programacion() {
     if (sameDay(prev, targetDay)) { setDragId(null); return; }
     const nd = new Date(targetDay);
     nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-    move.mutate({ id: dragId, fecha_programada: nd.toISOString() });
+    move.mutate({
+      id: dragId,
+      fecha_programada: nd.toISOString(),
+      permitir_no_laborable: !isWorkday(targetDay) ? true : undefined,
+    });
     setDragId(null);
   }
 
