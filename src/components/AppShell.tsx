@@ -286,19 +286,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground">
+    <div className="flex h-[100dvh] w-full bg-background text-foreground">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
         Saltar al contenido
       </a>
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar">
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar safe-bottom">
         {sidebarBody}
       </aside>
 
       <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
-        <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
+        <header className="min-h-16 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8 safe-top safe-x">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
