@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listFeriadosActivos } from "@/lib/feriados.functions";
@@ -20,10 +20,11 @@ export function useFeriados(anio: number) {
     for (const f of (q.data as Array<{ fecha: string; nombre: string }> | undefined) ?? []) {
       m.set(f.fecha, f.nombre);
     }
+    // Inyectamos el caché sincrónico durante el render (no en `useEffect`)
+    // para que la primera pasada de render que ya tiene datos vea los
+    // feriados personalizados en `motivoNoLaborableSV` / `esNoLaborableSV`.
+    setFeriadosCache(anio, new Set(m.keys()));
     return m;
   }, [q.data]);
-  useEffect(() => {
-    setFeriadosCache(anio, new Set(map.keys()));
-  }, [anio, map]);
   return { map, isLoading: q.isLoading, refetch: q.refetch };
 }

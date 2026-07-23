@@ -12,8 +12,10 @@ import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib
 async function ensureFeriadosCargados(supabase: any, fechaISO: string) {
   try {
     const anio = new Date(fechaISO).getUTCFullYear();
-    const { hasFeriadosCache, setFeriadosCache } = await import("@/lib/dias-habiles");
-    if (hasFeriadosCache(anio)) return;
+    const { setFeriadosCache } = await import("@/lib/dias-habiles");
+    // Nota: no usamos `hasFeriadosCache` aquí — el caché vive en memoria del
+    // worker y quedaría desactualizado cuando un admin agrega/quita feriados
+    // personalizados. Consultamos siempre para validar contra la lista actual.
     const { data } = await supabase
       .from("feriados")
       .select("fecha")
