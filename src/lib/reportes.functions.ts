@@ -558,11 +558,11 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
     const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
     aiResult = {
       ...aiResult,
-      titulo: fix(aiResult.titulo),
-      resumen: fix(aiResult.resumen),
-      kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
-      hallazgos: aiResult.hallazgos.map(fix),
-      recomendaciones: aiResult.recomendaciones.map(fix),
+      titulo: humanizarTexto(fix(aiResult.titulo)),
+      resumen: humanizarTexto(fix(aiResult.resumen)),
+      kpis: aiResult.kpis.map((k) => ({ label: humanizarTexto(fix(k.label)), value: humanizarTexto(fix(k.value)) })),
+      hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
+      recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
     };
 
     const markdown = [
@@ -1270,11 +1270,11 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
       aiResult = {
         ...aiResult,
-        titulo: fix(aiResult.titulo),
-        resumen: fix(aiResult.resumen),
-        kpis: aiResult.kpis.map((k) => ({ label: fix(k.label), value: fix(k.value) })),
-        hallazgos: aiResult.hallazgos.map(fix),
-        recomendaciones: aiResult.recomendaciones.map(fix),
+        titulo: humanizarTexto(fix(aiResult.titulo)),
+        resumen: humanizarTexto(fix(aiResult.resumen)),
+        kpis: aiResult.kpis.map((k) => ({ label: humanizarTexto(fix(k.label)), value: humanizarTexto(fix(k.value)) })),
+        hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
+        recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
     }
 
