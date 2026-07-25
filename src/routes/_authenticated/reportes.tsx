@@ -249,6 +249,43 @@ function Reportes() {
     return filtroCliente ? all.filter((p) => p.cliente_id === filtroCliente) : all;
   }, [plantas.data, filtroCliente]);
 
+  // Muestra dinámicamente los filtros: el filtro de Cliente solo tiene sentido
+  // si el usuario ve reportes de más de un cliente (staff con RLS abierta).
+  // El filtro de Planta se muestra cuando entre los reportes visibles hay
+  // más de una planta (o más de una si además se contabiliza el "sin planta"
+  // como opción extra).
+  const clientesEnItems = useMemo(
+    () => new Set(items.map((r) => r.cliente_id)).size,
+    [items],
+  );
+  const mostrarFiltroCliente = !isCliente && clientesEnItems > 1;
+  const plantasEnScope = useMemo(() => {
+    const base = filtroCliente ? items.filter((r) => r.cliente_id === filtroCliente) : items;
+    const set = new Set<string>();
+    let sinPlanta = false;
+    for (const r of base) {
+      if (r.planta_id) set.add(r.planta_id);
+      else sinPlanta = true;
+    }
+    return set.size + (sinPlanta ? 1 : 0);
+  }, [items, filtroCliente]);
+  const mostrarFiltroPlanta = plantasEnScope > 1;
+
+  // Si el filtro deja de tener sentido (cliente único, o cliente elegido con
+  // una sola planta), limpia el valor almacenado para no dejar filtros
+  // "fantasma" activos.
+  useEffect(() => {
+    if (!mostrarFiltroCliente && filtroCliente) setFiltroCliente("");
+  }, [mostrarFiltroCliente, filtroCliente]);
+  useEffect(() => {
+    if (!mostrarFiltroPlanta && filtroPlanta) setFiltroPlanta("");
+  }, [mostrarFiltroPlanta, filtroPlanta]);
+  // Si "Agrupar por" apunta a una dimensión que ya no se muestra, resetea.
+  useEffect(() => {
+    if (agrupar === "cliente" && !mostrarFiltroCliente) setAgrupar("none");
+    if (agrupar === "planta" && !mostrarFiltroPlanta) setAgrupar("none");
+  }, [agrupar, mostrarFiltroCliente, mostrarFiltroPlanta]);
+
   // Aplica los filtros de cliente, planta y alcance al listado.
   const itemsFiltrados = useMemo(() => {
     return items.filter((r) => {
