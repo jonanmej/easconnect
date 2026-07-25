@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { humanizarTexto } from "@/lib/humanizar-texto";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
