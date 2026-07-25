@@ -589,9 +589,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         // y dentro de cada categoría por orientación (apaisadas primero)
         // para mantener la grilla uniforme.
         const catOrden: Record<string, number> = {
-          antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3,
+          antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3, mediciones: 4,
         };
-        const ordenadas = [...data.evidencias].slice(0, ejec ? 12 : 40).sort((a, b) => {
+        const ordenadas = [...data.evidencias].sort((a, b) => {
           const ca = catOrden[String(a.categoria ?? "").toLowerCase()] ?? 9;
           const cb = catOrden[String(b.categoria ?? "").toLowerCase()] ?? 9;
           if (ca !== cb) return ca - cb;
@@ -623,6 +623,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
                           c === "durante" ? "Fotografía DURANTE LIMPIEZA" :
                           c === "despues" || c === "después" ? "Fotografía DESPUÉS DE LIMPIEZA" :
                           c === "anomalia" || c === "anomalía" ? "Fotografía HALLAZGO O ANOMALÍA" :
+                          c === "mediciones" ? "Fotografía MEDICIONES OPERATIVAS" :
                           "Fotografía";
                         return `${leyenda} — ${e.trabajo}`;
                       })()}

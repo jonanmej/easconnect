@@ -12,12 +12,13 @@ import { enqueue, flushQueue, pendingCount, onQueueChange } from "@/lib/offline-
 
 const BUCKET = "trabajos-evidencia";
 
-type Categoria = "antes" | "durante" | "despues" | "anomalia";
+type Categoria = "antes" | "durante" | "despues" | "anomalia" | "mediciones";
 const CATEGORIAS: { value: Categoria; label: string; hint: string }[] = [
   { value: "antes", label: "Antes", hint: "Estado inicial del sitio." },
   { value: "durante", label: "Durante", hint: "Trabajo en ejecución." },
   { value: "despues", label: "Después", hint: "Resultado final." },
   { value: "anomalia", label: "Anomalías", hint: "Hallazgos y fallas." },
+  { value: "mediciones", label: "Mediciones", hint: "Lecturas de TDS, ángulo de inclinación y presión de agua." },
 ];
 
 type Estado = "pendiente" | "subiendo" | "ok" | "error" | "encolado";
@@ -223,7 +224,7 @@ export function EvidenciaUploader({
 
   const all = (list.data as any[] | undefined) ?? [];
   const filtered = all.filter((e) => (e.categoria ?? "durante") === categoria);
-  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0 };
+  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0, mediciones: 0 };
   all.forEach((e) => { const c = (e.categoria ?? "durante") as Categoria; counts[c] = (counts[c] ?? 0) + 1; });
   const enCola = cola.filter((c) => c.categoria === categoria);
   const subiendoN = cola.filter((c) => c.estado === "subiendo" || c.estado === "pendiente").length;

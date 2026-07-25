@@ -12,7 +12,7 @@ export type EvidenciaPendiente = {
   id: string;
   trabajo_id: string;
   reporte_diario_id?: string | null;
-  categoria?: "antes" | "durante" | "despues" | "anomalia";
+  categoria?: "antes" | "durante" | "despues" | "anomalia" | "mediciones";
   descripcion: string | null;
   data_url: string; // image/jpeg base64
   created_at: number;

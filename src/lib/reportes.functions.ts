@@ -453,7 +453,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS promedio (ppm) del agua utilizada, ángulo de inclinación promedio (°) de los paneles limpiados, presión de agua promedio (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
+      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS del agua utilizada (ppm), ángulo de inclinación de los paneles (°), presión de agua (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Para TDS, ángulo de inclinación y presión de agua NO calcules promedios: enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
       "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
     ].join(" ");
     const servicioLine = data.servicio
@@ -693,7 +693,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         .select("trabajo_id, reporte_diario_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
         .order("categoria", { ascending: true })
-        .limit(80);
+        .limit(500);
       if (desde || hasta) {
         evidenciasQb = diarioIds.length
           ? evidenciasQb.in("reporte_diario_id", diarioIds)
@@ -706,7 +706,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
         const urlByPath = new Map((signed ?? []).map((s) => [s.path!, s.signedUrl]));
-        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3 };
+        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3, mediciones: 4 };
         const evsOrdenadas = [...evs].sort((a: any, b: any) => {
           const ca = String(a.categoria ?? "").toLowerCase();
           const cb = String(b.categoria ?? "").toLowerCase();
@@ -810,7 +810,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
             descripcion: "Avance reportado por el equipo en campo.",
-            fuente: "Reportes diarios · avance_pct · estado de la OT",
+            fuente: "Reportes diarios · porcentaje de avance · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
@@ -832,7 +832,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Ejecución diaria — paneles limpiados",
           descripcion: "Ritmo diario del equipo en campo durante el periodo.",
-          fuente: "Reportes diarios · campo paneles_limpiados",
+          fuente: "Reportes diarios · paneles limpiados",
           series: panelesSeries,
         });
       }
@@ -852,7 +852,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Horas de campo por día",
           descripcion: "Esfuerzo del equipo por jornada dentro del periodo.",
-          fuente: "Reportes diarios · campo horas_trabajadas",
+          fuente: "Reportes diarios · horas trabajadas",
           unidad: "h",
           series: horasSeries,
         });
@@ -1180,6 +1180,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Escribes en español, tono profesional, conciso y accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
       "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
+      "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026').",
     ].join(" ");
     const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
 
