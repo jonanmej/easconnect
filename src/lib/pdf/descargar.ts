@@ -68,13 +68,27 @@ function measureAspect(dataUrl: string): Promise<number | null> {
   });
 }
 
-export async function buildEvidencias(items: { trabajo: string; descripcion?: string | null; url: string }[]) {
-  const out: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[] = [];
+export async function buildEvidencias(
+  items: { trabajo: string; descripcion?: string | null; url: string; categoria?: string | null }[],
+) {
+  const out: {
+    trabajo: string;
+    descripcion?: string | null;
+    dataUrl: string;
+    aspect?: number | null;
+    categoria?: string | null;
+  }[] = [];
   await Promise.all(items.map(async (it) => {
     const d = await urlToDataUrl(it.url);
     if (!d) return;
     const aspect = await measureAspect(d);
-    out.push({ trabajo: it.trabajo, descripcion: it.descripcion ?? null, dataUrl: d, aspect });
+    out.push({
+      trabajo: it.trabajo,
+      descripcion: it.descripcion ?? null,
+      dataUrl: d,
+      aspect,
+      categoria: it.categoria ?? null,
+    });
   }));
   return out;
 }
