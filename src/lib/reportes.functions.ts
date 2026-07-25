@@ -693,7 +693,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         .select("trabajo_id, reporte_diario_id, storage_path, descripcion, categoria")
         .in("trabajo_id", trabajoIds)
         .order("categoria", { ascending: true })
-        .limit(80);
+        .limit(500);
       if (desde || hasta) {
         evidenciasQb = diarioIds.length
           ? evidenciasQb.in("reporte_diario_id", diarioIds)
@@ -706,7 +706,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           .from("trabajos-evidencia")
           .createSignedUrls(evs.map((e) => e.storage_path), 3600);
         const urlByPath = new Map((signed ?? []).map((s) => [s.path!, s.signedUrl]));
-        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3 };
+        const orden: Record<string, number> = { antes: 0, durante: 1, despues: 2, "después": 2, anomalia: 3, anomalía: 3, mediciones: 4 };
         const evsOrdenadas = [...evs].sort((a: any, b: any) => {
           const ca = String(a.categoria ?? "").toLowerCase();
           const cb = String(b.categoria ?? "").toLowerCase();
@@ -810,7 +810,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
             descripcion: "Avance reportado por el equipo en campo.",
-            fuente: "Reportes diarios · avance_pct · estado de la OT",
+            fuente: "Reportes diarios · porcentaje de avance · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
@@ -832,7 +832,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Ejecución diaria — paneles limpiados",
           descripcion: "Ritmo diario del equipo en campo durante el periodo.",
-          fuente: "Reportes diarios · campo paneles_limpiados",
+          fuente: "Reportes diarios · paneles limpiados",
           series: panelesSeries,
         });
       }
@@ -852,7 +852,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         graficas.push({
           titulo: "Horas de campo por día",
           descripcion: "Esfuerzo del equipo por jornada dentro del periodo.",
-          fuente: "Reportes diarios · campo horas_trabajadas",
+          fuente: "Reportes diarios · horas trabajadas",
           unidad: "h",
           series: horasSeries,
         });
