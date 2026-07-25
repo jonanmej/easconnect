@@ -699,7 +699,7 @@ function YearView({ year, byDay, onPickMonth }: {
   year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 print-year-grid">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 12 }, (_, m) => (
         <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
       ))}
@@ -721,11 +721,23 @@ function MiniMonth({ year, month, byDay, onClick }: {
     if (rows.length >= 6) break;
   }
   const today = new Date();
+  // Lista de días con trabajos del mes, para mostrar planta y servicio bajo el mini-calendario.
+  const eventos = useMemo(() => {
+    const out: { fecha: Date; items: any[] }[] = [];
+    for (let day = 1; day <= last.getDate(); day++) {
+      const d = new Date(year, month, day);
+      const items = byDay.get(d.toDateString()) ?? [];
+      if (items.length) out.push({ fecha: d, items });
+    }
+    return out;
+  }, [year, month, byDay, last]);
   return (
-    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors print-mini-month">
-      <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
-        {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
-      </p>
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <button onClick={onClick} className="w-full text-left px-3 pt-3 hover:bg-secondary/40 transition-colors">
+        <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
+          {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
+        </p>
+      <div className="px-0 pb-2">
       <div className="grid grid-cols-[24px_repeat(5,1fr)] gap-y-0.5 text-[9px] text-muted-foreground">
         <div />
         {["L", "M", "X", "J", "V"].map((d) => (
@@ -752,11 +764,14 @@ function MiniMonth({ year, month, byDay, onClick }: {
                 : estado === "programado" ? "bg-muted-foreground/15"
                 : estado === "cancelado" ? "bg-destructive/15"
                 : "";
+              const tooltip = has
+                ? items.map((i: any) => `• ${i.planta_nombre ?? "—"} — ${i.servicio}${i.folio ? ` (${i.folio})` : ""}`).join("\n")
+                : "";
               return (
                 <div
                   key={d.toISOString()}
                   className={"aspect-square grid place-items-center relative rounded " + (inMonth ? shade : "")}
-                  title={has ? `${items.length} trabajo(s) · ${estado}` : ""}
+                  title={tooltip}
                 >
                   <span className={
                     "text-[10px] " +
@@ -771,7 +786,31 @@ function MiniMonth({ year, month, byDay, onClick }: {
           </Fragment>
         ))}
       </div>
-    </button>
+      </div>
+      </button>
+      {eventos.length > 0 && (
+        <div className="border-t border-border px-3 py-2 space-y-1 max-h-56 overflow-y-auto">
+          {eventos.map(({ fecha, items }) => (
+            <div key={fecha.toISOString()} className="text-[10px] leading-snug">
+              <div className="font-mono font-semibold text-muted-foreground">
+                {String(fecha.getDate()).padStart(2, "0")} {fecha.toLocaleDateString("es-SV", { weekday: "short" })}
+              </div>
+              <ul className="ml-2 space-y-0.5">
+                {items.slice(0, 4).map((t: any, i: number) => (
+                  <li key={`${t.id}-${i}`} className="truncate">
+                    <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
+                    <span className="text-muted-foreground"> · {t.servicio}</span>
+                  </li>
+                ))}
+                {items.length > 4 && (
+                  <li className="text-muted-foreground/80">+{items.length - 4} más</li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
