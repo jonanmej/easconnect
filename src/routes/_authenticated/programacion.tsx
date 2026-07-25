@@ -10,10 +10,10 @@ import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2 } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT } from "@/lib/servicios";
-import { PrintDocHeader, PrintDocFooter } from "@/components/PrintDocFrame";
+import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -123,13 +123,13 @@ function Programacion() {
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
   // Filtros de impresión
-  const [printOpen, setPrintOpen] = useState(false);
-  const [printPaper, setPrintPaper] = useState<"A4" | "A3">("A4");
-  const [printOrient, setPrintOrient] = useState<"landscape" | "portrait">("landscape");
-  const [printCliente, setPrintCliente] = useState<string>("");
-  const [printServicio, setPrintServicio] = useState<string>("");
-  const [printFolio, setPrintFolio] = useState<string>("");
-  const [printing, setPrinting] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfPaper, setPdfPaper] = useState<"A4" | "A3">("A4");
+  const [pdfOrient, setPdfOrient] = useState<"landscape" | "portrait">("landscape");
+  const [pdfCliente, setPdfCliente] = useState<string>("");
+  const [pdfServicio, setPdfServicio] = useState<string>("");
+  const [pdfFolio, setPdfFolio] = useState<string>("");
+  const [downloading, setDownloading] = useState(false);
 
   const clientesUnicos = useMemo(() => {
     const map = new Map<string, string>();
@@ -137,57 +137,71 @@ function Programacion() {
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [trabajos]);
   const trabajosFiltrados = useMemo(() => {
-    let arr = clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos;
-    if (printing) {
-      if (printCliente) arr = arr.filter((t) => t.cliente_id === printCliente);
-      if (printServicio) arr = arr.filter((t) => String(t.servicio ?? "").toLocaleLowerCase("es") === printServicio.toLocaleLowerCase("es"));
-      if (printFolio.trim()) {
-        const q = printFolio.trim().toLocaleLowerCase("es");
-        arr = arr.filter((t) => String(t.folio ?? "").toLocaleLowerCase("es").includes(q));
-      }
+    return clienteFilter ? trabajos.filter((t) => t.cliente_id === clienteFilter) : trabajos;
+  }, [trabajos, clienteFilter]);
+
+  // Aplica los filtros específicos de descarga sobre la lista base.
+  const trabajosParaPdf = useMemo(() => {
+    let arr = trabajos;
+    if (pdfCliente) arr = arr.filter((t) => t.cliente_id === pdfCliente);
+    if (pdfServicio) arr = arr.filter((t) => String(t.servicio ?? "").toLocaleLowerCase("es") === pdfServicio.toLocaleLowerCase("es"));
+    if (pdfFolio.trim()) {
+      const q = pdfFolio.trim().toLocaleLowerCase("es");
+      arr = arr.filter((t) => String(t.folio ?? "").toLocaleLowerCase("es").includes(q));
+    }
+    // Recortar al rango visible según la vista actual.
+    if (vista === "semana") {
+      const start = new Date(cursor); start.setHours(0, 0, 0, 0);
+      const end = addDays(start, 5); end.setHours(0, 0, 0, 0);
+      arr = arr.filter((t) => {
+        const d = new Date(t.fecha_programada);
+        return d >= start && d < end;
+      });
+    } else if (vista === "mes") {
+      const y = cursor.getFullYear(), m = cursor.getMonth();
+      arr = arr.filter((t) => {
+        const d = new Date(t.fecha_programada);
+        return d.getFullYear() === y && d.getMonth() === m;
+      });
+    } else {
+      const y = cursor.getFullYear();
+      arr = arr.filter((t) => new Date(t.fecha_programada).getFullYear() === y);
     }
     return arr;
-  }, [trabajos, clienteFilter, printing, printCliente, printServicio, printFolio]);
+  }, [trabajos, pdfCliente, pdfServicio, pdfFolio, vista, cursor]);
 
-  // Inyecta @page y dispara window.print() cuando `printing` pasa a true.
-  useEffect(() => {
-    if (!printing) return;
-    const style = document.createElement("style");
-    style.id = "print-page-config";
-    // margin:0 elimina el encabezado (URL + título "Programación · EA Service Connect")
-    // y pie (fecha de impresión) que agregan los navegadores. Compensamos con
-    // padding interno en .print-area. Escalado según tamaño/orientación para
-    // que el contenido no se corte en A4.
-    const isA4Portrait = printPaper === "A4" && printOrient === "portrait";
-    const isA4Land = printPaper === "A4" && printOrient === "landscape";
-    void isA4Portrait; void isA4Land;
-    // Márgenes normales: dejamos que el navegador coloque el documento a
-    // tamaño real. La vista de grilla se oculta en @media print y en su
-    // lugar se imprime .print-doc-programacion (tabla profesional).
-    style.textContent = `@media print {
-      @page { size: ${printPaper} ${printOrient}; margin: 14mm 12mm 16mm 12mm; }
-      html, body { margin: 0 !important; padding: 0 !important; }
-      .print-area { padding: 0 !important; }
-    }`;
-    document.head.appendChild(style);
-    const done = () => {
-      setPrinting(false);
-      style.remove();
-      window.removeEventListener("afterprint", done);
-    };
-    window.addEventListener("afterprint", done);
-    const t = window.setTimeout(() => {
-      try { window.print(); } catch (_e) { done(); }
-    }, 60);
-    return () => { window.clearTimeout(t); style.remove(); window.removeEventListener("afterprint", done); };
-  }, [printing, printPaper, printOrient]);
-
-  function launchPrint() {
-    setPrintOpen(false);
-    setPrinting(true);
+  function resetPdfFilters() {
+    setPdfCliente(""); setPdfServicio(""); setPdfFolio("");
   }
-  function resetPrintFilters() {
-    setPrintCliente(""); setPrintServicio(""); setPrintFolio("");
+
+  async function descargarPdf() {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const emitido_at = new Date().toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" });
+      const filtros = [
+        pdfCliente ? { label: "Cliente", value: clientesUnicos.find((c) => c.id === pdfCliente)?.nombre ?? "—" } : null,
+        pdfServicio ? { label: "Servicio", value: pdfServicio } : null,
+        pdfFolio.trim() ? { label: "OT", value: pdfFolio.trim() } : null,
+      ].filter(Boolean) as { label: string; value: string }[];
+      const filenameVista = vista === "semana" ? "semana" : vista === "mes" ? "mes" : "anio";
+      const filename = `programacion-${filenameVista}-${new Date().toISOString().slice(0,10)}.pdf`;
+      await generarYDescargarProgramacionPdf({
+        vista,
+        headerTitle,
+        trabajos: trabajosParaPdf,
+        filtros,
+        paper: pdfPaper,
+        orientation: pdfOrient,
+        emitido_at,
+      }, filename);
+      setPdfOpen(false);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   // Solo Lun-Vie
@@ -381,21 +395,7 @@ function Programacion() {
         : String(cursor.getFullYear());
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full print-area">
-      <PrintDocHeader
-        titulo={`Programación · ${headerTitle}`}
-        subtitulo={vista === "semana" ? "Calendario semanal" : vista === "mes" ? "Calendario mensual" : "Calendario anual"}
-        codigo="EA-PRG"
-        version="1.0"
-        clasificacion="Uso interno"
-        filtros={[
-          printCliente ? { label: "Cliente", value: clientesUnicos.find((c) => c.id === printCliente)?.nombre ?? "—" } : null,
-          printServicio ? { label: "Servicio", value: printServicio } : null,
-          printFolio.trim() ? { label: "OT", value: printFolio.trim() } : null,
-          { label: "Papel", value: `${printPaper} ${printOrient === "landscape" ? "Horizontal" : "Vertical"}` },
-        ].filter(Boolean) as { label: string; value: string }[]}
-      />
-      <ProgramacionPrintDoc trabajos={trabajosFiltrados} headerTitle={headerTitle} />
+    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Programación"
         description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
@@ -423,26 +423,27 @@ function Programacion() {
             </button>
             <div className="relative">
               <button
-                onClick={() => setPrintOpen((v) => !v)}
+                onClick={() => setPdfOpen((v) => !v)}
                 className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
-                title="Opciones de impresión"
+                title="Descargar programación en PDF"
               >
-                <Printer className="size-3.5" /> Imprimir
+                <FileDown className="size-3.5" /> Descargar PDF
               </button>
-              {printOpen && (
+              {pdfOpen && (
                 <div className="absolute right-0 mt-2 w-80 z-30 bg-popover text-popover-foreground border border-border rounded-md shadow-lg p-3 space-y-2 text-xs">
-                  <p className="font-semibold text-sm">Opciones de impresión</p>
+                  <p className="font-semibold text-sm">Descargar PDF</p>
+                  <p className="text-[11px] text-muted-foreground">Se generará un PDF con los trabajos de la vista actual ({vista}).</p>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="space-y-1">
                       <span className="text-muted-foreground">Papel</span>
-                      <select value={printPaper} onChange={(e) => setPrintPaper(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <select value={pdfPaper} onChange={(e) => setPdfPaper(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
                         <option value="A4">A4</option>
                         <option value="A3">A3</option>
                       </select>
                     </label>
                     <label className="space-y-1">
                       <span className="text-muted-foreground">Orientación</span>
-                      <select value={printOrient} onChange={(e) => setPrintOrient(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                      <select value={pdfOrient} onChange={(e) => setPdfOrient(e.target.value as any)} className="w-full h-8 px-2 rounded border border-input bg-background">
                         <option value="landscape">Horizontal</option>
                         <option value="portrait">Vertical</option>
                       </select>
@@ -450,28 +451,30 @@ function Programacion() {
                   </div>
                   <label className="space-y-1 block">
                     <span className="text-muted-foreground">Cliente</span>
-                    <select value={printCliente} onChange={(e) => setPrintCliente(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                    <select value={pdfCliente} onChange={(e) => setPdfCliente(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
                       <option value="">Todos</option>
                       {clientesUnicos.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
                     </select>
                   </label>
                   <label className="space-y-1 block">
                     <span className="text-muted-foreground">Servicio</span>
-                    <select value={printServicio} onChange={(e) => setPrintServicio(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
+                    <select value={pdfServicio} onChange={(e) => setPdfServicio(e.target.value)} className="w-full h-8 px-2 rounded border border-input bg-background">
                       <option value="">Todos</option>
                       {SERVICIOS_OT.map((s) => (<option key={s} value={s}>{s}</option>))}
                     </select>
                   </label>
                   <label className="space-y-1 block">
                     <span className="text-muted-foreground">Orden de trabajo (folio contiene)</span>
-                    <input value={printFolio} onChange={(e) => setPrintFolio(e.target.value)} placeholder="Ej: T-2026-0046" className="w-full h-8 px-2 rounded border border-input bg-background" />
+                    <input value={pdfFolio} onChange={(e) => setPdfFolio(e.target.value)} placeholder="Ej: T-2026-0046" className="w-full h-8 px-2 rounded border border-input bg-background" />
                   </label>
+                  <p className="text-[11px] text-muted-foreground">{trabajosParaPdf.length} trabajo{trabajosParaPdf.length === 1 ? "" : "s"} se incluirán en el PDF.</p>
                   <div className="flex items-center justify-between pt-1">
-                    <button onClick={resetPrintFilters} className="text-muted-foreground hover:text-foreground underline underline-offset-2">Limpiar filtros</button>
+                    <button onClick={resetPdfFilters} className="text-muted-foreground hover:text-foreground underline underline-offset-2">Limpiar filtros</button>
                     <div className="inline-flex gap-2">
-                      <button onClick={() => setPrintOpen(false)} className="h-8 px-3 rounded border border-border hover:bg-secondary">Cancelar</button>
-                      <button onClick={launchPrint} className="h-8 px-3 rounded bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5">
-                        <Printer className="size-3.5" /> Imprimir / Guardar PDF
+                      <button onClick={() => setPdfOpen(false)} className="h-8 px-3 rounded border border-border hover:bg-secondary">Cancelar</button>
+                      <button onClick={descargarPdf} disabled={downloading || trabajosParaPdf.length === 0}
+                        className="h-8 px-3 rounded bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5 disabled:opacity-50">
+                        {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} Descargar PDF
                       </button>
                     </div>
                   </div>
@@ -589,7 +592,6 @@ function Programacion() {
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
         </div>
       </div>
-      <PrintDocFooter codigo="EA-PRG" version="1.0" />
       {isCliente && (
         <div className="mt-10 no-print">
           <ClienteCalendar />
@@ -697,7 +699,7 @@ function YearView({ year, byDay, onPickMonth }: {
   year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 print-year-grid">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 12 }, (_, m) => (
         <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
       ))}
@@ -719,11 +721,23 @@ function MiniMonth({ year, month, byDay, onClick }: {
     if (rows.length >= 6) break;
   }
   const today = new Date();
+  // Lista de días con trabajos del mes, para mostrar planta y servicio bajo el mini-calendario.
+  const eventos = useMemo(() => {
+    const out: { fecha: Date; items: any[] }[] = [];
+    for (let day = 1; day <= last.getDate(); day++) {
+      const d = new Date(year, month, day);
+      const items = byDay.get(d.toDateString()) ?? [];
+      if (items.length) out.push({ fecha: d, items });
+    }
+    return out;
+  }, [year, month, byDay, last]);
   return (
-    <button onClick={onClick} className="text-left bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors print-mini-month">
-      <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
-        {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
-      </p>
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <button onClick={onClick} className="w-full text-left px-3 pt-3 hover:bg-secondary/40 transition-colors">
+        <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
+          {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
+        </p>
+      <div className="px-0 pb-2">
       <div className="grid grid-cols-[24px_repeat(5,1fr)] gap-y-0.5 text-[9px] text-muted-foreground">
         <div />
         {["L", "M", "X", "J", "V"].map((d) => (
@@ -750,11 +764,14 @@ function MiniMonth({ year, month, byDay, onClick }: {
                 : estado === "programado" ? "bg-muted-foreground/15"
                 : estado === "cancelado" ? "bg-destructive/15"
                 : "";
+              const tooltip = has
+                ? items.map((i: any) => `• ${i.planta_nombre ?? "—"} — ${i.servicio}${i.folio ? ` (${i.folio})` : ""}`).join("\n")
+                : "";
               return (
                 <div
                   key={d.toISOString()}
                   className={"aspect-square grid place-items-center relative rounded " + (inMonth ? shade : "")}
-                  title={has ? `${items.length} trabajo(s) · ${estado}` : ""}
+                  title={tooltip}
                 >
                   <span className={
                     "text-[10px] " +
@@ -769,7 +786,31 @@ function MiniMonth({ year, month, byDay, onClick }: {
           </Fragment>
         ))}
       </div>
-    </button>
+      </div>
+      </button>
+      {eventos.length > 0 && (
+        <div className="border-t border-border px-3 py-2 space-y-1 max-h-56 overflow-y-auto">
+          {eventos.map(({ fecha, items }) => (
+            <div key={fecha.toISOString()} className="text-[10px] leading-snug">
+              <div className="font-mono font-semibold text-muted-foreground">
+                {String(fecha.getDate()).padStart(2, "0")} {fecha.toLocaleDateString("es-SV", { weekday: "short" })}
+              </div>
+              <ul className="ml-2 space-y-0.5">
+                {items.slice(0, 4).map((t: any, i: number) => (
+                  <li key={`${t.id}-${i}`} className="truncate">
+                    <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
+                    <span className="text-muted-foreground"> · {t.servicio}</span>
+                  </li>
+                ))}
+                {items.length > 4 && (
+                  <li className="text-muted-foreground/80">+{items.length - 4} más</li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

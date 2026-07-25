@@ -5,6 +5,7 @@ import type { RecursosData } from "./RecursosDoc";
 import type { PdfExternoData } from "./PdfExternoDoc";
 import type { CumplimientoData } from "./CumplimientoDoc";
 import type { OrdenCompraData } from "./OrdenCompraDoc";
+import type { ProgramacionData } from "./ProgramacionDoc";
 
 /** Lee el tema activo desde `<html class="dark">` (ver ThemeProvider). */
 function currentTheme(): "light" | "dark" {
@@ -272,4 +273,31 @@ export async function generarYDescargarOrdenCompraPdf(data: OrdenCompraData, fil
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+/** Genera y descarga el PDF de la programación (semana / mes / año). */
+export async function generarYDescargarProgramacionPdf(data: ProgramacionData, filename: string) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { ProgramacionDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./ProgramacionDoc"),
+  ]);
+  const documento_id = data.documento_id ?? uuidV4();
+  const finalData: ProgramacionData = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-PRG",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno",
+  };
+  const blob = await pdf(createElement(ProgramacionDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id };
 }
