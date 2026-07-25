@@ -422,6 +422,7 @@ function Reportes() {
 
       {/* Filtros: cliente / planta / alcance / agrupación */}
       <div className="bg-card border border-border rounded-xl p-3 sm:p-4 mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {mostrarFiltroCliente && (
         <label className="text-xs font-medium text-muted-foreground space-y-1 block">
           <span className="uppercase tracking-wider">Cliente</span>
           <select
@@ -435,6 +436,8 @@ function Reportes() {
             ))}
           </select>
         </label>
+        )}
+        {mostrarFiltroPlanta && (
         <label className="text-xs font-medium text-muted-foreground space-y-1 block">
           <span className="uppercase tracking-wider">Planta</span>
           <select
@@ -449,6 +452,7 @@ function Reportes() {
             ))}
           </select>
         </label>
+        )}
         <label className="text-xs font-medium text-muted-foreground space-y-1 block">
           <span className="uppercase tracking-wider">Alcance</span>
           <select
@@ -469,8 +473,8 @@ function Reportes() {
             className={inputCls}
           >
             <option value="none">Sin agrupar</option>
-            <option value="cliente">Cliente</option>
-            <option value="planta">Planta</option>
+            {mostrarFiltroCliente && <option value="cliente">Cliente</option>}
+            {mostrarFiltroPlanta && <option value="planta">Planta</option>}
           </select>
         </label>
         <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
