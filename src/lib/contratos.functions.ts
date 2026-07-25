@@ -180,7 +180,12 @@ export const eliminarContrato = createServerFn({ method: "POST" })
   });
 
 /** Devuelve los días ocupados globalmente (todas las plantas) en un rango. */
-async function diasOcupadosGlobales(supabase: any, desde: Date, hasta: Date, excluirTrabajoId?: string) {
+async function diasOcupadosGlobales(
+  supabase: any,
+  desde: Date,
+  hasta: Date,
+  excluirTrabajoId?: string | string[],
+) {
   const { data, error } = await supabase
     .from("trabajos")
     .select("id, fecha_programada, duracion_dias")
@@ -188,9 +193,16 @@ async function diasOcupadosGlobales(supabase: any, desde: Date, hasta: Date, exc
     .lte("fecha_programada", addDaysDate(hasta, 1).toISOString())
     .neq("estado", "cancelado");
   if (error) throw new Error(error.message);
+  const excludeSet = new Set<string>(
+    Array.isArray(excluirTrabajoId)
+      ? excluirTrabajoId
+      : excluirTrabajoId
+        ? [excluirTrabajoId]
+        : [],
+  );
   const ocupados = new Set<string>();
   (data ?? []).forEach((t: any) => {
-    if (excluirTrabajoId && t.id === excluirTrabajoId) return;
+    if (excludeSet.has(t.id)) return;
     const start = new Date(t.fecha_programada);
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
     for (let i = 0; i < dur; i++) {
