@@ -476,7 +476,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={[styles.td, { width: "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
               <Text style={[styles.td, { width: "26%" }]}>{t.servicio}</Text>
               <Text style={[styles.td, { width: "14%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{t.estado}</Text>
+              <Text style={[styles.td, { width: "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{estadoTexto(t.estado)}</Text>
               <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
             </View>
           ))}
