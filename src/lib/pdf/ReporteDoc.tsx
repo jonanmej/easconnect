@@ -219,11 +219,11 @@ function PageFooter({ data }: { data: ReporteData }) {
         <Image src={LOGO_PVSTOP()} style={brandStyles.footerLogoPv} />
         <Image src={LOGO_CHEMITEK()} style={brandStyles.footerLogoCh} />
       </View>
-      <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
+      <View style={styles.pageFooterMeta}>
         <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
         <Text>Responsable: {responsable}</Text>
       </View>
-      <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
+      <Text style={styles.pageFooterPage} render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} fixed />
     </View>
   );
 }
