@@ -186,10 +186,15 @@ function Programacion() {
       ].filter(Boolean) as { label: string; value: string }[];
       const filenameVista = vista === "semana" ? "semana" : vista === "mes" ? "mes" : "anio";
       const filename = `programacion-${filenameVista}-${new Date().toISOString().slice(0,10)}.pdf`;
+      // Construimos las cuadrículas del calendario a partir de los trabajos ya filtrados.
+      const grids = buildCalendarGrids(vista, cursor, trabajosParaPdf);
       await generarYDescargarProgramacionPdf({
         vista,
         headerTitle,
         trabajos: trabajosParaPdf,
+        semana_dias: grids.semana_dias,
+        mes_semanas: grids.mes_semanas,
+        mes_columnas: grids.mes_columnas,
         filtros,
         paper: pdfPaper,
         orientation: pdfOrient,
