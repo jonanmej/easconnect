@@ -93,8 +93,10 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 24, left: 96, right: 54, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
-  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 12 },
+  pageFooter: { position: "absolute", bottom: 24, left: 96, right: 54, flexDirection: "row", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 0 },
+  pageFooterMeta: { flexDirection: "column", flexGrow: 1, flexShrink: 1, paddingLeft: 12, paddingRight: 12 },
+  pageFooterPage: { flexShrink: 0, textAlign: "right", minWidth: 56 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
   evidTile: {
     width: "50%",
