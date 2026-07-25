@@ -597,8 +597,16 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
                       />
                     </View>
                     <Text style={styles.evidCaption}>
-                      {e.categoria ? `[${String(e.categoria).toUpperCase()}] ` : ""}
-                      {e.trabajo}{e.descripcion ? ` — ${e.descripcion}` : ""}
+                      {(() => {
+                        const c = String(e.categoria ?? "durante").toLowerCase();
+                        const leyenda =
+                          c === "antes" ? "Fotografía ANTES DE LIMPIEZA" :
+                          c === "durante" ? "Fotografía DURANTE LIMPIEZA" :
+                          c === "despues" || c === "después" ? "Fotografía DESPUÉS DE LIMPIEZA" :
+                          c === "anomalia" || c === "anomalía" ? "Fotografía HALLAZGO O ANOMALÍA" :
+                          "Fotografía";
+                        return `${leyenda} — ${e.trabajo}`;
+                      })()}
                     </Text>
                   </View>
                 );
