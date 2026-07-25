@@ -807,7 +807,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       if (avanceSeries.length) {
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
-            descripcion: "Avance reportado por el equipo en campo (100% si la OT quedó cerrada).",
+            descripcion: "Avance reportado por el equipo en campo.",
             fuente: "Reportes diarios · avance_pct · estado de la OT",
           unidad: "%",
           series: avanceSeries,
