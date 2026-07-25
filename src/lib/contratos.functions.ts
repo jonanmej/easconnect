@@ -180,7 +180,12 @@ export const eliminarContrato = createServerFn({ method: "POST" })
   });
 
 /** Devuelve los días ocupados globalmente (todas las plantas) en un rango. */
-async function diasOcupadosGlobales(supabase: any, desde: Date, hasta: Date, excluirTrabajoId?: string) {
+async function diasOcupadosGlobales(
+  supabase: any,
+  desde: Date,
+  hasta: Date,
+  excluirTrabajoId?: string | string[],
+) {
   const { data, error } = await supabase
     .from("trabajos")
     .select("id, fecha_programada, duracion_dias")
@@ -188,9 +193,16 @@ async function diasOcupadosGlobales(supabase: any, desde: Date, hasta: Date, exc
     .lte("fecha_programada", addDaysDate(hasta, 1).toISOString())
     .neq("estado", "cancelado");
   if (error) throw new Error(error.message);
+  const excludeSet = new Set<string>(
+    Array.isArray(excluirTrabajoId)
+      ? excluirTrabajoId
+      : excluirTrabajoId
+        ? [excluirTrabajoId]
+        : [],
+  );
   const ocupados = new Set<string>();
   (data ?? []).forEach((t: any) => {
-    if (excluirTrabajoId && t.id === excluirTrabajoId) return;
+    if (excludeSet.has(t.id)) return;
     const start = new Date(t.fecha_programada);
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
     for (let i = 0; i < dur; i++) {
@@ -361,7 +373,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const { data: trabajo, error: tErr } = await supabase
       .from("trabajos")
-      .select("id, planta_id, servicio, contrato_id, ciclo_numero, auto_generado, estado, duracion_dias")
+      .select("id, planta_id, servicio, contrato_id, ciclo_numero, auto_generado, estado, duracion_dias, fecha_programada")
       .eq("id", data.trabajo_id)
       .single();
     if (tErr || !trabajo) throw new Error(tErr?.message ?? "Trabajo no encontrado");
@@ -417,6 +429,116 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
       .eq("id", t.id);
     if (uErr) throw new Error(uErr.message);
 
+    // Cascada: desplazar todos los ciclos futuros auto-generados del mismo
+    // contrato por el mismo delta de días. Solo se mueven los que sigan en
+    // estado 'programado' (los que ya iniciaron/completaron/cancelaron no
+    // se tocan). Si alguno cae en día ocupado, se omite y se reporta.
+    const cascada: { movidos: number; omitidos: Array<{ folio?: string; motivo: string }> } = {
+      movidos: 0,
+      omitidos: [],
+    };
+    try {
+      const fechaOriginal = new Date(t.fecha_programada);
+      const fechaNueva = new Date(toIsoStartOfDay(data.nueva_fecha));
+      const MS_DIA = 86400000;
+      const deltaDias = Math.round(
+        (Date.UTC(fechaNueva.getUTCFullYear(), fechaNueva.getUTCMonth(), fechaNueva.getUTCDate()) -
+          Date.UTC(fechaOriginal.getUTCFullYear(), fechaOriginal.getUTCMonth(), fechaOriginal.getUTCDate())) /
+          MS_DIA,
+      );
+
+      if (deltaDias !== 0) {
+        const { data: futuros } = await supabase
+          .from("trabajos")
+          .select("id, folio, fecha_programada, duracion_dias, ciclo_numero, servicio, planta_id")
+          .eq("contrato_id", t.contrato_id)
+          .eq("auto_generado", true)
+          .eq("estado", "programado")
+          .gt("ciclo_numero", t.ciclo_numero)
+          .order("ciclo_numero", { ascending: true });
+
+        const lista = (futuros ?? []) as any[];
+        if (lista.length > 0) {
+          // Rango global para chequear ocupación, excluyendo los propios
+          // trabajos que estamos moviendo + el trabajo principal.
+          const excluirIds = [t.id, ...lista.map((f) => f.id)];
+          const propuestas = lista.map((f) => {
+            const antes = new Date(f.fecha_programada);
+            const despues = addDaysDate(antes, deltaDias);
+            return { f, despues };
+          });
+          const minDate = propuestas.reduce(
+            (acc, p) => (p.despues < acc ? p.despues : acc),
+            propuestas[0].despues,
+          );
+          const maxDate = propuestas.reduce(
+            (acc, p) => (p.despues > acc ? p.despues : acc),
+            propuestas[0].despues,
+          );
+          const ocupadosGlobal = await diasOcupadosGlobales(
+            supabase,
+            addDaysDate(minDate, -1),
+            addDaysDate(maxDate, 30),
+            excluirIds,
+          );
+          // Ocupación acumulada por los propios movimientos (para evitar
+          // que dos ciclos futuros aterricen en el mismo día).
+          const ocupadosPropios = new Set<string>();
+
+          for (const { f, despues } of propuestas) {
+            const durF = Math.max(1, Number(f.duracion_dias ?? 1));
+            // Debe permanecer dentro del año del contrato.
+            if (despues.getUTCFullYear() !== c.anio) {
+              cascada.omitidos.push({ folio: f.folio, motivo: "queda fuera del año del contrato" });
+              continue;
+            }
+            let conflicto: string | null = null;
+            const dias: string[] = [];
+            for (let i = 0; i < durF; i++) {
+              const d = addDaysDate(despues, i);
+              const key = d.toISOString().slice(0, 10);
+              dias.push(key);
+              if (ocupadosGlobal.has(key) || ocupadosPropios.has(key)) {
+                conflicto = key;
+                break;
+              }
+            }
+            if (conflicto) {
+              cascada.omitidos.push({ folio: f.folio, motivo: `día ${conflicto} ya ocupado` });
+              continue;
+            }
+            // Chequeo de conflicto de servicio con otro cliente.
+            const conflictosSvc = await findCleaningClientConflicts(supabase, {
+              plantaId: f.planta_id,
+              servicio: f.servicio,
+              fechaProgramada: despues.toISOString(),
+              duracionDias: durF,
+              excluirTrabajoId: f.id,
+            });
+            if (conflictosSvc.length > 0) {
+              cascada.omitidos.push({ folio: f.folio, motivo: "conflicto con otro cliente" });
+              continue;
+            }
+            const nuevaIso = new Date(
+              Date.UTC(despues.getUTCFullYear(), despues.getUTCMonth(), despues.getUTCDate(), 8, 0, 0),
+            ).toISOString();
+            const { error: uCascErr } = await supabase
+              .from("trabajos")
+              .update({ fecha_programada: nuevaIso })
+              .eq("id", f.id);
+            if (uCascErr) {
+              cascada.omitidos.push({ folio: f.folio, motivo: uCascErr.message });
+              continue;
+            }
+            dias.forEach((k) => ocupadosPropios.add(k));
+            cascada.movidos += 1;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[contratos] Error en cascada de reprogramación", e);
+    }
+
     // Notificar al cliente la nueva fecha (no bloqueante)
     try {
       const { data: planta } = await supabase
@@ -449,7 +571,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
       console.error("[contratos] Error notificando reprogramación", e);
     }
 
-    return { ok: true };
+    return { ok: true, cascada };
   });
 
 /** Disponibilidad global por día en un rango (para el calendario del cliente). */
