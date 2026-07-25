@@ -93,10 +93,12 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
-  pageFooter: { position: "absolute", bottom: 24, left: 96, right: 54, flexDirection: "row", alignItems: "center", fontSize: 7.5, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
-  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 0 },
-  pageFooterMeta: { flexDirection: "column", flexGrow: 1, flexShrink: 1, paddingLeft: 12, paddingRight: 12 },
-  pageFooterPage: { flexShrink: 0, textAlign: "right", minWidth: 56 },
+  pageFooter: { position: "absolute", bottom: 20, left: 96, right: 54, flexDirection: "column", fontSize: 6.8, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
+  pageFooterTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
+  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 0 },
+  pageFooterMeta: { marginTop: 4, width: "100%" },
+  pageFooterMetaLine: { fontSize: 6.6, lineHeight: 1.2 },
+  pageFooterPage: { flexShrink: 0, textAlign: "right", width: 70, fontSize: 7 },
   evidGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3, marginTop: 2 },
   evidTile: {
     width: "50%",
@@ -215,15 +217,17 @@ function PageFooter({ data }: { data: ReporteData }) {
   const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
   return (
     <View style={styles.pageFooter} fixed>
-      <View style={styles.pageFooterLogos}>
-        <Image src={LOGO_PVSTOP()} style={brandStyles.footerLogoPv} />
-        <Image src={LOGO_CHEMITEK()} style={brandStyles.footerLogoCh} />
+      <View style={styles.pageFooterTop}>
+        <View style={styles.pageFooterLogos}>
+          <Image src={LOGO_PVSTOP()} style={brandStyles.footerLogoPv} />
+          <Image src={LOGO_CHEMITEK()} style={brandStyles.footerLogoCh} />
+        </View>
+        <Text style={styles.pageFooterPage} render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} fixed />
       </View>
       <View style={styles.pageFooterMeta}>
-        <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
-        <Text>Responsable: {responsable}</Text>
+        <Text style={styles.pageFooterMetaLine}>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
+        <Text style={styles.pageFooterMetaLine}>Responsable: {responsable}</Text>
       </View>
-      <Text style={styles.pageFooterPage} render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} fixed />
     </View>
   );
 }
