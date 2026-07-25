@@ -36,10 +36,40 @@ export type ProgramacionTrabajo = {
   duracion_dias?: number | null;
 };
 
+export type CalendarItem = {
+  id: string;
+  folio: string;
+  servicio: string;
+  estado: string;
+  cliente_nombre?: string | null;
+  planta_nombre?: string | null;
+  hora?: string | null;
+  dia_idx?: number | null;
+  duracion?: number | null;
+};
+
+export type CalendarDia = {
+  fecha: string; // YYYY-MM-DD
+  in_month: boolean;
+  feriado: boolean;
+  items: CalendarItem[];
+};
+
+export type CalendarSemana = {
+  semana_numero: number;
+  dias: CalendarDia[]; // 5 días Lun-Vie
+};
+
 export type ProgramacionData = {
   vista: "semana" | "mes" | "anio";
   headerTitle: string;
   trabajos: ProgramacionTrabajo[];
+  /** Días L-V a mostrar en la vista semana (5 celdas). */
+  semana_dias?: CalendarDia[];
+  /** Semanas del mes (rows) para la vista mes; cada semana con 5 días L-V. */
+  mes_semanas?: CalendarSemana[];
+  /** Etiquetas de columna a mostrar en la vista mes (LUN, MAR...). */
+  mes_columnas?: string[];
   filtros?: { label: string; value: string }[];
   paper: "A4" | "A3";
   orientation: "landscape" | "portrait";
@@ -78,6 +108,41 @@ const s = StyleSheet.create({
   th: { padding: 4, fontSize: 6.5, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 3.5, fontSize: 7.5, lineHeight: 1.25 },
   empty: { fontSize: 8, color: COL.muted, fontStyle: "italic", padding: 6 },
+  // --- Calendar grids ---
+  calWrap: { borderWidth: 0.5, borderColor: COL.border, borderRadius: 2 },
+  calHeaderRow: { flexDirection: "row", backgroundColor: COL.bg },
+  calHeaderCell: {
+    fontSize: 7, fontFamily: FONT_BOLD, color: "#fff",
+    textAlign: "center", paddingVertical: 4, paddingHorizontal: 2,
+    borderRightWidth: 0.5, borderRightColor: "#ffffff30",
+    textTransform: "uppercase", letterSpacing: 0.6,
+  },
+  calWeekRow: { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: COL.border },
+  calCell: {
+    borderRightWidth: 0.5, borderRightColor: COL.border,
+    padding: 3,
+  },
+  calCellOut: { backgroundColor: "#f1f5f9" },
+  calCellHoliday: { backgroundColor: "#fdf2f2" },
+  calDayNum: {
+    fontSize: 7.5, color: COL.muted, fontFamily: FONT_BOLD,
+    marginBottom: 2,
+  },
+  calDayNumOut: { color: "#cbd5e1" },
+  calHolidayTag: { fontSize: 5.5, color: "#b91c1c", fontFamily: FONT_BOLD, letterSpacing: 0.5, marginLeft: 3 },
+  calWeekLabel: {
+    fontSize: 6.5, color: COL.muted, fontFamily: FONT_BOLD,
+    textAlign: "center", backgroundColor: "#f8fafc",
+    borderRightWidth: 0.5, borderRightColor: COL.border,
+    paddingVertical: 6,
+  },
+  eventCard: {
+    borderRadius: 2, paddingVertical: 2, paddingHorizontal: 3, marginBottom: 2,
+    borderLeftWidth: 2,
+  },
+  eventPlanta: { fontSize: 6.8, fontFamily: FONT_BOLD, color: COL.bg, lineHeight: 1.15 },
+  eventLine: { fontSize: 6.3, color: COL.muted, lineHeight: 1.15 },
+  eventTime: { fontSize: 6, color: COL.muted, marginBottom: 1 },
 });
 
 function fmtDate(iso: string) {
@@ -91,6 +156,19 @@ function fmtTime(iso: string) {
 }
 function estadoTexto(e: string) {
   return String(e ?? "").replace(/_/g, " ");
+}
+function estadoTint(e: string) {
+  switch (String(e ?? "").toLowerCase()) {
+    case "completado": return { bg: "#ECFDF5", border: "#10B981" };
+    case "en_progreso":
+    case "en progreso": return { bg: "#EFF6FF", border: "#3B82F6" };
+    case "cancelado": return { bg: "#FEF2F2", border: "#EF4444" };
+    default: return { bg: COL.primarySoft, border: COL.primary };
+  }
+}
+function fmtColHeaderSemana(iso: string) {
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("es-SV", { weekday: "short", day: "2-digit", month: "short" }).toUpperCase();
 }
 
 function agruparPorFecha(items: ProgramacionTrabajo[]) {
@@ -177,12 +255,102 @@ export function ProgramacionDoc({ data }: { data: ProgramacionData }) {
 
         {data.trabajos.length === 0 && <Text style={s.empty}>Sin trabajos programados.</Text>}
 
-        {data.vista === "anio"
+        {data.vista === "semana" && data.semana_dias
+          ? <SemanaGrid dias={data.semana_dias} />
+          : data.vista === "mes" && data.mes_semanas
+          ? <MesGrid semanas={data.mes_semanas} columnas={data.mes_columnas ?? ["Lun","Mar","Mié","Jue","Vie"]} />
+          : data.vista === "anio"
           ? <AnioSecciones data={data} />
           : <DiaSecciones items={data.trabajos} />
         }
       </Page>
     </Document>
+  );
+}
+
+// ============== Vista Semana (grid L-V) ==============
+function SemanaGrid({ dias }: { dias: CalendarDia[] }) {
+  const colW = `${100 / dias.length}%`;
+  return (
+    <View style={s.calWrap}>
+      <View style={s.calHeaderRow}>
+        {dias.map((d) => (
+          <Text key={d.fecha} style={[s.calHeaderCell, { width: colW }]}>{fmtColHeaderSemana(d.fecha)}</Text>
+        ))}
+      </View>
+      <View style={{ flexDirection: "row", minHeight: 340 }}>
+        {dias.map((d) => (
+          <View
+            key={d.fecha}
+            style={[s.calCell, { width: colW }, d.feriado ? s.calCellHoliday : null]}
+          >
+            {d.feriado && <Text style={[s.calHolidayTag, { marginLeft: 0, marginBottom: 2 }]}>Feriado</Text>}
+            {d.items.length === 0 && <Text style={{ fontSize: 8, color: "#cbd5e1", textAlign: "center", marginTop: 6 }}>—</Text>}
+            {d.items.map((it, i) => <EventoCard key={i} it={it} mode="semana" />)}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ============== Vista Mes (grid semanas x L-V) ==============
+function MesGrid({ semanas, columnas }: { semanas: CalendarSemana[]; columnas: string[] }) {
+  const labelW = "6%";
+  const colW = `${(100 - 6) / columnas.length}%`;
+  return (
+    <View style={s.calWrap}>
+      <View style={s.calHeaderRow}>
+        <Text style={[s.calHeaderCell, { width: labelW }]}>Sem.</Text>
+        {columnas.map((c) => (
+          <Text key={c} style={[s.calHeaderCell, { width: colW }]}>{c}</Text>
+        ))}
+      </View>
+      {semanas.map((w, wi) => (
+        <View key={wi} style={s.calWeekRow} wrap={false}>
+          <Text style={[s.calWeekLabel, { width: labelW }]}>S{w.semana_numero}</Text>
+          {w.dias.map((d) => (
+            <View
+              key={d.fecha}
+              style={[
+                s.calCell,
+                { width: colW, minHeight: 78 },
+                !d.in_month ? s.calCellOut : null,
+                d.feriado ? s.calCellHoliday : null,
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                <Text style={[s.calDayNum, !d.in_month ? s.calDayNumOut : null]}>
+                  {Number(d.fecha.slice(-2))}
+                </Text>
+                {d.feriado && <Text style={s.calHolidayTag}>FERIADO</Text>}
+              </View>
+              {d.items.map((it, i) => <EventoCard key={i} it={it} mode="mes" />)}
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function EventoCard({ it, mode }: { it: CalendarItem; mode: "semana" | "mes" }) {
+  const tint = estadoTint(it.estado);
+  const dia = (it.duracion ?? 1) > 1 && it.dia_idx != null
+    ? ` · d${(it.dia_idx ?? 0) + 1}/${it.duracion}`
+    : "";
+  return (
+    <View style={[s.eventCard, { backgroundColor: tint.bg, borderLeftColor: tint.border }]} wrap={false}>
+      {mode === "semana" && (it.hora || it.folio) ? (
+        <Text style={s.eventTime}>
+          {it.hora ?? ""}{it.hora && it.folio ? " · " : ""}{it.folio ?? ""}
+        </Text>
+      ) : null}
+      <Text style={s.eventPlanta}>{it.servicio}</Text>
+      <Text style={s.eventLine}>
+        {it.planta_nombre ?? "—"}{dia}
+      </Text>
+    </View>
   );
 }
 
