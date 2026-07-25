@@ -44,12 +44,49 @@ type R = {
   estado: "borrador" | "enviado" | "aprobado" | "rechazado";
   model_used: string | null;
   created_at: string;
+  desde?: string | null;
+  hasta?: string | null;
   version?: number | null;
   enviado_por?: string | null;
   aprobado_por?: string | null;
   rechazado_por?: string | null;
   motivo_rechazo?: string | null;
 };
+
+/**
+ * Calcula el alcance temporal de un reporte: "dia" cuando cubre una sola
+ * fecha SV (o el periodo legacy es un día puntual) y "rango" cuando abarca
+ * varios días. Devuelve null si no es determinable.
+ */
+function scopeDeReporte(r: R): { tipo: "dia" | "rango"; dias: number; etiqueta: string } | null {
+  const tz = "America/El_Salvador";
+  const fmt = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: tz });
+  let d1: Date | null = null;
+  let d2: Date | null = null;
+  if (r.desde && r.hasta) {
+    d1 = new Date(r.desde);
+    d2 = new Date(r.hasta);
+  } else if (r.periodo) {
+    const m = /^(\d{4}-\d{2}-\d{2})$/.exec(r.periodo.trim());
+    if (m) {
+      d1 = new Date(`${m[1]}T00:00:00`);
+      d2 = new Date(`${m[1]}T23:59:59`);
+    }
+  }
+  if (!d1 || !d2 || isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+  const s1 = fmt(d1);
+  const s2 = fmt(d2);
+  if (s1 === s2) {
+    return { tipo: "dia", dias: 1, etiqueta: `Diario · ${d1.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })}` };
+  }
+  const ms = new Date(s2).getTime() - new Date(s1).getTime();
+  const dias = Math.max(2, Math.round(ms / 86400000) + 1);
+  return {
+    tipo: "rango",
+    dias,
+    etiqueta: `Rango · ${dias} días (${d1.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })} → ${d2.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })})`,
+  };
+}
 
 function Reportes() {
   const qc = useQueryClient();
@@ -79,6 +116,12 @@ function Reportes() {
   const [openGen, setOpenGen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [viewing, setViewing] = useState<string | null>(null);
+
+  // Filtros de listado para separar clientes/plantas y alcance temporal.
+  const [filtroCliente, setFiltroCliente] = useState<string>("");
+  const [filtroPlanta, setFiltroPlanta] = useState<string>("");
+  const [filtroAlcance, setFiltroAlcance] = useState<"todos" | "dia" | "rango">("todos");
+  const [agrupar, setAgrupar] = useState<"none" | "cliente" | "planta">("none");
 
   const plantasFiltradas = useMemo(() => {
     const all = (plantas.data as any[] | undefined) ?? [];
@@ -200,6 +243,47 @@ function Reportes() {
   }
 
   const items = (list.data as R[] | undefined) ?? [];
+  // Plantas disponibles según el cliente seleccionado en los filtros.
+  const plantasFiltro = useMemo(() => {
+    const all = (plantas.data as any[] | undefined) ?? [];
+    return filtroCliente ? all.filter((p) => p.cliente_id === filtroCliente) : all;
+  }, [plantas.data, filtroCliente]);
+
+  // Aplica los filtros de cliente, planta y alcance al listado.
+  const itemsFiltrados = useMemo(() => {
+    return items.filter((r) => {
+      if (filtroCliente && r.cliente_id !== filtroCliente) return false;
+      if (filtroPlanta) {
+        if (filtroPlanta === "__sin__") { if (r.planta_id) return false; }
+        else if (r.planta_id !== filtroPlanta) return false;
+      }
+      if (filtroAlcance !== "todos") {
+        const sc = scopeDeReporte(r);
+        if (!sc) return false;
+        if (sc.tipo !== filtroAlcance) return false;
+      }
+      return true;
+    });
+  }, [items, filtroCliente, filtroPlanta, filtroAlcance]);
+
+  // Agrupación opcional por cliente o por planta.
+  const grupos = useMemo(() => {
+    if (agrupar === "none") return [{ key: "__all__", label: "", rows: itemsFiltrados }];
+    const map = new Map<string, { key: string; label: string; rows: R[] }>();
+    for (const r of itemsFiltrados) {
+      let key: string; let label: string;
+      if (agrupar === "cliente") {
+        key = r.cliente_id; label = r.cliente_nombre;
+      } else {
+        key = r.planta_id ?? "__sin__";
+        label = r.planta_nombre ?? `Sin planta · ${r.cliente_nombre}`;
+      }
+      if (!map.has(key)) map.set(key, { key, label, rows: [] });
+      map.get(key)!.rows.push(r);
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+  }, [itemsFiltrados, agrupar]);
+
   const borradores = items.filter((r) => r.estado === "borrador").length;
   const enviados = items.filter((r) => r.estado === "enviado").length;
   const aprobados = items.filter((r) => r.estado === "aprobado").length;
