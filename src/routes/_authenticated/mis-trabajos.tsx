@@ -33,10 +33,23 @@ function MisTrabajos() {
 
   const reprog = useMutation({
     mutationFn: (p: { trabajo_id: string; nueva_fecha: string }) => fRepr({ data: p }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["mis-trabajos"] });
       qc.invalidateQueries({ queryKey: ["cumplimiento-anual"] });
-      toast.success("Trabajo reprogramado");
+      const movidos = res?.cascada?.movidos ?? 0;
+      const omitidos = res?.cascada?.omitidos ?? [];
+      if (movidos > 0) {
+        toast.success(`Trabajo reprogramado. Se desplazaron ${movidos} ciclo(s) futuro(s) con el mismo delta.`);
+      } else {
+        toast.success("Trabajo reprogramado");
+      }
+      if (omitidos.length > 0) {
+        toast.warning(
+          `${omitidos.length} ciclo(s) futuro(s) no se movieron: ${omitidos
+            .map((o: any) => `${o.folio ?? "OT"} (${o.motivo})`)
+            .join("; ")}`,
+        );
+      }
       setReprogTrabajo(null);
     },
     onError: (e: any) => toast.error(e?.message ?? "Error"),
