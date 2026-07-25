@@ -149,23 +149,33 @@ function Programacion() {
       const q = pdfFolio.trim().toLocaleLowerCase("es");
       arr = arr.filter((t) => String(t.folio ?? "").toLocaleLowerCase("es").includes(q));
     }
-    // Recortar al rango visible según la vista actual.
+    // Recortar al rango visible según la vista actual. Consideramos cada día
+    // laborable expandido (respetando excepciones de día) para no perder
+    // trabajos multi-día que crucen meses/semanas ni días reubicados.
+    const intersectaRango = (t: any, inRange: (d: Date) => boolean) => {
+      const dt = new Date(t.fecha_programada);
+      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
+      const dias = addWorkdays(dt, dur);
+      const excs: Array<{ fecha_original: string; fecha_movida: string }> =
+        (t.excepciones_dia as any[]) ?? [];
+      const excByOriginal = new Map(excs.map((e) => [e.fecha_original, e.fecha_movida]));
+      for (const baseD of dias) {
+        const movida = excByOriginal.get(toISODateLocal(baseD));
+        const efectiva = movida ? new Date(`${movida}T12:00:00`) : baseD;
+        if (inRange(efectiva)) return true;
+      }
+      return false;
+    };
     if (vista === "semana") {
       const start = new Date(cursor); start.setHours(0, 0, 0, 0);
       const end = addDays(start, 5); end.setHours(0, 0, 0, 0);
-      arr = arr.filter((t) => {
-        const d = new Date(t.fecha_programada);
-        return d >= start && d < end;
-      });
+      arr = arr.filter((t) => intersectaRango(t, (d) => d >= start && d < end));
     } else if (vista === "mes") {
       const y = cursor.getFullYear(), m = cursor.getMonth();
-      arr = arr.filter((t) => {
-        const d = new Date(t.fecha_programada);
-        return d.getFullYear() === y && d.getMonth() === m;
-      });
+      arr = arr.filter((t) => intersectaRango(t, (d) => d.getFullYear() === y && d.getMonth() === m));
     } else {
       const y = cursor.getFullYear();
-      arr = arr.filter((t) => new Date(t.fecha_programada).getFullYear() === y);
+      arr = arr.filter((t) => intersectaRango(t, (d) => d.getFullYear() === y));
     }
     return arr;
   }, [trabajos, pdfCliente, pdfServicio, pdfFolio, vista, cursor]);
