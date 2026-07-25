@@ -227,10 +227,29 @@ function PageFooter({ data }: { data: ReporteData }) {
 }
 
 function estadoColor(s: string) {
-  if (s === "completado") return COL.ok;
-  if (s === "cancelado") return COL.danger;
-  if (s === "en_progreso") return COL.primary;
+  const k = String(s ?? "").toLowerCase();
+  if (k === "completado" || k === "completada") return COL.ok;
+  if (k === "cancelado" || k === "cancelada") return COL.danger;
+  if (k === "en_progreso" || k === "en progreso" || k === "en_proceso" || k === "en proceso") return COL.primary;
   return COL.muted;
+}
+
+function estadoTexto(s: string) {
+  const k = String(s ?? "").toLowerCase();
+  const map: Record<string, string> = {
+    completado: "Completado",
+    completada: "Completada",
+    cancelado: "Cancelado",
+    cancelada: "Cancelada",
+    en_progreso: "En progreso",
+    en_proceso: "En proceso",
+    programado: "Programado",
+    programada: "Programada",
+    pendiente: "Pendiente",
+    borrador: "Borrador",
+  };
+  if (map[k]) return map[k];
+  return k.replace(/_+/g, " ").replace(/^./, (c) => c.toUpperCase());
 }
 
 function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
