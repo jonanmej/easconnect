@@ -383,16 +383,112 @@ function Reportes() {
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
-      <div className="space-y-3">
-        {items.map((r) => (
+      {/* Filtros: cliente / planta / alcance / agrupación */}
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Cliente</span>
+          <select
+            value={filtroCliente}
+            onChange={(e) => { setFiltroCliente(e.target.value); setFiltroPlanta(""); }}
+            className={inputCls}
+          >
+            <option value="">Todos los clientes</option>
+            {(clientes.data as any[] | undefined)?.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Planta</span>
+          <select
+            value={filtroPlanta}
+            onChange={(e) => setFiltroPlanta(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">Todas las plantas</option>
+            <option value="__sin__">Sin planta (consolidado del cliente)</option>
+            {plantasFiltro.map((p: any) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Alcance</span>
+          <select
+            value={filtroAlcance}
+            onChange={(e) => setFiltroAlcance(e.target.value as any)}
+            className={inputCls}
+          >
+            <option value="todos">Todos</option>
+            <option value="dia">Solo diarios (1 día)</option>
+            <option value="rango">Solo rangos (varios días)</option>
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Agrupar por</span>
+          <select
+            value={agrupar}
+            onChange={(e) => setAgrupar(e.target.value as any)}
+            className={inputCls}
+          >
+            <option value="none">Sin agrupar</option>
+            <option value="cliente">Cliente</option>
+            <option value="planta">Planta</option>
+          </select>
+        </label>
+        <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>Mostrando <b className="text-foreground">{itemsFiltrados.length}</b> de {items.length} reportes.</span>
+          {(filtroCliente || filtroPlanta || filtroAlcance !== "todos" || agrupar !== "none") && (
+            <button
+              type="button"
+              onClick={() => { setFiltroCliente(""); setFiltroPlanta(""); setFiltroAlcance("todos"); setAgrupar("none"); }}
+              className="h-7 px-2 rounded-md border border-border hover:bg-secondary"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {grupos.map((g) => (
+          <div key={g.key} className="space-y-3">
+            {agrupar !== "none" && (
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
+                {g.label} <span className="text-muted-foreground/70 font-normal normal-case">· {g.rows.length} reporte{g.rows.length === 1 ? "" : "s"}</span>
+              </h3>
+            )}
+            {g.rows.map((r) => {
+              const sc = scopeDeReporte(r);
+              return (
           <div key={r.id} className="bg-card border border-border rounded-xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-6 hover:border-primary/40 transition-colors">
             <div className="size-12 shrink-0 rounded-lg bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-5" />
             </div>
             <div className="min-w-0 sm:flex-1 sm:min-w-[240px]">
-              <h3 className="text-base font-semibold tracking-tight truncate">
+              <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-base font-semibold tracking-tight truncate min-w-0 flex-1">
                 {r.titulo}
-              </h3>
+              </h4>
+              {sc && (
+                <span className={
+                  "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider " +
+                  (sc.tipo === "dia"
+                    ? "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300"
+                    : "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300")
+                } title={sc.etiqueta}>
+                  {sc.tipo === "dia" ? "Diario" : `Rango · ${sc.dias}d`}
+                </span>
+              )}
+              <span className={
+                "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider " +
+                (r.planta_id
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300")
+              }>
+                {r.planta_id ? "Planta" : "Cliente"}
+              </span>
+              </div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
                 {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
               </p>
@@ -476,8 +572,11 @@ function Reportes() {
               )}
             </div>
           </div>
+              );
+            })}
+          </div>
         ))}
-        {!list.isLoading && items.length === 0 && (
+        {!list.isLoading && itemsFiltrados.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">Aún no hay reportes. Genera el primero.</p>
         )}
       </div>
