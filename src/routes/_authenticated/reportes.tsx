@@ -44,12 +44,49 @@ type R = {
   estado: "borrador" | "enviado" | "aprobado" | "rechazado";
   model_used: string | null;
   created_at: string;
+  desde?: string | null;
+  hasta?: string | null;
   version?: number | null;
   enviado_por?: string | null;
   aprobado_por?: string | null;
   rechazado_por?: string | null;
   motivo_rechazo?: string | null;
 };
+
+/**
+ * Calcula el alcance temporal de un reporte: "dia" cuando cubre una sola
+ * fecha SV (o el periodo legacy es un día puntual) y "rango" cuando abarca
+ * varios días. Devuelve null si no es determinable.
+ */
+function scopeDeReporte(r: R): { tipo: "dia" | "rango"; dias: number; etiqueta: string } | null {
+  const tz = "America/El_Salvador";
+  const fmt = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: tz });
+  let d1: Date | null = null;
+  let d2: Date | null = null;
+  if (r.desde && r.hasta) {
+    d1 = new Date(r.desde);
+    d2 = new Date(r.hasta);
+  } else if (r.periodo) {
+    const m = /^(\d{4}-\d{2}-\d{2})$/.exec(r.periodo.trim());
+    if (m) {
+      d1 = new Date(`${m[1]}T00:00:00`);
+      d2 = new Date(`${m[1]}T23:59:59`);
+    }
+  }
+  if (!d1 || !d2 || isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+  const s1 = fmt(d1);
+  const s2 = fmt(d2);
+  if (s1 === s2) {
+    return { tipo: "dia", dias: 1, etiqueta: `Diario · ${d1.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })}` };
+  }
+  const ms = new Date(s2).getTime() - new Date(s1).getTime();
+  const dias = Math.max(2, Math.round(ms / 86400000) + 1);
+  return {
+    tipo: "rango",
+    dias,
+    etiqueta: `Rango · ${dias} días (${d1.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })} → ${d2.toLocaleDateString("es-SV", { timeZone: tz, day: "2-digit", month: "short" })})`,
+  };
+}
 
 function Reportes() {
   const qc = useQueryClient();
@@ -79,6 +116,12 @@ function Reportes() {
   const [openGen, setOpenGen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [viewing, setViewing] = useState<string | null>(null);
+
+  // Filtros de listado para separar clientes/plantas y alcance temporal.
+  const [filtroCliente, setFiltroCliente] = useState<string>("");
+  const [filtroPlanta, setFiltroPlanta] = useState<string>("");
+  const [filtroAlcance, setFiltroAlcance] = useState<"todos" | "dia" | "rango">("todos");
+  const [agrupar, setAgrupar] = useState<"none" | "cliente" | "planta">("none");
 
   const plantasFiltradas = useMemo(() => {
     const all = (plantas.data as any[] | undefined) ?? [];
@@ -200,6 +243,47 @@ function Reportes() {
   }
 
   const items = (list.data as R[] | undefined) ?? [];
+  // Plantas disponibles según el cliente seleccionado en los filtros.
+  const plantasFiltro = useMemo(() => {
+    const all = (plantas.data as any[] | undefined) ?? [];
+    return filtroCliente ? all.filter((p) => p.cliente_id === filtroCliente) : all;
+  }, [plantas.data, filtroCliente]);
+
+  // Aplica los filtros de cliente, planta y alcance al listado.
+  const itemsFiltrados = useMemo(() => {
+    return items.filter((r) => {
+      if (filtroCliente && r.cliente_id !== filtroCliente) return false;
+      if (filtroPlanta) {
+        if (filtroPlanta === "__sin__") { if (r.planta_id) return false; }
+        else if (r.planta_id !== filtroPlanta) return false;
+      }
+      if (filtroAlcance !== "todos") {
+        const sc = scopeDeReporte(r);
+        if (!sc) return false;
+        if (sc.tipo !== filtroAlcance) return false;
+      }
+      return true;
+    });
+  }, [items, filtroCliente, filtroPlanta, filtroAlcance]);
+
+  // Agrupación opcional por cliente o por planta.
+  const grupos = useMemo(() => {
+    if (agrupar === "none") return [{ key: "__all__", label: "", rows: itemsFiltrados }];
+    const map = new Map<string, { key: string; label: string; rows: R[] }>();
+    for (const r of itemsFiltrados) {
+      let key: string; let label: string;
+      if (agrupar === "cliente") {
+        key = r.cliente_id; label = r.cliente_nombre;
+      } else {
+        key = r.planta_id ?? "__sin__";
+        label = r.planta_nombre ?? `Sin planta · ${r.cliente_nombre}`;
+      }
+      if (!map.has(key)) map.set(key, { key, label, rows: [] });
+      map.get(key)!.rows.push(r);
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+  }, [itemsFiltrados, agrupar]);
+
   const borradores = items.filter((r) => r.estado === "borrador").length;
   const enviados = items.filter((r) => r.estado === "enviado").length;
   const aprobados = items.filter((r) => r.estado === "aprobado").length;
@@ -299,16 +383,112 @@ function Reportes() {
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
-      <div className="space-y-3">
-        {items.map((r) => (
+      {/* Filtros: cliente / planta / alcance / agrupación */}
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Cliente</span>
+          <select
+            value={filtroCliente}
+            onChange={(e) => { setFiltroCliente(e.target.value); setFiltroPlanta(""); }}
+            className={inputCls}
+          >
+            <option value="">Todos los clientes</option>
+            {(clientes.data as any[] | undefined)?.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Planta</span>
+          <select
+            value={filtroPlanta}
+            onChange={(e) => setFiltroPlanta(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">Todas las plantas</option>
+            <option value="__sin__">Sin planta (consolidado del cliente)</option>
+            {plantasFiltro.map((p: any) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Alcance</span>
+          <select
+            value={filtroAlcance}
+            onChange={(e) => setFiltroAlcance(e.target.value as any)}
+            className={inputCls}
+          >
+            <option value="todos">Todos</option>
+            <option value="dia">Solo diarios (1 día)</option>
+            <option value="rango">Solo rangos (varios días)</option>
+          </select>
+        </label>
+        <label className="text-xs font-medium text-muted-foreground space-y-1 block">
+          <span className="uppercase tracking-wider">Agrupar por</span>
+          <select
+            value={agrupar}
+            onChange={(e) => setAgrupar(e.target.value as any)}
+            className={inputCls}
+          >
+            <option value="none">Sin agrupar</option>
+            <option value="cliente">Cliente</option>
+            <option value="planta">Planta</option>
+          </select>
+        </label>
+        <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>Mostrando <b className="text-foreground">{itemsFiltrados.length}</b> de {items.length} reportes.</span>
+          {(filtroCliente || filtroPlanta || filtroAlcance !== "todos" || agrupar !== "none") && (
+            <button
+              type="button"
+              onClick={() => { setFiltroCliente(""); setFiltroPlanta(""); setFiltroAlcance("todos"); setAgrupar("none"); }}
+              className="h-7 px-2 rounded-md border border-border hover:bg-secondary"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {grupos.map((g) => (
+          <div key={g.key} className="space-y-3">
+            {agrupar !== "none" && (
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
+                {g.label} <span className="text-muted-foreground/70 font-normal normal-case">· {g.rows.length} reporte{g.rows.length === 1 ? "" : "s"}</span>
+              </h3>
+            )}
+            {g.rows.map((r) => {
+              const sc = scopeDeReporte(r);
+              return (
           <div key={r.id} className="bg-card border border-border rounded-xl p-4 sm:p-5 grid grid-cols-[auto_minmax(0,1fr)] gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-6 hover:border-primary/40 transition-colors">
             <div className="size-12 shrink-0 rounded-lg bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-5" />
             </div>
             <div className="min-w-0 sm:flex-1 sm:min-w-[240px]">
-              <h3 className="text-base font-semibold tracking-tight truncate">
+              <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-base font-semibold tracking-tight truncate min-w-0 flex-1">
                 {r.titulo}
-              </h3>
+              </h4>
+              {sc && (
+                <span className={
+                  "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider " +
+                  (sc.tipo === "dia"
+                    ? "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300"
+                    : "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300")
+                } title={sc.etiqueta}>
+                  {sc.tipo === "dia" ? "Diario" : `Rango · ${sc.dias}d`}
+                </span>
+              )}
+              <span className={
+                "inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider " +
+                (r.planta_id
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300")
+              }>
+                {r.planta_id ? "Planta" : "Cliente"}
+              </span>
+              </div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
                 {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
               </p>
@@ -392,8 +572,11 @@ function Reportes() {
               )}
             </div>
           </div>
+              );
+            })}
+          </div>
         ))}
-        {!list.isLoading && items.length === 0 && (
+        {!list.isLoading && itemsFiltrados.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">Aún no hay reportes. Genera el primero.</p>
         )}
       </div>

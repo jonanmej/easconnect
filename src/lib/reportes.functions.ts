@@ -99,7 +99,7 @@ export const listReportes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("reportes")
-      .select("id, cliente_id, planta_id, periodo, titulo, insight_resumen, estado, model_used, created_at, clientes(nombre), plantas(nombre)")
+      .select("id, cliente_id, planta_id, periodo, titulo, insight_resumen, estado, model_used, created_at, desde, hasta, clientes(nombre), plantas(nombre)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: any) => ({
