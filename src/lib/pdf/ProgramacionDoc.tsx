@@ -282,7 +282,7 @@ function SemanaGrid({ dias }: { dias: CalendarDia[] }) {
         {dias.map((d) => (
           <View
             key={d.fecha}
-            style={[s.calCell, { width: colW }, d.feriado ? s.calCellHoliday : null]}
+            style={[s.calCell, { width: colW }, ...(d.feriado ? [s.calCellHoliday] : [])]}
           >
             {d.feriado && <Text style={[s.calHolidayTag, { marginLeft: 0, marginBottom: 2 }]}>Feriado</Text>}
             {d.items.length === 0 && <Text style={{ fontSize: 8, color: "#cbd5e1", textAlign: "center", marginTop: 6 }}>—</Text>}
@@ -315,12 +315,12 @@ function MesGrid({ semanas, columnas }: { semanas: CalendarSemana[]; columnas: s
               style={[
                 s.calCell,
                 { width: colW, minHeight: 78 },
-                !d.in_month ? s.calCellOut : null,
-                d.feriado ? s.calCellHoliday : null,
+                ...(!d.in_month ? [s.calCellOut] : []),
+                ...(d.feriado ? [s.calCellHoliday] : []),
               ]}
             >
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
-                <Text style={[s.calDayNum, !d.in_month ? s.calDayNumOut : null]}>
+                <Text style={[s.calDayNum, ...(!d.in_month ? [s.calDayNumOut] : [])]}>
                   {Number(d.fecha.slice(-2))}
                 </Text>
                 {d.feriado && <Text style={s.calHolidayTag}>FERIADO</Text>}
