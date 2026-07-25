@@ -780,25 +780,26 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // el avance por día, comparado contra el 100% que debe finalizarse.
     if (diarios.length) {
       const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
-      // Paneles por planta para cada trabajo (parque instalado). Se usa como
-      // 100% para calcular el avance ejecutado.
-      const { data: trabPlantas } = await supabase
-        .from("trabajos").select("id, plantas(paneles)").in("id", trabajoIds);
-      const parquePorTrabajo = new Map<string, number>();
-      for (const t of (trabPlantas ?? []) as any[]) {
-        parquePorTrabajo.set(t.id, Number(t.plantas?.paneles ?? 0));
-      }
-      // Paneles acumulados por trabajo (suma de reportes diarios).
-      const acumPorTrabajo = new Map<string, number>();
+      // Estado real de cada trabajo (un trabajo "completado" cuenta 100%
+      // independientemente del avance_pct reportado en su último diario).
+      const estadoPorTrabajo = new Map<string, string>();
+      for (const t of trabajos) estadoPorTrabajo.set(t.id, String(t.estado ?? ""));
+      // Máximo avance_pct reportado por trabajo en sus reportes diarios.
+      const maxAvancePorTrabajo = new Map<string, number>();
       for (const d of diarios) {
-        const v = Number(d.paneles_limpiados ?? 0);
-        if (!v) continue;
-        acumPorTrabajo.set(d.trabajo_id, (acumPorTrabajo.get(d.trabajo_id) ?? 0) + v);
+        const v = Number(d.avance_pct ?? 0);
+        const cur = maxAvancePorTrabajo.get(d.trabajo_id) ?? 0;
+        if (v > cur) maxAvancePorTrabajo.set(d.trabajo_id, v);
       }
-      const avanceSeries = Array.from(acumPorTrabajo.entries())
-        .map(([tid, acum]) => {
-          const parque = parquePorTrabajo.get(tid) ?? 0;
-          const pct = parque > 0 ? Math.min(100, Math.round((acum / parque) * 100)) : 0;
+      // Universo: todo trabajo con al menos un reporte diario en el periodo.
+      const trabajosConDiario = new Set(diarios.map((d) => d.trabajo_id));
+      const avanceSeries = Array.from(trabajosConDiario)
+        .map((tid) => {
+          const estado = estadoPorTrabajo.get(tid) ?? "";
+          const reportado = maxAvancePorTrabajo.get(tid) ?? 0;
+          const pct = estado === "completado"
+            ? 100
+            : Math.max(0, Math.min(100, Math.round(reportado)));
           return { label: folioPorId.get(tid) ?? "—", value: pct };
         })
         .sort((a, b) => b.value - a.value)
@@ -806,8 +807,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       if (avanceSeries.length) {
         graficas.push({
           titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
-            descripcion: "Paneles limpiados acumulados vs. total instalado en la planta del cliente.",
-            fuente: "Reportes diarios · paneles_limpiados / plantas.paneles",
+            descripcion: "Avance reportado por el equipo en campo (100% si la OT quedó cerrada).",
+            fuente: "Reportes diarios · avance_pct · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
