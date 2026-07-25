@@ -453,6 +453,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Tono profesional, conciso, accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
       "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS promedio (ppm) del agua utilizada, ángulo de inclinación promedio (°) de los paneles limpiados, presión de agua promedio (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
+      "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
     ].join(" ");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
