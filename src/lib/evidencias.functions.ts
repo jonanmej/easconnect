@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKET = "trabajos-evidencia";
 
-const CATEGORIAS = ["antes", "durante", "despues", "anomalia"] as const;
+const CATEGORIAS = ["antes", "durante", "despues", "anomalia", "mediciones"] as const;
 
 export const listEvidencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
