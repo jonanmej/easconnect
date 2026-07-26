@@ -568,7 +568,14 @@ function Programacion() {
 
       {vista === "mes" && (
         <div className="print-hide-visual">
-          <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
+          {/* Móvil/tablet pequeña: calendario compacto (mismo estilo que la vista anual). */}
+          <div className="sm:hidden">
+            <MiniMonth year={cursor.getFullYear()} month={cursor.getMonth()} byDay={byDay} expanded />
+          </div>
+          {/* Escritorio: grilla completa con drag & drop. */}
+          <div className="hidden sm:block">
+            <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
+          </div>
         </div>
       )}
 
@@ -722,8 +729,8 @@ function YearView({ year, byDay, onPickMonth }: {
   );
 }
 
-function MiniMonth({ year, month, byDay, onClick }: {
-  year: number; month: number; byDay: Map<string, any[]>; onClick: () => void;
+function MiniMonth({ year, month, byDay, onClick, expanded }: {
+  year: number; month: number; byDay: Map<string, any[]>; onClick?: () => void; expanded?: boolean;
 }) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
@@ -748,7 +755,12 @@ function MiniMonth({ year, month, byDay, onClick }: {
   }, [year, month, byDay, last]);
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <button onClick={onClick} className="w-full text-left px-3 pt-3 hover:bg-secondary/40 transition-colors">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!onClick}
+        className={"w-full text-left px-3 pt-3 transition-colors " + (onClick ? "hover:bg-secondary/40" : "cursor-default")}
+      >
         <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
           {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
         </p>
@@ -804,20 +816,20 @@ function MiniMonth({ year, month, byDay, onClick }: {
       </div>
       </button>
       {eventos.length > 0 && (
-        <div className="border-t border-border px-3 py-2 space-y-1 max-h-56 overflow-y-auto">
+        <div className={"border-t border-border px-3 py-2 space-y-1 " + (expanded ? "" : "max-h-56 overflow-y-auto")}>
           {eventos.map(({ fecha, items }) => (
             <div key={fecha.toISOString()} className="text-[10px] leading-snug">
               <div className="font-mono font-semibold text-muted-foreground">
                 {String(fecha.getDate()).padStart(2, "0")} {fecha.toLocaleDateString("es-SV", { weekday: "short" })}
               </div>
               <ul className="ml-2 space-y-0.5">
-                {items.slice(0, 4).map((t: any, i: number) => (
+                {(expanded ? items : items.slice(0, 4)).map((t: any, i: number) => (
                   <li key={`${t.id}-${i}`} className="truncate">
                     <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
                     <span className="text-muted-foreground"> · {t.servicio}</span>
                   </li>
                 ))}
-                {items.length > 4 && (
+                {!expanded && items.length > 4 && (
                   <li className="text-muted-foreground/80">+{items.length - 4} más</li>
                 )}
               </ul>
