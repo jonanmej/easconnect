@@ -267,16 +267,25 @@
   }
 }
 
-/* ============ Safe-area (notch iOS / gesture bar Android) ============ */
+/* ============ Safe-area (notch / isla dinámica / gesture bar) ============
+   Se usa max(env, mínimo) para que:
+   - en dispositivos con isla dinámica o notch se respete el inset real,
+   - en pantallas completas sin inset (Android plano, desktop, web) quede
+     igualmente una separación mínima cómoda para el pulgar.
+   Los fallbacks 0px cubren navegadores sin soporte de env(). */
 @utility safe-top {
-  padding-top: env(safe-area-inset-top);
+  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-min-top, 0.375rem));
 }
 @utility safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-min-bottom, 0.375rem));
 }
 @utility safe-x {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  padding-left: max(env(safe-area-inset-left, 0px), var(--safe-min-x, 0px));
+  padding-right: max(env(safe-area-inset-right, 0px), var(--safe-min-x, 0px));
+}
+/* Altura reservada del inset superior, útil para spacers/offsets. */
+@utility safe-top-height {
+  height: env(safe-area-inset-top, 0px);
 }
 
 /* ============ Utilidades responsive compartidas ============ */
