@@ -504,14 +504,14 @@ function Programacion() {
 
       {vista === "semana" && (
       <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
-        <div className="grid grid-cols-5 border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {days.map((d) => (
-            <div key={d.toISOString()} className={"p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
+            <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
               {fmtDayLabel(d)}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-5 min-h-[420px]">
+        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -521,7 +521,7 @@ function Programacion() {
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
                 className={
-                  "border-l border-border first:border-l-0 p-2 space-y-1.5 " +
+                  "min-w-0 border-l border-border first:border-l-0 p-1 sm:p-2 space-y-1.5 " +
                   (motivo === "feriado"
                     ? "bg-destructive/[0.06] "
                     : sameDay(d, new Date())
@@ -636,15 +636,15 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
   }
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
-        <div className="p-3 text-center">Sem.</div>
+      <div className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+        <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
         {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
-          <div key={d} className="p-3 text-center border-l border-border">{d}</div>
+          <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
         ))}
       </div>
       {weeks.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border last:border-b-0 min-h-[110px] print-month-row">
-          <div className="p-2 text-center text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
+        <div key={ri} className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
+          <div className="min-w-0 p-1 sm:p-2 text-center text-[9px] sm:text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
           {row.map((d) => {
@@ -658,7 +658,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
                 className={
-                  "border-l border-border p-1.5 " +
+                  "min-w-0 border-l border-border p-1 sm:p-1.5 " +
                   (motivo === "feriado"
                     ? "bg-destructive/[0.06] "
                     : today
@@ -668,13 +668,13 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
                         : "bg-muted/30 ")
                 }
               >
-                <div className={"text-[11px] font-mono mb-1 " + (today ? "text-primary font-bold" : inMonth ? "text-foreground" : "text-muted-foreground/60")}>
+                <div className={"text-[10px] sm:text-[11px] font-mono mb-1 " + (today ? "text-primary font-bold" : inMonth ? "text-foreground" : "text-muted-foreground/60")}>
                   {d.getDate()}
                   {motivo === "feriado" && (
-                    <span className="ml-1 text-[9px] uppercase text-destructive/80 font-semibold">Feriado</span>
+                    <span className="ml-1 hidden sm:inline text-[9px] uppercase text-destructive/80 font-semibold">Feriado</span>
                   )}
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                    {items.slice(0, 3).map((t: any) => (
                     <div
                       key={`${t.id}-${t.__diaIdx ?? 0}`}
@@ -684,7 +684,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
                       onDragEnd={() => setDrag(null)}
                       title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
-                        "rounded px-1.5 py-1 text-[10px] border cursor-grab leading-tight " +
+                        "min-w-0 rounded px-1 sm:px-1.5 py-1 text-[9px] sm:text-[10px] border cursor-grab leading-tight " +
                         (estadoCls[t.estado] ?? "bg-secondary border-border") +
                         (dragId === t.id ? " opacity-50" : "")
                       }
