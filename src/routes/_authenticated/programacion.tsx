@@ -504,14 +504,14 @@ function Programacion() {
 
       {vista === "semana" && (
       <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
-        <div className="grid grid-cols-5 border-b border-border bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {days.map((d) => (
-            <div key={d.toISOString()} className={"p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
+            <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
               {fmtDayLabel(d)}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-5 min-h-[420px]">
+        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -521,7 +521,7 @@ function Programacion() {
                 onDragOver={(e) => canEdit && e.preventDefault()}
                 onDrop={() => onDrop(d)}
                 className={
-                  "border-l border-border first:border-l-0 p-2 space-y-1.5 " +
+                  "min-w-0 border-l border-border first:border-l-0 p-1 sm:p-2 space-y-1.5 " +
                   (motivo === "feriado"
                     ? "bg-destructive/[0.06] "
                     : sameDay(d, new Date())
