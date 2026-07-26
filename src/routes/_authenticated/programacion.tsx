@@ -823,13 +823,13 @@ function MiniMonth({ year, month, byDay, onClick, expanded }: {
                 {String(fecha.getDate()).padStart(2, "0")} {fecha.toLocaleDateString("es-SV", { weekday: "short" })}
               </div>
               <ul className="ml-2 space-y-0.5">
-                {items.slice(0, 4).map((t: any, i: number) => (
+                {(expanded ? items : items.slice(0, 4)).map((t: any, i: number) => (
                   <li key={`${t.id}-${i}`} className="truncate">
                     <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
                     <span className="text-muted-foreground"> · {t.servicio}</span>
                   </li>
                 ))}
-                {items.length > 4 && (
+                {!expanded && items.length > 4 && (
                   <li className="text-muted-foreground/80">+{items.length - 4} más</li>
                 )}
               </ul>
