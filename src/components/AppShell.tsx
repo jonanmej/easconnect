@@ -298,7 +298,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
-        <header className="min-h-16 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8 safe-top safe-x">
+        <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 safe-top safe-x">
+          <div className="min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
@@ -310,7 +311,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Menu className="size-5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar flex flex-col">
+              <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
                 <VisuallyHidden>
                   <SheetTitle>Navegación</SheetTitle>
                 </VisuallyHidden>
@@ -405,9 +406,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </div>
           </div>
+          </div>
         </header>
 
-        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
+        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none safe-x safe-bottom">
           {children}
         </div>
       </main>
