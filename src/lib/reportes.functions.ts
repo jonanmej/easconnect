@@ -208,11 +208,22 @@ export const generarReporte = createServerFn({ method: "POST" })
       ? await supabase.from("plantas").select("nombre, ubicacion, paneles, capacidad, eficiencia").eq("id", plantaId).single()
       : { data: null };
 
+    const [{ data: plantasCliente }, { data: clientesTodos }] = await Promise.all([
+      supabase.from("plantas").select("id, nombre").eq("cliente_id", data.cliente_id),
+      supabase.from("clientes").select("nombre"),
+    ]);
+    const { crearProtectorNombresCanonicos } = await import("@/lib/normalizar-nombres");
+    const protectorNombres = crearProtectorNombresCanonicos([
+      cliente?.nombre ?? "",
+      planta?.nombre ?? "",
+      ...((plantasCliente ?? []).map((p: any) => p.nombre)),
+      ...((clientesTodos ?? []).map((c: any) => c.nombre)),
+    ]);
+
     let plantasIds: string[] = [];
     if (plantaId) plantasIds = [plantaId];
     else {
-      const { data: ps } = await supabase.from("plantas").select("id").eq("cliente_id", data.cliente_id);
-      plantasIds = (ps ?? []).map((p) => p.id);
+      plantasIds = (plantasCliente ?? []).map((p: any) => p.id);
     }
 
     // Traemos todos los trabajos de las plantas (filtrando por servicio si
@@ -328,7 +339,7 @@ export const generarReporte = createServerFn({ method: "POST" })
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
 
-    const datasetCtx = {
+    const datasetCtxRaw = {
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
       periodo: data.periodo,
@@ -376,6 +387,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         presion_agua_psi: r.presion_agua_psi,
       })),
     };
+    const datasetCtx = protectorNombres.protegerValor(datasetCtxRaw);
 
     const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(apiKey);
@@ -431,7 +443,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     }
     // No exponer nombres/fechas de PDFs al modelo: el reporte no debe citarlos.
     const contenidoPdfsBloque = pdfTextos.length
-      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""`
+      ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${protectorNombres.protegerTexto(t)}`).join("\n\n")}\n"""`
       : "";
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
@@ -453,6 +465,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
       "Tono profesional, conciso, accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
+      "Si encuentras placeholders con formato @@NOMBRE_CANONICO_N@@, consérvalos exactamente; representan nombres oficiales que serán restaurados después.",
       "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS del agua utilizada (ppm), ángulo de inclinación de los paneles (°), presión de agua (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Para TDS, ángulo de inclinación y presión de agua NO calcules promedios: enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
       "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
     ].join(" ");
@@ -544,19 +557,8 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       console.warn("[generarReporte] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
-    // Corregir ortografía de nombres propios que la IA pueda haber alterado
-    // (p.ej. "Apopa" → "Appopa"). Se toman los nombres canónicos de la base.
-    const { normalizarNombresCanonicos } = await import("@/lib/normalizar-nombres");
-    const { data: plantasCliente } = await supabase
-      .from("plantas").select("nombre").eq("cliente_id", data.cliente_id);
-    const { data: clientesTodos } = await supabase.from("clientes").select("nombre");
-    const canonicos = [
-      cliente?.nombre ?? "",
-      planta?.nombre ?? "",
-      ...((plantasCliente ?? []).map((p: any) => p.nombre)),
-      ...((clientesTodos ?? []).map((c: any) => c.nombre)),
-    ];
-    const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+    // Restaurar placeholders de nombres oficiales sin aplicar correcciones por similitud.
+    const fix = (s: string) => protectorNombres.restaurarTexto(s);
     aiResult = {
       ...aiResult,
       titulo: humanizarTexto(fix(aiResult.titulo)),
@@ -569,7 +571,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
     const markdown = [
       `# ${aiResult.titulo}`,
       ``,
-      `**Cliente:** ${datasetCtx.cliente} · **Planta:** ${datasetCtx.planta} · **Periodo:** ${datasetCtx.periodo}`,
+      `**Cliente:** ${datasetCtxRaw.cliente} · **Planta:** ${datasetCtxRaw.planta} · **Periodo:** ${datasetCtxRaw.periodo}`,
       ``,
       `## Resumen ejecutivo`,
       aiResult.resumen,
