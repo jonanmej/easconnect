@@ -1,0 +1,2 @@
+ALTER TABLE public.trabajo_evidencias DROP CONSTRAINT IF EXISTS trabajo_evidencias_categoria_check;
+ALTER TABLE public.trabajo_evidencias ADD CONSTRAINT trabajo_evidencias_categoria_check CHECK (categoria = ANY (ARRAY['antes'::text,'durante'::text,'despues'::text,'anomalia'::text,'mediciones'::text]));
