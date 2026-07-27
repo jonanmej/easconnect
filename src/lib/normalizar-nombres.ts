@@ -21,7 +21,11 @@ function limpiarCanonicos(nombresCanonicos: string[]): string[] {
   return Array.from(
     new Set(
       nombresCanonicos
-        .map((n) => String(n ?? "").trim().replace(/\s+/g, " "))
+        .map((n) =>
+          String(n ?? "")
+            .trim()
+            .replace(/\s+/g, " "),
+        )
         .filter((n) => n.length >= 3),
     ),
   ).sort((a, b) => b.length - a.length);
@@ -72,14 +76,20 @@ export function crearProtectorNombresCanonicos(nombresCanonicos: string[]) {
     for (const item of protegidos) {
       out = out.replace(new RegExp(escapeRegex(item.token), "g"), item.valor);
     }
-    return normalizarNombresCanonicos(out, protegidos.map((p) => p.valor));
+    return normalizarNombresCanonicos(
+      out,
+      protegidos.map((p) => p.valor),
+    );
   };
 
   const protegerValor = <T>(value: T): T => {
     if (typeof value === "string") return protegerTexto(value) as T;
     if (Array.isArray(value)) return value.map((item) => protegerValor(item)) as T;
     if (value && typeof value === "object") {
-      const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, protegerValor(item)]);
+      const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        protegerValor(item),
+      ]);
       return Object.fromEntries(entries) as T;
     }
     return value;
