@@ -445,6 +445,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const contenidoPdfsBloque = pdfTextos.length
       ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${protectorNombres.protegerTexto(t)}`).join("\n\n")}\n"""`
       : "";
+    const usarAdjuntosPdf = pdfParts.length > 0 && pdfTextos.length === 0;
 
     let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
     const ZReporte = z.object({
@@ -529,7 +530,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       if (a.wait) await sleep(a.wait);
       try {
         let text: string;
-        if (pdfParts.length > 0 && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
+        if (usarAdjuntosPdf && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
           text = await callWithPdfs(a.model);
         } else {
           const result = await generateText({ model: gateway(a.model), system, prompt });
