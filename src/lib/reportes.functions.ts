@@ -811,9 +811,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         .slice(0, 10);
       if (avanceSeries.length) {
         graficas.push({
-          titulo: "Avance ejecutado por trabajo (vs. 100% a finalizar)",
-            descripcion: "Avance reportado por el equipo en campo.",
-            fuente: "Reportes diarios · porcentaje de avance · estado de la OT",
+          titulo: "Cumplimiento de la meta diaria por trabajo (%)",
+            descripcion: "Porcentaje de cumplimiento de la meta diaria comprometida en cada trabajo, según lo reportado por el equipo en campo. No corresponde al avance sobre el parque total de paneles de la planta.",
+            fuente: "Reportes diarios · cumplimiento de meta diaria · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
