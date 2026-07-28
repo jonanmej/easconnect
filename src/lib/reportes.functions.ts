@@ -94,6 +94,65 @@ function buildAttempts(proveedor: Proveedor): Array<{ model: string; wait: numbe
   ];
 }
 
+type ReporteKpi = { label: string; value: string };
+
+function limpiarValorPorcentajeMetaDiaria(value: string): string {
+  return String(value ?? "")
+    .replace(/\s*\(?\s*(?:respecto|sobre|del|de)\s+(?:al|a la|del|de la)?\s*(?:parque|planta|parque total|total de la planta|capacidad instalada|paneles de la planta)[^)]*\)?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[]): ReporteKpi[] {
+  return kpisInput.map((k) => {
+    const labelRaw = String(k.label ?? "").trim();
+    const valueRaw = String(k.value ?? "").trim();
+    const contienePorcentaje = /\d+(?:[,.]\d+)?\s*%/.test(valueRaw);
+    const hablaDeAvance = /avance|cumplimiento|progreso|meta/i.test(`${labelRaw} ${valueRaw}`);
+    if (!contienePorcentaje && !hablaDeAvance) return k;
+
+    const folioMatch = /\(([^)]+)\)/.exec(labelRaw)?.[1] ?? null;
+    const label = folioMatch
+      ? `Cumplimiento de meta diaria OT ${folioMatch}`
+      : "Cumplimiento de meta diaria del trabajo";
+    const base = limpiarValorPorcentajeMetaDiaria(valueRaw) || valueRaw;
+    const aclaracion = "respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque";
+    const value = /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base)
+      ? base
+      : `${base} ${aclaracion}`.trim();
+    return { label, value };
+  });
+}
+
+function kpisMetaDiariaDesdeDiarios(
+  diarios: Array<{ trabajo_id?: string | null; avance_pct?: number | string | null }>,
+  folioPorId: Map<string, string>,
+): ReporteKpi[] {
+  const maxPorTrabajo = new Map<string, number>();
+  for (const d of diarios) {
+    if (!d.trabajo_id) continue;
+    const n = Number(d.avance_pct);
+    if (!Number.isFinite(n)) continue;
+    const pct = Math.max(0, Math.min(100, Math.round(n)));
+    const cur = maxPorTrabajo.get(d.trabajo_id) ?? -1;
+    if (pct > cur) maxPorTrabajo.set(d.trabajo_id, pct);
+  }
+  return Array.from(maxPorTrabajo.entries())
+    .map(([trabajoId, pct]) => ({
+      label: `Cumplimiento de meta diaria OT ${folioPorId.get(trabajoId) ?? "—"}`,
+      value: `${pct}% respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque`,
+    }))
+    .sort((a, b) => b.value.localeCompare(a.value))
+    .slice(0, 2);
+}
+
+function combinarKpisConMetaDiaria(kpisInput: ReporteKpi[], kpisMeta: ReporteKpi[]): ReporteKpi[] {
+  const normalizados = normalizarKpisMetaDiaria(kpisInput);
+  if (!kpisMeta.length) return normalizados;
+  const sinKpisAvance = normalizados.filter((k) => !/cumplimiento de meta diaria|avance|progreso/i.test(k.label));
+  return [...kpisMeta, ...sinKpisAvance].slice(0, Math.max(5, kpisMeta.length));
+}
+
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -560,11 +619,16 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 
     // Restaurar placeholders de nombres oficiales sin aplicar correcciones por similitud.
     const fix = (s: string) => protectorNombres.restaurarTexto(s);
+    const metaDiariaKpis = kpisMetaDiariaDesdeDiarios((reportesDiarios ?? []) as any[], folioPorId as Map<string, string>);
+    const kpisHumanizados = aiResult.kpis.map((k) => ({
+      label: humanizarTexto(fix(k.label)),
+      value: humanizarTexto(fix(k.value)),
+    }));
     aiResult = {
       ...aiResult,
       titulo: humanizarTexto(fix(aiResult.titulo)),
       resumen: humanizarTexto(fix(aiResult.resumen)),
-      kpis: aiResult.kpis.map((k) => ({ label: humanizarTexto(fix(k.label)), value: humanizarTexto(fix(k.value)) })),
+      kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
       hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
       recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
     };
@@ -635,19 +699,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     });
     // Normalización determinista: cualquier KPI de avance debe leerse como
     // cumplimiento de la META DIARIA del trabajo, nunca como avance del parque.
-    const kpis = kpisParsed.map((k) => {
-      const esAvance = /avance|cumplimiento|progreso/i.test(k.label);
-      if (!esAvance) return k;
-      const folioMatch = /\(([^)]+)\)/.exec(k.label)?.[1] ?? null;
-      const label = folioMatch
-        ? `Cumplimiento de la meta diaria (${folioMatch})`
-        : "Cumplimiento de la meta diaria";
-      let value = k.value.replace(/\s*\(?respecto (al|del)[^)]*\)?/i, "").trim();
-      if (!/meta diaria/i.test(value)) {
-        value = `${value} de la meta diaria del trabajo`.trim();
-      }
-      return { label, value };
-    });
+    let kpis = normalizarKpisMetaDiaria(kpisParsed);
     let hallazgos = parseBullets(section("Hallazgos"));
     let recomendaciones = parseBullets(section("Recomendaciones"));
     let resumen = section("Resumen ejecutivo");
@@ -699,6 +751,10 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const { data: dd } = await diariosQb;
       diarios = dd ?? [];
     }
+    kpis = combinarKpisConMetaDiaria(
+      kpis,
+      kpisMetaDiariaDesdeDiarios(diarios as any[], new Map(trabajos.map((t) => [t.id, t.folio]))),
+    );
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
     let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
     // Imágenes extraídas de los PDFs subidos (fotos/gráficas embebidas).
@@ -1035,6 +1091,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           .map((d: any) => ({
             fecha: String(d.fecha ?? ""),
             folio: folioPorId.get(d.trabajo_id) ?? null,
+            avance_pct: d.avance_pct ?? null,
             paneles_limpiados: d.paneles_limpiados ?? null,
             watts_panel: d.watts_panel ?? null,
             watts_totales: d.watts_panel && d.paneles_limpiados
@@ -1289,11 +1346,19 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+      const metaDiariaKpis = kpisMetaDiariaDesdeDiarios(
+        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+        new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
+      );
+      const kpisHumanizados = aiResult.kpis.map((k) => ({
+        label: humanizarTexto(fix(k.label)),
+        value: humanizarTexto(fix(k.value)),
+      }));
       aiResult = {
         ...aiResult,
         titulo: humanizarTexto(fix(aiResult.titulo)),
         resumen: humanizarTexto(fix(aiResult.resumen)),
-        kpis: aiResult.kpis.map((k) => ({ label: humanizarTexto(fix(k.label)), value: humanizarTexto(fix(k.value)) })),
+        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
         hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
         recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
