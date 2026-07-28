@@ -1346,11 +1346,19 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
+      const metaDiariaKpis = kpisMetaDiariaDesdeDiarios(
+        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+        new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
+      );
+      const kpisHumanizados = aiResult.kpis.map((k) => ({
+        label: humanizarTexto(fix(k.label)),
+        value: humanizarTexto(fix(k.value)),
+      }));
       aiResult = {
         ...aiResult,
         titulo: humanizarTexto(fix(aiResult.titulo)),
         resumen: humanizarTexto(fix(aiResult.resumen)),
-        kpis: aiResult.kpis.map((k) => ({ label: humanizarTexto(fix(k.label)), value: humanizarTexto(fix(k.value)) })),
+        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
         hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
         recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
