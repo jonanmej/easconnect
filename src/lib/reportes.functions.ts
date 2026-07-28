@@ -629,9 +629,24 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     };
     const parseBullets = (s: string) => s.split("\n").map((l) => l.replace(/^[-*]\s+/, "").trim()).filter(Boolean);
     const kpisRaw = parseBullets(section("KPIs"));
-    const kpis = kpisRaw.map((l) => {
+    const kpisParsed = kpisRaw.map((l) => {
       const m = /\*\*(.+?):\*\*\s*(.+)/.exec(l) ?? /^([^:]+):\s*(.+)/.exec(l);
       return m ? { label: m[1], value: m[2] } : { label: l, value: "" };
+    });
+    // Normalización determinista: cualquier KPI de avance debe leerse como
+    // cumplimiento de la META DIARIA del trabajo, nunca como avance del parque.
+    const kpis = kpisParsed.map((k) => {
+      const esAvance = /avance|cumplimiento|progreso/i.test(k.label);
+      if (!esAvance) return k;
+      const folioMatch = /\(([^)]+)\)/.exec(k.label)?.[1] ?? null;
+      const label = folioMatch
+        ? `Cumplimiento de la meta diaria (${folioMatch})`
+        : "Cumplimiento de la meta diaria";
+      let value = k.value.replace(/\s*\(?respecto (al|del)[^)]*\)?/i, "").trim();
+      if (!/meta diaria/i.test(value)) {
+        value = `${value} de la meta diaria del trabajo`.trim();
+      }
+      return { label, value };
     });
     let hallazgos = parseBullets(section("Hallazgos"));
     let recomendaciones = parseBullets(section("Recomendaciones"));
