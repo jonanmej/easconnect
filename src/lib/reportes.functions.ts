@@ -94,6 +94,65 @@ function buildAttempts(proveedor: Proveedor): Array<{ model: string; wait: numbe
   ];
 }
 
+type ReporteKpi = { label: string; value: string };
+
+function limpiarValorPorcentajeMetaDiaria(value: string): string {
+  return String(value ?? "")
+    .replace(/\s*\(?\s*(?:respecto|sobre|del|de)\s+(?:al|a la|del|de la)?\s*(?:parque|planta|parque total|total de la planta|capacidad instalada|paneles de la planta)[^)]*\)?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[]): ReporteKpi[] {
+  return kpisInput.map((k) => {
+    const labelRaw = String(k.label ?? "").trim();
+    const valueRaw = String(k.value ?? "").trim();
+    const contienePorcentaje = /\d+(?:[,.]\d+)?\s*%/.test(valueRaw);
+    const hablaDeAvance = /avance|cumplimiento|progreso|meta/i.test(`${labelRaw} ${valueRaw}`);
+    if (!contienePorcentaje && !hablaDeAvance) return k;
+
+    const folioMatch = /\(([^)]+)\)/.exec(labelRaw)?.[1] ?? null;
+    const label = folioMatch
+      ? `Cumplimiento de meta diaria OT ${folioMatch}`
+      : "Cumplimiento de meta diaria del trabajo";
+    const base = limpiarValorPorcentajeMetaDiaria(valueRaw) || valueRaw;
+    const aclaracion = "respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque";
+    const value = /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base)
+      ? base
+      : `${base} ${aclaracion}`.trim();
+    return { label, value };
+  });
+}
+
+function kpisMetaDiariaDesdeDiarios(
+  diarios: Array<{ trabajo_id?: string | null; avance_pct?: number | string | null }>,
+  folioPorId: Map<string, string>,
+): ReporteKpi[] {
+  const maxPorTrabajo = new Map<string, number>();
+  for (const d of diarios) {
+    if (!d.trabajo_id) continue;
+    const n = Number(d.avance_pct);
+    if (!Number.isFinite(n)) continue;
+    const pct = Math.max(0, Math.min(100, Math.round(n)));
+    const cur = maxPorTrabajo.get(d.trabajo_id) ?? -1;
+    if (pct > cur) maxPorTrabajo.set(d.trabajo_id, pct);
+  }
+  return Array.from(maxPorTrabajo.entries())
+    .map(([trabajoId, pct]) => ({
+      label: `Cumplimiento de meta diaria OT ${folioPorId.get(trabajoId) ?? "—"}`,
+      value: `${pct}% respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque`,
+    }))
+    .sort((a, b) => b.value.localeCompare(a.value))
+    .slice(0, 2);
+}
+
+function combinarKpisConMetaDiaria(kpisInput: ReporteKpi[], kpisMeta: ReporteKpi[]): ReporteKpi[] {
+  const normalizados = normalizarKpisMetaDiaria(kpisInput);
+  if (!kpisMeta.length) return normalizados;
+  const sinKpisAvance = normalizados.filter((k) => !/cumplimiento de meta diaria|avance|progreso/i.test(k.label));
+  return [...kpisMeta, ...sinKpisAvance].slice(0, Math.max(5, kpisMeta.length));
+}
+
 export const listReportes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
