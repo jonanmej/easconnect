@@ -151,6 +151,7 @@ export type ReporteData = {
   reportes_diarios?: {
     fecha: string;
     folio?: string | null;
+    avance_pct?: number | null;
     paneles_limpiados?: number | null;
     watts_panel?: number | null;
     watts_totales?: number | null;
@@ -281,6 +282,14 @@ function Grafica({ g }: { g: NonNullable<ReporteData["graficas"]>[number] }) {
   );
 }
 
+function kpiValueStyle(value: string) {
+  const len = String(value ?? "").length;
+  if (len > 95) return [styles.kpiValue, { fontSize: 8.5, lineHeight: 1.25 }];
+  if (len > 55) return [styles.kpiValue, { fontSize: 10, lineHeight: 1.25 }];
+  if (len > 28) return [styles.kpiValue, { fontSize: 12, lineHeight: 1.2 }];
+  return styles.kpiValue;
+}
+
 
 export function ReporteDoc({ data }: { data: ReporteData }) {
   const ejec = data.modo === "ejecutivo";
@@ -386,12 +395,12 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View style={styles.kpiRow}>
               <View style={styles.kpiCard}>
                 <Text style={styles.kpiLabel}>{data.kpis[0].label}</Text>
-                <Text style={styles.kpiValue}>{data.kpis[0].value}</Text>
+                <Text style={kpiValueStyle(data.kpis[0].value)}>{data.kpis[0].value}</Text>
               </View>
               {data.kpis[1] && (
                 <View style={styles.kpiCard}>
                   <Text style={styles.kpiLabel}>{data.kpis[1].label}</Text>
-                  <Text style={styles.kpiValue}>{data.kpis[1].value}</Text>
+                  <Text style={kpiValueStyle(data.kpis[1].value)}>{data.kpis[1].value}</Text>
                 </View>
               )}
             </View>
@@ -402,7 +411,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             {data.kpis.slice(2).map((k, i) => (
               <View key={i} style={styles.kpiCard} wrap={false}>
                 <Text style={styles.kpiLabel}>{k.label}</Text>
-                <Text style={styles.kpiValue}>{k.value}</Text>
+                <Text style={kpiValueStyle(k.value)}>{k.value}</Text>
               </View>
             ))}
           </View>
@@ -562,31 +571,33 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
-                Registro operativo por día: paneles limpiados, potencia recuperada y parámetros de calidad de limpieza (TDS, ángulo, presión).
+                Registro operativo por día: el avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque.
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
-                  <Text style={[styles.th, { width: "12%" }]}>Fecha</Text>
-                  <Text style={[styles.th, { width: "16%" }]}>Folio</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>Paneles</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>W/panel</Text>
-                  <Text style={[styles.th, { width: "12%" }]}>W totales</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>TDS (ppm)</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>Ángulo (°)</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>Presión (PSI)</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>Horas</Text>
+                  <Text style={[styles.th, { width: "11%" }]}>Fecha</Text>
+                  <Text style={[styles.th, { width: "15%" }]}>Folio</Text>
+                  <Text style={[styles.th, { width: "11%" }]}>Meta diaria</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>Paneles</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>W/panel</Text>
+                  <Text style={[styles.th, { width: "11%" }]}>W totales</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>TDS</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>Ángulo</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>Presión</Text>
+                  <Text style={[styles.th, { width: "7%" }]}>Horas</Text>
                 </View>
                 {data.reportes_diarios.map((d, i, arr) => (
                   <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-                    <Text style={[styles.td, { width: "12%" }]}>{d.fecha}</Text>
-                    <Text style={[styles.td, { width: "16%", fontFamily: "Courier", fontSize: 7.5 }]}>{d.folio ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.paneles_limpiados ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.watts_panel ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "12%" }]}>{d.watts_totales ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.tds_ppm ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.presion_agua_psi ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.horas_trabajadas ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "11%" }]}>{d.fecha}</Text>
+                    <Text style={[styles.td, { width: "15%", fontFamily: "Courier", fontSize: 7.5 }]}>{d.folio ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "11%", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.paneles_limpiados ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.watts_panel ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "11%" }]}>{d.watts_totales ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.tds_ppm ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.presion_agua_psi ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "7%" }]}>{d.horas_trabajadas ?? "—"}</Text>
                   </View>
                 ))}
               </View>
