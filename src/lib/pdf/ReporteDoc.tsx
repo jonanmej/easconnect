@@ -379,6 +379,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
 
         <View wrap={false}>
           <Text style={styles.sectionTitle}>Indicadores Clave</Text>
+          <Text style={{ fontSize: 8, color: COL.muted, marginBottom: 6, lineHeight: 1.4 }}>
+            Nota: los porcentajes de avance corresponden al cumplimiento de la meta diaria comprometida para cada trabajo (paneles y actividades planificados por jornada), no al porcentaje del parque total de la planta.
+          </Text>
           {data.kpis.length > 0 && (
             <View style={styles.kpiRow}>
               <View style={styles.kpiCard}>
@@ -409,6 +412,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <>
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Análisis Gráfico de Datos</Text>
+              <Text style={{ fontSize: 8, color: COL.muted, marginBottom: 6, lineHeight: 1.4 }}>
+                Los porcentajes graficados miden el cumplimiento de la meta diaria planificada de cada trabajo; no representan el avance sobre el total del parque instalado.
+              </Text>
               <Grafica g={data.graficas[0]} />
             </View>
             {data.graficas.slice(1).map((g, i) => <Grafica key={i} g={g} />)}
