@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { X, Pencil, Trash2, Save, Shapes } from "lucide-react";
+import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw } from "lucide-react";
 import { cargarGoogleMaps, centroDe } from "@/lib/gmaps-loader";
 import {
   listZonasPlanta,
@@ -35,13 +35,16 @@ export function PlantaZonasEditor({
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const shapesRef = useRef<Map<string, any>>(new Map());
-  const drawingRef = useRef<any>(null);
   const nuevoRef = useRef<any>(null);
+  const previewRef = useRef<any>(null);
+  const clickListenerRef = useRef<any>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
   const [borrador, setBorrador] = useState<Punto[] | null>(null);
   const [editando, setEditando] = useState<any | null>(null);
+  const [modoDibujo, setModoDibujo] = useState(false);
+  const [puntosDibujo, setPuntosDibujo] = useState<Punto[]>([]);
 
   const rows = (zonas.data as any[] | undefined) ?? [];
 
@@ -64,9 +67,17 @@ export function PlantaZonasEditor({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  function limpiarPreview() {
+    if (previewRef.current) { previewRef.current.setMap(null); previewRef.current = null; }
+    if (clickListenerRef.current) { clickListenerRef.current.remove(); clickListenerRef.current = null; }
+  }
+
   function limpiarBorrador() {
     if (nuevoRef.current) { nuevoRef.current.setMap(null); nuevoRef.current = null; }
+    limpiarPreview();
     setBorrador(null);
+    setPuntosDibujo([]);
+    setModoDibujo(false);
   }
 
   useEffect(() => {
@@ -85,32 +96,13 @@ export function PlantaZonasEditor({
           streetViewControl: false,
           tilt: 0,
         });
-        const { DrawingManager } = (await google.maps.importLibrary("drawing")) as any;
-        const dm = new DrawingManager({
-          drawingMode: null,
-          drawingControl: false,
-          polygonOptions: {
-            strokeColor: "#22c55e",
-            strokeWeight: 2,
-            fillColor: "#22c55e",
-            fillOpacity: 0.3,
-            editable: true,
-          },
-        });
-        dm.setMap(mapRef.current);
-        drawingRef.current = dm;
-        google.maps.event.addListener(dm, "polygoncomplete", (poly: any) => {
-          dm.setDrawingMode(null);
-          if (nuevoRef.current) nuevoRef.current.setMap(null);
-          nuevoRef.current = poly;
-          const pts: Punto[] = poly.getPath().getArray().map((p: any) => ({ lat: p.lat(), lng: p.lng() }));
-          setBorrador(pts);
-          setEditando(null);
-        });
         setListo(true);
       })
       .catch((e) => setError(e.message));
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+      limpiarPreview();
+    };
   }, [planta.id, planta.latitud, planta.longitud]);
 
   // Pinta las zonas guardadas.
@@ -139,11 +131,69 @@ export function PlantaZonasEditor({
     if (hay && planta.latitud == null) mapRef.current.fitBounds(bounds, 60);
   }, [listo, rows, planta.latitud]);
 
-  function dibujar() {
-    if (!drawingRef.current) return;
+  useEffect(() => {
+    if (!modoDibujo || !listo || !mapRef.current) return;
     const google = (window as any).google;
-    drawingRef.current.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-    toast.message("Marca los vértices de la zona en el mapa y cierra el polígono.");
+    mapRef.current.setOptions({ draggableCursor: "crosshair", gestureHandling: "greedy" });
+    clickListenerRef.current = mapRef.current.addListener("click", (ev: any) => {
+      const latLng = ev.latLng;
+      if (!latLng) return;
+      setPuntosDibujo((actuales) => [...actuales, { lat: latLng.lat(), lng: latLng.lng() }]);
+    });
+    return () => {
+      if (clickListenerRef.current) { clickListenerRef.current.remove(); clickListenerRef.current = null; }
+      mapRef.current?.setOptions({ draggableCursor: null, gestureHandling: "auto" });
+    };
+  }, [modoDibujo, listo]);
+
+  useEffect(() => {
+    if (!listo || !mapRef.current) return;
+    const google = (window as any).google;
+    if (previewRef.current) { previewRef.current.setMap(null); previewRef.current = null; }
+    if (puntosDibujo.length === 0) return;
+    previewRef.current = new google.maps.Polyline({
+      path: puntosDibujo,
+      strokeColor: "#22c55e",
+      strokeWeight: 3,
+      strokeOpacity: 0.95,
+      map: mapRef.current,
+    });
+  }, [listo, puntosDibujo]);
+
+  function dibujar() {
+    if (!mapRef.current) return;
+    limpiarBorrador();
+    setModoDibujo(true);
+    toast.message("Toca el mapa para marcar los vértices de la zona. Finaliza cuando tengas al menos 3 puntos.");
+  }
+
+  function finalizarDibujo() {
+    if (!mapRef.current || puntosDibujo.length < 3) {
+      toast.error("Marca al menos 3 puntos para formar una zona.");
+      return;
+    }
+    const google = (window as any).google;
+    if (nuevoRef.current) nuevoRef.current.setMap(null);
+    limpiarPreview();
+    const poly = new google.maps.Polygon({
+      paths: puntosDibujo,
+      strokeColor: "#22c55e",
+      strokeWeight: 2,
+      fillColor: "#22c55e",
+      fillOpacity: 0.3,
+      editable: true,
+      map: mapRef.current,
+    });
+    nuevoRef.current = poly;
+    setBorrador(puntosDibujo);
+    setPuntosDibujo([]);
+    setModoDibujo(false);
+    setEditando(null);
+    toast.success("Zona marcada. Completa los datos y guarda.");
+  }
+
+  function deshacerPunto() {
+    setPuntosDibujo((actuales) => actuales.slice(0, -1));
   }
 
   function guardarBorrador(e: React.FormEvent<HTMLFormElement>) {
@@ -204,14 +254,46 @@ export function PlantaZonasEditor({
               </div>
             )}
             <div ref={mapEl} className="w-full h-full" />
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
-              <button
-                onClick={dibujar}
-                disabled={!listo}
-                className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
-              >
-                <Shapes className="size-4" /> Dibujar zona
-              </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2">
+              {modoDibujo && (
+                <div className="rounded-full bg-background/95 border border-border px-3 py-1.5 text-xs font-medium shadow-lg">
+                  {puntosDibujo.length} punto{puntosDibujo.length === 1 ? "" : "s"} marcados
+                </div>
+              )}
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {!modoDibujo ? (
+                  <button
+                    onClick={dibujar}
+                    disabled={!listo}
+                    className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    <Shapes className="size-4" /> Dibujar zona
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={deshacerPunto}
+                      disabled={puntosDibujo.length === 0}
+                      className="h-10 px-3 inline-flex items-center gap-2 rounded-full border border-border bg-background text-sm font-semibold shadow-lg disabled:opacity-50"
+                    >
+                      <RotateCcw className="size-4" /> Deshacer
+                    </button>
+                    <button
+                      onClick={finalizarDibujo}
+                      disabled={puntosDibujo.length < 3}
+                      className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
+                    >
+                      <Check className="size-4" /> Finalizar zona
+                    </button>
+                    <button
+                      onClick={limpiarBorrador}
+                      className="h-10 px-3 inline-flex items-center gap-2 rounded-full border border-border bg-background text-sm font-semibold shadow-lg"
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
