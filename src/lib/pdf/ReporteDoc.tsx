@@ -151,6 +151,8 @@ export type ReporteData = {
   reportes_diarios?: {
     fecha: string;
     folio?: string | null;
+    tecnicos?: string | null;
+    aportes?: number | null;
     avance_pct?: number | null;
     paneles_limpiados?: number | null;
     watts_panel?: number | null;
