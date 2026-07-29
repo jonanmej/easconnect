@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Polygon } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 function absUrl(path: string) {
