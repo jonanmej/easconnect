@@ -1169,6 +1169,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
             horas_trabajadas: d.horas_trabajadas ?? null,
           }));
       })(),
+      mapas_diarios: mapasDiarios,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
     };
