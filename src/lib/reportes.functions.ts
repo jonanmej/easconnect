@@ -1278,6 +1278,12 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
+      nota_consolidacion:
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones promediadas. Úsalo como fuente principal de cifras.",
+      reportes_diarios_consolidados: (await import("@/lib/consolidar-diarios")).consolidarDiarios(
+        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+        nombrePorId,
+      ),
       reportes_diarios: diarios.map((d: any) => ({
         ...d,
         tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
