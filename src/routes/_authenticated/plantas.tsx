@@ -13,8 +13,9 @@ import {
 } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Plus, MapPin, Pencil, Trash2, Map as MapIcon, Upload } from "lucide-react";
+import { Plus, MapPin, Pencil, Trash2, Map as MapIcon, Upload, Shapes } from "lucide-react";
 import { ImportPlantasCSV } from "@/components/ImportPlantasCSV";
+import { PlantaZonasEditor } from "@/components/PlantaZonasEditor";
 
 export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
@@ -40,6 +41,7 @@ function Plantas() {
   const [editing, setEditing] = useState<any | null>(null);
   const [openMap, setOpenMap] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [zonasDe, setZonasDe] = useState<any | null>(null);
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),
@@ -116,6 +118,7 @@ function Plantas() {
       />
 
       {importOpen && <ImportPlantasCSV onClose={() => setImportOpen(false)} />}
+      {zonasDe && <PlantaZonasEditor planta={zonasDe} onClose={() => setZonasDe(null)} />}
 
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
@@ -189,6 +192,14 @@ function Plantas() {
                       )}
                       {canEdit && (
                         <>
+                          <button
+                            onClick={() => setZonasDe(p)}
+                            className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
+                            title="Zonas del layout"
+                            aria-label="Zonas"
+                          >
+                            <Shapes className="size-3.5" />
+                          </button>
                           <button onClick={() => setEditing(p)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                             <Pencil className="size-3.5" />
                           </button>
