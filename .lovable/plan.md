@@ -1,69 +1,64 @@
+## Objetivo
 
-## Alcance
+Que el técnico marque, en el reporte diario, qué zonas de la planta trabajó ese día, sobre la vista satelital de Google Maps. Las zonas las define una sola vez el supervisor. El avance del mapa es complementario: no cambia el % ni los paneles que el técnico escribe a mano. En el PDF del reporte ejecutivo aparece una imagen del mapa por cada día trabajado.
 
-Cinco frentes pedidos, ordenados por riesgo. Es trabajo grande — lo hago en 3 turnos para no romper build en un solo golpe. Este plan cubre todo, y arranco por el turno 1 al confirmar.
+## Cómo funciona (vista del usuario)
 
-## 1. Tokens globales y breakpoints (turno 1)
+**Supervisor / admin — definir zonas (una vez por planta)**
 
-En `src/styles.css`:
-- Escalar tipografía fluida: `--fs-xs/sm/base/lg/xl/2xl` con `clamp()` para que no rompa en 360px.
-- Grid utilities: `.form-grid` = `grid gap-3 grid-cols-1 sm:grid-cols-2`, `.form-grid-3` = `... md:grid-cols-3`.
-- Paddings de página: `.page-pad` = `p-3 sm:p-6 lg:p-8`.
-- Confirmar breakpoints Tailwind por defecto (sm 640, md 768, lg 1024, xl 1280) — no se cambian, se documentan en `MOBILE.md`.
+- Desde el módulo de Plantas, botón "Zonas del mapa" en cada planta con coordenadas.
+- Se abre la planta en vista satelital y se dibujan polígonos con la herramienta de dibujo.
+- Cada zona lleva: nombre (ej. "Mesa A", "Techo norte", "String 3"), cantidad aproximada de paneles y color.
+- Se pueden editar, renombrar, mover vértices y eliminar zonas después.
 
-## 2. Formularios consistentes (turno 1)
+**Técnico — marcar avance del día**
 
-`RecordDialog` + `Field` + `inputCls` ya son la base. Ajustes:
-- `Field`: label `text-xs font-medium`, gap 1.5, soporte a `hint` (helper text `text-[11px] text-muted-foreground`) y `error` inline.
-- `inputCls`: `text-base sm:text-sm` (evita zoom iOS), `min-h-10`, `w-full`, `truncate` en selects.
-- `RecordDialog` `DialogContent`: `max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[92dvh] overflow-y-auto`.
-- Reemplazar los `grid grid-cols-2/3` sueltos dentro de los diálogos por `.form-grid` / `.form-grid-3` (Equipos, Plantas, Clientes, Contratos, Mantenimientos, Solicitudes, Usuarios, Inventario, OC — solo capa presentación).
+- Dentro del reporte diario (A.T. → Reporte diario del día) se agrega la sección "Avance en mapa".
+- Muestra la planta en satélite con sus zonas dibujadas.
+- Cada zona se toca para ciclar su estado del día: sin trabajar → en proceso → completada.
+- Las zonas ya completadas en días anteriores aparecen atenuadas con su fecha, para no repetir.
+- Contador informativo: zonas marcadas hoy y paneles estimados de esas zonas — solo referencia, no sobrescribe los campos de avance ni de paneles limpiados.
+- Si la planta no tiene zonas definidas, la sección muestra un aviso y no bloquea el guardado del reporte.
 
-## 3. ResponsiveTable en todo _authenticated (turno 2)
+**Reporte ejecutivo PDF**
 
-Migrar las tablas existentes al componente ya creado. Rutas afectadas:
+- Nueva sección "Avance en mapa por día": una imagen satelital por cada día con reporte, con las zonas coloreadas según su estado ese día, más la lista de zonas trabajadas y la fecha.
+- Los días sin marcas se omiten.
 
-```text
-equipos, plantas, clientes, usuarios, contratos, mantenimientos,
-solicitudes, auditoria, notificaciones, inventario, ordenes-compra,
-trabajos, mis-trabajos, terreno, rutas, reportes (listados)
-```
+## Alcance técnico
 
-Regla por tabla:
-- Definir `columns: ResponsiveColumn<Row>[]` con `primary` (nombre/código), `secondary` (contexto), resto como pares.
-- Acciones (Editar/Eliminar) → `rowActions`.
-- Estado (badges) mantiene su color actual dentro de `cell`.
-- No toco lógica de datos ni server functions.
+**Base de datos (2 tablas nuevas)**
 
-## 4. Auditoría de campos distorsionados en móvil (turno 2)
+- `planta_zonas`: `planta_id`, `nombre`, `paneles_estimados`, `color`, `poligono` (jsonb con los vértices lat/lng), `orden`, `activo`. Lectura para roles internos y para el cliente dueño de la planta; escritura solo admin/supervisor.
+- `reporte_diario_zonas`: `reporte_diario_id`, `trabajo_id`, `zona_id`, `estado` (`en_proceso` | `completada`). Único por reporte+zona. Escritura por el técnico dueño del reporte y por admin/supervisor.
+- Ambas con GRANT explícitos, RLS con `has_role()` / `current_cliente_id()` siguiendo el patrón actual del proyecto.
 
-Con Playwright a 360×740 recorro cada ruta de `_authenticated` autenticado con la sesión inyectada, capturo screenshots y aplico estos fixes cuando aparezcan:
-- Headers `flex flex-wrap` con acciones → `grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex`.
-- KPI rows: `text-3xl` → `text-2xl sm:text-3xl`, valor y unidad apilados con `flex-col sm:flex-row`.
-- Tabs con muchas pestañas: `TabsList` con `overflow-x-auto snap-x` y `shrink-0` en cada `TabsTrigger`.
-- Íconos + texto en botones: texto oculto en móvil (`hidden sm:inline`).
-- Cualquier `min-w-[Npx]` que fuerce scroll horizontal → revisar.
+**Editor de zonas**
 
-## 5. Regresión visual automática (turno 3)
+- Reutiliza el cargador de Google Maps ya existente en `/mapa` (`loadGoogleMaps`), añadiendo la librería `drawing` para trazar polígonos.
+- Nuevo componente `PlantaZonasEditor` abierto como diálogo desde `plantas.tsx`.
+- Server functions en `src/lib/planta-zonas.functions.ts`: listar, crear, actualizar, eliminar zonas.
 
-- Script `scripts/visual-regression.mjs` que corre Playwright headless sobre las rutas clave en 4 viewports (360, 390, 768, 1280).
-- Guarda snapshots en `tests/visual/__baseline__/<ruta>-<viewport>.png`.
-- En modo `check`, compara pixel-por-pixel con `pixelmatch` (tolerancia 0.1%) y falla si excede.
-- Comando: `bun run visual:update` (regenera baseline) y `bun run visual:check` (CI).
-- No engancho a CI del usuario — queda listo para correr manual y en cada turno de agente.
+**Marcado en el reporte diario**
 
-Rutas incluidas: `/`, `/trabajos`, `/plantas`, `/clientes`, `/equipos`, `/inventario`, `/ordenes-compra`, `/programacion`, `/usuarios`, `/contratos`, `/mantenimientos`, `/reportes`, `/mapa`.
+- Nuevo componente `MapaAvanceDiario` insertado en `ReportesDiariosSection.tsx`, con el mapa en modo `hybrid`, polígonos clicables y estado por zona.
+- Se guarda junto con el reporte diario mediante nuevas server functions (`listZonasDiario`, `guardarZonasDiario`) en `src/lib/reportes-diarios.functions.ts`.
+- En móvil el mapa ocupa un alto fijo con controles táctiles grandes; el gesto de arrastre mueve el mapa y el toque simple marca la zona.
+
+**Imagen para el PDF**
+
+- El mapa interactivo no se puede capturar de forma fiable desde el navegador, así que la imagen del PDF se genera en el servidor con la Static Maps API de Google, a través del gateway de conectores ya configurado en el proyecto.
+- Cada polígono se envía como trazo codificado con relleno de color según su estado del día; el resultado es un PNG satelital que se incrusta en `ReporteDoc.tsx`.
+- Se añade a `getReporteParaPDF` la carga de zonas por día y la generación de esas imágenes, con degradación silenciosa: si la imagen falla, el PDF muestra solo la lista de zonas trabajadas, sin romper la descarga.
+
+**Acceso**
+
+- Editar zonas: admin y supervisor.
+- Marcar avance: técnico asignado (y admin/supervisor).
+- Cliente: solo lectura del mapa y del PDF.
 
 ## Fuera de alcance
 
-- No toco lógica de negocio, RLS, server functions, ni datos.
-- No cambio la estructura de `AppShell` (ya se ajustó en Fase 1).
-- No cambio íconos ni copy.
-
-## Entregable por turno
-
-- Turno 1 (este, si confirmas): tokens globales + refactor de `RecordDialog`/`Field`/`inputCls` + migración de diálogos densos a `.form-grid`. Verificación Playwright a 360px en 3 diálogos.
-- Turno 2: migración de todas las tablas a `ResponsiveTable` + auditoría móvil ruta por ruta.
-- Turno 3: script de regresión visual + baseline inicial + doc en `MOBILE.md`.
-
-¿Arranco con el turno 1?
+- No se sube ningún plano/layout propio; se usa exclusivamente la vista satelital de Google.
+- El % de avance y los paneles limpiados del reporte diario siguen ingresándose manualmente.
+- No se recalculan KPIs del dashboard a partir de las zonas.

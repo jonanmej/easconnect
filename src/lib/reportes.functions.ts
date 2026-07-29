@@ -756,6 +756,71 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       kpisMetaDiariaDesdeDiarios(diarios as any[], new Map(trabajos.map((t) => [t.id, t.folio]))),
     );
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
+
+    // Snapshots del layout satelital con las zonas marcadas por día.
+    const mapasDiarios: {
+      fecha: string;
+      folio: string | null;
+      planta: string | null;
+      dataUrl: string;
+      completadas: number;
+      en_proceso: number;
+      total: number;
+    }[] = [];
+    if (diarioIds.length) {
+      try {
+        const { data: marcas } = await supabase
+          .from("reporte_diario_zonas")
+          .select("reporte_diario_id, zona_id, estado")
+          .in("reporte_diario_id", diarioIds);
+        if (marcas && marcas.length) {
+          const plantaIdsZonas = plantasIds;
+          const { data: zonasAll } = await supabase
+            .from("planta_zonas")
+            .select("id, planta_id, poligono, plantas(nombre)")
+            .in("planta_id", plantaIdsZonas)
+            .eq("activo", true);
+          const zonaPorId = new Map((zonasAll ?? []).map((z: any) => [z.id, z]));
+          const folioPorTrabajo = new Map(trabajos.map((t: any) => [t.id, t.folio]));
+          const marcasPorDiario = new Map<string, any[]>();
+          for (const m of marcas as any[]) {
+            const arr = marcasPorDiario.get(m.reporte_diario_id) ?? [];
+            arr.push(m);
+            marcasPorDiario.set(m.reporte_diario_id, arr);
+          }
+          const { snapshotZonas } = await import("@/lib/mapa-estatico.server");
+          const diariosOrdenados = [...diarios].sort((a: any, b: any) =>
+            String(a.fecha).localeCompare(String(b.fecha)),
+          );
+          for (const d of diariosOrdenados.slice(0, 12)) {
+            const ms = marcasPorDiario.get(d.id) ?? [];
+            if (!ms.length) continue;
+            const plantaZonas = (zonasAll ?? []).filter(
+              (z: any) => z.planta_id === (zonaPorId.get(ms[0].zona_id) as any)?.planta_id,
+            );
+            const estadoPorZona = new Map(ms.map((m: any) => [m.zona_id, m.estado]));
+            const dataUrl = await snapshotZonas(
+              plantaZonas.map((z: any) => ({
+                poligono: Array.isArray(z.poligono) ? z.poligono : [],
+                estado: (estadoPorZona.get(z.id) as any) ?? null,
+              })),
+            );
+            if (!dataUrl) continue;
+            mapasDiarios.push({
+              fecha: String(d.fecha ?? ""),
+              folio: folioPorTrabajo.get(d.trabajo_id) ?? null,
+              planta: (plantaZonas[0] as any)?.plantas?.nombre ?? null,
+              dataUrl,
+              completadas: ms.filter((m: any) => m.estado === "completada").length,
+              en_proceso: ms.filter((m: any) => m.estado === "en_proceso").length,
+              total: plantaZonas.length,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("No se pudieron generar los mapas de avance", e);
+      }
+    }
     let evidencias: { trabajo: string; descripcion: string | null; url: string }[] = [];
     // Imágenes extraídas de los PDFs subidos (fotos/gráficas embebidas).
     // Se agregan al final como "evidencia" para que aparezcan en la sección
@@ -1104,6 +1169,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
             horas_trabajadas: d.horas_trabajadas ?? null,
           }));
       })(),
+      mapas_diarios: mapasDiarios,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
     };

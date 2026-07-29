@@ -18,6 +18,7 @@ import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
+import { MapaAvanceDiario } from "@/components/MapaAvanceDiario";
 import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envolverExterno";
 
 const BUCKET = "trabajos-evidencia";
@@ -219,6 +220,12 @@ export function ReportesDiariosSection({
                   {d.trabajo_realizado && <Block title="Trabajo realizado">{d.trabajo_realizado}</Block>}
                   {d.hallazgos && <Block title="Hallazgos">{d.hallazgos}</Block>}
                   {d.observaciones && <Block title="Observaciones">{d.observaciones}</Block>}
+                  <div className="pt-2 border-t border-border/60">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">
+                      Avance en el mapa de la planta
+                    </p>
+                    <MapaAvanceDiario trabajoId={trabajoId} reporteDiarioId={d.id} readOnly={readOnly} />
+                  </div>
                   <div className="pt-2 border-t border-border/60">
                     <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">
                       Evidencias de este día

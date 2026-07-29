@@ -161,6 +161,15 @@ export type ReporteData = {
     agua_galones?: number | null;
     horas_trabajadas?: number | null;
   }[];
+  mapas_diarios?: {
+    fecha: string;
+    folio?: string | null;
+    planta?: string | null;
+    dataUrl: string;
+    completadas: number;
+    en_proceso: number;
+    total: number;
+  }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
@@ -659,6 +668,30 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           </Page>
         );
       })()}
+
+      {data.mapas_diarios && data.mapas_diarios.length > 0 && (
+        <Page size="A4" style={styles.page} wrap>
+          <PageHeader data={data} pageName="Avance en Sitio" />
+          <Text style={styles.pageTitle}>Avance Diario Marcado en el Layout de la Planta</Text>
+          <View style={styles.pageTitleRule} />
+          <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 8, fontFamily: FONT_OBL }}>
+            Registro georreferenciado: el técnico marca en el mapa satelital las zonas trabajadas cada día.
+            Verde = zona completada, ámbar = zona en proceso, gris = zona sin intervenir en esa jornada.
+          </Text>
+          {data.mapas_diarios.map((m, i) => (
+            <View key={i} style={{ marginBottom: 12 }} wrap={false}>
+              <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, marginBottom: 3 }}>
+                {m.fecha}{m.folio ? ` · ${m.folio}` : ""}{m.planta ? ` · ${m.planta}` : ""}
+              </Text>
+              <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              <Text style={{ fontSize: 7.5, color: COL.muted, marginTop: 3 }}>
+                {m.completadas} de {m.total} zonas completadas · {m.en_proceso} en proceso.
+              </Text>
+            </View>
+          ))}
+          <PageFooter data={data} />
+        </Page>
+      )}
 
       <Page size="A4" style={styles.page} wrap>
         <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />

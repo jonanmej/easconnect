@@ -914,6 +914,56 @@ export type Database = {
         }
         Relationships: []
       }
+      planta_zonas: {
+        Row: {
+          activo: boolean
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          orden: number
+          paneles_estimados: number
+          planta_id: string
+          poligono: Json
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          orden?: number
+          paneles_estimados?: number
+          planta_id: string
+          poligono: Json
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          paneles_estimados?: number
+          planta_id?: string
+          poligono?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planta_zonas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantas: {
         Row: {
           capacidad: string | null
@@ -1075,6 +1125,65 @@ export type Database = {
             columns: ["reporte_id"]
             isOneToOne: false
             referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reporte_diario_zonas: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          reporte_diario_id: string
+          trabajo_id: string
+          updated_at: string
+          zona_id: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          id?: string
+          reporte_diario_id: string
+          trabajo_id: string
+          updated_at?: string
+          zona_id: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          reporte_diario_id?: string
+          trabajo_id?: string
+          updated_at?: string
+          zona_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reporte_diario_zonas_reporte_diario_id_fkey"
+            columns: ["reporte_diario_id"]
+            isOneToOne: false
+            referencedRelation: "trabajo_reportes_diarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_diario_zonas_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_diario_zonas_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporte_diario_zonas_zona_id_fkey"
+            columns: ["zona_id"]
+            isOneToOne: false
+            referencedRelation: "planta_zonas"
             referencedColumns: ["id"]
           },
         ]
