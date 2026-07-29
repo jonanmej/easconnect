@@ -204,13 +204,15 @@ export function PlantaZonasEditor({
               </div>
             )}
             <div ref={mapEl} className="w-full h-full" />
-            <button
-              onClick={dibujar}
-              disabled={!listo}
-              className="absolute top-3 right-3 z-10 h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold shadow disabled:opacity-50"
-            >
-              <Shapes className="size-3.5" /> Dibujar zona
-            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+              <button
+                onClick={dibujar}
+                disabled={!listo}
+                className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                <Shapes className="size-4" /> Dibujar zona
+              </button>
+            </div>
           </div>
 
           <aside className="border-t lg:border-t-0 lg:border-l border-border overflow-y-auto p-3 space-y-3">
