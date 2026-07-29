@@ -1089,6 +1089,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
 
     // Nombres de técnicos por trabajo (principal + extras de trabajo_tecnicos)
     const tecnicosPorTrabajo = new Map<string, string[]>();
+    const nombreTecnicoPorId = new Map<string, string>();
     {
       const principalIds = Array.from(new Set(trabajos.map((t: any) => t.tecnico_id).filter(Boolean)));
       const { data: extras } = trabajoIds.length
@@ -1097,7 +1098,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const extraIds = (extras ?? []).map((e: any) => e.tecnico_id);
       const diarioTecnicoIds = diarios.map((d: any) => d.tecnico_id).filter(Boolean);
       const allIds = Array.from(new Set([...principalIds, ...extraIds, ...diarioTecnicoIds])) as string[];
-      const nombrePorId = new Map<string, string>();
+      const nombrePorId = nombreTecnicoPorId;
       if (allIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, display_name, nombres, apellidos").in("id", allIds);
         for (const p of (profs ?? []) as any[]) {
