@@ -161,6 +161,15 @@ export type ReporteData = {
     agua_galones?: number | null;
     horas_trabajadas?: number | null;
   }[];
+  mapas_diarios?: {
+    fecha: string;
+    folio?: string | null;
+    planta?: string | null;
+    dataUrl: string;
+    completadas: number;
+    en_proceso: number;
+    total: number;
+  }[];
   graficas?: {
     titulo: string;
     descripcion?: string;
