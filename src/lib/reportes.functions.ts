@@ -790,7 +790,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       fecha: string;
       folio: string | null;
       planta: string | null;
-      dataUrl: string;
+      dataUrl: string | null;
+      zonas: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
       completadas: number;
       en_proceso: number;
       total: number;
@@ -805,7 +806,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           const plantaIdsZonas = plantasIds;
           const { data: zonasAll } = await supabase
             .from("planta_zonas")
-            .select("id, planta_id, poligono, plantas(nombre)")
+            .select("id, planta_id, nombre, poligono, plantas(nombre)")
             .in("planta_id", plantaIdsZonas)
             .eq("activo", true);
           const zonaPorId = new Map((zonasAll ?? []).map((z: any) => [z.id, z]));
@@ -833,12 +834,19 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
                 estado: (estadoPorZona.get(z.id) as any) ?? null,
               })),
             );
-            if (!dataUrl) continue;
+            // Si la imagen satelital no está disponible (clave sin permisos de
+            // Static Maps), igual publicamos el layout vectorial con los
+            // polígonos dibujados para que la sección nunca quede vacía.
             mapasDiarios.push({
               fecha: String(d.fecha ?? ""),
               folio: folioPorTrabajo.get(d.trabajo_id) ?? null,
               planta: (plantaZonas[0] as any)?.plantas?.nombre ?? null,
               dataUrl,
+              zonas: plantaZonas.map((z: any) => ({
+                nombre: String(z.nombre ?? ""),
+                poligono: Array.isArray(z.poligono) ? z.poligono : [],
+                estado: (estadoPorZona.get(z.id) as any) ?? null,
+              })),
               completadas: ms.filter((m: any) => m.estado === "completada").length,
               en_proceso: ms.filter((m: any) => m.estado === "en_proceso").length,
               total: plantaZonas.length,

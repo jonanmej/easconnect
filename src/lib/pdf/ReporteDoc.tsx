@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Polygon } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 function absUrl(path: string) {
@@ -167,7 +167,8 @@ export type ReporteData = {
     fecha: string;
     folio?: string | null;
     planta?: string | null;
-    dataUrl: string;
+    dataUrl?: string | null;
+    zonas?: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
     completadas: number;
     en_proceso: number;
     total: number;
@@ -196,6 +197,54 @@ export type ReporteData = {
   /** Resumen agrupado por servicio/equipo (aparece en el reporte ejecutivo). */
   resumen_por_servicio?: { servicio: string; total: number; completados: number }[];
 };
+
+/** Dibujo vectorial del layout de la planta con las zonas marcadas del día. */
+function LayoutZonas({
+  zonas,
+}: {
+  zonas: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
+}) {
+  const validas = zonas.filter((z) => Array.isArray(z.poligono) && z.poligono.length >= 3);
+  if (!validas.length) return null;
+  const pts = validas.flatMap((z) => z.poligono);
+  const lats = pts.map((p) => Number(p.lat));
+  const lngs = pts.map((p) => Number(p.lng));
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const W = 500, H = 210, PAD = 8;
+  const dLat = maxLat - minLat || 1e-6;
+  const dLng = maxLng - minLng || 1e-6;
+  const esc = Math.min((W - PAD * 2) / dLng, (H - PAD * 2) / dLat);
+  const offX = (W - dLng * esc) / 2;
+  const offY = (H - dLat * esc) / 2;
+  const proj = (p: { lat: number; lng: number }) =>
+    `${(offX + (Number(p.lng) - minLng) * esc).toFixed(1)},${(offY + (maxLat - Number(p.lat)) * esc).toFixed(1)}`;
+  const color = (estado: string | null) =>
+    estado === "completada"
+      ? { fill: "#22c55e", stroke: "#16a34a", op: 0.55 }
+      : estado === "en_proceso"
+        ? { fill: "#f59e0b", stroke: "#d97706", op: 0.5 }
+        : { fill: "#94a3b8", stroke: "#64748b", op: 0.2 };
+  return (
+    <View style={{ borderWidth: 0.5, borderColor: COL.border, backgroundColor: "#f1f5f9" }}>
+      <Svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H }}>
+        {validas.map((z, i) => {
+          const c = color(z.estado);
+          return (
+            <Polygon
+              key={i}
+              points={z.poligono.map(proj).join(" ")}
+              fill={c.fill}
+              fillOpacity={c.op}
+              stroke={c.stroke}
+              strokeWidth={1.2}
+            />
+          );
+        })}
+      </Svg>
+    </View>
+  );
+}
 
 function PageHeader({ data, pageName }: { data: ReporteData; pageName: string }) {
   const codigo = `${data.documento_codigo ?? "REP"} · v${data.documento_version ?? "1.0"}`;
@@ -689,7 +738,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, marginBottom: 3 }}>
                 {m.fecha}{m.folio ? ` · ${m.folio}` : ""}{m.planta ? ` · ${m.planta}` : ""}
               </Text>
-              <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              {m.dataUrl ? (
+                <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              ) : (
+                <LayoutZonas zonas={m.zonas ?? []} />
+              )}
               <Text style={{ fontSize: 7.5, color: COL.muted, marginTop: 3 }}>
                 {m.completadas} de {m.total} zonas completadas · {m.en_proceso} en proceso.
               </Text>
