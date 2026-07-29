@@ -207,7 +207,7 @@ export function PlantaZonasEditor({
             <button
               onClick={dibujar}
               disabled={!listo}
-              className="absolute top-3 left-3 h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold shadow disabled:opacity-50"
+              className="absolute top-3 right-3 z-10 h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold shadow disabled:opacity-50"
             >
               <Shapes className="size-3.5" /> Dibujar zona
             </button>
