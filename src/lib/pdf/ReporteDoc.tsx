@@ -167,7 +167,8 @@ export type ReporteData = {
     fecha: string;
     folio?: string | null;
     planta?: string | null;
-    dataUrl: string;
+    dataUrl?: string | null;
+    zonas?: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
     completadas: number;
     en_proceso: number;
     total: number;
