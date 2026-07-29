@@ -383,12 +383,36 @@ export const generarReporte = createServerFn({ method: "POST" })
     const diariosHasta = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
+          .select("trabajo_id, tecnico_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
           .gte("fecha", diariosDesde)
           .lte("fecha", diariosHasta)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
+
+    // Cuando dos o más técnicos cargan reporte para la misma OT y el mismo
+    // día, consolidamos sus aportes en una sola fila (suma de cantidades,
+    // máximo avance, promedio de mediciones) para que el ejecutivo refleje
+    // el trabajo completo del equipo y no el de un solo técnico.
+    const nombreTecnicoDiario = new Map<string, string>();
+    {
+      const tecIds = Array.from(
+        new Set((reportesDiarios ?? []).map((r: any) => r.tecnico_id).filter(Boolean)),
+      ) as string[];
+      if (tecIds.length) {
+        const { data: profsDiario } = await supabase
+          .from("profiles").select("id, display_name, nombres, apellidos").in("id", tecIds);
+        for (const p of (profsDiario ?? []) as any[]) {
+          const nombre = toProfileName(p);
+          if (nombre) nombreTecnicoDiario.set(p.id, nombre);
+        }
+      }
+    }
+    const { consolidarDiarios } = await import("@/lib/consolidar-diarios");
+    const diariosConsolidados = consolidarDiarios(
+      (reportesDiarios ?? []) as any[],
+      nombreTecnicoDiario,
+    );
 
     // PDFs subidos (caso st.solar u otros).
     const { data: reportesPdf } = tIdsArr.length
