@@ -690,7 +690,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, marginBottom: 3 }}>
                 {m.fecha}{m.folio ? ` · ${m.folio}` : ""}{m.planta ? ` · ${m.planta}` : ""}
               </Text>
-              <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              {m.dataUrl ? (
+                <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              ) : (
+                <LayoutZonas zonas={m.zonas ?? []} />
+              )}
               <Text style={{ fontSize: 7.5, color: COL.muted, marginTop: 3 }}>
                 {m.completadas} de {m.total} zonas completadas · {m.en_proceso} en proceso.
               </Text>
