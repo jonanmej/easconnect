@@ -452,9 +452,13 @@ export const generarReporte = createServerFn({ method: "POST" })
         materiales_usados: r.materiales_usados,
         observaciones_cliente: r.cliente_observaciones,
       })),
-      reportes_diarios: (reportesDiarios ?? []).slice(0, 60).map((r: any) => ({
-        folio: folioPorId.get(r.trabajo_id) ?? null,
+      nota_consolidacion:
+        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas, el avance es el máximo reportado y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre.",
+      reportes_diarios: diariosConsolidados.slice(0, 60).map((r) => ({
+        folio: r.trabajo_id ? folioPorId.get(r.trabajo_id) ?? null : null,
         fecha: r.fecha,
+        tecnicos: r.tecnicos,
+        aportes_tecnicos: r.aportes,
         avance_pct: r.avance_pct,
         paneles_limpiados: r.paneles_limpiados,
         agua_galones: r.agua_galones,
@@ -464,7 +468,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
         watts_panel: r.watts_panel,
-        watts_totales: r.watts_panel && r.paneles_limpiados ? Math.round(Number(r.watts_panel) * Number(r.paneles_limpiados)) : null,
+        watts_totales: r.watts_totales,
         tds_ppm: r.tds_ppm,
         angulo_inclinacion: r.angulo_inclinacion,
         presion_agua_psi: r.presion_agua_psi,
