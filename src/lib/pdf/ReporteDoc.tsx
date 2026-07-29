@@ -151,6 +151,8 @@ export type ReporteData = {
   reportes_diarios?: {
     fecha: string;
     folio?: string | null;
+    tecnicos?: string | null;
+    aportes?: number | null;
     avance_pct?: number | null;
     paneles_limpiados?: number | null;
     watts_panel?: number | null;
@@ -580,33 +582,37 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
-                Registro operativo por día: el avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque.
+                Registro operativo por día: el avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea.
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
-                  <Text style={[styles.th, { width: "11%" }]}>Fecha</Text>
-                  <Text style={[styles.th, { width: "15%" }]}>Folio</Text>
-                  <Text style={[styles.th, { width: "11%" }]}>Meta diaria</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>Paneles</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>W/panel</Text>
-                  <Text style={[styles.th, { width: "11%" }]}>W totales</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>TDS</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>Ángulo</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>Presión</Text>
-                  <Text style={[styles.th, { width: "7%" }]}>Horas</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>Fecha</Text>
+                  <Text style={[styles.th, { width: "12%" }]}>Folio</Text>
+                  <Text style={[styles.th, { width: "14%" }]}>Técnicos</Text>
+                  <Text style={[styles.th, { width: "9%" }]}>Meta diaria</Text>
+                  <Text style={[styles.th, { width: "8%" }]}>Paneles</Text>
+                  <Text style={[styles.th, { width: "8%" }]}>W/panel</Text>
+                  <Text style={[styles.th, { width: "10%" }]}>W totales</Text>
+                  <Text style={[styles.th, { width: "8%" }]}>TDS</Text>
+                  <Text style={[styles.th, { width: "8%" }]}>Ángulo</Text>
+                  <Text style={[styles.th, { width: "8%" }]}>Presión</Text>
+                  <Text style={[styles.th, { width: "6%" }]}>Horas</Text>
                 </View>
                 {data.reportes_diarios.map((d, i, arr) => (
                   <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-                    <Text style={[styles.td, { width: "11%" }]}>{d.fecha}</Text>
-                    <Text style={[styles.td, { width: "15%", fontFamily: "Courier", fontSize: 7.5 }]}>{d.folio ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "11%", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.paneles_limpiados ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.watts_panel ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "11%" }]}>{d.watts_totales ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.tds_ppm ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.presion_agua_psi ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "7%" }]}>{d.horas_trabajadas ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "9%" }]}>{d.fecha}</Text>
+                    <Text style={[styles.td, { width: "12%", fontFamily: "Courier", fontSize: 7 }]}>{d.folio ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "14%", fontSize: 7 }]}>
+                      {d.tecnicos ?? "—"}{d.aportes && d.aportes > 1 ? ` (${d.aportes} reportes)` : ""}
+                    </Text>
+                    <Text style={[styles.td, { width: "9%", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
+                    <Text style={[styles.td, { width: "8%" }]}>{d.paneles_limpiados ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "8%" }]}>{d.watts_panel ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "10%" }]}>{d.watts_totales ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "8%" }]}>{d.tds_ppm ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "8%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "8%" }]}>{d.presion_agua_psi ?? "—"}</Text>
+                    <Text style={[styles.td, { width: "6%" }]}>{d.horas_trabajadas ?? "—"}</Text>
                   </View>
                 ))}
               </View>

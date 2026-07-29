@@ -383,12 +383,36 @@ export const generarReporte = createServerFn({ method: "POST" })
     const diariosHasta = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
-          .select("trabajo_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
+          .select("trabajo_id, tecnico_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
           .gte("fecha", diariosDesde)
           .lte("fecha", diariosHasta)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
+
+    // Cuando dos o más técnicos cargan reporte para la misma OT y el mismo
+    // día, consolidamos sus aportes en una sola fila (suma de cantidades,
+    // máximo avance, promedio de mediciones) para que el ejecutivo refleje
+    // el trabajo completo del equipo y no el de un solo técnico.
+    const nombreTecnicoDiario = new Map<string, string>();
+    {
+      const tecIds = Array.from(
+        new Set((reportesDiarios ?? []).map((r: any) => r.tecnico_id).filter(Boolean)),
+      ) as string[];
+      if (tecIds.length) {
+        const { data: profsDiario } = await supabase
+          .from("profiles").select("id, display_name, nombres, apellidos").in("id", tecIds);
+        for (const p of (profsDiario ?? []) as any[]) {
+          const nombre = toProfileName(p);
+          if (nombre) nombreTecnicoDiario.set(p.id, nombre);
+        }
+      }
+    }
+    const { consolidarDiarios } = await import("@/lib/consolidar-diarios");
+    const diariosConsolidados = consolidarDiarios(
+      (reportesDiarios ?? []) as any[],
+      nombreTecnicoDiario,
+    );
 
     // PDFs subidos (caso st.solar u otros).
     const { data: reportesPdf } = tIdsArr.length
@@ -428,9 +452,13 @@ export const generarReporte = createServerFn({ method: "POST" })
         materiales_usados: r.materiales_usados,
         observaciones_cliente: r.cliente_observaciones,
       })),
-      reportes_diarios: (reportesDiarios ?? []).slice(0, 60).map((r: any) => ({
-        folio: folioPorId.get(r.trabajo_id) ?? null,
+      nota_consolidacion:
+        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas, el avance es el máximo reportado y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre.",
+      reportes_diarios: diariosConsolidados.slice(0, 60).map((r) => ({
+        folio: r.trabajo_id ? folioPorId.get(r.trabajo_id) ?? null : null,
         fecha: r.fecha,
+        tecnicos: r.tecnicos,
+        aportes_tecnicos: r.aportes,
         avance_pct: r.avance_pct,
         paneles_limpiados: r.paneles_limpiados,
         agua_galones: r.agua_galones,
@@ -440,7 +468,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         hallazgos: r.hallazgos,
         observaciones: r.observaciones,
         watts_panel: r.watts_panel,
-        watts_totales: r.watts_panel && r.paneles_limpiados ? Math.round(Number(r.watts_panel) * Number(r.paneles_limpiados)) : null,
+        watts_totales: r.watts_totales,
         tds_ppm: r.tds_ppm,
         angulo_inclinacion: r.angulo_inclinacion,
         presion_agua_psi: r.presion_agua_psi,
@@ -1061,6 +1089,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
 
     // Nombres de técnicos por trabajo (principal + extras de trabajo_tecnicos)
     const tecnicosPorTrabajo = new Map<string, string[]>();
+    const nombreTecnicoPorId = new Map<string, string>();
     {
       const principalIds = Array.from(new Set(trabajos.map((t: any) => t.tecnico_id).filter(Boolean)));
       const { data: extras } = trabajoIds.length
@@ -1069,7 +1098,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const extraIds = (extras ?? []).map((e: any) => e.tecnico_id);
       const diarioTecnicoIds = diarios.map((d: any) => d.tecnico_id).filter(Boolean);
       const allIds = Array.from(new Set([...principalIds, ...extraIds, ...diarioTecnicoIds])) as string[];
-      const nombrePorId = new Map<string, string>();
+      const nombrePorId = nombreTecnicoPorId;
       if (allIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, display_name, nombres, apellidos").in("id", allIds);
         for (const p of (profs ?? []) as any[]) {
@@ -1095,6 +1124,13 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         tecnicosPorTrabajo.set(t.id, arr);
       }
     }
+
+    // Consolidamos los reportes diarios por (OT, día) para que, cuando dos o
+    // más técnicos reporten la misma planta el mismo día, el ejecutivo muestre
+    // el aporte combinado del equipo en una sola línea.
+    const folioPorTrabajoPdf = new Map(trabajos.map((t: any) => [t.id, t.folio]));
+    const { consolidarDiarios: consolidarDiariosPdf } = await import("@/lib/consolidar-diarios");
+    const diariosConsolidadosPdf = consolidarDiariosPdf(diarios as any[], nombreTecnicoPorId);
 
     return {
       titulo: (rep as any).titulo,
@@ -1148,27 +1184,21 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       evidencias,
       evidencias_pdf: evidenciasPdf,
       graficas,
-      reportes_diarios: (() => {
-        const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
-        return (diarios ?? [])
-          .slice()
-          .sort((a: any, b: any) => String(a.fecha).localeCompare(String(b.fecha)))
-          .map((d: any) => ({
-            fecha: String(d.fecha ?? ""),
-            folio: folioPorId.get(d.trabajo_id) ?? null,
-            avance_pct: d.avance_pct ?? null,
-            paneles_limpiados: d.paneles_limpiados ?? null,
-            watts_panel: d.watts_panel ?? null,
-            watts_totales: d.watts_panel && d.paneles_limpiados
-              ? Math.round(Number(d.watts_panel) * Number(d.paneles_limpiados))
-              : null,
-            tds_ppm: d.tds_ppm ?? null,
-            angulo_inclinacion: d.angulo_inclinacion ?? null,
-            presion_agua_psi: d.presion_agua_psi ?? null,
-            agua_galones: d.agua_galones ?? null,
-            horas_trabajadas: d.horas_trabajadas ?? null,
-          }));
-      })(),
+      reportes_diarios: diariosConsolidadosPdf.map((d) => ({
+        fecha: d.fecha,
+        folio: d.trabajo_id ? folioPorTrabajoPdf.get(d.trabajo_id) ?? null : null,
+        tecnicos: d.tecnicos.join(", ") || null,
+        aportes: d.aportes,
+        avance_pct: d.avance_pct,
+        paneles_limpiados: d.paneles_limpiados,
+        watts_panel: d.watts_panel,
+        watts_totales: d.watts_totales,
+        tds_ppm: d.tds_ppm,
+        angulo_inclinacion: d.angulo_inclinacion,
+        presion_agua_psi: d.presion_agua_psi,
+        agua_galones: d.agua_galones,
+        horas_trabajadas: d.horas_trabajadas,
+      })),
       mapas_diarios: mapasDiarios,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,
@@ -1248,6 +1278,12 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
+      nota_consolidacion:
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones promediadas. Úsalo como fuente principal de cifras.",
+      reportes_diarios_consolidados: (await import("@/lib/consolidar-diarios")).consolidarDiarios(
+        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+        nombrePorId,
+      ),
       reportes_diarios: diarios.map((d: any) => ({
         ...d,
         tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
