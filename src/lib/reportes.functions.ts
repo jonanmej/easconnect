@@ -1125,6 +1125,13 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       }
     }
 
+    // Consolidamos los reportes diarios por (OT, día) para que, cuando dos o
+    // más técnicos reporten la misma planta el mismo día, el ejecutivo muestre
+    // el aporte combinado del equipo en una sola línea.
+    const folioPorTrabajoPdf = new Map(trabajos.map((t: any) => [t.id, t.folio]));
+    const { consolidarDiarios: consolidarDiariosPdf } = await import("@/lib/consolidar-diarios");
+    const diariosConsolidadosPdf = consolidarDiariosPdf(diarios as any[], nombreTecnicoPorId);
+
     return {
       titulo: (rep as any).titulo,
       cliente: (rep as any).clientes?.nombre ?? "—",
