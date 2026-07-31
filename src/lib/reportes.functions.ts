@@ -791,6 +791,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       folio: string | null;
       planta: string | null;
       dataUrl: string | null;
+      basemap: any | null;
       zonas: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
       completadas: number;
       en_proceso: number;
@@ -817,7 +818,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
             arr.push(m);
             marcasPorDiario.set(m.reporte_diario_id, arr);
           }
-          const { snapshotZonas } = await import("@/lib/mapa-estatico.server");
+          const { snapshotZonas, basemapZonas } = await import("@/lib/mapa-estatico.server");
           const diariosOrdenados = [...diarios].sort((a: any, b: any) =>
             String(a.fecha).localeCompare(String(b.fecha)),
           );
@@ -828,12 +829,14 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
               (z: any) => z.planta_id === (zonaPorId.get(ms[0].zona_id) as any)?.planta_id,
             );
             const estadoPorZona = new Map(ms.map((m: any) => [m.zona_id, m.estado]));
-            const dataUrl = await snapshotZonas(
-              plantaZonas.map((z: any) => ({
-                poligono: Array.isArray(z.poligono) ? z.poligono : [],
-                estado: (estadoPorZona.get(z.id) as any) ?? null,
-              })),
-            );
+            const zonasEstado = plantaZonas.map((z: any) => ({
+              poligono: Array.isArray(z.poligono) ? z.poligono : [],
+              estado: (estadoPorZona.get(z.id) as any) ?? null,
+            }));
+            const dataUrl = await snapshotZonas(zonasEstado);
+            // Si Google Static Maps no está habilitada, componemos la vista
+            // satelital con teselas para que el cliente sí vea el terreno.
+            const basemap = dataUrl ? null : await basemapZonas(zonasEstado);
             // Si la imagen satelital no está disponible (clave sin permisos de
             // Static Maps), igual publicamos el layout vectorial con los
             // polígonos dibujados para que la sección nunca quede vacía.
@@ -842,6 +845,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
               folio: folioPorTrabajo.get(d.trabajo_id) ?? null,
               planta: (plantaZonas[0] as any)?.plantas?.nombre ?? null,
               dataUrl,
+              basemap,
               zonas: plantaZonas.map((z: any) => ({
                 nombre: String(z.nombre ?? ""),
                 poligono: Array.isArray(z.poligono) ? z.poligono : [],

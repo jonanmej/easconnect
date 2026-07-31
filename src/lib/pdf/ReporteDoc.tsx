@@ -168,6 +168,10 @@ export type ReporteData = {
     folio?: string | null;
     planta?: string | null;
     dataUrl?: string | null;
+    basemap?: {
+      tiles: { src: string; x: number; y: number }[];
+      w: number; h: number; z: number; ox: number; oy: number; tile: number;
+    } | null;
     zonas?: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
     completadas: number;
     en_proceso: number;
@@ -199,6 +203,80 @@ export type ReporteData = {
 };
 
 /** Dibujo vectorial del layout de la planta con las zonas marcadas del día. */
+function colorEstado(estado: string | null) {
+  return estado === "completada"
+    ? { fill: "#22c55e", stroke: "#16a34a", op: 0.45 }
+    : estado === "en_proceso"
+      ? { fill: "#f59e0b", stroke: "#d97706", op: 0.45 }
+      : { fill: "#94a3b8", stroke: "#e2e8f0", op: 0.15 };
+}
+
+/** Vista satelital compuesta por teselas con las zonas dibujadas encima. */
+function LayoutSatelital({
+  basemap,
+  zonas,
+}: {
+  basemap: NonNullable<NonNullable<ReporteData["mapas_diarios"]>[number]["basemap"]>;
+  zonas: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
+}) {
+  const { w, h, z, ox, oy, tile } = basemap;
+  const ANCHO = 500;
+  const k = ANCHO / w;
+  const n = tile * Math.pow(2, z);
+  const proj = (p: { lat: number; lng: number }) => {
+    const rad = (Math.max(-85, Math.min(85, Number(p.lat))) * Math.PI) / 180;
+    const x = ((Number(p.lng) + 180) / 360) * n - ox;
+    const y = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n - oy;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  };
+  const validas = zonas.filter((zz) => Array.isArray(zz.poligono) && zz.poligono.length >= 3);
+  return (
+    <View
+      style={{
+        width: ANCHO,
+        height: h * k,
+        position: "relative",
+        overflow: "hidden",
+        borderWidth: 0.5,
+        borderColor: COL.border,
+        backgroundColor: "#0f172a",
+      }}
+    >
+      {basemap.tiles.map((t, i) => (
+        <Image
+          key={i}
+          src={t.src}
+          style={{
+            position: "absolute",
+            left: t.x * k,
+            top: t.y * k,
+            width: tile * k,
+            height: tile * k,
+          }}
+        />
+      ))}
+      <Svg
+        viewBox={`0 0 ${w} ${h}`}
+        style={{ position: "absolute", left: 0, top: 0, width: ANCHO, height: h * k }}
+      >
+        {validas.map((zz, i) => {
+          const c = colorEstado(zz.estado);
+          return (
+            <Polygon
+              key={i}
+              points={zz.poligono.map(proj).join(" ")}
+              fill={c.fill}
+              fillOpacity={c.op}
+              stroke={c.stroke}
+              strokeWidth={2}
+            />
+          );
+        })}
+      </Svg>
+    </View>
+  );
+}
+
 function LayoutZonas({
   zonas,
 }: {
@@ -219,12 +297,7 @@ function LayoutZonas({
   const offY = (H - dLat * esc) / 2;
   const proj = (p: { lat: number; lng: number }) =>
     `${(offX + (Number(p.lng) - minLng) * esc).toFixed(1)},${(offY + (maxLat - Number(p.lat)) * esc).toFixed(1)}`;
-  const color = (estado: string | null) =>
-    estado === "completada"
-      ? { fill: "#22c55e", stroke: "#16a34a", op: 0.55 }
-      : estado === "en_proceso"
-        ? { fill: "#f59e0b", stroke: "#d97706", op: 0.5 }
-        : { fill: "#94a3b8", stroke: "#64748b", op: 0.2 };
+  const color = colorEstado;
   return (
     <View style={{ borderWidth: 0.5, borderColor: COL.border, backgroundColor: "#f1f5f9" }}>
       <Svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: H }}>
@@ -740,6 +813,8 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </Text>
               {m.dataUrl ? (
                 <Image src={m.dataUrl} style={{ width: "100%", height: 210, objectFit: "cover", borderWidth: 0.5, borderColor: COL.border }} />
+              ) : m.basemap ? (
+                <LayoutSatelital basemap={m.basemap} zonas={m.zonas ?? []} />
               ) : (
                 <LayoutZonas zonas={m.zonas ?? []} />
               )}
