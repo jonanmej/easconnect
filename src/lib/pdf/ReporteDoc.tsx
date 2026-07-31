@@ -220,8 +220,12 @@ function LayoutSatelital({
   zonas: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
 }) {
   const { w, h, z, ox, oy, tile } = basemap;
-  const ANCHO = 500;
-  const k = ANCHO / w;
+  // Ancho útil de la página A4 con los márgenes del documento (96 izq / 54 der).
+  const ANCHO = 445;
+  const ALTO_MAX = 260;
+  const k = Math.min(ANCHO / w, ALTO_MAX / h);
+  const ancho = w * k;
+  const alto = h * k;
   const n = tile * Math.pow(2, z);
   const proj = (p: { lat: number; lng: number }) => {
     const rad = (Math.max(-85, Math.min(85, Number(p.lat))) * Math.PI) / 180;
@@ -233,8 +237,8 @@ function LayoutSatelital({
   return (
     <View
       style={{
-        width: ANCHO,
-        height: h * k,
+        width: ancho,
+        height: alto,
         position: "relative",
         overflow: "hidden",
         borderWidth: 0.5,
@@ -257,7 +261,7 @@ function LayoutSatelital({
       ))}
       <Svg
         viewBox={`0 0 ${w} ${h}`}
-        style={{ position: "absolute", left: 0, top: 0, width: ANCHO, height: h * k }}
+        style={{ position: "absolute", left: 0, top: 0, width: ancho, height: alto }}
       >
         {validas.map((zz, i) => {
           const c = colorEstado(zz.estado);
