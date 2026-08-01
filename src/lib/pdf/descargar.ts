@@ -199,7 +199,7 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
-  return { documento_id, hash };
+  return { documento_id, hash, bytes: blob.size };
 }
 
 /**
