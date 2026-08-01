@@ -166,18 +166,22 @@ function Reportes() {
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  async function descargarPdf(id: string, modo: "ejecutivo" | "interno") {
-    setDownloadingId(id + modo);
+  async function descargarPdf(
+    id: string,
+    modo: "ejecutivo" | "interno",
+    calidad: "normal" | "correo" = "normal",
+  ) {
+    setDownloadingId(id + modo + (calidad === "correo" ? "-correo" : ""));
     try {
       const data: any = await fPdf({ data: { id, variante: modo } });
-      const evidencias = await buildEvidencias(data.evidencias);
+      const evidencias = await buildEvidencias(data.evidencias, calidad);
       // Las imágenes extraídas de los PDFs subidos ya vienen como dataURL
       // desde el servidor; se agregan al final del set de evidencias.
       const evidenciasPdfRaw = (data.evidencias_pdf ?? []) as { trabajo: string; descripcion?: string | null; dataUrl: string }[];
-      const evidenciasPdf = await withAspect(evidenciasPdfRaw);
+      const evidenciasPdf = await withAspect(evidenciasPdfRaw, calidad);
       const evidenciasFinal = [...evidencias, ...evidenciasPdf];
       const firma = await fResp({ data: { reporte_id: id } }).catch(() => null);
-      await generarYDescargarPdf({
+      const res = await generarYDescargarPdf({
         ...data,
         modo,
         responsable: firma?.nombre ?? null,
@@ -193,9 +197,15 @@ function Reportes() {
           .trim() || "General";
         const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
         const suf = modo === "interno" ? "-interno" : "";
-        return `Reporte-${servicio}-${fecha}${suf}.pdf`;
+        const sufCorreo = calidad === "correo" ? "-correo" : "";
+        return `Reporte-${servicio}-${fecha}${suf}${sufCorreo}.pdf`;
       })());
-      toast.success("PDF descargado");
+      const mb = res?.bytes ? (res.bytes / (1024 * 1024)).toFixed(1) : null;
+      toast.success(
+        mb
+          ? `PDF descargado (${mb} MB)${calidad === "correo" ? " · optimizado para Outlook" : ""}`
+          : "PDF descargado",
+      );
     } catch (e: any) {
       toast.error(e.message ?? "Error al generar PDF");
     } finally {
