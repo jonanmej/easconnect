@@ -978,6 +978,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
     // se pausa y se comunica el próximo día hábil.
     const { ahoraSV, esNoLaborableSV, siguienteDiaHabilSV, formatearDiaHabilSV } =
       await import("@/lib/dias-habiles");
+    const { hoyKeyTZ, trabajoActivoEnDia } = await import("@/lib/hoy-config");
+    await ensureFeriadosCargados(context.supabase, new Date().toISOString());
     const nowSv = ahoraSV();
     const hoySv = new Date(nowSv); hoySv.setHours(0, 0, 0, 0);
     const dia_no_laborable = esNoLaborableSV(hoySv);
@@ -987,18 +989,35 @@ export const dashboardStats = createServerFn({ method: "GET" })
       const proximo = siguienteDiaHabilSV(hoySv, false);
       siguiente_dia_habil = formatearDiaHabilSV(proximo);
     } else {
-      const refStart = hoySv.getTime();
-      const refEnd = refStart + 86400000;
       const { data: trabajosRef } = await context.supabase
         .from("trabajos")
         .select("id, fecha_programada, duracion_dias, estado")
         .neq("estado", "cancelado");
-      trabajos_hoy = (trabajosRef ?? []).filter((t: any) => {
-        const start = new Date(t.fecha_programada).getTime();
-        const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-        const end = start + dur * 86400000;
-        return start < refEnd && end > refStart;
-      }).length;
+      const filas = (trabajosRef ?? []) as any[];
+      // Excepciones de día (reprogramaciones puntuales), igual que en Programación.
+      const excepcionesPorTrabajo = new Map<string, Array<{ fecha_original: string; fecha_movida: string }>>();
+      if (filas.length > 0) {
+        const { data: excs } = await context.supabase
+          .from("trabajo_dia_excepciones")
+          .select("trabajo_id, fecha_original, fecha_movida")
+          .in("trabajo_id", filas.map((t) => t.id));
+        (excs ?? []).forEach((e: any) => {
+          const arr = excepcionesPorTrabajo.get(e.trabajo_id) ?? [];
+          arr.push({ fecha_original: e.fecha_original, fecha_movida: e.fecha_movida });
+          excepcionesPorTrabajo.set(e.trabajo_id, arr);
+        });
+      }
+      const hoyKey = hoyKeyTZ();
+      trabajos_hoy = filas.filter((t) =>
+        trabajoActivoEnDia(
+          {
+            fecha_programada: t.fecha_programada,
+            duracion_dias: t.duracion_dias,
+            excepciones_dia: excepcionesPorTrabajo.get(t.id) ?? [],
+          },
+          hoyKey,
+        ),
+      ).length;
     }
 
     // "Avance de limpieza" = paneles limpiados acumulados / total de paneles
