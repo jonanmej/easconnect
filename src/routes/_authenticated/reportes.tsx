@@ -600,6 +600,12 @@ function Reportes() {
                 className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50">
                 <FileDown className="size-3.5" /> {downloadingId === r.id + "ejecutivo" ? "Generando…" : "PDF Ejec."}
               </button>
+              <button onClick={() => descargarPdf(r.id, "ejecutivo", "correo")}
+                disabled={downloadingId === r.id + "ejecutivo-correo"}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                title="Misma información del reporte ejecutivo, con las fotografías optimizadas para adjuntar en Outlook">
+                <Mail className="size-3.5" /> {downloadingId === r.id + "ejecutivo-correo" ? "Generando…" : "PDF para correo"}
+              </button>
               {canEdit && (
                 <button onClick={() => descargarPdf(r.id, "interno")} disabled={downloadingId === r.id + "interno"}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50">
