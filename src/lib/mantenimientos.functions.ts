@@ -40,11 +40,32 @@ export const upsertMantenimiento = createServerFn({ method: "POST" })
     // Default inicio/fin a `fecha` cuando no se especifican (compatibilidad)
     if (!rest.fecha_inicio) rest.fecha_inicio = rest.fecha;
     if (!rest.fecha_fin) rest.fecha_fin = rest.fecha_inicio;
+
+    // Si quien registra es técnico (sin rol admin/supervisor), debe quedar como
+    // responsable: la política de seguridad exige tecnico_id = usuario actual y
+    // de lo contrario tampoco podría ver el registro luego de guardarlo.
+    if (!rest.tecnico_id) {
+      const { data: roles } = await context.supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", context.userId);
+      const list = (roles ?? []).map((r: any) => r.role as string);
+      const esStaff = list.includes("admin") || list.includes("supervisor");
+      if (!esStaff && list.includes("tecnico")) rest.tecnico_id = context.userId;
+    }
+
     const q = id
       ? context.supabase.from("mantenimientos").update(rest).eq("id", id).select().single()
       : context.supabase.from("mantenimientos").insert(rest).select().single();
     const { data: row, error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === "42501") {
+        throw new Error(
+          "No tienes permisos para guardar este mantenimiento. Los técnicos solo pueden registrar mantenimientos a su nombre.",
+        );
+      }
+      throw new Error(error.message);
+    }
     return row;
   });
 
