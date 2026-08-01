@@ -69,8 +69,56 @@ function measureAspect(dataUrl: string): Promise<number | null> {
   });
 }
 
+/**
+ * Perfiles de compresión de imágenes para el PDF. El texto, tablas, KPIs y
+ * firmas del reporte son vectoriales, así que solo se reduce la resolución de
+ * las fotografías: el contenido del reporte se mantiene idéntico.
+ *
+ * - `normal`: archivo para archivo/impresión.
+ * - `correo`: pensado para adjuntar en Outlook (límite típico de 20 MB).
+ */
+export type CalidadPdf = "normal" | "correo";
+
+const PERFILES: Record<CalidadPdf, { maxPx: number; quality: number }> = {
+  normal: { maxPx: 1600, quality: 0.82 },
+  correo: { maxPx: 1000, quality: 0.62 },
+};
+
+/** Reescala una dataURL a JPEG con el perfil indicado (silenciosamente no-op si falla). */
+async function comprimirDataUrl(dataUrl: string, calidad: CalidadPdf): Promise<string> {
+  const { maxPx, quality } = PERFILES[calidad];
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new window.Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = dataUrl;
+    });
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h) return dataUrl;
+    const escala = Math.min(1, maxPx / Math.max(w, h));
+    const cw = Math.max(1, Math.round(w * escala));
+    const ch = Math.max(1, Math.round(h * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    // Fondo blanco para PNG con transparencia (evita fondos negros en JPEG).
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.drawImage(img, 0, 0, cw, ch);
+    const out = canvas.toDataURL("image/jpeg", quality);
+    return out && out.length < dataUrl.length ? out : dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
 export async function buildEvidencias(
   items: { trabajo: string; descripcion?: string | null; url: string; categoria?: string | null }[],
+  calidad: CalidadPdf = "normal",
 ) {
   const out: {
     trabajo: string;
@@ -80,8 +128,9 @@ export async function buildEvidencias(
     categoria?: string | null;
   }[] = [];
   await Promise.all(items.map(async (it) => {
-    const d = await urlToDataUrl(it.url);
-    if (!d) return;
+    const raw = await urlToDataUrl(it.url);
+    if (!raw) return;
+    const d = await comprimirDataUrl(raw, calidad);
     const aspect = await measureAspect(d);
     out.push({
       trabajo: it.trabajo,
@@ -95,11 +144,14 @@ export async function buildEvidencias(
 }
 
 /** Añade metadatos de orientación (aspect) a imágenes que ya vienen como dataURL. */
-export async function withAspect(items: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[]) {
-  return Promise.all(items.map(async (it) => ({
-    ...it,
-    aspect: it.aspect ?? await measureAspect(it.dataUrl),
-  })));
+export async function withAspect(
+  items: { trabajo: string; descripcion?: string | null; dataUrl: string; aspect?: number | null }[],
+  calidad: CalidadPdf = "normal",
+) {
+  return Promise.all(items.map(async (it) => {
+    const dataUrl = await comprimirDataUrl(it.dataUrl, calidad);
+    return { ...it, dataUrl, aspect: await measureAspect(dataUrl) };
+  }));
 }
 
 /**
@@ -147,7 +199,7 @@ export async function generarYDescargarPdf(data: ReporteData, filename: string) 
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
-  return { documento_id, hash };
+  return { documento_id, hash, bytes: blob.size };
 }
 
 /**
