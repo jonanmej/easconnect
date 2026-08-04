@@ -93,6 +93,11 @@ const styles = StyleSheet.create({
   trLast: { flexDirection: "row" },
   th: { padding: 6, fontSize: 8, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
   td: { padding: 5, fontSize: 8.5, lineHeight: 1.35 },
+  // Variante compacta para tablas con muchas columnas (detalle diario de campo):
+  // menos padding y tipografía más pequeña para que ningún encabezado ni valor
+  // se recorte dentro de su celda.
+  thSm: { paddingVertical: 4, paddingHorizontal: 2.5, fontSize: 6.4, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase", lineHeight: 1.15 },
+  tdSm: { paddingVertical: 4, paddingHorizontal: 2.5, fontSize: 7, lineHeight: 1.25 },
   pageFooter: { position: "absolute", bottom: 20, left: 96, right: 54, flexDirection: "column", fontSize: 6.8, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 6 },
   pageFooterTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
   pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 0 },
