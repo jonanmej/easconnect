@@ -1,5 +1,9 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Polygon } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+import { escalaTabla } from "./escala-tabla";
+
+/** Ancho útil de una página A4 con los márgenes del documento (96 / 54 pt). */
+const ANCHO_UTIL = 445;
 
 function absUrl(path: string) {
   const origin =
