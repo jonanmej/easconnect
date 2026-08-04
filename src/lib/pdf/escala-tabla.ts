@@ -60,7 +60,7 @@ export function escalaTabla(
       if (disponible <= 0) continue;
       const coefCuerpo = col.mono ? COEF.mono : COEF.helvetica;
 
-      const largoCuerpo = col.textos.reduce((m, t) => {
+      const largoCuerpo = col.textos.reduce<number>((m, t) => {
         const s = t === null || t === undefined ? "" : String(t);
         return Math.max(m, tramoMasLargo(s, col.multilinea ?? false));
       }, 1);
