@@ -712,7 +712,51 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             </>
           );
         })()}
-        {data.reportes_diarios && data.reportes_diarios.length > 0 && (
+        {data.reportes_diarios && data.reportes_diarios.length > 0 && (() => {
+          const filas = data.reportes_diarios;
+          const cols = [
+            { key: "fecha", head: "Fecha", ancho: 11, align: "left" as const },
+            { key: "folio", head: "Folio", ancho: 12, align: "left" as const, mono: true },
+            { key: "tecnicos", head: "Técnicos", ancho: 18, align: "left" as const, multilinea: true },
+            { key: "meta", head: "Meta diaria", ancho: 8, align: "center" as const, bold: true },
+            { key: "paneles", head: "Paneles", ancho: 8, align: "center" as const },
+            { key: "wpanel", head: "W / panel", ancho: 8, align: "center" as const },
+            { key: "wtot", head: "W totales", ancho: 9, align: "center" as const },
+            { key: "tds", head: "TDS ppm", ancho: 6, align: "center" as const },
+            { key: "angulo", head: "Áng. °", ancho: 6, align: "center" as const },
+            { key: "presion", head: "Pres. psi", ancho: 7, align: "center" as const },
+            { key: "horas", head: "Horas", ancho: 7, align: "center" as const },
+          ];
+          const valor = (d: (typeof filas)[number], key: string) => {
+            switch (key) {
+              case "fecha": return d.fecha ?? "—";
+              case "folio": return d.folio ?? "—";
+              case "tecnicos":
+                return `${d.tecnicos ?? "—"}${d.aportes && d.aportes > 1 ? ` (${d.aportes} reportes)` : ""}`;
+              case "meta": return d.avance_pct == null ? "—" : `${d.avance_pct}%`;
+              case "paneles": return d.paneles_limpiados ?? "—";
+              case "wpanel": return d.watts_panel ?? "—";
+              case "wtot": return d.watts_totales ?? "—";
+              case "tds": return d.tds_ppm ?? "—";
+              case "angulo": return d.angulo_inclinacion ?? "—";
+              case "presion": return d.presion_agua_psi ?? "—";
+              default: return d.horas_trabajadas ?? "—";
+            }
+          };
+          // Escala automática: el tamaño de letra y el padding se calculan con
+          // el contenido real de cada columna y el ancho útil de la página.
+          const esc = escalaTabla(
+            ANCHO_UTIL,
+            cols.map((c) => ({
+              ancho: c.ancho,
+              head: c.head,
+              mono: c.mono,
+              multilinea: c.multilinea,
+              textos: filas.map((d) => valor(d, c.key)),
+            })),
+            { min: 5.4, max: 8.5 },
+          );
+          return (
           <>
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
@@ -721,39 +765,52 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
-                  <Text style={[styles.thSm, { width: "11%" }]}>Fecha</Text>
-                  <Text style={[styles.thSm, { width: "12%" }]}>Folio</Text>
-                  <Text style={[styles.thSm, { width: "18%" }]}>Técnicos</Text>
-                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>Meta{"\n"}diaria</Text>
-                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>Paneles</Text>
-                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>W /{"\n"}panel</Text>
-                  <Text style={[styles.thSm, { width: "9%", textAlign: "center" }]}>W{"\n"}totales</Text>
-                  <Text style={[styles.thSm, { width: "6%", textAlign: "center" }]}>TDS{"\n"}ppm</Text>
-                  <Text style={[styles.thSm, { width: "6%", textAlign: "center" }]}>Áng.{"\n"}°</Text>
-                  <Text style={[styles.thSm, { width: "7%", textAlign: "center" }]}>Pres.{"\n"}psi</Text>
-                  <Text style={[styles.thSm, { width: "7%", textAlign: "center" }]}>Horas</Text>
+                  {cols.map((c) => (
+                    <Text
+                      key={c.key}
+                      style={[
+                        styles.thSm,
+                        {
+                          width: `${c.ancho}%`,
+                          textAlign: c.align,
+                          fontSize: esc.fontSizeHead,
+                          paddingVertical: esc.padV,
+                          paddingHorizontal: esc.padH,
+                        },
+                      ]}
+                    >
+                      {c.head}
+                    </Text>
+                  ))}
                 </View>
                 {data.reportes_diarios.map((d, i, arr) => (
                   <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-                    <Text style={[styles.tdSm, { width: "11%" }]}>{d.fecha}</Text>
-                    <Text style={[styles.tdSm, { width: "12%", fontFamily: "Courier", fontSize: 6.2 }]}>{d.folio ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "18%", fontSize: 6.6 }]}>
-                      {d.tecnicos ?? "—"}{d.aportes && d.aportes > 1 ? ` (${d.aportes} reportes)` : ""}
-                    </Text>
-                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
-                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center" }]}>{d.paneles_limpiados ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center" }]}>{d.watts_panel ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "9%", textAlign: "center" }]}>{d.watts_totales ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "6%", textAlign: "center" }]}>{d.tds_ppm ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "6%", textAlign: "center" }]}>{d.angulo_inclinacion ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "7%", textAlign: "center" }]}>{d.presion_agua_psi ?? "—"}</Text>
-                    <Text style={[styles.tdSm, { width: "7%", textAlign: "center" }]}>{d.horas_trabajadas ?? "—"}</Text>
+                    {cols.map((c) => (
+                      <Text
+                        key={c.key}
+                        style={[
+                          styles.tdSm,
+                          {
+                            width: `${c.ancho}%`,
+                            textAlign: c.align,
+                            fontSize: esc.fontSize,
+                            paddingVertical: esc.padV,
+                            paddingHorizontal: esc.padH,
+                            ...(c.mono ? { fontFamily: "Courier" } : {}),
+                            ...(c.bold ? { fontFamily: FONT_BOLD } : {}),
+                          },
+                        ]}
+                      >
+                        {valor(d, c.key)}
+                      </Text>
+                    ))}
                   </View>
                 ))}
               </View>
             </View>
           </>
-        )}
+          );
+        })()}
         <PageFooter data={data} />
       </Page>
 
