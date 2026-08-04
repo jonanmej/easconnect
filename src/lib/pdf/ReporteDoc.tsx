@@ -717,33 +717,33 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
-                  <Text style={[styles.th, { width: "9%" }]}>Fecha</Text>
-                  <Text style={[styles.th, { width: "12%" }]}>Folio</Text>
-                  <Text style={[styles.th, { width: "14%" }]}>Técnicos</Text>
-                  <Text style={[styles.th, { width: "9%" }]}>Meta diaria</Text>
-                  <Text style={[styles.th, { width: "8%" }]}>Paneles</Text>
-                  <Text style={[styles.th, { width: "8%" }]}>W/panel</Text>
-                  <Text style={[styles.th, { width: "10%" }]}>W totales</Text>
-                  <Text style={[styles.th, { width: "8%" }]}>TDS</Text>
-                  <Text style={[styles.th, { width: "8%" }]}>Ángulo</Text>
-                  <Text style={[styles.th, { width: "8%" }]}>Presión</Text>
-                  <Text style={[styles.th, { width: "6%" }]}>Horas</Text>
+                  <Text style={[styles.thSm, { width: "11%" }]}>Fecha</Text>
+                  <Text style={[styles.thSm, { width: "12%" }]}>Folio</Text>
+                  <Text style={[styles.thSm, { width: "18%" }]}>Técnicos</Text>
+                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>Meta{"\n"}diaria</Text>
+                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>Paneles</Text>
+                  <Text style={[styles.thSm, { width: "8%", textAlign: "center" }]}>W /{"\n"}panel</Text>
+                  <Text style={[styles.thSm, { width: "9%", textAlign: "center" }]}>W{"\n"}totales</Text>
+                  <Text style={[styles.thSm, { width: "6%", textAlign: "center" }]}>TDS{"\n"}ppm</Text>
+                  <Text style={[styles.thSm, { width: "6%", textAlign: "center" }]}>Áng.{"\n"}°</Text>
+                  <Text style={[styles.thSm, { width: "7%", textAlign: "center" }]}>Pres.{"\n"}psi</Text>
+                  <Text style={[styles.thSm, { width: "7%", textAlign: "center" }]}>Horas</Text>
                 </View>
                 {data.reportes_diarios.map((d, i, arr) => (
                   <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-                    <Text style={[styles.td, { width: "9%" }]}>{d.fecha}</Text>
-                    <Text style={[styles.td, { width: "12%", fontFamily: "Courier", fontSize: 7 }]}>{d.folio ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "14%", fontSize: 7 }]}>
+                    <Text style={[styles.tdSm, { width: "11%" }]}>{d.fecha}</Text>
+                    <Text style={[styles.tdSm, { width: "12%", fontFamily: "Courier", fontSize: 6.2 }]}>{d.folio ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "18%", fontSize: 6.6 }]}>
                       {d.tecnicos ?? "—"}{d.aportes && d.aportes > 1 ? ` (${d.aportes} reportes)` : ""}
                     </Text>
-                    <Text style={[styles.td, { width: "9%", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
-                    <Text style={[styles.td, { width: "8%" }]}>{d.paneles_limpiados ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "8%" }]}>{d.watts_panel ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "10%" }]}>{d.watts_totales ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "8%" }]}>{d.tds_ppm ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "8%" }]}>{d.angulo_inclinacion ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "8%" }]}>{d.presion_agua_psi ?? "—"}</Text>
-                    <Text style={[styles.td, { width: "6%" }]}>{d.horas_trabajadas ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center", fontFamily: FONT_BOLD }]}>{d.avance_pct == null ? "—" : `${d.avance_pct}%`}</Text>
+                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center" }]}>{d.paneles_limpiados ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "8%", textAlign: "center" }]}>{d.watts_panel ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "9%", textAlign: "center" }]}>{d.watts_totales ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "6%", textAlign: "center" }]}>{d.tds_ppm ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "6%", textAlign: "center" }]}>{d.angulo_inclinacion ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "7%", textAlign: "center" }]}>{d.presion_agua_psi ?? "—"}</Text>
+                    <Text style={[styles.tdSm, { width: "7%", textAlign: "center" }]}>{d.horas_trabajadas ?? "—"}</Text>
                   </View>
                 ))}
               </View>
