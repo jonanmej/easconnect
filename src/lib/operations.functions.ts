@@ -784,24 +784,27 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       fecha_programada: z.string().min(1),
       tecnico_id: z.string().uuid().nullable().optional(),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
-    await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
-    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-    const motivo = motivoNoLaborableSV(patch.fecha_programada);
-    if (motivo) {
-      throw new Error(
-        motivo === "feriado"
-          ? "No se puede reprogramar a un día feriado."
-          : "No se puede reprogramar a sábado o domingo.",
-      );
-    }
+    const excepcion = await validarDiaLaborable(
+      context.supabase,
+      context.userId,
+      patch.fecha_programada,
+      { permitir: data.emergencia_no_laborable, motivo: data.emergencia_motivo },
+      "reprogramar",
+    );
     // Validar conflicto si hay técnico (existente o nuevo)
     const { data: trabajoActual } = await context.supabase
-      .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio").eq("id", data.id).single();
+      .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio, notas").eq("id", data.id).single();
+    if (excepcion) {
+      const nota = notaExcepcion(excepcion, patch.fecha_programada);
+      patch.notas = [String((trabajoActual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n");
+    }
     const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
       plantaId: (trabajoActual as any)?.planta_id,
       servicio: (trabajoActual as any)?.servicio,
