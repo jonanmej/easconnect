@@ -940,6 +940,8 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
       trabajo_id: z.string().uuid(),
       fecha_original: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       fecha_destino: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -947,16 +949,15 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
 
     // Validar día laborable en destino
     const destinoISO = new Date(`${fecha_destino}T13:00:00.000Z`).toISOString();
-    await ensureFeriadosCargados(context.supabase, destinoISO);
-    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-    const motivo = motivoNoLaborableSV(destinoISO);
-    if (motivo) {
-      throw new Error(
-        motivo === "feriado"
-          ? "No se puede mover el día a un feriado."
-          : "No se puede mover el día a sábado o domingo.",
-      );
-    }
+    const excepcion = fecha_original === fecha_destino
+      ? null
+      : await validarDiaLaborable(
+          context.supabase,
+          context.userId,
+          destinoISO,
+          { permitir: data.emergencia_no_laborable, motivo: data.emergencia_motivo },
+          "mover el día",
+        );
 
     // Si vuelve a su fecha original, borrar la excepción.
     if (fecha_original === fecha_destino) {
@@ -983,6 +984,16 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
     });
     if (conflictos.length > 0) {
       throw new Error(formatCleaningClientConflict(conflictos));
+    }
+
+    if (excepcion) {
+      const { data: actual } = await context.supabase
+        .from("trabajos").select("notas").eq("id", trabajo_id).single();
+      const nota = notaExcepcion(excepcion, destinoISO);
+      await context.supabase
+        .from("trabajos")
+        .update({ notas: [String((actual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n") })
+        .eq("id", trabajo_id);
     }
 
     const { data: row, error } = await context.supabase
