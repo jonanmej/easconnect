@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -55,7 +56,7 @@ function Mantenimientos() {
   const list = useQuery({ queryKey: ["mantenimientos"], queryFn: () => fList() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fEquipos() });
 
-  const [filtro, setFiltro] = useState<"todos" | M["estado"]>("todos");
+  const [filtro, setFiltro] = usePersistedState<"todos" | M["estado"]>("mantenimientos.filtro", "todos");
   const [editing, setEditing] = useState<Partial<M> | null>(null);
 
   const rows = useMemo(() => {

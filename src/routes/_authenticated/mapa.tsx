@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -58,7 +59,7 @@ function MapaPage() {
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const [tipo, setTipo] = useState<"satellite" | "hybrid" | "roadmap">("hybrid");
+  const [tipo, setTipo] = usePersistedState<"satellite" | "hybrid" | "roadmap">("mapa.tipo", "hybrid");
   const [selected, setSelected] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 

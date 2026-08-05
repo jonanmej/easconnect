@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
@@ -136,7 +137,7 @@ function Trabajos() {
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
-  const [tab, setTab] = useState<"diarios" | "recursos" | "ot" | "historial">("diarios");
+  const [tab, setTab] = usePersistedState<"diarios" | "recursos" | "ot" | "historial">("trabajos.tab", "diarios");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecExtraIds, setTecExtraIds] = useState<string[]>([]);
   // Excepción de emergencia: permite programar en feriado / fin de semana.
@@ -148,7 +149,7 @@ function Trabajos() {
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
   const [search, setSearch] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("smart");
+  const [sortBy, setSortBy] = usePersistedState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("trabajos.sortBy", "smart");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
