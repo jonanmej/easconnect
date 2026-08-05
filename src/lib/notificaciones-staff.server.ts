@@ -6,7 +6,8 @@ type Tipo =
   | "nueva_evidencia"
   | "reporte_enviado"
   | "reporte_aprobado"
-  | "reporte_rechazado";
+  | "reporte_rechazado"
+  | "emergencia_no_laborable";
 
 /**
  * Envía una notificación in-app + correo Gmail a todos los usuarios con rol
