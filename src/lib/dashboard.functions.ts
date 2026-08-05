@@ -305,23 +305,39 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
     let limpiados_dia = 0;
     let meta_diaria = 0;
     const detalle: any[] = [];
+    const num = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
     for (const t of activos as any[]) {
-      const parque = Number(t.plantas?.paneles ?? 0);
-      const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
-      const diaTrab = dia_por_trabajo.get(t.id) ?? 0;
-      const acumulado = total_por_trabajo.get(t.id) ?? 0;
+      // parque nunca negativo ni NaN
+      const parque = Math.max(0, Math.floor(num(t.plantas?.paneles)));
+      const duracionRaw = Math.floor(num(t.duracion_dias) || 1);
+      const duracion = Math.max(1, Number.isFinite(duracionRaw) ? duracionRaw : 1);
+      const diaTrab = Math.max(0, num(dia_por_trabajo.get(t.id)));
+      // El acumulado no puede ser menor que lo del día ni mayor al parque útil.
+      const acumulado = Math.max(diaTrab, num(total_por_trabajo.get(t.id)));
       // Meta base = parque / días planeados.
-      const metaBase = Math.round(parque / duracion);
+      const metaBase = Math.max(0, Math.round(parque / duracion));
       // Meta diaria dinámica: lo que falta del parque repartido en los días
       // que restan de la OT. Si un día se limpió más del 100% de la meta,
       // ese excedente reduce automáticamente la meta de los días siguientes.
       const inicio = new Date(t.fecha_programada);
-      const inicioDia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
+      const inicioTs = inicio.getTime();
+      const inicioDia = Number.isFinite(inicioTs)
+        ? new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime()
+        : refStart;
       const finDia = inicioDia + (duracion - 1) * 86400000;
-      const diasRestantes = Math.max(1, Math.round((finDia - refStart) / 86400000) + 1);
-      const acumuladoPrevio = Math.max(0, acumulado - diaTrab);
+      // Si la OT ya venció, se asume 1 día restante (no valores 0 ni negativos).
+      const diasCrudos = Math.round((finDia - refStart) / 86400000) + 1;
+      const diasRestantes = Math.max(1, Number.isFinite(diasCrudos) ? diasCrudos : 1);
+      // Excedentes previos (>100%) reducen el pendiente, nunca lo vuelven negativo.
+      const acumuladoPrevio = Math.min(parque, Math.max(0, acumulado - diaTrab));
       const restante = Math.max(0, parque - acumuladoPrevio);
-      const metaTrab = parque > 0 && restante > 0 ? Math.ceil(restante / diasRestantes) : 0;
+      // La meta nunca excede el pendiente real del parque.
+      const metaTrab = parque > 0 && restante > 0
+        ? Math.min(restante, Math.max(0, Math.ceil(restante / diasRestantes)))
+        : 0;
       limpiados_dia += diaTrab;
       meta_diaria += metaTrab;
       detalle.push({
@@ -340,8 +356,11 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
         desface: diaTrab - metaTrab,
       });
     }
+    limpiados_dia = Math.max(0, limpiados_dia);
+    meta_diaria = Math.max(0, meta_diaria);
+    // Porcentaje acotado: nunca negativo y con techo razonable para la UI.
     const cumplimiento_pct = meta_diaria > 0
-      ? Math.round((limpiados_dia / meta_diaria) * 100)
+      ? Math.min(999, Math.max(0, Math.round((limpiados_dia / meta_diaria) * 100)))
       : 0;
     const estado = meta_diaria === 0
       ? "sin_datos"
