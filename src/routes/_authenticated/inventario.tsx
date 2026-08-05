@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -67,9 +68,9 @@ function Inventario() {
 
   // --- Vista: filtros, orden, agrupación, paginación ---
   const [q, setQ] = useState("");
-  const [catFilter, setCatFilter] = useState<"todas" | Item["categoria"]>("todas");
-  const [estadoFilter, setEstadoFilter] = useState<"todos" | "bajo" | "ok">("todos");
-  const [sortBy, setSortBy] = useState<"nombre" | "sku" | "stock_asc" | "critico">("critico");
+  const [catFilter, setCatFilter] = usePersistedState<"todas" | Item["categoria"]>("inventario.catFilter", "todas");
+  const [estadoFilter, setEstadoFilter] = usePersistedState<"todos" | "bajo" | "ok">("inventario.estadoFilter", "todos");
+  const [sortBy, setSortBy] = usePersistedState<"nombre" | "sku" | "stock_asc" | "critico">("inventario.sortBy", "critico");
   const [agrupar, setAgrupar] = useState(false);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 25;

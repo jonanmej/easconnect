@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -68,7 +69,7 @@ function Clientes() {
   const [editing, setEditing] = useState<Partial<ClienteRow> | null>(null);
   const [managing, setManaging] = useState<ClienteRow | null>(null);
   const [query, setQuery] = useState("");
-  const [omFilter, setOmFilter] = useState<"todos" | "con" | "sin">("todos");
+  const [omFilter, setOmFilter] = usePersistedState<"todos" | "con" | "sin">("clientes.omFilter", "todos");
 
   const save = useMutation({
     mutationFn: (vars: any) => fetchUpsert({ data: vars }),

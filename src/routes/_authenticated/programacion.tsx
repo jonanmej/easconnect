@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -94,7 +95,7 @@ function Programacion() {
   const fetchMove = useServerFn(reprogramarTrabajo);
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
   const fetchMoverDia = useServerFn(moverDiaTrabajo);
-  const [vista, setVista] = useState<Vista>("semana");
+  const [vista, setVista] = usePersistedState<Vista>("programacion.vista", "semana");
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   // Ahora arrastramos UN DÍA específico (no toda la OT). El drag lleva la
   // fecha real que se está moviendo y la fecha original (para escribir la
@@ -130,8 +131,8 @@ function Programacion() {
   const [clienteFilter, setClienteFilter] = useState<string>("");
   // Filtros de impresión
   const [pdfOpen, setPdfOpen] = useState(false);
-  const [pdfPaper, setPdfPaper] = useState<"A4" | "A3">("A4");
-  const [pdfOrient, setPdfOrient] = useState<"landscape" | "portrait">("landscape");
+  const [pdfPaper, setPdfPaper] = usePersistedState<"A4" | "A3">("programacion.pdfPaper", "A4");
+  const [pdfOrient, setPdfOrient] = usePersistedState<"landscape" | "portrait">("programacion.pdfOrient", "landscape");
   const [pdfCliente, setPdfCliente] = useState<string>("");
   const [pdfServicio, setPdfServicio] = useState<string>("");
   const [pdfFolio, setPdfFolio] = useState<string>("");

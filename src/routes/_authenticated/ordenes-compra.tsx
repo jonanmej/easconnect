@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -52,7 +53,7 @@ function OrdenesCompraPage() {
   const canManage = ["admin", "supervisor"].includes(rol);
   const canReceive = ["admin", "supervisor", "tecnico"].includes(rol);
 
-  const [filtro, setFiltro] = useState<"todas" | EstadoOC>("todas");
+  const [filtro, setFiltro] = usePersistedState<"todas" | EstadoOC>("oc.filtro", "todas");
   const [openId, setOpenId] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [prefill, setPrefill] = useState<any[] | null>(null);
@@ -233,7 +234,7 @@ function OrdenDetalleDialog({
   const fDelete = useServerFn(eliminarOrdenCompra);
   const fInv = useServerFn(listInventario);
   const fVars = useServerFn(listVariacionesOC);
-  const [tab, setTab] = useState<"detalle" | "recepcion" | "variaciones" | "historial">("detalle");
+  const [tab, setTab] = usePersistedState<"detalle" | "recepcion" | "variaciones" | "historial">("oc.tab", "detalle");
 
   const det = useQuery({ queryKey: ["orden-compra", id], queryFn: () => fGet({ data: { id } }) });
   const inv = useQuery({ queryKey: ["inventario"], queryFn: () => fInv() });

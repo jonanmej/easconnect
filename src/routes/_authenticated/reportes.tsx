@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -120,8 +121,8 @@ function Reportes() {
   // Filtros de listado para separar clientes/plantas y alcance temporal.
   const [filtroCliente, setFiltroCliente] = useState<string>("");
   const [filtroPlanta, setFiltroPlanta] = useState<string>("");
-  const [filtroAlcance, setFiltroAlcance] = useState<"todos" | "dia" | "rango">("todos");
-  const [agrupar, setAgrupar] = useState<"none" | "cliente" | "planta">("none");
+  const [filtroAlcance, setFiltroAlcance] = usePersistedState<"todos" | "dia" | "rango">("reportes.filtroAlcance", "todos");
+  const [agrupar, setAgrupar] = usePersistedState<"none" | "cliente" | "planta">("reportes.agrupar", "none");
 
   const plantasFiltradas = useMemo(() => {
     const all = (plantas.data as any[] | undefined) ?? [];
