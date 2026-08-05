@@ -691,6 +691,39 @@ function Trabajos() {
               defaultValue={editing?.duracion_dias ?? 1} className={inputCls} />
           </Field>
         </div>
+        {motivoNoLaborable(fechaSel) && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/[0.06] p-3 space-y-2">
+            <p className="text-[11px] font-semibold text-destructive">
+              La fecha elegida cae en {motivoNoLaborable(fechaSel)}.
+            </p>
+            {puedeAutorizarEmergencia ? (
+              <>
+                <label className="flex items-start gap-2 text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={emergencia}
+                    onChange={(e) => setEmergencia(e.currentTarget.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>Autorizar trabajo en día no laborable (emergencia)</span>
+                </label>
+                {emergencia && (
+                  <input
+                    value={emergenciaMotivo}
+                    onChange={(e) => setEmergenciaMotivo(e.currentTarget.value)}
+                    placeholder="Justificación de la emergencia (obligatoria)"
+                    maxLength={300}
+                    className={inputCls}
+                  />
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Solo un administrador o supervisor puede autorizar trabajo en días no laborables.
+              </p>
+            )}
+          </div>
+        )}
         <Field label="Estado">
             <select name="estado" defaultValue={editing?.estado ?? "programado"} className={inputCls}>
               <option value="programado">Programado</option>
