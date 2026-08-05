@@ -668,17 +668,23 @@ function Trabajos() {
               defaultValue={toLocalInput(editing?.fecha_programada)}
               className={inputCls}
               onChange={(e) => {
-                const motivo = motivoNoLaborable(e.currentTarget.value);
+                const valor = e.currentTarget.value;
+                setFechaSel(valor);
+                const motivo = motivoNoLaborable(valor);
                 if (motivo) {
                   toast.warning(
                     motivo === "feriado"
-                      ? "Ese día es feriado; no es laborable."
-                      : "Sábado y domingo no son días laborables.",
+                      ? "Ese día es feriado; requiere autorización de emergencia."
+                      : "Sábado y domingo requieren autorización de emergencia.",
                   );
+                } else {
+                  setEmergencia(false);
                 }
               }}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes, excluyendo feriados).</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Días laborables (lunes a viernes, sin feriados). En emergencias se puede autorizar un día no laborable.
+            </p>
           </Field>
           <Field label="Duración (días)">
             <input name="duracion_dias" type="number" min={1} max={60}
