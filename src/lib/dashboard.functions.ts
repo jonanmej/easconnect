@@ -308,9 +308,20 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
     for (const t of activos as any[]) {
       const parque = Number(t.plantas?.paneles ?? 0);
       const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
-      // Meta diaria por trabajo = paneles del parque / días de duración planeada.
-      const metaTrab = Math.round(parque / duracion);
       const diaTrab = dia_por_trabajo.get(t.id) ?? 0;
+      const acumulado = total_por_trabajo.get(t.id) ?? 0;
+      // Meta base = parque / días planeados.
+      const metaBase = Math.round(parque / duracion);
+      // Meta diaria dinámica: lo que falta del parque repartido en los días
+      // que restan de la OT. Si un día se limpió más del 100% de la meta,
+      // ese excedente reduce automáticamente la meta de los días siguientes.
+      const inicio = new Date(t.fecha_programada);
+      const inicioDia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
+      const finDia = inicioDia + (duracion - 1) * 86400000;
+      const diasRestantes = Math.max(1, Math.round((finDia - refStart) / 86400000) + 1);
+      const acumuladoPrevio = Math.max(0, acumulado - diaTrab);
+      const restante = Math.max(0, parque - acumuladoPrevio);
+      const metaTrab = parque > 0 && restante > 0 ? Math.ceil(restante / diasRestantes) : 0;
       limpiados_dia += diaTrab;
       meta_diaria += metaTrab;
       detalle.push({
@@ -321,8 +332,11 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
         parque,
         duracion_dias: duracion,
         meta_diaria: metaTrab,
+        meta_base: metaBase,
+        dias_restantes: diasRestantes,
+        pendiente_parque: restante,
         limpiados_dia: diaTrab,
-        limpiados_acumulado: total_por_trabajo.get(t.id) ?? 0,
+        limpiados_acumulado: acumulado,
         desface: diaTrab - metaTrab,
       });
     }
