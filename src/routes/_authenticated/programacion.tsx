@@ -357,18 +357,15 @@ function Programacion() {
     },
   });
 
-  function onDrop(targetDay: Date) {
-    if (!drag) return;
-    if (!isWorkday(targetDay)) {
-      const motivo = motivoNoLaborableSV(targetDay);
-      toast.error(
-        motivo === "feriado"
-          ? "No se puede programar en un día feriado."
-          : "No se puede programar en fin de semana.",
-      );
-      setDrag(null);
-      return;
-    }
+  function ejecutarDrop(
+    targetDay: Date,
+    dragInfo: { id: string; fechaOriginal: string; duracion: number },
+    emergencia?: { motivo: string },
+  ) {
+    const extra = emergencia
+      ? { emergencia_no_laborable: true, emergencia_motivo: emergencia.motivo }
+      : {};
+    const drag = dragInfo;
     const fechaDestino = toISODateLocal(targetDay);
     if (drag.fechaOriginal === fechaDestino) { setDrag(null); return; }
     // Si la OT dura 1 día, movemos toda la OT (fecha_programada). Para
@@ -380,15 +377,34 @@ function Programacion() {
       const prev = new Date(original.fecha_programada);
       const nd = new Date(targetDay);
       nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-      move.mutate({ id: drag.id, fecha_programada: nd.toISOString() });
+      move.mutate({ id: drag.id, fecha_programada: nd.toISOString(), ...extra });
     } else {
       moverDia.mutate({
         trabajo_id: drag.id,
         fecha_original: drag.fechaOriginal,
         fecha_destino: fechaDestino,
+        ...extra,
       });
     }
     setDrag(null);
+  }
+
+  function onDrop(targetDay: Date) {
+    if (!drag) return;
+    if (!isWorkday(targetDay)) {
+      const motivo = motivoNoLaborableSV(targetDay) ?? "día no laborable";
+      if (!canEdit) {
+        toast.error(`No se puede programar en ${motivo}.`);
+        setDrag(null);
+        return;
+      }
+      // Emergencia: pedimos justificación antes de mover a un día no laborable.
+      setEmergDrop({ targetDay, drag, motivo });
+      setEmergMotivo("");
+      setDrag(null);
+      return;
+    }
+    ejecutarDrop(targetDay, drag);
   }
 
   function nav(delta: number) {
