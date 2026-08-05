@@ -139,6 +139,11 @@ function Trabajos() {
   const [tab, setTab] = useState<"diarios" | "recursos" | "ot" | "historial">("diarios");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecExtraIds, setTecExtraIds] = useState<string[]>([]);
+  // Excepción de emergencia: permite programar en feriado / fin de semana.
+  const [fechaSel, setFechaSel] = useState<string>("");
+  const [emergencia, setEmergencia] = useState(false);
+  const [emergenciaMotivo, setEmergenciaMotivo] = useState("");
+  const puedeAutorizarEmergencia = role === "admin" || role === "supervisor";
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
@@ -239,6 +244,8 @@ function Trabajos() {
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
     if (!editing) { setEquipoIds([]); setTecExtraIds([]); setTab("diarios"); return; }
+    if (!editing.id) { setEmergencia(false); setEmergenciaMotivo(""); }
+    setFechaSel(toLocalInput(editing?.fecha_programada));
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
@@ -304,16 +311,16 @@ function Trabajos() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const fecha = String(f.get("fecha_programada") ?? "");
-    {
-      const motivo = motivoNoLaborable(fecha);
-      if (motivo) {
-        toast.error(
-          motivo === "feriado"
-            ? "No se pueden programar trabajos en un día feriado."
-            : "No se pueden programar trabajos en sábado o domingo.",
-        );
-        return;
-      }
+    const motivoDia = motivoNoLaborable(fecha);
+    if (motivoDia && !(emergencia && puedeAutorizarEmergencia)) {
+      toast.error(
+        `Ese día no es laborable (${motivoDia}). Si es una emergencia, activa la autorización de día no laborable.`,
+      );
+      return;
+    }
+    if (motivoDia && emergenciaMotivo.trim().length < 5) {
+      toast.error("Indica la justificación de la emergencia (mínimo 5 caracteres).");
+      return;
     }
     // Convertir "YYYY-MM-DDTHH:mm" (hora local del navegador) a ISO UTC
     // para que el servidor (UTC) no reinterprete el valor.
@@ -330,6 +337,8 @@ function Trabajos() {
       tecnicos_extra_ids: tecExtraIds,
       notas: f.get("notas") || null,
       duracion_dias: Number(f.get("duracion_dias") ?? 1),
+      emergencia_no_laborable: !!motivoDia && emergencia,
+      emergencia_motivo: motivoDia ? emergenciaMotivo.trim() : null,
     });
   }
 
@@ -659,23 +668,62 @@ function Trabajos() {
               defaultValue={toLocalInput(editing?.fecha_programada)}
               className={inputCls}
               onChange={(e) => {
-                const motivo = motivoNoLaborable(e.currentTarget.value);
+                const valor = e.currentTarget.value;
+                setFechaSel(valor);
+                const motivo = motivoNoLaborable(valor);
                 if (motivo) {
                   toast.warning(
                     motivo === "feriado"
-                      ? "Ese día es feriado; no es laborable."
-                      : "Sábado y domingo no son días laborables.",
+                      ? "Ese día es feriado; requiere autorización de emergencia."
+                      : "Sábado y domingo requieren autorización de emergencia.",
                   );
+                } else {
+                  setEmergencia(false);
                 }
               }}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">Solo días laborables (lunes a viernes, excluyendo feriados).</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Días laborables (lunes a viernes, sin feriados). En emergencias se puede autorizar un día no laborable.
+            </p>
           </Field>
           <Field label="Duración (días)">
             <input name="duracion_dias" type="number" min={1} max={60}
               defaultValue={editing?.duracion_dias ?? 1} className={inputCls} />
           </Field>
         </div>
+        {motivoNoLaborable(fechaSel) && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/[0.06] p-3 space-y-2">
+            <p className="text-[11px] font-semibold text-destructive">
+              La fecha elegida cae en {motivoNoLaborable(fechaSel)}.
+            </p>
+            {puedeAutorizarEmergencia ? (
+              <>
+                <label className="flex items-start gap-2 text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={emergencia}
+                    onChange={(e) => setEmergencia(e.currentTarget.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>Autorizar trabajo en día no laborable (emergencia)</span>
+                </label>
+                {emergencia && (
+                  <input
+                    value={emergenciaMotivo}
+                    onChange={(e) => setEmergenciaMotivo(e.currentTarget.value)}
+                    placeholder="Justificación de la emergencia (obligatoria)"
+                    maxLength={300}
+                    className={inputCls}
+                  />
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Solo un administrador o supervisor puede autorizar trabajo en días no laborables.
+              </p>
+            )}
+          </div>
+        )}
         <Field label="Estado">
             <select name="estado" defaultValue={editing?.estado ?? "programado"} className={inputCls}>
               <option value="programado">Programado</option>

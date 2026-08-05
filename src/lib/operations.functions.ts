@@ -29,6 +29,48 @@ async function ensureFeriadosCargados(supabase: any, fechaISO: string) {
 
 // ============ Clientes ============
 
+/**
+ * Valida que la fecha sea un día laborable. Si no lo es, permite la excepción
+ * únicamente cuando quien programa es admin o supervisor, marca explícitamente
+ * la autorización de emergencia y entrega una justificación. Devuelve el
+ * detalle de la excepción para dejar traza en las notas de la OT.
+ */
+async function validarDiaLaborable(
+  supabase: any,
+  userId: string,
+  fechaISO: string,
+  emergencia: { permitir?: boolean | undefined; motivo?: string | null | undefined } | undefined,
+  accion: string,
+): Promise<{ motivo: string; justificacion: string } | null> {
+  await ensureFeriadosCargados(supabase, fechaISO);
+  const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
+  const motivo = motivoNoLaborableSV(fechaISO);
+  if (!motivo) return null;
+  const etiqueta = motivo === "feriado" ? "un día feriado" : `un ${motivo}`;
+  if (!emergencia?.permitir) {
+    throw new Error(
+      `No se puede ${accion} en ${etiqueta}. Si se trata de una emergencia, activa la autorización de día no laborable e indica la justificación.`,
+    );
+  }
+  const [{ data: esAdmin }, { data: esSupervisor }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
+  ]);
+  if (!esAdmin && !esSupervisor) {
+    throw new Error("Solo un administrador o supervisor puede autorizar trabajo en días no laborables.");
+  }
+  const justificacion = String(emergencia.motivo ?? "").trim();
+  if (justificacion.length < 5) {
+    throw new Error("Indica la justificación de la emergencia (mínimo 5 caracteres).");
+  }
+  return { motivo, justificacion };
+}
+
+function notaExcepcion(exc: { motivo: string; justificacion: string }, fechaISO: string) {
+  const fecha = fechaISO.slice(0, 10);
+  return `⚠ Excepción autorizada para trabajar en ${exc.motivo} (${fecha}): ${exc.justificacion}`;
+}
+
 const ClienteEstado = z.enum(["activo", "revision", "pausado"]);
 
 export const listClientes = createServerFn({ method: "GET" })
@@ -383,27 +425,32 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       notas: z.string().nullable().optional(),
       duracion_dias: z.coerce.number().int().min(1).max(60).optional(),
       origen: z.enum(["staff", "cliente"]).optional(),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, equipo_ids, tecnicos_extra_ids, ...rest } = data;
+    const {
+      id, equipo_ids, tecnicos_extra_ids,
+      emergencia_no_laborable, emergencia_motivo,
+      ...rest
+    } = data;
     const payload = {
       ...rest,
       equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
-    {
-      await ensureFeriadosCargados(context.supabase, payload.fecha_programada);
-      const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-      const motivo = motivoNoLaborableSV(payload.fecha_programada);
-      if (motivo) {
-        throw new Error(
-          motivo === "feriado"
-            ? "No se pueden programar trabajos en un día feriado."
-            : "No se pueden programar trabajos en sábado o domingo.",
-        );
-      }
+    const excepcion = await validarDiaLaborable(
+      context.supabase,
+      context.userId,
+      payload.fecha_programada,
+      { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
+      "programar trabajos",
+    );
+    if (excepcion) {
+      const nota = notaExcepcion(excepcion, payload.fecha_programada);
+      payload.notas = [payload.notas?.trim(), nota].filter(Boolean).join("\n");
     }
     let estadoPrevio: string | null = null;
     let tecnicoPrevio: string | null = null;
@@ -737,24 +784,27 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       fecha_programada: z.string().min(1),
       tecnico_id: z.string().uuid().nullable().optional(),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
     const patch: any = { fecha_programada: new Date(data.fecha_programada).toISOString() };
     if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
-    await ensureFeriadosCargados(context.supabase, patch.fecha_programada);
-    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-    const motivo = motivoNoLaborableSV(patch.fecha_programada);
-    if (motivo) {
-      throw new Error(
-        motivo === "feriado"
-          ? "No se puede reprogramar a un día feriado."
-          : "No se puede reprogramar a sábado o domingo.",
-      );
-    }
+    const excepcion = await validarDiaLaborable(
+      context.supabase,
+      context.userId,
+      patch.fecha_programada,
+      { permitir: data.emergencia_no_laborable, motivo: data.emergencia_motivo },
+      "reprogramar",
+    );
     // Validar conflicto si hay técnico (existente o nuevo)
     const { data: trabajoActual } = await context.supabase
-      .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio").eq("id", data.id).single();
+      .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio, notas").eq("id", data.id).single();
+    if (excepcion) {
+      const nota = notaExcepcion(excepcion, patch.fecha_programada);
+      patch.notas = [String((trabajoActual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n");
+    }
     const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
       plantaId: (trabajoActual as any)?.planta_id,
       servicio: (trabajoActual as any)?.servicio,
@@ -890,6 +940,8 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
       trabajo_id: z.string().uuid(),
       fecha_original: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       fecha_destino: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -897,16 +949,15 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
 
     // Validar día laborable en destino
     const destinoISO = new Date(`${fecha_destino}T13:00:00.000Z`).toISOString();
-    await ensureFeriadosCargados(context.supabase, destinoISO);
-    const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-    const motivo = motivoNoLaborableSV(destinoISO);
-    if (motivo) {
-      throw new Error(
-        motivo === "feriado"
-          ? "No se puede mover el día a un feriado."
-          : "No se puede mover el día a sábado o domingo.",
-      );
-    }
+    const excepcion = fecha_original === fecha_destino
+      ? null
+      : await validarDiaLaborable(
+          context.supabase,
+          context.userId,
+          destinoISO,
+          { permitir: data.emergencia_no_laborable, motivo: data.emergencia_motivo },
+          "mover el día",
+        );
 
     // Si vuelve a su fecha original, borrar la excepción.
     if (fecha_original === fecha_destino) {
@@ -933,6 +984,16 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
     });
     if (conflictos.length > 0) {
       throw new Error(formatCleaningClientConflict(conflictos));
+    }
+
+    if (excepcion) {
+      const { data: actual } = await context.supabase
+        .from("trabajos").select("notas").eq("id", trabajo_id).single();
+      const nota = notaExcepcion(excepcion, destinoISO);
+      await context.supabase
+        .from("trabajos")
+        .update({ notas: [String((actual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n") })
+        .eq("id", trabajo_id);
     }
 
     const { data: row, error } = await context.supabase

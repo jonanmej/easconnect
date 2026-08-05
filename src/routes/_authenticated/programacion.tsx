@@ -103,6 +103,12 @@ function Programacion() {
     | null
     | { id: string; fechaOriginal: string; duracion: number }
   >(null);
+  // Excepción de emergencia: mover una OT a feriado o fin de semana.
+  const [emergDrop, setEmergDrop] = useState<
+    | null
+    | { targetDay: Date; drag: { id: string; fechaOriginal: string; duracion: number }; motivo: string }
+  >(null);
+  const [emergMotivo, setEmergMotivo] = useState("");
   const dragId = drag?.id ?? null;
   const setDragId = (id: string | null) => { if (id === null) setDrag(null); };
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
@@ -258,7 +264,7 @@ function Programacion() {
   );
 
   const move = useMutation({
-    mutationFn: (vars: { id: string; fecha_programada: string }) =>
+    mutationFn: (vars: { id: string; fecha_programada: string; emergencia_no_laborable?: boolean; emergencia_motivo?: string | null }) =>
       fetchMove({ data: vars }),
     // Optimistic update: parcheamos únicamente la OT movida en el caché para
     // que la vista de Semana/Mes refresque el día afectado sin recargar el
@@ -326,7 +332,7 @@ function Programacion() {
   // Mutación para mover un solo día de una OT multi-día. Actualiza el caché
   // de forma optimista añadiendo/actualizando la excepción del trabajo.
   const moverDia = useMutation({
-    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string }) =>
+    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string; emergencia_no_laborable?: boolean; emergencia_motivo?: string | null }) =>
       fetchMoverDia({ data: vars }),
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: ["trabajos"] });
@@ -357,18 +363,15 @@ function Programacion() {
     },
   });
 
-  function onDrop(targetDay: Date) {
-    if (!drag) return;
-    if (!isWorkday(targetDay)) {
-      const motivo = motivoNoLaborableSV(targetDay);
-      toast.error(
-        motivo === "feriado"
-          ? "No se puede programar en un día feriado."
-          : "No se puede programar en fin de semana.",
-      );
-      setDrag(null);
-      return;
-    }
+  function ejecutarDrop(
+    targetDay: Date,
+    dragInfo: { id: string; fechaOriginal: string; duracion: number },
+    emergencia?: { motivo: string },
+  ) {
+    const extra = emergencia
+      ? { emergencia_no_laborable: true, emergencia_motivo: emergencia.motivo }
+      : {};
+    const drag = dragInfo;
     const fechaDestino = toISODateLocal(targetDay);
     if (drag.fechaOriginal === fechaDestino) { setDrag(null); return; }
     // Si la OT dura 1 día, movemos toda la OT (fecha_programada). Para
@@ -380,15 +383,34 @@ function Programacion() {
       const prev = new Date(original.fecha_programada);
       const nd = new Date(targetDay);
       nd.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
-      move.mutate({ id: drag.id, fecha_programada: nd.toISOString() });
+      move.mutate({ id: drag.id, fecha_programada: nd.toISOString(), ...extra });
     } else {
       moverDia.mutate({
         trabajo_id: drag.id,
         fecha_original: drag.fechaOriginal,
         fecha_destino: fechaDestino,
+        ...extra,
       });
     }
     setDrag(null);
+  }
+
+  function onDrop(targetDay: Date) {
+    if (!drag) return;
+    if (!isWorkday(targetDay)) {
+      const motivo = motivoNoLaborableSV(targetDay) ?? "día no laborable";
+      if (!canEdit) {
+        toast.error(`No se puede programar en ${motivo}.`);
+        setDrag(null);
+        return;
+      }
+      // Emergencia: pedimos justificación antes de mover a un día no laborable.
+      setEmergDrop({ targetDay, drag, motivo });
+      setEmergMotivo("");
+      setDrag(null);
+      return;
+    }
+    ejecutarDrop(targetDay, drag);
   }
 
   function nav(delta: number) {
@@ -619,6 +641,39 @@ function Programacion() {
           <ClienteCalendar />
         </div>
       )}
+
+      <RecordDialog
+        open={!!emergDrop}
+        onOpenChange={(v) => { if (!v) setEmergDrop(null); }}
+        title="Programar en día no laborable"
+        description={
+          emergDrop
+            ? `El día destino cae en ${emergDrop.motivo}. Solo se permite por emergencia y queda registrado en las notas de la OT.`
+            : ""
+        }
+        submitLabel="Autorizar y mover"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!emergDrop) return;
+          if (emergMotivo.trim().length < 5) {
+            toast.error("Indica la justificación de la emergencia (mínimo 5 caracteres).");
+            return;
+          }
+          ejecutarDrop(emergDrop.targetDay, emergDrop.drag, { motivo: emergMotivo.trim() });
+          setEmergDrop(null);
+        }}
+      >
+        <Field label="Justificación de la emergencia">
+          <textarea
+            rows={3}
+            maxLength={300}
+            value={emergMotivo}
+            onChange={(e) => setEmergMotivo(e.currentTarget.value)}
+            placeholder="Ej: falla crítica en inversor, cliente autoriza intervención en feriado…"
+            className={inputCls}
+          />
+        </Field>
+      </RecordDialog>
     </div>
   );
 }
