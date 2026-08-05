@@ -12,13 +12,13 @@ export const getUiPrefs = createServerFn({ method: "GET" })
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return ((data?.ui_prefs as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+    return ((data?.ui_prefs as Record<string, any> | null) ?? {}) as Record<string, any>;
   });
 
 /** Fusiona (merge) las claves recibidas en las preferencias del usuario. */
 export const setUiPrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ prefs: z.record(z.string(), z.unknown()) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ prefs: z.record(z.string(), z.any()) }).parse(d))
   .handler(async ({ context, data }) => {
     const { data: actual } = await context.supabase
       .from("profiles")
@@ -26,12 +26,12 @@ export const setUiPrefs = createServerFn({ method: "POST" })
       .eq("id", context.userId)
       .maybeSingle();
     const merged = {
-      ...(((actual?.ui_prefs as Record<string, unknown> | null) ?? {}) as Record<string, unknown>),
+      ...(((actual?.ui_prefs as Record<string, any> | null) ?? {}) as Record<string, any>),
       ...data.prefs,
     };
     const { error } = await context.supabase
       .from("profiles")
-      .update({ ui_prefs: merged })
+      .update({ ui_prefs: merged as any })
       .eq("id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
