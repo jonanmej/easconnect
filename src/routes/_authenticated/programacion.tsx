@@ -258,7 +258,7 @@ function Programacion() {
   );
 
   const move = useMutation({
-    mutationFn: (vars: { id: string; fecha_programada: string }) =>
+    mutationFn: (vars: { id: string; fecha_programada: string; emergencia_no_laborable?: boolean; emergencia_motivo?: string | null }) =>
       fetchMove({ data: vars }),
     // Optimistic update: parcheamos únicamente la OT movida en el caché para
     // que la vista de Semana/Mes refresque el día afectado sin recargar el
@@ -326,7 +326,7 @@ function Programacion() {
   // Mutación para mover un solo día de una OT multi-día. Actualiza el caché
   // de forma optimista añadiendo/actualizando la excepción del trabajo.
   const moverDia = useMutation({
-    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string }) =>
+    mutationFn: (vars: { trabajo_id: string; fecha_original: string; fecha_destino: string; emergencia_no_laborable?: boolean; emergencia_motivo?: string | null }) =>
       fetchMoverDia({ data: vars }),
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: ["trabajos"] });
