@@ -311,16 +311,16 @@ function Trabajos() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const fecha = String(f.get("fecha_programada") ?? "");
-    {
-      const motivo = motivoNoLaborable(fecha);
-      if (motivo) {
-        toast.error(
-          motivo === "feriado"
-            ? "No se pueden programar trabajos en un día feriado."
-            : "No se pueden programar trabajos en sábado o domingo.",
-        );
-        return;
-      }
+    const motivoDia = motivoNoLaborable(fecha);
+    if (motivoDia && !(emergencia && puedeAutorizarEmergencia)) {
+      toast.error(
+        `Ese día no es laborable (${motivoDia}). Si es una emergencia, activa la autorización de día no laborable.`,
+      );
+      return;
+    }
+    if (motivoDia && emergenciaMotivo.trim().length < 5) {
+      toast.error("Indica la justificación de la emergencia (mínimo 5 caracteres).");
+      return;
     }
     // Convertir "YYYY-MM-DDTHH:mm" (hora local del navegador) a ISO UTC
     // para que el servidor (UTC) no reinterprete el valor.
@@ -337,6 +337,8 @@ function Trabajos() {
       tecnicos_extra_ids: tecExtraIds,
       notas: f.get("notas") || null,
       duracion_dias: Number(f.get("duracion_dias") ?? 1),
+      emergencia_no_laborable: !!motivoDia && emergencia,
+      emergencia_motivo: motivoDia ? emergenciaMotivo.trim() : null,
     });
   }
 
