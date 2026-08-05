@@ -244,6 +244,8 @@ function Trabajos() {
   // Sincronizar selección con datos recibidos / reset al abrir
   useEffect(() => {
     if (!editing) { setEquipoIds([]); setTecExtraIds([]); setTab("diarios"); return; }
+    if (!editing.id) { setEmergencia(false); setEmergenciaMotivo(""); }
+    setFechaSel(toLocalInput(editing?.fecha_programada));
     if (editing.id && equiposAsignados.data) {
       setEquipoIds((equiposAsignados.data as any[]).map((e) => e.equipo_id));
     } else if (!editing.id) {
