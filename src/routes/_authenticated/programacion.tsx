@@ -103,6 +103,12 @@ function Programacion() {
     | null
     | { id: string; fechaOriginal: string; duracion: number }
   >(null);
+  // Excepción de emergencia: mover una OT a feriado o fin de semana.
+  const [emergDrop, setEmergDrop] = useState<
+    | null
+    | { targetDay: Date; drag: { id: string; fechaOriginal: string; duracion: number }; motivo: string }
+  >(null);
+  const [emergMotivo, setEmergMotivo] = useState("");
   const dragId = drag?.id ?? null;
   const setDragId = (id: string | null) => { if (id === null) setDrag(null); };
   // Inyecta los feriados personalizados del año en curso al caché sincrónico
