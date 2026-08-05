@@ -1042,6 +1042,7 @@ export type Database = {
           perfil_completado: boolean
           reportes_periodo_pref: Json | null
           theme_preference: string
+          ui_prefs: Json
           updated_at: string
         }
         Insert: {
@@ -1056,6 +1057,7 @@ export type Database = {
           perfil_completado?: boolean
           reportes_periodo_pref?: Json | null
           theme_preference?: string
+          ui_prefs?: Json
           updated_at?: string
         }
         Update: {
@@ -1070,6 +1072,7 @@ export type Database = {
           perfil_completado?: boolean
           reportes_periodo_pref?: Json | null
           theme_preference?: string
+          ui_prefs?: Json
           updated_at?: string
         }
         Relationships: [
