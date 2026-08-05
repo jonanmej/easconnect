@@ -139,6 +139,11 @@ function Trabajos() {
   const [tab, setTab] = useState<"diarios" | "recursos" | "ot" | "historial">("diarios");
   const [equipoIds, setEquipoIds] = useState<string[]>([]);
   const [tecExtraIds, setTecExtraIds] = useState<string[]>([]);
+  // Excepción de emergencia: permite programar en feriado / fin de semana.
+  const [fechaSel, setFechaSel] = useState<string>("");
+  const [emergencia, setEmergencia] = useState(false);
+  const [emergenciaMotivo, setEmergenciaMotivo] = useState("");
+  const puedeAutorizarEmergencia = role === "admin" || role === "supervisor";
   const [tecFilter, setTecFilter] = useState<string>("");
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [plantaFilter, setPlantaFilter] = useState<string>("");
