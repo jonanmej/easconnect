@@ -425,27 +425,32 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       notas: z.string().nullable().optional(),
       duracion_dias: z.coerce.number().int().min(1).max(60).optional(),
       origen: z.enum(["staff", "cliente"]).optional(),
+      emergencia_no_laborable: z.boolean().optional(),
+      emergencia_motivo: z.string().max(300).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { id, equipo_ids, tecnicos_extra_ids, ...rest } = data;
+    const {
+      id, equipo_ids, tecnicos_extra_ids,
+      emergencia_no_laborable, emergencia_motivo,
+      ...rest
+    } = data;
     const payload = {
       ...rest,
       equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
-    {
-      await ensureFeriadosCargados(context.supabase, payload.fecha_programada);
-      const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
-      const motivo = motivoNoLaborableSV(payload.fecha_programada);
-      if (motivo) {
-        throw new Error(
-          motivo === "feriado"
-            ? "No se pueden programar trabajos en un día feriado."
-            : "No se pueden programar trabajos en sábado o domingo.",
-        );
-      }
+    const excepcion = await validarDiaLaborable(
+      context.supabase,
+      context.userId,
+      payload.fecha_programada,
+      { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
+      "programar trabajos",
+    );
+    if (excepcion) {
+      const nota = notaExcepcion(excepcion, payload.fecha_programada);
+      payload.notas = [payload.notas?.trim(), nota].filter(Boolean).join("\n");
     }
     let estadoPrevio: string | null = null;
     let tecnicoPrevio: string | null = null;
