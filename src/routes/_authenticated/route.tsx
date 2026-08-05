@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
+import { UiPrefsProvider } from "@/lib/ui-prefs-context";
 import { AppShell } from "@/components/AppShell";
 import { RoleGate } from "@/components/RoleGate";
 import { useNavigate } from "@tanstack/react-router";
@@ -21,16 +22,18 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   return (
     <AuthProvider>
-      <PerfilGate>
-        <AppShell>
-          <RoleGate>
-            <RealtimeSyncMount />
-            <PageTransition>
-              <Outlet />
-            </PageTransition>
-          </RoleGate>
-        </AppShell>
-      </PerfilGate>
+      <UiPrefsProvider>
+        <PerfilGate>
+          <AppShell>
+            <RoleGate>
+              <RealtimeSyncMount />
+              <PageTransition>
+                <Outlet />
+              </PageTransition>
+            </RoleGate>
+          </AppShell>
+        </PerfilGate>
+      </UiPrefsProvider>
     </AuthProvider>
   );
 }
