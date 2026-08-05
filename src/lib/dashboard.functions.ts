@@ -321,7 +321,7 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       const diasRestantes = Math.max(1, Math.round((finDia - refStart) / 86400000) + 1);
       const acumuladoPrevio = Math.max(0, acumulado - diaTrab);
       const restante = Math.max(0, parque - acumuladoPrevio);
-      const metaTrab = parque > 0 ? Math.min(metaBase * diasRestantes, Math.ceil(restante / diasRestantes)) : 0;
+      const metaTrab = parque > 0 && restante > 0 ? Math.ceil(restante / diasRestantes) : 0;
       limpiados_dia += diaTrab;
       meta_diaria += metaTrab;
       detalle.push({
