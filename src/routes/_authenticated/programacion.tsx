@@ -641,6 +641,39 @@ function Programacion() {
           <ClienteCalendar />
         </div>
       )}
+
+      <RecordDialog
+        open={!!emergDrop}
+        onOpenChange={(v) => { if (!v) setEmergDrop(null); }}
+        title="Programar en día no laborable"
+        description={
+          emergDrop
+            ? `El día destino cae en ${emergDrop.motivo}. Solo se permite por emergencia y queda registrado en las notas de la OT.`
+            : ""
+        }
+        submitLabel="Autorizar y mover"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!emergDrop) return;
+          if (emergMotivo.trim().length < 5) {
+            toast.error("Indica la justificación de la emergencia (mínimo 5 caracteres).");
+            return;
+          }
+          ejecutarDrop(emergDrop.targetDay, emergDrop.drag, { motivo: emergMotivo.trim() });
+          setEmergDrop(null);
+        }}
+      >
+        <Field label="Justificación de la emergencia">
+          <textarea
+            rows={3}
+            maxLength={300}
+            value={emergMotivo}
+            onChange={(e) => setEmergMotivo(e.currentTarget.value)}
+            placeholder="Ej: falla crítica en inversor, cliente autoriza intervención en feriado…"
+            className={inputCls}
+          />
+        </Field>
+      </RecordDialog>
     </div>
   );
 }
