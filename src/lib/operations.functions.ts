@@ -537,6 +537,20 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         } catch { /* silenciar */ }
       }
     }
+    // Aviso a admins/supervisores cuando se autorizó un día no laborable
+    if (excepcion) {
+      try {
+        const { notificarExcepcionNoLaborable } = await import("@/lib/emergencias.server");
+        await notificarExcepcionNoLaborable({
+          trabajoId: (row as any).id,
+          accion: id ? "reprogramar" : "programar",
+          motivo: excepcion.motivo,
+          justificacion: excepcion.justificacion,
+          fechaISO: payload.fecha_programada,
+          actorId: context.userId,
+        });
+      } catch { /* silenciar */ }
+    }
     // Notificación automática al cliente cuando un trabajo pasa a "completado"
     if (id && rest.estado === "completado" && estadoPrevio !== "completado") {
       try {
@@ -850,6 +864,19 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
       await notificarEventoTrabajo({ evento: "reprogramado", trabajoId: data.id, actorId: context.userId }).catch(() => {});
     } catch { /* silenciar */ }
+    if (excepcion) {
+      try {
+        const { notificarExcepcionNoLaborable } = await import("@/lib/emergencias.server");
+        await notificarExcepcionNoLaborable({
+          trabajoId: data.id,
+          accion: "reprogramar",
+          motivo: excepcion.motivo,
+          justificacion: excepcion.justificacion,
+          fechaISO: patch.fecha_programada,
+          actorId: context.userId,
+        });
+      } catch { /* silenciar */ }
+    }
     return row;
   });
 
@@ -1005,6 +1032,19 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
       .select("trabajo_id, fecha_original, fecha_movida")
       .single();
     if (error) throw new Error(error.message);
+    if (excepcion) {
+      try {
+        const { notificarExcepcionNoLaborable } = await import("@/lib/emergencias.server");
+        await notificarExcepcionNoLaborable({
+          trabajoId: trabajo_id,
+          accion: "mover_dia",
+          motivo: excepcion.motivo,
+          justificacion: excepcion.justificacion,
+          fechaISO: destinoISO,
+          actorId: context.userId,
+        });
+      } catch { /* silenciar */ }
+    }
     return row;
   });
 
