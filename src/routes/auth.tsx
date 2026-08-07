@@ -8,8 +8,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { solicitarResetPassword } from "@/lib/password-reset.functions";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" && s.next.startsWith("/") ? s.next : "",
+  validateSearch: (s: Record<string, unknown>): { next?: string } => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") ? s.next : undefined,
   }),
   component: AuthPage,
 });
