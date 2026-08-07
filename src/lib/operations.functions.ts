@@ -1089,7 +1089,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
     if (dia_no_laborable) {
       const proximo = siguienteDiaHabilSV(hoySv, false);
       siguiente_dia_habil = formatearDiaHabilSV(proximo);
-    } else {
+    }
+    {
       const { data: trabajosRef } = await context.supabase
         .from("trabajos")
         .select("id, fecha_programada, duracion_dias, estado")
@@ -1120,6 +1121,9 @@ export const dashboardStats = createServerFn({ method: "GET" })
         ),
       ).length;
     }
+    // Si hoy es feriado o fin de semana pero hay OT activas (autorizadas por
+    // emergencia), el KPI debe mostrar el conteo real y no "Pausa".
+    const mostrar_pausa = dia_no_laborable && trabajos_hoy === 0;
 
     // "Avance de limpieza" = paneles limpiados acumulados / total de paneles
     // instalados en las plantas que tienen una OT de limpieza EN PROGRESO.
@@ -1165,8 +1169,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
 
     return {
       trabajos_hoy,
-      dia_no_laborable,
-      siguiente_dia_habil,
+      dia_no_laborable: mostrar_pausa,
+      siguiente_dia_habil: mostrar_pausa ? siguiente_dia_habil : null,
       equipos_operativos: Number(k.equipos_operativos ?? 0),
       equipos_total: Number(k.equipos_total ?? 0),
       eficiencia: String(k.eficiencia ?? "--"),
