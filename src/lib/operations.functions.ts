@@ -441,24 +441,36 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
-    const excepcion = await validarDiaLaborable(
-      context.supabase,
-      context.userId,
-      payload.fecha_programada,
-      { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
-      "programar trabajos",
-    );
+    let estadoPrevio: string | null = null;
+    let tecnicoPrevio: string | null = null;
+    let fechaPrevia: string | null = null;
+    if (id) {
+      const { data: prev } = await context.supabase
+        .from("trabajos").select("estado, tecnico_id, fecha_programada").eq("id", id).single();
+      estadoPrevio = (prev as any)?.estado ?? null;
+      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
+      fechaPrevia = (prev as any)?.fecha_programada ?? null;
+    }
+    // Solo se exige la autorización de día no laborable cuando la fecha cambia
+    // (o al crear la OT). Si la OT ya estaba autorizada en ese día, cualquier
+    // otra edición —iniciar, completar, asignar técnico— no vuelve a pedirla.
+    const { diaKeyTZ: diaKeyExc } = await import("@/lib/hoy-config");
+    const fechaCambio =
+      !id ||
+      !fechaPrevia ||
+      diaKeyExc(new Date(fechaPrevia)) !== diaKeyExc(new Date(payload.fecha_programada));
+    const excepcion = fechaCambio
+      ? await validarDiaLaborable(
+          context.supabase,
+          context.userId,
+          payload.fecha_programada,
+          { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
+          "programar trabajos",
+        )
+      : null;
     if (excepcion) {
       const nota = notaExcepcion(excepcion, payload.fecha_programada);
       payload.notas = [payload.notas?.trim(), nota].filter(Boolean).join("\n");
-    }
-    let estadoPrevio: string | null = null;
-    let tecnicoPrevio: string | null = null;
-    if (id) {
-      const { data: prev } = await context.supabase
-        .from("trabajos").select("estado, tecnico_id").eq("id", id).single();
-      estadoPrevio = (prev as any)?.estado ?? null;
-      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
     }
     const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
       plantaId: rest.planta_id,
