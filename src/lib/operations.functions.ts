@@ -441,24 +441,36 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
     };
-    const excepcion = await validarDiaLaborable(
-      context.supabase,
-      context.userId,
-      payload.fecha_programada,
-      { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
-      "programar trabajos",
-    );
+    let estadoPrevio: string | null = null;
+    let tecnicoPrevio: string | null = null;
+    let fechaPrevia: string | null = null;
+    if (id) {
+      const { data: prev } = await context.supabase
+        .from("trabajos").select("estado, tecnico_id, fecha_programada").eq("id", id).single();
+      estadoPrevio = (prev as any)?.estado ?? null;
+      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
+      fechaPrevia = (prev as any)?.fecha_programada ?? null;
+    }
+    // Solo se exige la autorización de día no laborable cuando la fecha cambia
+    // (o al crear la OT). Si la OT ya estaba autorizada en ese día, cualquier
+    // otra edición —iniciar, completar, asignar técnico— no vuelve a pedirla.
+    const { diaKeyTZ: diaKeyExc } = await import("@/lib/hoy-config");
+    const fechaCambio =
+      !id ||
+      !fechaPrevia ||
+      diaKeyExc(new Date(fechaPrevia)) !== diaKeyExc(new Date(payload.fecha_programada));
+    const excepcion = fechaCambio
+      ? await validarDiaLaborable(
+          context.supabase,
+          context.userId,
+          payload.fecha_programada,
+          { permitir: emergencia_no_laborable, motivo: emergencia_motivo },
+          "programar trabajos",
+        )
+      : null;
     if (excepcion) {
       const nota = notaExcepcion(excepcion, payload.fecha_programada);
       payload.notas = [payload.notas?.trim(), nota].filter(Boolean).join("\n");
-    }
-    let estadoPrevio: string | null = null;
-    let tecnicoPrevio: string | null = null;
-    if (id) {
-      const { data: prev } = await context.supabase
-        .from("trabajos").select("estado, tecnico_id").eq("id", id).single();
-      estadoPrevio = (prev as any)?.estado ?? null;
-      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
     }
     const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
       plantaId: rest.planta_id,
@@ -1089,7 +1101,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
     if (dia_no_laborable) {
       const proximo = siguienteDiaHabilSV(hoySv, false);
       siguiente_dia_habil = formatearDiaHabilSV(proximo);
-    } else {
+    }
+    {
       const { data: trabajosRef } = await context.supabase
         .from("trabajos")
         .select("id, fecha_programada, duracion_dias, estado")
@@ -1120,6 +1133,9 @@ export const dashboardStats = createServerFn({ method: "GET" })
         ),
       ).length;
     }
+    // Si hoy es feriado o fin de semana pero hay OT activas (autorizadas por
+    // emergencia), el KPI debe mostrar el conteo real y no "Pausa".
+    const mostrar_pausa = dia_no_laborable && trabajos_hoy === 0;
 
     // "Avance de limpieza" = paneles limpiados acumulados / total de paneles
     // instalados en las plantas que tienen una OT de limpieza EN PROGRESO.
@@ -1165,8 +1181,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
 
     return {
       trabajos_hoy,
-      dia_no_laborable,
-      siguiente_dia_habil,
+      dia_no_laborable: mostrar_pausa,
+      siguiente_dia_habil: mostrar_pausa ? siguiente_dia_habil : null,
       equipos_operativos: Number(k.equipos_operativos ?? 0),
       equipos_total: Number(k.equipos_total ?? 0),
       eficiencia: String(k.eficiencia ?? "--"),

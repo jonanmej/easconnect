@@ -81,7 +81,7 @@ export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
     meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
   }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { alerta?: string } => ({
     alerta: typeof s.alerta === "string" ? (s.alerta as string) : undefined,
   }),
   component: Trabajos,
