@@ -31,6 +31,8 @@ import {
   Satellite,
   UserCheck,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -40,6 +42,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
