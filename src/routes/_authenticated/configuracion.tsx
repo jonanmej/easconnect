@@ -14,9 +14,9 @@ import {
   setReportUploadEmailPaused,
   getEmailCategorias,
   setEmailCategorias,
-  EMAIL_CATEGORIAS,
   type PasswordPolicy,
 } from "@/lib/system-config.functions";
+import { EMAIL_CATEGORIAS } from "@/lib/email-categorias";
 import {
   listFeriados,
   upsertFeriado,

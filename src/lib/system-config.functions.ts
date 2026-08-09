@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { EMAIL_CATEGORIAS, EMAIL_CATEGORIAS_CONFIG_KEY } from "./email-categorias";
 
 export const PasswordPolicySchema = z.object({
   longitud: z.coerce.number().int().min(8).max(64),
@@ -131,50 +132,6 @@ export const setReportUploadEmailPaused = createServerFn({ method: "POST" })
 /* Categorías de correos automáticos (activar/desactivar una por una) */
 /* ------------------------------------------------------------------ */
 
-export const EMAIL_CATEGORIAS = [
-  {
-    key: "trabajos_eventos",
-    label: "Eventos de órdenes de trabajo",
-    descripcion: "Inicio, avance, cierre y cancelación de OT (staff y contacto del cliente).",
-  },
-  {
-    key: "asignacion_tecnico",
-    label: "Asignación y reasignación de técnicos",
-    descripcion: "Aviso al técnico cuando se le asigna o reasigna una OT.",
-  },
-  {
-    key: "jornadas",
-    label: "Jornadas laborales",
-    descripcion: "Inicio/fin de jornada, almuerzo excedido y resumen diario de jornadas.",
-  },
-  {
-    key: "staff_interno",
-    label: "Avisos internos a administradores y supervisores",
-    descripcion: "Reportes diarios, nuevas evidencias, flujo de reportes y emergencias en días no laborables.",
-  },
-  {
-    key: "solicitudes_visita",
-    label: "Solicitudes de visita",
-    descripcion: "Nuevas solicitudes del cliente y su aprobación o rechazo.",
-  },
-  {
-    key: "contratos",
-    label: "Contratos y programación anual",
-    descripcion: "Programación automática generada y reprogramaciones confirmadas.",
-  },
-  {
-    key: "rutas",
-    label: "Envío de rutas",
-    descripcion: "Correos con la ruta diaria a los destinatarios seleccionados.",
-  },
-  {
-    key: "avisos_programacion",
-    label: "Recordatorios de visitas próximas",
-    descripcion: "Avisos automáticos 30, 20, 10, 5 y 1 día antes de cada visita.",
-  },
-] as const;
-
-export type EmailCategoriaKey = (typeof EMAIL_CATEGORIAS)[number]["key"];
 
 const ZEmailCategorias = z.record(z.string(), z.boolean());
 
@@ -186,7 +143,7 @@ export const getEmailCategorias = createServerFn({ method: "GET" })
     const { data } = await supabaseAdmin
       .from("system_config")
       .select("value")
-      .eq("key", "email_notif_categorias")
+      .eq("key", EMAIL_CATEGORIAS_CONFIG_KEY)
       .maybeSingle();
     const stored = (data?.value as Record<string, boolean> | null) ?? {};
     const out: Record<string, boolean> = {};
@@ -207,7 +164,7 @@ export const setEmailCategorias = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("system_config").upsert(
       {
-        key: "email_notif_categorias",
+        key: EMAIL_CATEGORIAS_CONFIG_KEY,
         value: value as any,
         updated_by: context.userId,
         updated_at: new Date().toISOString(),
@@ -218,7 +175,7 @@ export const setEmailCategorias = createServerFn({ method: "POST" })
     await supabaseAdmin.from("auditoria_log").insert({
       entidad: "system_config",
       accion: "update",
-      despues: { key: "email_notif_categorias", value } as any,
+      despues: { key: EMAIL_CATEGORIAS_CONFIG_KEY, value } as any,
       actor: context.userId,
     });
     const { invalidateEmailCategoriasCache } = await import("./email-pause.server");
