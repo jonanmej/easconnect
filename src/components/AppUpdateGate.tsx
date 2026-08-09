@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
