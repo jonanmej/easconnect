@@ -238,31 +238,8 @@ export async function buscarActualizacion(opciones?: { forzar?: boolean }) {
  */
 export async function instalarActualizacion(): Promise<{ ok: boolean; error?: string }> {
   try {
-    if (!soporteSW()) {
-      const { safeStorage } = await import("@/lib/safe-storage");
-      const huella = await huellaRemota();
-      if (huella) safeStorage.setItem(HUELLA_KEY, huella);
-      await limpiarCaches();
-      window.location.reload();
-      return { ok: true };
-    }
-
-    const reg = registro ?? (await navigator.serviceWorker.getRegistration(SW_URL));
-    const esperando = reg?.waiting;
-    if (!esperando) {
-      window.location.reload();
-      return { ok: true };
-    }
-
-    const listo = new Promise<boolean>((resolve) => {
-      const alCambiar = () => resolve(true);
-      navigator.serviceWorker.addEventListener("controllerchange", alCambiar, { once: true });
-      window.setTimeout(() => resolve(false), 6000);
-    });
-
-    esperando.postMessage({ type: "SKIP_WAITING" });
-    await listo;
-    window.location.reload();
+    // Un solo reinicio aplica todo lo publicado: descarga pendiente incluida.
+    await reiniciarApp();
     return { ok: true };
   } catch (e) {
     const mensaje =
@@ -272,12 +249,13 @@ export async function instalarActualizacion(): Promise<{ ok: boolean; error?: st
   }
 }
 
+/** Borra todas las cachés del build (deja intactas las de mensajería). */
 async function limpiarCaches() {
   if (typeof caches === "undefined") return;
   try {
     const nombres = await caches.keys();
     await Promise.allSettled(
-      nombres.filter((n) => /precache|runtime|workbox/i.test(n)).map((n) => caches.delete(n)),
+      nombres.filter((n) => !/firebase|messaging|onesignal/i.test(n)).map((n) => caches.delete(n)),
     );
   } catch {
     /* ignorado */
@@ -289,26 +267,58 @@ export function limpiarError() {
   if (estado === "error") setEstado("idle");
 }
 
+/** Espera a que el service worker en instalación termine de descargarse. */
+async function esperarDescarga(reg: ServiceWorkerRegistration, msMax = 20000) {
+  const enCurso = reg.installing;
+  if (!enCurso) return;
+  await new Promise<void>((resolve) => {
+    const fin = () => resolve();
+    const alCambiar = () => {
+      if (enCurso.state === "installed" || enCurso.state === "activated" || enCurso.state === "redundant") {
+        enCurso.removeEventListener("statechange", alCambiar);
+        fin();
+      }
+    };
+    enCurso.addEventListener("statechange", alCambiar);
+    window.setTimeout(fin, msMax);
+  });
+}
+
 /**
- * Reinicio completo de la app: activa cualquier versión en espera, limpia las
- * cachés del build anterior y vuelve a cargar desde el servidor. Es la salida
- * segura cuando el aviso de "nueva versión" no se puede aplicar de otra forma.
+ * Reinicio único que aplica TODO lo publicado:
+ *  1) consulta al servidor por un build nuevo y espera a que termine de bajar,
+ *  2) activa la versión en espera (SKIP_WAITING),
+ *  3) borra las cachés del build anterior,
+ *  4) recarga sin caché para cargar los archivos nuevos.
  */
 export async function reiniciarApp(): Promise<void> {
   try {
     if (soporteSW()) {
       const reg = registro ?? (await navigator.serviceWorker.getRegistration(SW_URL));
-      if (reg?.waiting) {
-        const listo = new Promise<boolean>((resolve) => {
-          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(true), {
-            once: true,
+      if (reg) {
+        registro = reg;
+        setEstado("descargando");
+        try {
+          await reg.update();
+        } catch {
+          /* sin conexión: seguimos con lo que ya esté descargado */
+        }
+        await esperarDescarga(reg);
+
+        const esperando = reg.waiting;
+        if (esperando) {
+          const activado = new Promise<boolean>((resolve) => {
+            navigator.serviceWorker.addEventListener("controllerchange", () => resolve(true), {
+              once: true,
+            });
+            window.setTimeout(() => resolve(false), 8000);
           });
-          window.setTimeout(() => resolve(false), 4000);
-        });
-        reg.waiting.postMessage({ type: "SKIP_WAITING" });
-        await listo;
+          esperando.postMessage({ type: "SKIP_WAITING" });
+          await activado;
+        }
       }
     }
+
     await limpiarCaches();
     const { safeStorage } = await import("@/lib/safe-storage");
     const huella = await huellaRemota();
@@ -316,7 +326,11 @@ export async function reiniciarApp(): Promise<void> {
   } catch {
     /* ignorado: el reinicio debe ocurrir siempre */
   } finally {
-    setEstado("idle");
-    window.location.replace(`${window.location.pathname}${window.location.search}`);
+    estado = "idle";
+    error = null;
+    // Recarga forzada desde el servidor, evitando el HTML cacheado.
+    const url = new URL(window.location.href);
+    url.searchParams.set("_r", Date.now().toString(36));
+    window.location.replace(url.toString());
   }
 }
