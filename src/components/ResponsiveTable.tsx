@@ -278,7 +278,7 @@ export function ResponsiveTable<T>({
                   {c.header}
                 </th>
               ))}
-              {rowActions ? <th className="px-3 py-2 w-1" aria-label="Acciones" /> : null}
+              {rowActions || swipeActions ? <th className="px-3 py-2 w-1" aria-label="Acciones" /> : null}
             </tr>
           </thead>
           <tbody>
