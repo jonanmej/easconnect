@@ -105,7 +105,15 @@ export function consolidarDiarios(
   nombrePorId: Map<string, string> = new Map(),
 ): DiarioConsolidado[] {
   const grupos = new Map<string, DiarioCrudo[]>();
+  // Deduplicación defensiva: una sola fila por (trabajo, fecha, técnico).
+  // Si llega más de una (caché desactualizada, edición concurrente), se
+  // conserva la última recibida para no sumar dos veces el mismo aporte.
+  const unicos = new Map<string, DiarioCrudo>();
   for (const d of diarios) {
+    const k = `${d.trabajo_id ?? "—"}|${String(d.fecha ?? "")}|${d.tecnico_id ?? d.id ?? "—"}`;
+    unicos.set(k, d);
+  }
+  for (const d of unicos.values()) {
     const key = `${d.trabajo_id ?? "—"}|${String(d.fecha ?? "")}`;
     const arr = grupos.get(key) ?? [];
     arr.push(d);
