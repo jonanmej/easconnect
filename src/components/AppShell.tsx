@@ -48,6 +48,7 @@ import chemitekLightAsset from "@/assets/brand-chemitek-light.png.asset.json";
 import chemitekDarkAsset from "@/assets/brand-chemitek-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -440,12 +441,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })()}
             <NotificationsBell />
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-accent/15 rounded-full">
-              <span className="size-1.5 rounded-full bg-accent animate-pulse" />
-              <span className="text-[10px] font-bold text-accent uppercase tracking-wide">
-                Sistemas OK
-              </span>
-            </div>
+            <OfflineIndicator />
           </div>
           </div>
         </header>
