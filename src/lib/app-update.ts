@@ -80,9 +80,17 @@ export function conectividadBuena(): boolean {
 
 /* ------------------------------ service worker ----------------------------- */
 
-function revisarRegistro(reg: ServiceWorkerRegistration) {
+async function revisarRegistro(reg: ServiceWorkerRegistration) {
   const controlada = !!navigator.serviceWorker.controller;
   if (reg.waiting && controlada) {
+    // Un SW en espera no siempre significa build nuevo: puede quedar de una
+    // actualización ya aplicada. Confirmamos comparando el build servido con
+    // el que está corriendo en esta pestaña.
+    if (await esMismoBuild()) {
+      descartarEspera(reg);
+      setEstado("idle");
+      return;
+    }
     setEstado("listo");
     return;
   }
@@ -93,16 +101,37 @@ function revisarRegistro(reg: ServiceWorkerRegistration) {
   if (estado === "buscando") setEstado("idle");
 }
 
+/** Activa en silencio un SW en espera que corresponde al build ya cargado. */
+function descartarEspera(reg: ServiceWorkerRegistration) {
+  try {
+    reg.waiting?.postMessage({ type: "SKIP_WAITING" });
+  } catch {
+    /* ignorado */
+  }
+}
+
+/**
+ * true cuando el build servido por el servidor es el mismo que está corriendo
+ * en esta pestaña (por lo tanto no hay nada nuevo que instalar).
+ */
+async function esMismoBuild(): Promise<boolean> {
+  const remota = await huellaRemota();
+  if (!remota) return false;
+  const local = huellaLocal();
+  if (!local) return false;
+  return remota === local;
+}
+
 /** Vincula el registro del SW y observa la descarga del nuevo build. */
 export function observarActualizaciones(reg: ServiceWorkerRegistration) {
   registro = reg;
-  revisarRegistro(reg);
+  void revisarRegistro(reg);
   reg.addEventListener("updatefound", () => {
     const nuevo = reg.installing;
     if (!nuevo) return;
     if (navigator.serviceWorker.controller) setEstado("descargando");
     nuevo.addEventListener("statechange", () => {
-      if (nuevo.state === "installed") revisarRegistro(reg);
+      if (nuevo.state === "installed") void revisarRegistro(reg);
       if (nuevo.state === "redundant" && estado === "descargando")
         setEstado("error", "La descarga de la actualización no se completó.");
     });
@@ -110,6 +139,29 @@ export function observarActualizaciones(reg: ServiceWorkerRegistration) {
 }
 
 /* ------------------------- respaldo sin service worker -------------------- */
+
+/** Huella del build que está corriendo en esta pestaña. */
+function huellaLocal(): string | null {
+  if (typeof document === "undefined") return null;
+  const urls = [
+    ...document.querySelectorAll<HTMLScriptElement>("script[src]"),
+    ...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
+  ]
+    .map((el) =>
+      el instanceof HTMLScriptElement ? el.getAttribute("src") : el.getAttribute("href"),
+    )
+    .filter((u): u is string => !!u)
+    .map((u) => {
+      try {
+        return new URL(u, window.location.origin).pathname;
+      } catch {
+        return u;
+      }
+    })
+    .filter((p) => /^\/(assets|_build)\/.+\.(js|css)$/.test(p));
+  if (!urls.length) return null;
+  return urls.sort().join("|");
+}
 
 /** Huella del build actual a partir de los scripts del documento raíz. */
 async function huellaRemota(): Promise<string | null> {
@@ -134,13 +186,15 @@ async function buscarSinSW() {
     return;
   }
   const { safeStorage } = await import("@/lib/safe-storage");
-  const previa = safeStorage.getItem(HUELLA_KEY);
-  if (!previa) {
-    safeStorage.setItem(HUELLA_KEY, huella);
+  // La referencia principal es el build que corre en esta pestaña; la huella
+  // guardada sólo sirve como respaldo cuando no podemos leer el documento.
+  const local = huellaLocal() ?? safeStorage.getItem(HUELLA_KEY);
+  safeStorage.setItem(HUELLA_KEY, huella);
+  if (!local) {
     setEstado("idle");
     return;
   }
-  if (previa !== huella) setEstado("listo");
+  if (local !== huella) setEstado("listo");
   else setEstado("idle");
 }
 
@@ -167,7 +221,7 @@ export async function buscarActualizacion(opciones?: { forzar?: boolean }) {
     }
     registro = reg;
     await reg.update();
-    revisarRegistro(reg);
+    await revisarRegistro(reg);
   } catch {
     // Sin conexión o el servidor no respondió: no es un error visible para el usuario.
     setEstado("idle");
