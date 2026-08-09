@@ -44,6 +44,15 @@ export type DiarioConsolidado = {
   hallazgos: string | null;
   bloqueos: string | null;
   observaciones: string | null;
+  /** Desglose individual por técnico del mismo día (no altera el total). */
+  por_tecnico: {
+    tecnico_id: string | null;
+    tecnico: string;
+    paneles_limpiados: number | null;
+    agua_galones: number | null;
+    horas_trabajadas: number | null;
+    avance_pct: number | null;
+  }[];
 };
 
 const num = (v: unknown): number | null => {
@@ -125,6 +134,14 @@ export function consolidarDiarios(
       fecha: String(base.fecha ?? ""),
       tecnicos,
       aportes: filas.length,
+      por_tecnico: filas.map((f) => ({
+        tecnico_id: f.tecnico_id ?? null,
+        tecnico: (f.tecnico_id ? nombrePorId.get(f.tecnico_id) : null) ?? "Técnico",
+        paneles_limpiados: num(f.paneles_limpiados),
+        agua_galones: num(f.agua_galones),
+        horas_trabajadas: num(f.horas_trabajadas),
+        avance_pct: num(f.avance_pct),
+      })),
       avance_pct: maximo(filas.map((f) => num(f.avance_pct))),
       paneles_limpiados: paneles,
       agua_galones: sumar(filas.map((f) => num(f.agua_galones))),
