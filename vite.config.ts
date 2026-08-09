@@ -18,12 +18,16 @@ export default defineConfig({
     plugins: [
       mcpPlugin(),
       VitePWA({
-        registerType: "autoUpdate",
+        // "prompt": la versión nueva queda en espera hasta que el usuario acepta
+        // instalarla (ver src/components/AppUpdateGate.tsx).
+        registerType: "prompt",
         injectRegister: null,
         devOptions: { enabled: false },
         filename: "sw.js",
         manifest: false,
         workbox: {
+          skipWaiting: false,
+          clientsClaim: true,
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/\.mcp/, /^\/lovable\//],
           globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
