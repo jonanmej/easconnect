@@ -36,6 +36,8 @@ export async function sendEmail(opts: {
   html: string;
   /** Ignora la pausa global de correos automáticos (seguridad / admin de usuarios). */
   bypassPause?: boolean;
+  /** Categoría de correo automático configurable por el administrador. */
+  categoria?: import("./email-pause.server").EmailCategoria;
 }): Promise<string | null> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
@@ -43,6 +45,10 @@ export async function sendEmail(opts: {
   if (!opts.bypassPause) {
     const { isEmailsPaused } = await import("./email-pause.server");
     if (await isEmailsPaused()) return null;
+    if (opts.categoria) {
+      const { isEmailCategoriaEnabled } = await import("./email-pause.server");
+      if (!(await isEmailCategoriaEnabled(opts.categoria))) return null;
+    }
   }
   const raw = buildRawEmail(opts);
   const res = await fetch(`${GMAIL_URL}/users/me/messages/send`, {

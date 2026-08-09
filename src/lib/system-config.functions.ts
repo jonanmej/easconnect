@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { EMAIL_CATEGORIAS, EMAIL_CATEGORIAS_CONFIG_KEY } from "./email-categorias";
 
 export const PasswordPolicySchema = z.object({
   longitud: z.coerce.number().int().min(8).max(64),
@@ -124,5 +125,60 @@ export const setReportUploadEmailPaused = createServerFn({ method: "POST" })
     });
     const { invalidateEmailsPausedCache } = await import("./email-pause.server");
     invalidateEmailsPausedCache();
+    return { ok: true };
+  });
+
+/* ------------------------------------------------------------------ */
+/* Categorías de correos automáticos (activar/desactivar una por una) */
+/* ------------------------------------------------------------------ */
+
+
+const ZEmailCategorias = z.record(z.string(), z.boolean());
+
+export const getEmailCategorias = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("system_config")
+      .select("value")
+      .eq("key", EMAIL_CATEGORIAS_CONFIG_KEY)
+      .maybeSingle();
+    const stored = (data?.value as Record<string, boolean> | null) ?? {};
+    const out: Record<string, boolean> = {};
+    for (const c of EMAIL_CATEGORIAS) out[c.key] = stored[c.key] !== false;
+    return out;
+  });
+
+export const setEmailCategorias = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ categorias: ZEmailCategorias }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const valid = new Set(EMAIL_CATEGORIAS.map((c) => c.key as string));
+    const value: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(data.categorias)) {
+      if (valid.has(k)) value[k] = Boolean(v);
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("system_config").upsert(
+      {
+        key: EMAIL_CATEGORIAS_CONFIG_KEY,
+        value: value as any,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    );
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("auditoria_log").insert({
+      entidad: "system_config",
+      accion: "update",
+      despues: { key: EMAIL_CATEGORIAS_CONFIG_KEY, value } as any,
+      actor: context.userId,
+    });
+    const { invalidateEmailCategoriasCache } = await import("./email-pause.server");
+    invalidateEmailCategoriasCache();
     return { ok: true };
   });

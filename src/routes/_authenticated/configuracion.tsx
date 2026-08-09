@@ -12,8 +12,11 @@ import {
   setPasswordPolicy,
   getReportUploadEmailPaused,
   setReportUploadEmailPaused,
+  getEmailCategorias,
+  setEmailCategorias,
   type PasswordPolicy,
 } from "@/lib/system-config.functions";
+import { EMAIL_CATEGORIAS } from "@/lib/email-categorias";
 import {
   listFeriados,
   upsertFeriado,
@@ -139,6 +142,7 @@ function ConfiguracionPage() {
         </Card>
         {isAdmin && <PasswordPolicyCard />}
         {isAdmin && <FeriadosCard />}
+        {isAdmin && <EmailCategoriasCard />}
         {isOwner && <ReportEmailPauseCard />}
         {isOwner && <ResetDataCard />}
       </div>
@@ -410,6 +414,84 @@ function PasswordPolicyCard() {
 }
 
 function ReportEmailPauseCard() {
+  return <ReportEmailPauseCardInner />;
+}
+
+function EmailCategoriasCard() {
+  const qc = useQueryClient();
+  const fGet = useServerFn(getEmailCategorias);
+  const fSet = useServerFn(setEmailCategorias);
+  const q = useQuery({ queryKey: ["email-categorias"], queryFn: () => fGet() });
+  const [local, setLocal] = useState<Record<string, boolean> | null>(null);
+  useEffect(() => {
+    if (q.data) setLocal(q.data as Record<string, boolean>);
+  }, [q.data]);
+  const save = useMutation({
+    mutationFn: (categorias: Record<string, boolean>) => fSet({ data: { categorias } }),
+    onSuccess: () => {
+      toast.success("Preferencias de correos automáticos guardadas.");
+      qc.invalidateQueries({ queryKey: ["email-categorias"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggle = (key: string, v: boolean) => {
+    const next = { ...(local ?? {}), [key]: v };
+    setLocal(next);
+    save.mutate(next);
+  };
+  const activas = EMAIL_CATEGORIAS.filter((c) => (local ?? {})[c.key] !== false).length;
+
+  return (
+    <Card className="max-w-3xl mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MailX className="size-4 text-primary" />
+          Notificaciones por correo
+        </CardTitle>
+        <CardDescription>
+          Elige qué correos automáticos envía la app. Las notificaciones dentro
+          de la app se siguen registrando aunque desactives el correo. Los correos
+          de <b>seguridad y administración de usuarios</b> (recuperación de
+          contraseña, invitaciones y credenciales) siempre se envían.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {q.isLoading ? (
+          <p className="text-sm text-muted-foreground">Cargando…</p>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground pb-2">
+              {activas} de {EMAIL_CATEGORIAS.length} categorías activas
+            </p>
+            {EMAIL_CATEGORIAS.map((c) => {
+              const checked = (local ?? {})[c.key] !== false;
+              return (
+                <div
+                  key={c.key}
+                  className="flex items-start justify-between gap-4 py-3 border-t border-border first:border-t-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{c.label}</p>
+                    <p className="text-xs text-muted-foreground">{c.descripcion}</p>
+                  </div>
+                  <Switch
+                    checked={checked}
+                    disabled={save.isPending}
+                    onCheckedChange={(v) => toggle(c.key, v)}
+                    aria-label={c.label}
+                  />
+                </div>
+              );
+            })}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportEmailPauseCardInner() {
   const qc = useQueryClient();
   const fGet = useServerFn(getReportUploadEmailPaused);
   const fSet = useServerFn(setReportUploadEmailPaused);

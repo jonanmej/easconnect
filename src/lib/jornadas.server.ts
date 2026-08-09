@@ -127,7 +127,7 @@ export async function notificarJornadaEvento(opts: {
       userIds.map((uid) => {
         const to = emailById.get(uid);
         if (!to) return Promise.resolve();
-        return sendGmail({ to, subject, html }).catch(() => undefined);
+        return sendGmail({ to, subject, html, categoria: "jornadas" }).catch(() => undefined);
       }),
     );
   } catch (e) { console.warn("[jornada] email", e); }
@@ -213,7 +213,7 @@ export async function enviarResumenDiarioJornadas() {
     userIds.map(async (uid) => {
       const to = emailById.get(uid);
       if (!to) return;
-      const r = await sendGmail({ to, subject, html }).catch(() => undefined);
+      const r = await sendGmail({ to, subject, html, categoria: "jornadas" }).catch(() => undefined);
       if (r && (r as any).ok !== false) correos++;
     }),
   );

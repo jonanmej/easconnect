@@ -61,6 +61,6 @@ export async function notificarAsignacionTecnico(opts: {
        ${t.notas ? `<p style="margin:0 0 12px;color:#475569;"><em>Notas:</em> ${t.notas}</p>` : ""}
        <p style="margin:0;color:#475569;">Ingresa a EA Service Connect para revisar los detalles y registrar avances.</p>`,
     );
-    await sendGmail({ to: email, subject: `[EA Service Connect] ${titulo} · ${t.folio}`, html }).catch(() => {});
+    await sendGmail({ to: email, subject: `[EA Service Connect] ${titulo} · ${t.folio}`, html, categoria: "asignacion_tecnico" }).catch(() => {});
   }
 }
