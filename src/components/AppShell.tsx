@@ -321,6 +321,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
           <span className={mode === "rail" ? "hidden lg:inline" : ""}>Sincronizar permisos</span>
         </button>
+        <button
+          type="button"
+          onClick={() => void reiniciarApp()}
+          title="Reiniciar app (aplica la última versión publicada)"
+          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        >
+          <RotateCcw className="size-3" />
+          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Reiniciar app</span>
+        </button>
       </div>
     </>
   );
