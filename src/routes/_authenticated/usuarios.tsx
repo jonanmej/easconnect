@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import {
   listUsers,
   inviteUser,
@@ -156,7 +157,7 @@ function UsersPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-6xl w-full">
       <PageHeader
         title="Usuarios y Roles"
         description="Invita miembros del equipo o clientes y controla sus permisos por rol."
@@ -167,19 +168,19 @@ function UsersPage() {
           <UserPlus className="size-4 text-primary" />
           Invitar usuario
         </h2>
-        <form onSubmit={onInvite} className="grid sm:grid-cols-3 gap-3 mt-4">
+        <form onSubmit={onInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
           <input
             type="email"
             required
             placeholder="correo@empresa.cl"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9"
           />
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as AppRole)}
-            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9"
           >
             {ALL_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -190,7 +191,7 @@ function UsersPage() {
           <button
             type="submit"
             disabled={invite.isPending}
-            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+            className="w-full min-w-0 min-h-11 sm:min-h-9 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
           >
             {invite.isPending ? "Creando…" : "Crear cuenta"}
           </button>
@@ -198,7 +199,7 @@ function UsersPage() {
             <select
               value={inviteClienteId}
               onChange={(e) => setInviteClienteId(e.target.value)}
-              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm sm:col-span-3"
+              className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9 sm:col-span-3"
             >
               <option value="">— Selecciona el cliente al que pertenece —</option>
               {clientes.data?.map((c) => (

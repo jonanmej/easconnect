@@ -16,6 +16,7 @@ import { Plus, AlertTriangle, Pencil, Trash2, ArrowDownUp, ShoppingCart, Search,
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { exportarExcel } from "@/lib/excel";
 
 
@@ -213,7 +214,7 @@ function Inventario() {
             }} />
             <button
               onClick={() => irANuevaOC(lowStockItems.length > 0)}
-              className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground rounded-md border border-border hover:bg-secondary/70"
+              className="min-h-11 md:h-9 md:min-h-0 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground rounded-md border border-border hover:bg-secondary/70"
               title="Ir al módulo de Órdenes de compra (pre-carga los ítems bajo mínimo)"
             >
               <ShoppingCart className="size-3.5" /> Nueva orden de compra
@@ -225,7 +226,7 @@ function Inventario() {
             </button>
             {canEdit && (
               <button onClick={() => setEditing({ categoria: "insumo", unidad: "un" })}
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
+                className="min-h-11 md:h-9 md:min-h-0 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md">
                 <Plus className="size-3.5" /> Nuevo SKU
               </button>
             )}

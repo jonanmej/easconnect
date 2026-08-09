@@ -10,6 +10,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
@@ -181,12 +182,12 @@ function CumplimientoContratos() {
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-3 w-full sm:w-auto">
           {clientesDisp.length > 1 && (
             <select
               value={clienteSel}
               onChange={(e) => setClienteSel(e.target.value)}
-              className="h-9 px-2 text-xs border border-border rounded-md bg-background"
+              className="h-9 w-full min-w-0 sm:w-auto px-2 text-xs border border-border rounded-md bg-background"
               aria-label="Filtrar por cliente"
             >
               <option value="all">Todos los clientes</option>
@@ -199,7 +200,7 @@ function CumplimientoContratos() {
             type="button"
             onClick={exportarPdf}
             disabled={downloading || !data || filas.length === 0}
-            className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+            className="h-9 w-full min-w-0 sm:w-auto min-h-9 px-3 inline-flex items-center justify-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
           >
             <FileDown className="size-3.5" /> {downloading ? "Generando…" : "Exportar PDF"}
           </button>
@@ -212,43 +213,39 @@ function CumplimientoContratos() {
       {filas.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">Aún no hay contratos definidos para el año en curso.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead className="text-[10px] uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 text-left">Planta</th>
-                <th className="px-3 py-2 text-left">Servicio</th>
-                <th className="px-3 py-2 text-right">Contratados</th>
-                <th className="px-3 py-2 text-right">Completados</th>
-                <th className="px-3 py-2 text-right">Programados</th>
-                <th className="px-3 py-2 text-right">Cumplimiento</th>
-                <th className="px-3 py-2 text-left">Próxima</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filas.map((f) => (
-                <tr key={f.contrato_id}>
-                  <td className="px-3 py-2">{f.planta_nombre}</td>
-                  <td className="px-3 py-2">{f.servicio}</td>
-                  <td className="px-3 py-2 text-right font-mono">{f.cantidad_anual}</td>
-                  <td className="px-3 py-2 text-right font-mono text-accent">{f.completados}</td>
-                  <td className="px-3 py-2 text-right font-mono">{f.programados}</td>
-                  <td className="px-3 py-2 text-right">
-                    <span className={"inline-flex items-center gap-2"}>
-                      <span className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                        <span className="block h-full bg-accent" style={{ width: `${Math.min(100, Number(f.cumplimiento_pct))}%` }} />
-                      </span>
-                      <span className="font-mono text-xs">{Number(f.cumplimiento_pct)}%</span>
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          data={filas}
+          rowKey={(f) => f.contrato_id}
+          columns={[
+            { key: "planta", header: "Planta", primary: true, cell: (f) => f.planta_nombre },
+            { key: "servicio", header: "Servicio", secondary: true, cell: (f) => f.servicio },
+            { key: "contratados", header: "Contratados", align: "right", cell: (f) => <span className="font-mono">{f.cantidad_anual}</span> },
+            { key: "completados", header: "Completados", align: "right", cell: (f) => <span className="font-mono text-accent">{f.completados}</span> },
+            { key: "programados", header: "Programados", align: "right", cell: (f) => <span className="font-mono">{f.programados}</span> },
+            {
+              key: "cumplimiento",
+              header: "Cumplimiento",
+              align: "right",
+              cell: (f) => (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <span className="block h-full bg-accent" style={{ width: `${Math.min(100, Number(f.cumplimiento_pct))}%` }} />
+                  </span>
+                  <span className="font-mono text-xs">{Number(f.cumplimiento_pct)}%</span>
+                </span>
+              ),
+            },
+            {
+              key: "proxima",
+              header: "Próxima",
+              cell: (f) => (
+                <span className="text-xs text-muted-foreground">
+                  {f.proxima_fecha ? new Date(f.proxima_fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
+                </span>
+              ),
+            },
+          ]}
+        />
       )}
     </section>
   );
@@ -416,7 +413,7 @@ function StaffDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <div key={kpi.label}
             className={"animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
@@ -580,7 +577,7 @@ function ClienteDashboard() {
         <p className="text-sm text-muted-foreground mt-1">Resumen operativo de tus plantas · {hoy}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((k) => (
           <div key={k.label}
             className={"p-5 bg-card border border-border rounded-lg shadow-sm " + (k.tone === "danger" ? "ring-2 ring-destructive/20" : "")}>

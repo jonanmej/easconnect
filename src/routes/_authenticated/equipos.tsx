@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import {
   listEquipos,
@@ -83,6 +84,44 @@ function Equipos() {
     });
   }
 
+  const equipoColumns: ResponsiveColumn<any>[] = [
+    {
+      key: "equipo",
+      header: "Equipo",
+      primary: true,
+      cell: (e) => (
+        <div className="flex items-center gap-3">
+          <div className="size-8 bg-secondary rounded grid place-items-center text-[10px] font-bold text-muted-foreground shrink-0">{e.codigo}</div>
+          <div className="min-w-0">
+            <p className="font-medium truncate">{e.nombre}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      cell: (e) => <span className="text-xs">{e.tipo}</span>,
+    },
+    {
+      key: "estado",
+      header: "Estado",
+      cell: (e) => (
+        <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[e.estado] ?? "bg-secondary")}>
+          {estadoLabel[e.estado] ?? e.estado}
+        </span>
+      ),
+    },
+    {
+      key: "ubicacion",
+      header: "Ubicación",
+      secondary: true,
+      cell: (e) => (
+        <span className="text-xs text-muted-foreground">{e.planta_nombre ?? (e.ubicacion || "Bodega")}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
@@ -91,69 +130,42 @@ function Equipos() {
         actions={canEdit && (
           <button
             onClick={() => setEditing({ estado: "disponible" })}
-            className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+            className="min-h-11 md:h-9 md:min-h-0 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
           >
             <Plus className="size-3.5" /> Nuevo equipo
           </button>
         )}
       />
 
-      <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left">Equipo</th>
-              <th className="px-4 py-3 text-left">Tipo</th>
-              <th className="px-4 py-3 text-left">Estado</th>
-              <th className="px-4 py-3 text-left">Ubicación</th>
-              {canEdit && <th />}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {list.isLoading && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {(list.data as any[] | undefined)?.map((e) => (
-              <tr key={e.id} className="hover:bg-secondary/40 transition-colors">
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 bg-secondary rounded grid place-items-center text-[10px] font-bold text-muted-foreground">{e.codigo}</div>
-                    <div>
-                      <p className="font-medium">{e.nombre}</p>
-                      <p className="text-[10px] text-muted-foreground">{e.planta_nombre ?? "Sin asignar"}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-4 text-xs">{e.tipo}</td>
-                <td className="px-4 py-4">
-                  <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[e.estado] ?? "bg-secondary")}>
-                    {estadoLabel[e.estado] ?? e.estado}
-                  </span>
-                </td>
-                <td className="px-4 py-4 text-xs text-muted-foreground">
-                  {e.planta_nombre ?? (e.ubicacion || "Bodega")}
-                </td>
-                {canEdit && (
-                  <td className="px-4 py-4 text-right">
-                    <div className="inline-flex gap-1">
-                      <button onClick={() => setEditing(e)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`Eliminar ${e.nombre}?`)) remove.mutate(e.id); }}
-                        className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {list.isLoading && (
+        <p className="p-6 text-center text-xs text-muted-foreground">Cargando…</p>
+      )}
+      {!list.isLoading && (
+        <ResponsiveTable
+          data={(list.data as any[] | undefined) ?? []}
+          rowKey={(e) => e.id}
+          emptyMessage="Aún no hay equipos registrados."
+          columns={equipoColumns}
+          rowActions={
+            canEdit
+              ? (e) => (
+                  <>
+                    <button onClick={() => setEditing(e)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { if (confirm(`Eliminar ${e.nombre}?`)) remove.mutate(e.id); }}
+                      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                      aria-label="Eliminar"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </>
+                )
+              : undefined
+          }
+        />
+      )}
 
       <RecordDialog
         open={!!editing}

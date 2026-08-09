@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { listPlantas } from "@/lib/operations.functions";
 import {
   listContratos, upsertContrato, eliminarContrato, generarProgramacionAnual,
@@ -63,66 +64,78 @@ function ContratosPage() {
 
   const rows = (contratos.data as any[] | undefined) ?? [];
 
+  const columns: ResponsiveColumn<(typeof rows)[number]>[] = [
+    {
+      key: "planta",
+      header: "Planta",
+      primary: true,
+      cell: (c) => c.planta_nombre,
+    },
+    {
+      key: "cliente",
+      header: "Cliente",
+      secondary: true,
+      cell: (c) => c.cliente_nombre,
+    },
+    {
+      key: "servicio",
+      header: "Servicio",
+      cell: (c) => c.servicio,
+    },
+    {
+      key: "cantidad",
+      header: "Cantidad/año",
+      align: "right",
+      cell: (c) => <span className="font-mono">{c.cantidad_anual}</span>,
+    },
+    {
+      key: "inicio",
+      header: "Inicio",
+      hideOnMobile: true,
+      cell: (c) => <span className="text-muted-foreground">{c.fecha_inicio}</span>,
+    },
+    {
+      key: "duracion",
+      header: "Duración",
+      align: "right",
+      cell: (c) => `${c.duracion_dias_default}d`,
+    },
+  ];
+
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 max-w-full">
       <PageHeader
         title="Contratos de servicio"
         description="Define la cantidad anual de servicios contratada por planta y genera la programación automática."
         actions={isStaff ? (
-          <button onClick={() => setCreating(true)} className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:brightness-105">
+          <button onClick={() => setCreating(true)} className="min-h-11 md:h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:brightness-105 w-full sm:w-auto">
             <FileText className="size-3.5" /> Nuevo contrato
           </button>
         ) : null}
       />
 
-      <div className="rounded-lg border border-border bg-card overflow-x-auto">
-        <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-secondary text-[11px] uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 text-left">Cliente</th>
-              <th className="px-4 py-2 text-left">Planta</th>
-              <th className="px-4 py-2 text-left">Servicio</th>
-              <th className="px-4 py-2 text-right">Cantidad/año</th>
-              <th className="px-4 py-2 text-left">Inicio</th>
-              <th className="px-4 py-2 text-right">Duración</th>
-              {isStaff && <th className="px-4 py-2 text-right">Acciones</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3">{c.cliente_nombre}</td>
-                <td className="px-4 py-3 font-medium">{c.planta_nombre}</td>
-                <td className="px-4 py-3">{c.servicio}</td>
-                <td className="px-4 py-3 text-right font-mono">{c.cantidad_anual}</td>
-                <td className="px-4 py-3 text-muted-foreground">{c.fecha_inicio}</td>
-                <td className="px-4 py-3 text-right">{c.duracion_dias_default}d</td>
-                {isStaff && (
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <button onClick={() => gen.mutate(c.id)} disabled={gen.isPending} title="Generar programación anual"
-                        className="size-8 grid place-items-center rounded hover:bg-secondary disabled:opacity-50">
-                        <Wand2 className="size-4" />
-                      </button>
-                      <button onClick={() => setEditing(c)} title="Editar"
-                        className="size-8 grid place-items-center rounded hover:bg-secondary">
-                        <CalendarPlus className="size-4" />
-                      </button>
-                      <button onClick={() => { if (confirm("¿Eliminar contrato?")) del.mutate(c.id); }} title="Eliminar"
-                        className="size-8 grid place-items-center rounded hover:bg-destructive/10 text-destructive">
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={isStaff ? 7 : 6} className="px-4 py-6 text-center text-muted-foreground">Sin contratos definidos.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        data={rows}
+        columns={columns}
+        rowKey={(c) => c.id}
+        emptyMessage="Sin contratos definidos."
+        rowActions={isStaff ? (c) => (
+          <>
+            <button onClick={() => gen.mutate(c.id)} disabled={gen.isPending} title="Generar programación anual"
+              className="size-8 grid place-items-center rounded hover:bg-secondary disabled:opacity-50">
+              <Wand2 className="size-4" />
+            </button>
+            <button onClick={() => setEditing(c)} title="Editar"
+              className="size-8 grid place-items-center rounded hover:bg-secondary">
+              <CalendarPlus className="size-4" />
+            </button>
+            <button onClick={() => { if (confirm("¿Eliminar contrato?")) del.mutate(c.id); }} title="Eliminar"
+              className="size-8 grid place-items-center rounded hover:bg-destructive/10 text-destructive">
+              <Trash2 className="size-4" />
+            </button>
+          </>
+        ) : undefined}
+      />
 
       {(editing || creating) && isStaff && (
         <ContratoDialog
