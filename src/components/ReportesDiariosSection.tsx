@@ -83,8 +83,32 @@ export function ReportesDiariosSection({
   });
 
   const save = useMutation({
-    mutationFn: (v: any) => fUpsert({ data: { trabajo_id: trabajoId, ...v } }),
-    onSuccess: async () => {
+    mutationFn: async (v: any) => {
+      const payload = { trabajo_id: trabajoId, ...v };
+      const { enqueueWrite, isOnline } = await import("@/lib/offline-sync");
+      if (!isOnline()) {
+        enqueueWrite({ kind: "reporte_diario", payload, label: `Reporte diario ${payload.fecha ?? ""}` });
+        return { offline: true } as const;
+      }
+      try {
+        return await fUpsert({ data: payload });
+      } catch (e: any) {
+        // Falla de red (no de validación): se guarda para sincronizar luego.
+        const msg = String(e?.message ?? e).toLowerCase();
+        if (msg.includes("fetch") || msg.includes("network") || msg.includes("failed")) {
+          enqueueWrite({ kind: "reporte_diario", payload, label: `Reporte diario ${payload.fecha ?? ""}` });
+          return { offline: true } as const;
+        }
+        throw e;
+      }
+    },
+    onSuccess: async (res: any) => {
+      if (res?.offline) {
+        toast.success(
+          "Sin conexión: el reporte quedó guardado en el dispositivo y se enviará automáticamente al recuperar la red.",
+        );
+        return;
+      }
       toast.success("Reporte diario guardado. Adjunta las fotos del día en «Evidencias de este día» dentro del reporte recién creado.");
       await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
       // El consolidado y el ejecutivo se recalculan desde las filas vigentes.

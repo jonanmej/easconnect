@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePersistedState } from "@/hooks/usePersistedState";
 
 export type ResponsiveColumn<T> = {
   /** Identificador estable de la columna. */
@@ -39,7 +41,76 @@ export type ResponsiveTableProps<T> = {
   stickyHeader?: boolean;
   /** Densidad de la tabla en desktop. */
   density?: "comfortable" | "compact";
+  /**
+   * Activa buscador dentro del componente. El texto se persiste por usuario
+   * con esta clave (también sobrevive a refrescos y cambios de dispositivo).
+   */
+  searchKey?: string;
+  /** Texto por el que se busca en cada fila. Requerido si usas `searchKey`. */
+  searchValue?: (row: T) => string;
+  /** Placeholder del buscador. */
+  searchPlaceholder?: string;
+  /** Chips de filtro rápido (opcional), mostrados junto al buscador. */
+  filters?: ReactNode;
+  /**
+   * Acciones rápidas reveladas al deslizar la card hacia la izquierda (móvil).
+   * En escritorio se muestran junto a `rowActions`.
+   */
+  swipeActions?: (row: T) => ReactNode;
 };
+
+/** Card con acciones reveladas por swipe (solo móvil). */
+function SwipeCard({
+  children,
+  actions,
+  className,
+  ...rest
+}: {
+  children: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const [offset, setOffset] = useState(0);
+  const startX = useRef<number | null>(null);
+
+  if (!actions) {
+    return (
+      <div className={className} {...rest}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      <div
+        className="absolute inset-y-0 right-0 flex items-center gap-1 pr-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {actions}
+      </div>
+      <div
+        {...rest}
+        className={className}
+        style={{ transform: `translateX(${-offset}px)`, transition: startX.current == null ? "transform .18s ease" : undefined }}
+        onTouchStart={(e) => {
+          startX.current = e.touches[0]?.clientX ?? null;
+        }}
+        onTouchMove={(e) => {
+          if (startX.current == null) return;
+          const dx = startX.current - (e.touches[0]?.clientX ?? startX.current);
+          setOffset(Math.max(0, Math.min(dx, 132)));
+        }}
+        onTouchEnd={() => {
+          startX.current = null;
+          setOffset((o) => (o > 56 ? 132 : 0));
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Tabla responsive: en `md:` renderiza una `<table>` clásica; en móvil
@@ -59,30 +130,78 @@ export function ResponsiveTable<T>({
   showHeaderOnMobile = false,
   stickyHeader = false,
   density = "comfortable",
+  searchKey,
+  searchValue,
+  searchPlaceholder = "Buscar…",
+  filters,
+  swipeActions,
 }: ResponsiveTableProps<T>) {
   const padY = density === "compact" ? "py-2" : "py-3";
+  const [q, setQ] = usePersistedState<string>(`tabla.${searchKey ?? "sin-clave"}.q`, "", {
+    url: false,
+  });
+  const buscando = Boolean(searchKey && searchValue);
+  const term = buscando ? q.trim().toLowerCase() : "";
+  const rows = useMemo(() => {
+    if (!buscando || !term) return data;
+    return data.filter((r) => (searchValue?.(r) ?? "").toLowerCase().includes(term));
+  }, [data, buscando, term, searchValue]);
 
-  if (data.length === 0) {
+  const toolbar =
+    buscando || filters ? (
+      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
+        {buscando ? (
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-64"
+            />
+            {q ? (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {filters ? <div className="flex flex-wrap items-center gap-2">{filters}</div> : null}
+      </div>
+    ) : null;
+
+  if (rows.length === 0) {
     return (
-      <div className={cn("rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground", className)}>
-        {emptyMessage}
+      <div className={className}>
+        {toolbar}
+        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          {term ? `Sin resultados para “${q}”.` : emptyMessage}
+        </div>
       </div>
     );
   }
 
   return (
     <div className={className}>
+      {toolbar}
       {/* ===== Móvil: cards apiladas ===== */}
       <div className={cn("space-y-2 md:hidden", showHeaderOnMobile ? "space-y-3" : "")}>
-        {data.map((row, i) => {
+        {rows.map((row, i) => {
           const primary = columns.find((c) => c.primary);
           const secondary = columns.find((c) => c.secondary);
           const rest = columns.filter((c) => !c.primary && !c.secondary && !c.hideOnMobile);
           const cardCls = typeof cardClassName === "function" ? cardClassName(row) : cardClassName;
           const interactive = Boolean(onRowClick);
           return (
-            <div
+            <SwipeCard
               key={rowKey(row, i)}
+              actions={swipeActions?.(row)}
               data-row-key={rowKey(row, i)}
               role={interactive ? "button" : undefined}
               tabIndex={interactive ? 0 : undefined}
@@ -134,7 +253,7 @@ export function ResponsiveTable<T>({
                   ))}
                 </dl>
               ) : null}
-            </div>
+            </SwipeCard>
           );
         })}
       </div>
@@ -159,11 +278,11 @@ export function ResponsiveTable<T>({
                   {c.header}
                 </th>
               ))}
-              {rowActions ? <th className="px-3 py-2 w-1" aria-label="Acciones" /> : null}
+              {rowActions || swipeActions ? <th className="px-3 py-2 w-1" aria-label="Acciones" /> : null}
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => {
+            {rows.map((row, i) => {
               const interactive = Boolean(onRowClick);
               return (
                 <tr
@@ -189,9 +308,12 @@ export function ResponsiveTable<T>({
                       {c.cell(row, i)}
                     </td>
                   ))}
-                  {rowActions ? (
+                  {rowActions || swipeActions ? (
                     <td className={cn("px-3 text-right", padY)} onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center gap-1">{rowActions(row)}</div>
+                      <div className="inline-flex items-center gap-1">
+                        {swipeActions?.(row)}
+                        {rowActions?.(row)}
+                      </div>
                     </td>
                   ) : null}
                 </tr>
