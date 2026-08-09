@@ -16,7 +16,7 @@ import {
   instalarActualizacion,
   onUpdateDisponible,
 } from "@/lib/app-update";
-import { safeLocalStorage } from "@/lib/safe-storage";
+import { safeStorage } from "@/lib/safe-storage";
 
 const VERSION_KEY = "easc-app-version";
 
@@ -59,9 +59,9 @@ export function AppUpdateGate() {
 
   // 3) Detalle de los cambios ya instalados (una sola vez por versión)
   useEffect(() => {
-    const previa = safeLocalStorage.getItem(VERSION_KEY);
+    const previa = safeStorage.getItem(VERSION_KEY);
     if (previa === APP_VERSION) return;
-    safeLocalStorage.setItem(VERSION_KEY, APP_VERSION);
+    safeStorage.setItem(VERSION_KEY, APP_VERSION);
     if (!previa) return; // primera instalación: no mostramos changelog
     const lista = cambiosDesde(previa);
     if (lista.length) setNovedades(lista);
