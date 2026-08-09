@@ -143,13 +143,20 @@ export function observarActualizaciones(reg: ServiceWorkerRegistration) {
 /** Huella del build que está corriendo en esta pestaña. */
 function huellaLocal(): string | null {
   if (typeof document === "undefined") return null;
+  return huellaDocumento(document);
+}
+
+/**
+ * Obtiene únicamente los recursos de entrada ejecutados por el documento.
+ * No incluye `modulepreload`: el HTML publicado puede enumerar allí muchos
+ * chunks que no existen como nodos equivalentes en la pestaña ya hidratada.
+ */
+function huellaDocumento(doc: Document): string | null {
   const urls = [
-    ...document.querySelectorAll<HTMLScriptElement>("script[src]"),
-    ...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
+    ...doc.querySelectorAll<HTMLScriptElement>("script[src]"),
+    ...doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
   ]
-    .map((el) =>
-      el instanceof HTMLScriptElement ? el.getAttribute("src") : el.getAttribute("href"),
-    )
+    .map((el) => (el.tagName === "SCRIPT" ? el.getAttribute("src") : el.getAttribute("href")))
     .filter((u): u is string => !!u)
     .map((u) => {
       try {
@@ -169,11 +176,8 @@ async function huellaRemota(): Promise<string | null> {
     const res = await fetch(`/?v=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) return null;
     const html = await res.text();
-    const activos = [...html.matchAll(/["'](\/(?:assets|_build)\/[^"']+\.(?:js|css))["']/g)].map(
-      (m) => m[1],
-    );
-    if (!activos.length) return null;
-    return activos.sort().join("|");
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return huellaDocumento(doc);
   } catch {
     return null;
   }
