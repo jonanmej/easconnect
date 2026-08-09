@@ -309,7 +309,7 @@ export function ResponsiveTable<T>({
       <p aria-live="polite" role="status" className="sr-only">
         {`Mostrando ${visibles.length} de ${rows.length} registros.`}
       </p>
-      {/* ===== Movil: cards apiladas (virtualizadas si hay muchas) ===== */}
+      {/* ===== Móvil: cards apiladas (virtualizadas si hay muchas) ===== */}
       <div ref={listaRef} className="md:hidden">
         {virtualizando ? (
           <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
@@ -435,7 +435,7 @@ export function ResponsiveTable<T>({
             onClick={() => setShown((s) => s + pageSize)}
             className="min-h-11 rounded-md border border-border px-4 text-sm font-medium text-foreground hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            {`Cargar mas (${rows.length - visibles.length} restantes)`}
+            {`Cargar más (${rows.length - visibles.length} restantes)`}
           </button>
         </div>
       ) : null}
