@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -57,6 +58,18 @@ export type ResponsiveTableProps<T> = {
    * En escritorio se muestran junto a `rowActions`.
    */
   swipeActions?: (row: T) => ReactNode;
+  /**
+   * Paginación inteligente: cantidad de filas por lote. Se cargan más
+   * automáticamente al acercarse al final de la lista. Por defecto 50.
+   */
+  pageSize?: number;
+  /**
+   * Virtualiza las tarjetas en móvil cuando hay muchas filas (por defecto
+   * automático a partir de 40 filas visibles). `false` lo desactiva.
+   */
+  virtualize?: boolean;
+  /** Etiqueta accesible de la tabla (para lectores de pantalla). */
+  label?: string;
 };
 
 /** Card con acciones reveladas por swipe (solo móvil). */
