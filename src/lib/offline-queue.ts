@@ -16,6 +16,8 @@ export type EvidenciaPendiente = {
   descripcion: string | null;
   data_url: string; // image/jpeg base64
   created_at: number;
+  intentos?: number;
+  ultimo_error?: string | null;
 };
 
 function read(): EvidenciaPendiente[] {
