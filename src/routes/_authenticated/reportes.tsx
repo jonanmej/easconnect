@@ -493,6 +493,15 @@ function Reportes() {
           </select>
         </label>
         <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={desgloseTecnico}
+              onChange={(e) => setDesgloseTecnico(e.target.checked)}
+              className="size-3.5 accent-primary"
+            />
+            <span>Incluir desglose por técnico en el PDF (paneles, agua, horas y avance)</span>
+          </label>
           <span>Mostrando <b className="text-foreground">{itemsFiltrados.length}</b> de {items.length} reportes.</span>
           {(filtroCliente || filtroPlanta || filtroAlcance !== "todos" || agrupar !== "none") && (
             <button
