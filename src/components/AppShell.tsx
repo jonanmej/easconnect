@@ -339,7 +339,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {buildSidebar("rail")}
       </aside>
 
-      <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
+      <main id="main-content" className="flex-1 overflow-y-auto flex flex-col min-w-0">
         <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 safe-top safe-x">
           <div className="min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">

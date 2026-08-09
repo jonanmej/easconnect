@@ -189,10 +189,9 @@ export function ResponsiveTable<T>({
   const virtualizando = (virtualize ?? visibles.length > 40) && virtualize !== false;
   const virtualizer = useVirtualizer({
     count: virtualizando ? visibles.length : 0,
-    getScrollElement: () => (typeof window === "undefined" ? null : document.scrollingElement as HTMLElement),
+    getScrollElement: () => listaRef.current,
     estimateSize: () => 132,
     overscan: 8,
-    scrollMargin: listaRef.current?.offsetTop ?? 0,
   });
 
   const toolbar =
@@ -310,7 +309,13 @@ export function ResponsiveTable<T>({
         {`Mostrando ${visibles.length} de ${rows.length} registros.`}
       </p>
       {/* ===== Móvil: cards apiladas (virtualizadas si hay muchas) ===== */}
-      <div ref={listaRef} className="md:hidden">
+      <div
+        ref={listaRef}
+        className={cn(
+          "md:hidden",
+          virtualizando && "max-h-[70dvh] overflow-y-auto overscroll-contain",
+        )}
+      >
         {virtualizando ? (
           <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
             {items.map((v) => {
@@ -325,7 +330,7 @@ export function ResponsiveTable<T>({
                     top: 0,
                     left: 0,
                     width: "100%",
-                    transform: `translateY(${v.start - (virtualizer.options.scrollMargin ?? 0)}px)`,
+                    transform: `translateY(${v.start}px)`,
                     paddingBottom: 8,
                   }}
                 >
