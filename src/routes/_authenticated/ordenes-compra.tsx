@@ -129,7 +129,6 @@ function OrdenesCompraPage() {
       <ResponsiveTable
         data={filtradas}
         rowKey={(r: any) => r.id}
-        onRowClick={(r: any) => setOpenId(r.id)}
         emptyMessage={
           rows.length === 0 ? (
             <>

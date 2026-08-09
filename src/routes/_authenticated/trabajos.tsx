@@ -351,7 +351,7 @@ function Trabajos() {
           ? "Visualiza las órdenes asignadas a ti y registra su avance."
           : "Programa, ejecuta y cierra cada visita técnica."}
         actions={
-          <>
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto [&>button]:min-h-11 sm:[&>button]:min-h-9 [&>button]:w-full sm:[&>button]:w-auto">
             <ExportButton onExport={async () => {
               const rows = (list.data as any[] | undefined) ?? [];
               await exportarExcel({
@@ -388,7 +388,7 @@ function Trabajos() {
             {canEdit && (
               <button
                 onClick={() => setEditing({ estado: "programado", fecha_programada: new Date().toISOString() })}
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+                className="h-9 min-h-11 sm:min-h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
               >
                 <Plus className="size-3.5" /> Nuevo trabajo
               </button>
@@ -397,12 +397,12 @@ function Trabajos() {
               <button
                 onClick={() => setHistoricoOpen(true)}
                 title="Registrar un servicio ejecutado antes de usar la app"
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
+                className="h-9 min-h-11 sm:min-h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
               >
                 <Archive className="size-3.5" /> Cargar histórico
               </button>
             )}
-          </>
+          </div>
         }
       />
 
