@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { parseConflictoError, formatConflictoMensaje } from "@/lib/conflict-format";
 import {
@@ -158,7 +159,6 @@ function Trabajos() {
   const { alerta } = Route.useSearch();
   const navigate = Route.useNavigate();
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   // Filtrado + búsqueda + ordenamiento (single source of truth)
   const filtrados = (() => {
@@ -223,9 +223,9 @@ function Trabajos() {
   }, [alerta, list.data]);
 
   useEffect(() => {
-    if (highlightId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (!highlightId) return;
+    const el = document.querySelector(`[data-row-key="${highlightId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightId, currentPage]);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
@@ -351,7 +351,7 @@ function Trabajos() {
           ? "Visualiza las órdenes asignadas a ti y registra su avance."
           : "Programa, ejecuta y cierra cada visita técnica."}
         actions={
-          <>
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto [&>button]:min-h-11 sm:[&>button]:min-h-9 [&>button]:w-full sm:[&>button]:w-auto">
             <ExportButton onExport={async () => {
               const rows = (list.data as any[] | undefined) ?? [];
               await exportarExcel({
@@ -388,7 +388,7 @@ function Trabajos() {
             {canEdit && (
               <button
                 onClick={() => setEditing({ estado: "programado", fecha_programada: new Date().toISOString() })}
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+                className="h-9 min-h-11 sm:min-h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
               >
                 <Plus className="size-3.5" /> Nuevo trabajo
               </button>
@@ -397,12 +397,12 @@ function Trabajos() {
               <button
                 onClick={() => setHistoricoOpen(true)}
                 title="Registrar un servicio ejecutado antes de usar la app"
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
+                className="h-9 min-h-11 sm:min-h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
               >
                 <Archive className="size-3.5" /> Cargar histórico
               </button>
             )}
-          </>
+          </div>
         }
       />
 
@@ -439,11 +439,11 @@ function Trabajos() {
           <option value="estado">Estado</option>
         </select>
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 w-full min-w-0 sm:w-auto rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todos los estados</option>
           <option value="programado">Programado</option>
@@ -454,7 +454,7 @@ function Trabajos() {
         <select
           value={plantaFilter}
           onChange={(e) => setPlantaFilter(e.target.value)}
-          className="h-9 max-w-[240px] rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 w-full min-w-0 sm:w-auto sm:max-w-[240px] rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todas las plantas</option>
           {[...((plantas.data as any[] | undefined) ?? [])]
@@ -472,7 +472,7 @@ function Trabajos() {
           <select
             value={tecFilter}
             onChange={(e) => setTecFilter(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-9 w-full min-w-0 sm:w-auto rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">Todos los técnicos</option>
             <option value="__sin__">Sin asignar</option>
@@ -483,85 +483,78 @@ function Trabajos() {
         )}
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left">Folio</th>
-              <th className="px-4 py-3 text-left">Cliente / Planta</th>
-              <th className="px-4 py-3 text-left">Servicio</th>
-              <th className="px-4 py-3 text-left">Fecha</th>
-              <th className="px-4 py-3 text-left">Estado</th>
-              {canEdit && <th />}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {list.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {!list.isLoading && visibles.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin resultados</td></tr>
-            )}
-            {visibles.map((t) => {
-              const isHi = highlightId === t.id;
-              return (
-              <tr
-                key={t.id}
-                ref={isHi ? highlightRef : undefined}
-                className={
-                  "transition-colors " +
-                  (isHi
-                    ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
-                    : "hover:bg-secondary/40")
-                }
-              >
-                <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
-                <td className="px-4 py-4">
-                  <p className="font-medium">{t.cliente_nombre}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre}</p>
-                </td>
-                <td className="px-4 py-4 text-xs">{t.servicio}</td>
-                <td className="px-4 py-4 text-xs text-muted-foreground">
-                  {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="px-4 py-4">
-                  <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
-                    {estadoLabel[t.estado] ?? t.estado}
-                  </span>
-                </td>
-                {canEdit && (
-                  <td className="px-4 py-4 text-right">
-                    <div className="inline-flex gap-1">
-                      {t.estado === "completado" && !t.firmado_at && !(t.notas ?? "").startsWith("[HISTÓRICO]") && (
-                        <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
-                      )}
-                      {t.firmado_at && (
-                        <span
-                          className="size-8 grid place-items-center rounded-md text-accent"
-                          title={`Firmado por ${t.firmado_por ?? "cliente"}`}
-                        >
-                          <FileSignature className="size-3.5" />
-                        </span>
-                      )}
-                      <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`Eliminar ${t.folio}?`)) remove.mutate(t.id); }}
-                        className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        data={visibles}
+        rowKey={(t) => t.id}
+        emptyMessage={list.isLoading ? "Cargando…" : "Sin resultados"}
+        cardClassName={(t) =>
+          highlightId === t.id
+            ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
+            : undefined
+        }
+        columns={[
+          { key: "folio", header: "Folio", mobileLabel: "Folio", cell: (t) => <span className="font-mono text-xs">{t.folio}</span> },
+          {
+            key: "cliente_planta",
+            header: "Cliente / Planta",
+            primary: true,
+            cell: (t) => (
+              <>
+                <p className="font-medium">{t.cliente_nombre}</p>
+                <p className="text-[10px] text-muted-foreground">{t.planta_nombre}</p>
+              </>
+            ),
+          },
+          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{t.servicio}</span> },
+          {
+            key: "fecha",
+            header: "Fecha",
+            cell: (t) => (
+              <span className="text-xs text-muted-foreground">
+                {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
+              </span>
+            ),
+          },
+          {
+            key: "estado",
+            header: "Estado",
+            cell: (t) => (
+              <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
+                {estadoLabel[t.estado] ?? t.estado}
+              </span>
+            ),
+          },
+        ]}
+        rowActions={
+          canEdit
+            ? (t) => (
+                <>
+                  {t.estado === "completado" && !t.firmado_at && !(t.notas ?? "").startsWith("[HISTÓRICO]") && (
+                    <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
+                  )}
+                  {t.firmado_at && (
+                    <span
+                      className="size-8 grid place-items-center rounded-md text-accent"
+                      title={`Firmado por ${t.firmado_por ?? "cliente"}`}
+                    >
+                      <FileSignature className="size-3.5" />
+                    </span>
+                  )}
+                  <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                    <Pencil className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm(`Eliminar ${t.folio}?`)) remove.mutate(t.id); }}
+                    className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </>
+              )
+            : undefined
+        }
+      />
 
       {filtrados.length > PAGE_SIZE && (
         (() => {

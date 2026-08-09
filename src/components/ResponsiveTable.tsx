@@ -83,6 +83,7 @@ export function ResponsiveTable<T>({
           return (
             <div
               key={rowKey(row, i)}
+              data-row-key={rowKey(row, i)}
               role={interactive ? "button" : undefined}
               tabIndex={interactive ? 0 : undefined}
               onClick={interactive ? () => onRowClick?.(row) : undefined}
@@ -105,10 +106,14 @@ export function ResponsiveTable<T>({
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   {primary ? (
-                    <div className="font-semibold text-foreground truncate">{primary.cell(row, i)}</div>
+                    <div className="font-semibold text-foreground truncate [&_*]:truncate [&_*]:max-w-full">
+                      {primary.cell(row, i)}
+                    </div>
                   ) : null}
                   {secondary ? (
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">{secondary.cell(row, i)}</div>
+                    <div className="text-xs text-muted-foreground truncate mt-0.5 [&_*]:truncate [&_*]:max-w-full">
+                      {secondary.cell(row, i)}
+                    </div>
                   ) : null}
                 </div>
                 {rowActions ? (
@@ -163,6 +168,7 @@ export function ResponsiveTable<T>({
               return (
                 <tr
                   key={rowKey(row, i)}
+                  data-row-key={rowKey(row, i)}
                   onClick={interactive ? () => onRowClick?.(row) : undefined}
                   className={cn(
                     "border-t border-border",

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { Field, inputCls } from "@/components/RecordDialog";
 import {
   listOrdenesCompra,
@@ -87,8 +88,12 @@ function OrdenesCompraPage() {
         title="Órdenes de compra"
         description="Ciclo completo: borrador, envío, recepciones parciales y total, con costo promedio ponderado."
         actions={
-          <>
-            <select value={filtro} onChange={(e) => setFiltro(e.target.value as any)} className={inputCls}>
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+            <select
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value as any)}
+              className={`${inputCls} w-full min-w-0 min-h-11 sm:min-h-9 sm:w-auto`}
+            >
               <option value="todas">Todos los estados</option>
               <option value="borrador">Borrador</option>
               <option value="enviada">Enviada</option>
@@ -99,12 +104,12 @@ function OrdenesCompraPage() {
             {canManage && (
               <button
                 onClick={() => { setPrefill(null); setNuevaOpen(true); }}
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+                className="min-h-11 sm:h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md w-full sm:w-auto"
               >
                 <Plus className="size-3.5" /> Nueva orden
               </button>
             )}
-          </>
+          </div>
         }
       />
 
@@ -121,70 +126,85 @@ function OrdenesCompraPage() {
         ))}
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[900px]">
-          <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left">Folio</th>
-              <th className="px-4 py-3 text-left">Fecha</th>
-              <th className="px-4 py-3 text-left">Solicitante</th>
-              <th className="px-4 py-3 text-left">Proveedores</th>
-              <th className="px-4 py-3 text-right">Líneas</th>
-              <th className="px-4 py-3 text-right">Recibido / Pedido</th>
-              <th className="px-4 py-3 text-center">Estado</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filtradas.map((r: any) => {
+      <ResponsiveTable
+        data={filtradas}
+        rowKey={(r: any) => r.id}
+        emptyMessage={
+          rows.length === 0 ? (
+            <>
+              Aún no hay órdenes.{" "}
+              <Link to="/inventario" className="text-primary underline">
+                Crea una desde Inventario.
+              </Link>
+            </>
+          ) : (
+            "Ninguna orden coincide con el filtro."
+          )
+        }
+        columns={[
+          {
+            key: "folio",
+            header: "Folio",
+            primary: true,
+            cell: (r: any) => <span className="font-mono font-semibold">{r.folio}</span>,
+          },
+          {
+            key: "fecha",
+            header: "Fecha",
+            secondary: true,
+            cell: (r: any) => r.fecha_emision,
+          },
+          {
+            key: "solicitante",
+            header: "Solicitante",
+            cell: (r: any) => r.solicitante || "—",
+          },
+          {
+            key: "proveedores",
+            header: "Proveedores",
+            hideOnMobile: true,
+            cell: (r: any) => {
               const provs = Array.isArray(r.proveedores) ? r.proveedores.map((p: any) => p?.nombre).filter(Boolean) : [];
-              return (
-                <tr key={r.id} className="hover:bg-secondary/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs font-semibold">{r.folio}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{r.fecha_emision}</td>
-                  <td className="px-4 py-3 text-xs">{r.solicitante || "—"}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {provs.length === 0 ? <span className="text-muted-foreground">Sin definir</span> : provs.join(", ")}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">{r.total_lineas}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs">
-                    {Number(r.total_recibido).toFixed(2)} / {Number(r.total_pedido).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${ESTADO_COLOR[r.estado as EstadoOC]}`}>
-                      {r.estado}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setOpenId(r.id)}
-                      className="h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary"
-                    >
-                      Abrir
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-            {!list.isLoading && filtradas.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-xs text-muted-foreground">
-                  {rows.length === 0 ? (
-                    <>
-                      Aún no hay órdenes.{" "}
-                      <Link to="/inventario" className="text-primary underline">
-                        Crea una desde Inventario.
-                      </Link>
-                    </>
-                  ) : (
-                    "Ninguna orden coincide con el filtro."
-                  )}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              return provs.length === 0 ? <span className="text-muted-foreground">Sin definir</span> : provs.join(", ");
+            },
+          },
+          {
+            key: "lineas",
+            header: "Líneas",
+            align: "right",
+            cell: (r: any) => <span className="font-mono">{r.total_lineas}</span>,
+          },
+          {
+            key: "recibido",
+            header: "Recibido / Pedido",
+            align: "right",
+            hideOnMobile: true,
+            cell: (r: any) => (
+              <span className="font-mono">
+                {Number(r.total_recibido).toFixed(2)} / {Number(r.total_pedido).toFixed(2)}
+              </span>
+            ),
+          },
+          {
+            key: "estado",
+            header: "Estado",
+            align: "center",
+            cell: (r: any) => (
+              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${ESTADO_COLOR[r.estado as EstadoOC]}`}>
+                {r.estado}
+              </span>
+            ),
+          },
+        ]}
+        rowActions={(r: any) => (
+          <button
+            onClick={() => setOpenId(r.id)}
+            className="h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary"
+          >
+            Abrir
+          </button>
+        )}
+      />
 
       {openId && (
         <OrdenDetalleDialog

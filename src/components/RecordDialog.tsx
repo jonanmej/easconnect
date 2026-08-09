@@ -30,12 +30,12 @@ export function RecordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-lg",
-          "max-h-[92dvh] overflow-y-auto",
+          "max-h-[92dvh] sm:max-w-lg",
           className,
         )}
       >
-        <DialogHeader>
+        <DialogHeader className="text-left">
+          <div aria-hidden className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-border sm:hidden" />
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>

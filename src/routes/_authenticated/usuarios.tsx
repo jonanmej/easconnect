@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import {
   listUsers,
   inviteUser,
@@ -156,7 +157,7 @@ function UsersPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-6xl w-full">
       <PageHeader
         title="Usuarios y Roles"
         description="Invita miembros del equipo o clientes y controla sus permisos por rol."
@@ -167,19 +168,19 @@ function UsersPage() {
           <UserPlus className="size-4 text-primary" />
           Invitar usuario
         </h2>
-        <form onSubmit={onInvite} className="grid sm:grid-cols-3 gap-3 mt-4">
+        <form onSubmit={onInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
           <input
             type="email"
             required
             placeholder="correo@empresa.cl"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9"
           />
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as AppRole)}
-            className="bg-secondary border border-border rounded-md px-3 py-2 text-sm"
+            className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9"
           >
             {ALL_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -190,7 +191,7 @@ function UsersPage() {
           <button
             type="submit"
             disabled={invite.isPending}
-            className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+            className="w-full min-w-0 min-h-11 sm:min-h-9 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
           >
             {invite.isPending ? "Creando…" : "Crear cuenta"}
           </button>
@@ -198,7 +199,7 @@ function UsersPage() {
             <select
               value={inviteClienteId}
               onChange={(e) => setInviteClienteId(e.target.value)}
-              className="bg-secondary border border-border rounded-md px-3 py-2 text-sm sm:col-span-3"
+              className="w-full min-w-0 bg-secondary border border-border rounded-md px-3 py-2 text-sm min-h-11 sm:min-h-9 sm:col-span-3"
             >
               <option value="">— Selecciona el cliente al que pertenece —</option>
               {clientes.data?.map((c) => (
@@ -228,146 +229,149 @@ function UsersPage() {
             {(resets.data ?? []).filter((s: any) => s.estado === "pendiente").length} pendientes
           </span>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Fecha</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Mensaje / IP</th>
-              <th className="text-left p-3">Expira</th>
-              <th className="text-left p-3">Estado</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {resets.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {resets.data?.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin solicitudes.</td></tr>
-            )}
-            {resets.data?.map((s: any) => (
-              <tr key={s.id} className="border-t border-border">
-                <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(s.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="p-3 text-xs">{s.email}</td>
-                <td className="p-3 text-xs text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
+        <ResponsiveTable
+          className="px-0"
+          data={(resets.data ?? []) as any[]}
+          rowKey={(s: any) => s.id}
+          emptyMessage={resets.isLoading ? "Cargando…" : "Sin solicitudes."}
+          columns={[
+            {
+              key: "email",
+              header: "Email",
+              primary: true,
+              cell: (s: any) => s.email,
+            },
+            {
+              key: "fecha",
+              header: "Fecha",
+              secondary: true,
+              cell: (s: any) => new Date(s.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
+            },
+            {
+              key: "mensaje",
+              header: "Mensaje / IP",
+              hideOnMobile: true,
+              cell: (s: any) => (
+                <div className="text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
                   <div className="truncate">{s.mensaje ?? "—"}</div>
                   {s.ip && <div className="text-[10px] font-mono">IP: {s.ip}</div>}
                   {(s.reenvios ?? 0) > 0 && (
                     <div className="text-[10px] text-primary">Reenviada {s.reenvios}×</div>
                   )}
-                </td>
-                <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                </div>
+              ),
+            },
+            {
+              key: "expira",
+              header: "Expira",
+              hideOnMobile: true,
+              cell: (s: any) => (
+                <span className="text-[10px] font-mono text-muted-foreground">
                   {s.expira_at ? new Date(s.expira_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
-                </td>
-                <td className="p-3">
-                  <span className={
-                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
-                    (s.estado === "pendiente"
-                      ? "bg-primary/15 text-primary"
-                      : s.estado === "atendida"
-                        ? "bg-accent/15 text-accent"
-                        : s.estado === "caducada"
-                          ? "bg-destructive/15 text-destructive"
-                          : "bg-muted text-muted-foreground")
-                  }>
-                    {s.estado}
-                  </span>
-                </td>
-                <td className="p-3 text-right">
-                  {s.estado === "pendiente" && s.user_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
-                          resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
-                        }
-                      }}
-                      disabled={resetPass.isPending}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 mr-2"
-                    >
-                      <Mail className="size-3.5" />
-                      Enviar nueva clave
-                    </button>
-                  )}
-                  {s.estado === "atendida" && s.user_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
-                          reenviar.mutate(s.id);
-                        }
-                      }}
-                      disabled={reenviar.isPending}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60 mr-2"
-                      title="Regenera la clave temporal y reenvía el correo"
-                    >
-                      <Send className="size-3.5" />
-                      Reenviar
-                    </button>
-                  )}
-                  {s.estado === "pendiente" && !s.user_id && (
-                    <span className="text-[10px] text-destructive mr-2">Email sin cuenta registrada</span>
-                  )}
-                  {s.estado === "pendiente" && (
-                    <button
-                      type="button"
-                      onClick={() => descartar.mutate(s.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                      title="Descartar"
-                      aria-label="Descartar"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+                </span>
+              ),
+            },
+            {
+              key: "estado",
+              header: "Estado",
+              cell: (s: any) => (
+                <span className={
+                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  (s.estado === "pendiente"
+                    ? "bg-primary/15 text-primary"
+                    : s.estado === "atendida"
+                      ? "bg-accent/15 text-accent"
+                      : s.estado === "caducada"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-muted text-muted-foreground")
+                }>
+                  {s.estado}
+                </span>
+              ),
+            },
+          ]}
+          rowActions={(s: any) => (
+            <>
+              {s.estado === "pendiente" && s.user_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
+                      resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
+                    }
+                  }}
+                  disabled={resetPass.isPending}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <Mail className="size-3.5" />
+                  <span className="hidden sm:inline">Enviar nueva clave</span>
+                </button>
+              )}
+              {s.estado === "atendida" && s.user_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
+                      reenviar.mutate(s.id);
+                    }
+                  }}
+                  disabled={reenviar.isPending}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
+                  title="Regenera la clave temporal y reenvía el correo"
+                >
+                  <Send className="size-3.5" />
+                  <span className="hidden sm:inline">Reenviar</span>
+                </button>
+              )}
+              {s.estado === "pendiente" && !s.user_id && (
+                <span className="text-[10px] text-destructive">Sin cuenta</span>
+              )}
+              {s.estado === "pendiente" && (
+                <button
+                  type="button"
+                  onClick={() => descartar.mutate(s.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Descartar"
+                  aria-label="Descartar"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </>
+          )}
+        />
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Cliente</th>
-              {ALL_ROLES.map((r) => (
-                <th key={r} className="text-center p-3">
-                  {ROLE_LABEL[r]}
-                </th>
-              ))}
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={ALL_ROLES.length + 3} className="p-6 text-center text-xs text-muted-foreground">
-                  Cargando…
-                </td>
-              </tr>
-            )}
-            {data?.map((u) => {
-              const isCliente = u.roles.includes("cliente");
-              const missingCliente = isCliente && !u.cliente_id;
-              return (
-              <tr key={u.id} className="border-t border-border">
-                <td className="p-3">
-                  <div className="font-medium">{u.email}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}</div>
-                </td>
-                <td className="p-3">
+        <div className="p-3 md:p-0">
+        <ResponsiveTable
+          data={(data ?? []) as any[]}
+          rowKey={(u: any) => u.id}
+          emptyMessage={isLoading ? "Cargando…" : "Sin usuarios."}
+          columns={[
+            {
+              key: "email",
+              header: "Email",
+              primary: true,
+              cell: (u: any) => u.email,
+            },
+            {
+              key: "id",
+              header: "ID",
+              secondary: true,
+              mobileLabel: "ID",
+              cell: (u: any) => u.id.slice(0, 8),
+            },
+            {
+              key: "cliente",
+              header: "Cliente",
+              cell: (u: any) => {
+                const isCliente = u.roles.includes("cliente");
+                const missingCliente = isCliente && !u.cliente_id;
+                if (!isCliente) return <span className="text-xs text-muted-foreground">—</span>;
+                return (
                   <div className="flex items-center gap-2">
-                    {isCliente ? (
-                      <>
-                      <select
+                    <select
                       value={u.cliente_id ?? ""}
                       disabled={setCliente.isPending || clientes.isLoading}
                       onChange={(e) =>
@@ -377,7 +381,7 @@ function UsersPage() {
                         })
                       }
                       className={
-                        "bg-secondary border rounded-md px-2 py-1.5 text-xs min-w-[180px] " +
+                        "bg-secondary border rounded-md px-2 py-1.5 text-xs min-w-0 w-full max-w-[220px] " +
                         (missingCliente ? "border-destructive" : "border-border")
                       }
                     >
@@ -390,60 +394,67 @@ function UsersPage() {
                     </select>
                     {missingCliente && (
                       <span title="Usuario con rol cliente sin cliente asignado: no podrá ver sus plantas.">
-                        <AlertTriangle className="size-4 text-destructive" />
+                        <AlertTriangle className="size-4 text-destructive shrink-0" />
                       </span>
                     )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
                   </div>
-                </td>
-                {ALL_ROLES.map((r) => {
-                  const enabled = u.roles.includes(r);
-                  return (
-                    <td key={r} className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={enabled}
-                        disabled={toggle.isPending}
-                        onChange={(e) =>
-                          toggle.mutate({ userId: u.id, role: r, enabled: e.target.checked })
-                        }
-                        className="accent-primary size-4"
-                      />
-                    </td>
-                  );
-                })}
-                <td className="p-3 text-right">
-                  <button
-                    onClick={() => {
-                      if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
-                        resetPass.mutate({ userId: u.id });
-                      }
-                    }}
-                    disabled={resetPass.isPending}
-                    className="text-muted-foreground hover:text-primary mr-3"
-                    aria-label="Restablecer contraseña y enviar por correo"
-                    title="Restablecer contraseña y enviar por correo"
-                  >
-                    <KeyRound className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
-                    }}
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-          </table>
+                );
+              },
+            },
+            {
+              key: "roles",
+              header: "Roles",
+              mobileLabel: "Roles",
+              cell: (u: any) => (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {ALL_ROLES.map((r) => {
+                    const enabled = u.roles.includes(r);
+                    return (
+                      <label key={r} className="inline-flex items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          disabled={toggle.isPending}
+                          onChange={(e) =>
+                            toggle.mutate({ userId: u.id, role: r, enabled: e.target.checked })
+                          }
+                          className="accent-primary size-4"
+                        />
+                        {ROLE_LABEL[r]}
+                      </label>
+                    );
+                  })}
+                </div>
+              ),
+            },
+          ]}
+          rowActions={(u: any) => (
+            <>
+              <button
+                onClick={() => {
+                  if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
+                    resetPass.mutate({ userId: u.id });
+                  }
+                }}
+                disabled={resetPass.isPending}
+                className="text-muted-foreground hover:text-primary"
+                aria-label="Restablecer contraseña y enviar por correo"
+                title="Restablecer contraseña y enviar por correo"
+              >
+                <KeyRound className="size-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
+                }}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Eliminar"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </>
+          )}
+        />
         </div>
         {setCliente.error && (
           <p className="text-xs text-destructive px-5 py-3 border-t border-border">
@@ -478,46 +489,50 @@ function UsersPage() {
             {purge.isPending ? "Limpiando…" : "Limpiar desvinculados"}
           </button>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Fecha</th>
-              <th className="text-left p-3">Acción</th>
-              <th className="text-left p-3">Rol</th>
-              <th className="text-left p-3">Usuario afectado</th>
-              <th className="text-left p-3">Realizado por</th>
-            </tr>
-          </thead>
-          <tbody>
-            {audit.isLoading && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {audit.data?.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Sin eventos registrados.</td></tr>
-            )}
-            {audit.data?.map((l) => (
-              <tr key={l.id} className="border-t border-border">
-                <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(l.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="p-3">
-                  <span className={
-                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
-                    (l.action === "granted"
-                      ? "bg-accent/10 text-accent"
-                      : "bg-destructive/10 text-destructive")
-                  }>
-                    {l.action === "granted" ? "Asignado" : "Revocado"}
-                  </span>
-                </td>
-                <td className="p-3">{ROLE_LABEL[l.role as AppRole] ?? l.role}</td>
-                <td className="p-3 text-xs">{l.target_email}</td>
-                <td className="p-3 text-xs text-muted-foreground">{l.performed_by_email}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="p-3 md:p-0">
+        <ResponsiveTable
+          data={(audit.data ?? []) as any[]}
+          rowKey={(l: any) => l.id}
+          emptyMessage={audit.isLoading ? "Cargando…" : "Sin eventos registrados."}
+          columns={[
+            {
+              key: "usuario",
+              header: "Usuario afectado",
+              primary: true,
+              cell: (l: any) => l.target_email,
+            },
+            {
+              key: "fecha",
+              header: "Fecha",
+              secondary: true,
+              cell: (l: any) => new Date(l.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
+            },
+            {
+              key: "accion",
+              header: "Acción",
+              cell: (l: any) => (
+                <span className={
+                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  (l.action === "granted"
+                    ? "bg-accent/10 text-accent"
+                    : "bg-destructive/10 text-destructive")
+                }>
+                  {l.action === "granted" ? "Asignado" : "Revocado"}
+                </span>
+              ),
+            },
+            {
+              key: "rol",
+              header: "Rol",
+              cell: (l: any) => ROLE_LABEL[l.role as AppRole] ?? l.role,
+            },
+            {
+              key: "por",
+              header: "Realizado por",
+              cell: (l: any) => <span className="text-muted-foreground">{l.performed_by_email}</span>,
+            },
+          ]}
+        />
         </div>
       </section>
     </div>

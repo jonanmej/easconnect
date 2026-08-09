@@ -166,24 +166,47 @@ export function AppShell({ children }: { children: ReactNode }) {
     setMobileNavOpen(false);
   }, [pathname]);
 
-  const sidebarBody = (
+  const buildSidebar = (mode: "full" | "rail") => (
     <>
       <Link
         to="/"
-        className="pl-6 pr-4 pt-5 pb-4 flex items-start justify-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        className={
+          "pt-5 pb-4 flex items-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
+          (mode === "rail"
+            ? "px-2 justify-center lg:pl-6 lg:pr-4 lg:justify-start"
+            : "pl-6 pr-4 justify-start")
+        }
         aria-label="EA Service & Consulting — Ir al inicio"
       >
-        <BrandLogo variant="ea-main" className="h-16 sm:h-20 w-auto object-contain" />
+        <BrandLogo
+          variant="ea-main"
+          className={
+            mode === "rail"
+              ? "h-9 lg:h-20 w-auto object-contain"
+              : "h-16 sm:h-20 w-auto object-contain"
+          }
+        />
       </Link>
 
-      <nav aria-label="Navegación principal" className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
+      <nav
+        aria-label="Navegación principal"
+        className={
+          "flex-1 space-y-1 overflow-y-auto pb-4 " +
+          (mode === "rail" ? "px-2 lg:px-4" : "px-4")
+        }
+      >
         <LayoutGroup id="sidebar-nav">
         {groups.map((group) => {
           const items = group.items;
           if (items.length === 0) return null;
           return (
             <div key={group.title}>
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4">
+              <div
+                className={
+                  "text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4 " +
+                  (mode === "rail" ? "hidden lg:block" : "")
+                }
+              >
                 {group.title}
               </div>
               {items.map((item) => {
@@ -194,8 +217,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={item.to}
                     to={item.to}
                     aria-current={active ? "page" : undefined}
+                    title={mode === "rail" ? item.label : undefined}
                     className={
-                      "relative flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
+                      "relative flex items-center gap-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
+                      (mode === "rail" ? "px-0 justify-center lg:px-3 lg:justify-start " : "px-3 ") +
                       (active
                         ? "text-primary font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground hover:translate-x-0.5 transition-transform")
@@ -203,22 +228,28 @@ export function AppShell({ children }: { children: ReactNode }) {
                   >
                     {active && (
                       <motion.span
-                        layoutId="sidebar-active-pill"
+                        layoutId={`sidebar-active-pill-${mode}`}
                         className="absolute inset-0 rounded-md bg-primary/12 shadow-[inset_3px_0_0_0_var(--color-primary)]"
                         transition={{ type: "spring", stiffness: 380, damping: 32 }}
                         aria-hidden="true"
                       />
                     )}
                     <Icon className={"relative size-[18px] shrink-0 transition-transform " + (active ? "scale-110" : "group-hover:scale-110")} aria-hidden="true" />
-                    <span className="relative flex-1 truncate">{item.label}</span>
+                    <span
+                      className={
+                        "relative flex-1 truncate " + (mode === "rail" ? "hidden lg:block" : "")
+                      }
+                    >
+                      {item.label}
+                    </span>
                     {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
-                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className="relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.sla_vencidos}</span>
+                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className={"relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.sla_vencidos}</span>
                     ) : null}
                     {item.to === "/inventario" && alertas.data?.stock_critico ? (
-                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className="relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive">{alertas.data.stock_critico}</span>
+                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className={"relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.stock_critico}</span>
                     ) : null}
                     {item.to === "/solicitudes" && alertas.data?.solicitudes_estancadas ? (
-                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className="relative text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary">{alertas.data.solicitudes_estancadas}</span>
+                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className={"relative text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.solicitudes_estancadas}</span>
                     ) : null}
                   </Link>
                 );
@@ -229,8 +260,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </LayoutGroup>
       </nav>
 
-      <div className="p-4 border-t border-border">
-        <div className="mb-3">
+      <div className={"border-t border-border " + (mode === "rail" ? "p-2 lg:p-4" : "p-4")}>
+        <div className={"mb-3 " + (mode === "rail" ? "hidden lg:block" : "")}>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
             Marcas asociadas
           </p>
@@ -247,9 +278,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </div>
         </div>
-        <div className="flex items-center gap-3 p-2">
+        <div className={"flex items-center gap-3 p-2 " + (mode === "rail" ? "flex-col lg:flex-row" : "")}>
           <div className="size-8 shrink-0 rounded-full bg-secondary grid place-items-center text-xs font-bold">{initials}</div>
-          <div className="flex-1 min-w-0">
+          <div className={"flex-1 min-w-0 " + (mode === "rail" ? "hidden lg:block" : "")}>
             <p className="text-xs font-semibold truncate">{user?.email}</p>
             <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
               <ShieldCheck className="size-3 shrink-0" />
@@ -267,23 +298,33 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <Link
           to="/completar-perfil"
+          title="Completar perfil"
           className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
         >
           <UserCheck className="size-3" />
-          Completar perfil
+          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Completar perfil</span>
         </Link>
         <button
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
+          title="Sincronizar permisos"
           className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
         >
           <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
-          Sincronizar permisos
+          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Sincronizar permisos</span>
         </button>
       </div>
     </>
   );
+
+  // Barra inferior tipo app nativa: hasta 4 destinos accesibles + "Más".
+  const flatItems = groups.flatMap((g) => g.items);
+  const tabPriority = ["/", "/programacion", "/terreno", "/mis-trabajos", "/trabajos", "/reportes", "/plantas", "/solicitudes"];
+  const tabItems = tabPriority
+    .map((to) => flatItems.find((i) => i.to === to))
+    .filter((i): i is NavItem => Boolean(i))
+    .slice(0, 4);
 
   return (
     <div className="flex h-[100dvh] w-full bg-background text-foreground">
@@ -293,8 +334,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Saltar al contenido
       </a>
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col bg-sidebar safe-bottom">
-        {sidebarBody}
+      <aside className="hidden md:flex w-16 lg:w-64 shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width] duration-200">
+        {buildSidebar("rail")}
       </aside>
 
       <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
@@ -311,11 +352,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Menu className="size-5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
+              <SheetContent side="left" className="p-0 w-[17rem] max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
                 <VisuallyHidden>
                   <SheetTitle>Navegación</SheetTitle>
                 </VisuallyHidden>
-                {sidebarBody}
+                {buildSidebar("full")}
               </SheetContent>
             </Sheet>
             <div className="relative w-full max-w-md min-w-0">
@@ -409,9 +450,49 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none safe-x safe-bottom">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 flex flex-col focus:outline-none safe-x pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0 md:safe-bottom"
+        >
           {children}
         </div>
+
+        {/* Barra de navegación inferior (móvil), estilo app nativa */}
+        <nav
+          aria-label="Navegación rápida"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur-md safe-bottom safe-x no-print"
+        >
+          <div className="grid grid-cols-5">
+            {tabItems.map((item) => {
+              const active = pathname === item.to;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? "page" : undefined}
+                  className={
+                    "flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-[10px] font-medium transition-colors " +
+                    (active ? "text-primary" : "text-muted-foreground active:bg-secondary/60")
+                  }
+                >
+                  <Icon className={"size-5 " + (active ? "scale-110" : "")} aria-hidden="true" />
+                  <span className="w-full truncate text-center leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Abrir más secciones"
+              className="flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-[10px] font-medium text-muted-foreground active:bg-secondary/60"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+              <span className="leading-tight">Más</span>
+            </button>
+          </div>
+        </nav>
       </main>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
