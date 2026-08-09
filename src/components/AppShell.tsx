@@ -31,6 +31,8 @@ import {
   Satellite,
   UserCheck,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -40,6 +42,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
@@ -123,6 +126,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const totalAlertas = ((alertas.data?.sla_vencidos ?? 0) + (alertas.data?.stock_critico ?? 0) + (alertas.data?.solicitudes_estancadas ?? 0));
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = usePersistedState("sidebar.hidden", false, {
+    url: false,
+  });
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -335,7 +341,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Saltar al contenido
       </a>
-      <aside className="hidden md:flex w-16 lg:w-64 shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width] duration-200">
+      <aside
+        className={
+          "hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width,opacity] duration-200 overflow-hidden " +
+          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-64 opacity-100")
+        }
+      >
         {buildSidebar("rail")}
       </aside>
 
@@ -360,6 +371,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {buildSidebar("full")}
               </SheetContent>
             </Sheet>
+            <button
+              type="button"
+              onClick={() => setSidebarHidden(!sidebarHidden)}
+              aria-label={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
+              title={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
+              className="hidden md:flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {sidebarHidden ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
+            </button>
             <div className="relative w-full max-w-md min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <button
