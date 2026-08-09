@@ -82,13 +82,13 @@
   --secondary: oklch(0.97 0.01 250);
   --secondary-foreground: oklch(0.21 0.04 265);
   --muted: oklch(0.97 0.01 250);
-  --muted-foreground: oklch(0.45 0.03 257);
+  --muted-foreground: oklch(0.42 0.03 257);
   /* Emerald accent (operational/ok) */
   --accent: oklch(0.62 0.14 165);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.92 0.01 255);
+  --border: oklch(0.89 0.012 255);
   --input: oklch(0.92 0.01 255);
   --ring: oklch(0.55 0.11 260);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -126,12 +126,12 @@
   --secondary: oklch(0.27 0.03 260);
   --secondary-foreground: oklch(0.97 0.005 250);
   --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.78 0.02 255);
+  --muted-foreground: oklch(0.82 0.02 255);
   --accent: oklch(0.74 0.16 165);
   --accent-foreground: oklch(0.16 0.03 260);
   --destructive: oklch(0.7 0.2 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 20%);
   --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.78 0.11 255);
   --chart-1: oklch(0.488 0.243 264.376);
@@ -260,6 +260,26 @@
   :focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Enlace de salto para navegación por teclado / lector de pantalla. */
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
+    transform: translateY(-200%);
+    background: var(--color-card);
+    color: var(--color-foreground);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    transition: transform 0.15s ease;
+  }
+  .skip-link:focus {
+    transform: translateY(0);
   }
 
   .font-mono {

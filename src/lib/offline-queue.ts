@@ -16,6 +16,8 @@ export type EvidenciaPendiente = {
   descripcion: string | null;
   data_url: string; // image/jpeg base64
   created_at: number;
+  intentos?: number;
+  ultimo_error?: string | null;
 };
 
 function read(): EvidenciaPendiente[] {
@@ -51,6 +53,51 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return await res.blob();
 }
 
+async function subir(item: EvidenciaPendiente): Promise<void> {
+  const blob = await dataUrlToBlob(item.data_url);
+  const path = `trabajos/${item.trabajo_id}/${Date.now()}-${item.id.slice(0, 8)}.jpg`;
+  const up = await supabase.storage.from(BUCKET).upload(path, blob, {
+    contentType: "image/jpeg",
+    upsert: false,
+  });
+  if (up.error) throw up.error;
+  const ins = await supabase.from("trabajo_evidencias").insert({
+    trabajo_id: item.trabajo_id,
+    reporte_diario_id: item.reporte_diario_id ?? null,
+    storage_path: path,
+    descripcion: item.descripcion,
+    categoria: item.categoria ?? "durante",
+  });
+  if (ins.error) throw ins.error;
+}
+
+function marcarError(id: string, msg: string) {
+  write(
+    read().map((i) =>
+      i.id === id ? { ...i, intentos: (i.intentos ?? 0) + 1, ultimo_error: msg } : i,
+    ),
+  );
+}
+
+/** Elimina una evidencia pendiente sin subirla (descartar). */
+export function removePending(id: string) {
+  write(read().filter((i) => i.id !== id));
+}
+
+/** Reintenta una sola evidencia. Devuelve true si se subió. */
+export async function retryPending(id: string): Promise<boolean> {
+  const item = read().find((i) => i.id === id);
+  if (!item) return false;
+  try {
+    await subir(item);
+    removePending(id);
+    return true;
+  } catch (e: any) {
+    marcarError(id, String(e?.message ?? e));
+    return false;
+  }
+}
+
 export async function flushQueue(
   onProgress?: (remaining: number) => void,
 ): Promise<{ subidas: number; errores: number }> {
@@ -59,29 +106,14 @@ export async function flushQueue(
   let errores = 0;
   for (const item of items) {
     try {
-      const blob = await dataUrlToBlob(item.data_url);
-      const path = `trabajos/${item.trabajo_id}/${Date.now()}-${item.id.slice(0, 8)}.jpg`;
-      const up = await supabase.storage.from(BUCKET).upload(path, blob, {
-        contentType: "image/jpeg",
-        upsert: false,
-      });
-      if (up.error) throw up.error;
-      const ins = await supabase
-        .from("trabajo_evidencias")
-        .insert({
-          trabajo_id: item.trabajo_id,
-          reporte_diario_id: item.reporte_diario_id ?? null,
-          storage_path: path,
-          descripcion: item.descripcion,
-          categoria: item.categoria ?? "durante",
-        });
-      if (ins.error) throw ins.error;
+      await subir(item);
       const rest = read().filter((x) => x.id !== item.id);
       write(rest);
       subidas++;
       onProgress?.(rest.length);
     } catch (e) {
       console.warn("Evidencia offline: error al subir", e);
+      marcarError(item.id, String((e as any)?.message ?? e));
       errores++;
     }
   }
