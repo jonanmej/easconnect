@@ -34,6 +34,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { reiniciarApp } from "@/lib/app-update";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
