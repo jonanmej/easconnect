@@ -172,6 +172,16 @@ export type ReporteData = {
     agua_galones?: number | null;
     horas_trabajadas?: number | null;
   }[];
+  /** Desglose opcional por técnico; los totales por día siguen consolidados. */
+  desglose_tecnico?: {
+    fecha: string;
+    folio?: string | null;
+    tecnico: string;
+    paneles_limpiados?: number | null;
+    agua_galones?: number | null;
+    horas_trabajadas?: number | null;
+    avance_pct?: number | null;
+  }[];
   mapas_diarios?: {
     fecha: string;
     folio?: string | null;
