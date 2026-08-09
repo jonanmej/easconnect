@@ -54,6 +54,27 @@ export function removePendingWrite(id: string) {
   write(read().filter((i) => i.id !== id));
 }
 
+/** Reintenta una sola escritura pendiente. Devuelve true si se sincronizó. */
+export async function retryPendingWrite(id: string): Promise<boolean> {
+  if (!isOnline()) return false;
+  const item = read().find((i) => i.id === id);
+  if (!item || item.kind !== "reporte_diario") return false;
+  try {
+    const { upsertReporteDiario } = await import("./reportes-diarios.functions");
+    await upsertReporteDiario({ data: item.payload as any });
+    removePendingWrite(id);
+    return true;
+  } catch (e: any) {
+    const msg = String(e?.message ?? e);
+    write(
+      read().map((i) =>
+        i.id === id ? { ...i, intentos: i.intentos + 1, ultimo_error: msg } : i,
+      ),
+    );
+    return false;
+  }
+}
+
 export function isOnline(): boolean {
   if (typeof navigator === "undefined") return true;
   return navigator.onLine !== false;
