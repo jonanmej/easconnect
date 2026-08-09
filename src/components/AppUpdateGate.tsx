@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -175,6 +175,23 @@ export function AppUpdateGate() {
                 </Button>
               </div>
             </div>
+            <button
+              type="button"
+              aria-label="Buscar actualizaciones"
+              title="Buscar actualizaciones"
+              disabled={snap.estado === "buscando" || snap.estado === "descargando"}
+              onClick={() => {
+                setOculto(false);
+                void buscarActualizacion({ forzar: true });
+              }}
+              className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              {snap.estado === "buscando" || snap.estado === "descargando" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
       )}
