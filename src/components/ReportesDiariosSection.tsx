@@ -87,6 +87,9 @@ export function ReportesDiariosSection({
     onSuccess: async () => {
       toast.success("Reporte diario guardado. Adjunta las fotos del día en «Evidencias de este día» dentro del reporte recién creado.");
       await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      // El consolidado y el ejecutivo se recalculan desde las filas vigentes.
+      qc.invalidateQueries({ queryKey: ["reportes"] });
+      qc.invalidateQueries({ queryKey: ["reporte"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -95,6 +98,8 @@ export function ReportesDiariosSection({
     onSuccess: () => {
       toast.success("Reporte diario eliminado");
       qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      qc.invalidateQueries({ queryKey: ["reportes"] });
+      qc.invalidateQueries({ queryKey: ["reporte"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
