@@ -208,6 +208,7 @@ export async function buscarActualizacion(opciones?: { forzar?: boolean }) {
   // Permitir forzar la verificación incluso cuando ya hay una versión lista,
   // para que el usuario pueda desbloquear un aviso que se quedó pegado.
   if (!opciones?.forzar && estado === "listo") return;
+  if (!opciones?.forzar && !conectividadBuena()) return;
 
   setEstado("buscando");
 
