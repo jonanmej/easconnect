@@ -20,6 +20,7 @@ import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { MapaAvanceDiario } from "@/components/MapaAvanceDiario";
 import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envolverExterno";
+import { consolidarDiarios } from "@/lib/consolidar-diarios";
 
 const BUCKET = "trabajos-evidencia";
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
