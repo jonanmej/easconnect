@@ -217,6 +217,26 @@ export function ReportesDiariosSection({
                         value={c.watts_totales != null ? `${c.watts_totales.toLocaleString("es-CL")} W` : "—"}
                       />
                     </div>
+                    {c.por_tecnico.length > 1 && (
+                      <div className="mt-1.5 border-t border-border pt-1.5">
+                        <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1">
+                          Desglose por técnico (informativo · el total del día es el consolidado)
+                        </p>
+                        <div className="space-y-0.5">
+                          {c.por_tecnico.map((t, i) => (
+                            <div key={t.tecnico_id ?? i} className="flex flex-wrap items-center gap-2 text-[10px]">
+                              <span className="font-medium truncate max-w-[45%]">{t.tecnico}</span>
+                              <span className="text-muted-foreground">Paneles: {t.paneles_limpiados ?? "—"}</span>
+                              <span className="text-muted-foreground">Agua: {t.agua_galones ?? "—"}</span>
+                              <span className="text-muted-foreground">Horas: {t.horas_trabajadas ?? "—"}</span>
+                              <span className="ml-auto font-mono text-primary">
+                                {t.avance_pct != null ? `${t.avance_pct}%` : "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
