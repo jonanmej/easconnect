@@ -52,6 +52,25 @@ export const upsertReporteDiario = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const payload: any = { ...data, tecnico_id: context.userId };
     if (!payload.id) delete payload.id;
+    if (payload.id) {
+      // Solo el autor (o admin/supervisor) puede editar un reporte diario.
+      const { data: prev } = await context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("tecnico_id")
+        .eq("id", payload.id)
+        .maybeSingle();
+      if (prev && (prev as any).tecnico_id !== context.userId) {
+        const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
+          context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+          context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+        ]);
+        if (!esAdmin && !esSup) {
+          throw new Error("Solo puedes editar tus propios reportes diarios.");
+        }
+        // El staff edita conservando la autoría original (no mezcla datos).
+        payload.tecnico_id = (prev as any).tecnico_id;
+      }
+    }
     const { data: row, error } = await context.supabase
       .from("trabajo_reportes_diarios")
       .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id" })
