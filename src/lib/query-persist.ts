@@ -32,7 +32,8 @@ export function startQueryPersistence(queryClient: QueryClient) {
         },
       });
       await persistQueryClient({
-        queryClient,
+        // Cast: puede haber dos copias de query-core en node_modules.
+        queryClient: queryClient as unknown as Parameters<typeof persistQueryClient>[0]["queryClient"],
         persister,
         maxAge: MAX_AGE,
         buster: "v1",
