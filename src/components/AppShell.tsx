@@ -126,6 +126,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const totalAlertas = ((alertas.data?.sla_vencidos ?? 0) + (alertas.data?.stock_critico ?? 0) + (alertas.data?.solicitudes_estancadas ?? 0));
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = usePersistedState("sidebar.hidden", false, {
+    url: false,
+  });
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
