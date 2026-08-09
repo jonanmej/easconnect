@@ -6,6 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   tanstackStart: {
@@ -14,6 +15,38 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    plugins: [mcpPlugin()],
+    plugins: [
+      mcpPlugin(),
+      VitePWA({
+        registerType: "autoUpdate",
+        injectRegister: null,
+        devOptions: { enabled: false },
+        filename: "sw.js",
+        manifest: false,
+        workbox: {
+          navigateFallback: "/",
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/\.mcp/, /^\/lovable\//],
+          globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.mode === "navigate",
+              handler: "NetworkFirst",
+              options: { cacheName: "easc-html", networkTimeoutSeconds: 5 },
+            },
+            {
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                ["style", "script", "worker", "font", "image"].includes(request.destination),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "easc-assets",
+                expiration: { maxEntries: 300, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              },
+            },
+          ],
+        },
+      }),
+    ],
   },
 });
