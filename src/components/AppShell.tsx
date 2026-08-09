@@ -341,7 +341,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Saltar al contenido
       </a>
-      <aside className="hidden md:flex w-16 lg:w-64 shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width] duration-200">
+      <aside
+        className={
+          "hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width,opacity] duration-200 overflow-hidden " +
+          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-64 opacity-100")
+        }
+      >
         {buildSidebar("rail")}
       </aside>
 
@@ -366,6 +371,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {buildSidebar("full")}
               </SheetContent>
             </Sheet>
+            <button
+              type="button"
+              onClick={() => setSidebarHidden(!sidebarHidden)}
+              aria-label={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
+              title={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
+              className="hidden md:flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {sidebarHidden ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
+            </button>
             <div className="relative w-full max-w-md min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <button
