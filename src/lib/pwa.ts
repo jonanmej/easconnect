@@ -35,13 +35,17 @@ async function unregisterAppSw() {
   );
 }
 
-export function registerServiceWorker() {
+export async function registerServiceWorker() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
   if (isBlockedContext()) {
     void unregisterAppSw();
     return;
   }
-  navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch((e) => {
+  try {
+    const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
+    const { observarActualizaciones } = await import("@/lib/app-update");
+    observarActualizaciones(reg);
+  } catch (e) {
     console.warn("[pwa] no se pudo registrar el service worker", e);
-  });
+  }
 }
