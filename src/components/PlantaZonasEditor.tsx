@@ -146,7 +146,7 @@ export function PlantaZonasEditor({
               return;
             }
             const hits = map.queryRenderedFeatures(ev.point, { layers: [`${SRC_ZONAS}-fill`] });
-            const id = hits?.[0]?.properties?.zonaId;
+            const id = (hits?.[0] as any)?.properties?.zonaId as string | undefined;
             if (id) {
               const z = rowsRef.current.find((r: any) => r.id === id);
               if (z) setEditando(z);
