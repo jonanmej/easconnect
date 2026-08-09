@@ -123,6 +123,9 @@ function Reportes() {
   const [filtroPlanta, setFiltroPlanta] = useState<string>("");
   const [filtroAlcance, setFiltroAlcance] = usePersistedState<"todos" | "dia" | "rango">("reportes.filtroAlcance", "todos");
   const [agrupar, setAgrupar] = usePersistedState<"none" | "cliente" | "planta">("reportes.agrupar", "none");
+  // Desglose opcional por técnico dentro del PDF ejecutivo (el total por día
+  // o por rango sigue siendo el consolidado).
+  const [desgloseTecnico, setDesgloseTecnico] = usePersistedState<boolean>("reportes.desgloseTecnico", false);
 
   const plantasFiltradas = useMemo(() => {
     const all = (plantas.data as any[] | undefined) ?? [];
@@ -184,6 +187,7 @@ function Reportes() {
       const firma = await fResp({ data: { reporte_id: id } }).catch(() => null);
       const res = await generarYDescargarPdf({
         ...data,
+        desglose_tecnico: desgloseTecnico ? data.desglose_tecnico ?? [] : undefined,
         modo,
         responsable: firma?.nombre ?? null,
         responsable_cargo: firma?.cargo ?? null,
