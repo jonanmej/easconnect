@@ -37,6 +37,11 @@ export async function sendGmail(opts: {
    * (recuperación de contraseña, invitaciones, credenciales nuevas, etc.).
    */
   bypassPause?: boolean;
+  /**
+   * Categoría de correo automático. Si el administrador la desactivó en
+   * Configuración → Correos automáticos, el envío se omite.
+   */
+  categoria?: import("./email-pause.server").EmailCategoria;
 }) {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
@@ -51,6 +56,12 @@ export async function sendGmail(opts: {
     const { isEmailsPaused } = await import("./email-pause.server");
     if (await isEmailsPaused()) {
       return { ok: false, skipped: true, reason: "correos pausados" };
+    }
+    if (opts.categoria) {
+      const { isEmailCategoriaEnabled } = await import("./email-pause.server");
+      if (!(await isEmailCategoriaEnabled(opts.categoria))) {
+        return { ok: false, skipped: true, reason: `categoría desactivada: ${opts.categoria}` };
+      }
     }
   }
 
