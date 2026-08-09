@@ -34,6 +34,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ import { useAuth } from "@/lib/auth-context";
 import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { reiniciarApp } from "@/lib/app-update";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
@@ -320,6 +322,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
           <span className={mode === "rail" ? "hidden lg:inline" : ""}>Sincronizar permisos</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => void reiniciarApp()}
+          title="Reiniciar app (aplica la última versión publicada)"
+          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+        >
+          <RotateCcw className="size-3" />
+          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Reiniciar app</span>
         </button>
       </div>
     </>
