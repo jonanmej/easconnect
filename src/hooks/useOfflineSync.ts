@@ -29,7 +29,8 @@ export function useOfflineSync() {
     setSincronizando(true);
     try {
       const escrituras = await flushPendingWrites();
-      const fotos = await flushQueue().catch(() => 0);
+      const res = await flushQueue().catch(() => ({ subidas: 0, errores: 0 }));
+      const fotos = res.subidas;
       if (escrituras || fotos) {
         toast.success(
           `Sincronización completa: ${escrituras} reporte${escrituras === 1 ? "" : "s"} y ${fotos} foto${fotos === 1 ? "" : "s"} enviados.`,
