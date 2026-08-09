@@ -66,7 +66,9 @@ export function diasOcupadosTrabajo(t: TrabajoDias, opts: OpcionesDia = {}): str
   let guard = 0;
   while (base.length < dur && guard < dur + 400) {
     guard++;
-    if (criterio === "dias_corridos" || !esNoLaborableSV(cursor)) {
+    // El día de inicio se respeta siempre (emergencias en feriado o fin de
+    // semana); solo los días siguientes saltan los no laborables.
+    if (base.length === 0 || criterio === "dias_corridos" || !esNoLaborableSV(cursor)) {
       base.push(keyFromLocalDate(cursor));
     }
     cursor.setDate(cursor.getDate() + 1);
