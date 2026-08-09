@@ -229,107 +229,117 @@ function UsersPage() {
             {(resets.data ?? []).filter((s: any) => s.estado === "pendiente").length} pendientes
           </span>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Fecha</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Mensaje / IP</th>
-              <th className="text-left p-3">Expira</th>
-              <th className="text-left p-3">Estado</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {resets.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {resets.data?.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin solicitudes.</td></tr>
-            )}
-            {resets.data?.map((s: any) => (
-              <tr key={s.id} className="border-t border-border">
-                <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(s.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="p-3 text-xs">{s.email}</td>
-                <td className="p-3 text-xs text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
+        <ResponsiveTable
+          className="px-0"
+          data={(resets.data ?? []) as any[]}
+          rowKey={(s: any) => s.id}
+          emptyMessage={resets.isLoading ? "Cargando…" : "Sin solicitudes."}
+          columns={[
+            {
+              key: "email",
+              header: "Email",
+              primary: true,
+              cell: (s: any) => s.email,
+            },
+            {
+              key: "fecha",
+              header: "Fecha",
+              secondary: true,
+              cell: (s: any) => new Date(s.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
+            },
+            {
+              key: "mensaje",
+              header: "Mensaje / IP",
+              hideOnMobile: true,
+              cell: (s: any) => (
+                <div className="text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
                   <div className="truncate">{s.mensaje ?? "—"}</div>
                   {s.ip && <div className="text-[10px] font-mono">IP: {s.ip}</div>}
                   {(s.reenvios ?? 0) > 0 && (
                     <div className="text-[10px] text-primary">Reenviada {s.reenvios}×</div>
                   )}
-                </td>
-                <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                </div>
+              ),
+            },
+            {
+              key: "expira",
+              header: "Expira",
+              hideOnMobile: true,
+              cell: (s: any) => (
+                <span className="text-[10px] font-mono text-muted-foreground">
                   {s.expira_at ? new Date(s.expira_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
-                </td>
-                <td className="p-3">
-                  <span className={
-                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
-                    (s.estado === "pendiente"
-                      ? "bg-primary/15 text-primary"
-                      : s.estado === "atendida"
-                        ? "bg-accent/15 text-accent"
-                        : s.estado === "caducada"
-                          ? "bg-destructive/15 text-destructive"
-                          : "bg-muted text-muted-foreground")
-                  }>
-                    {s.estado}
-                  </span>
-                </td>
-                <td className="p-3 text-right">
-                  {s.estado === "pendiente" && s.user_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
-                          resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
-                        }
-                      }}
-                      disabled={resetPass.isPending}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 mr-2"
-                    >
-                      <Mail className="size-3.5" />
-                      Enviar nueva clave
-                    </button>
-                  )}
-                  {s.estado === "atendida" && s.user_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
-                          reenviar.mutate(s.id);
-                        }
-                      }}
-                      disabled={reenviar.isPending}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60 mr-2"
-                      title="Regenera la clave temporal y reenvía el correo"
-                    >
-                      <Send className="size-3.5" />
-                      Reenviar
-                    </button>
-                  )}
-                  {s.estado === "pendiente" && !s.user_id && (
-                    <span className="text-[10px] text-destructive mr-2">Email sin cuenta registrada</span>
-                  )}
-                  {s.estado === "pendiente" && (
-                    <button
-                      type="button"
-                      onClick={() => descartar.mutate(s.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                      title="Descartar"
-                      aria-label="Descartar"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+                </span>
+              ),
+            },
+            {
+              key: "estado",
+              header: "Estado",
+              cell: (s: any) => (
+                <span className={
+                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  (s.estado === "pendiente"
+                    ? "bg-primary/15 text-primary"
+                    : s.estado === "atendida"
+                      ? "bg-accent/15 text-accent"
+                      : s.estado === "caducada"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-muted text-muted-foreground")
+                }>
+                  {s.estado}
+                </span>
+              ),
+            },
+          ]}
+          rowActions={(s: any) => (
+            <>
+              {s.estado === "pendiente" && s.user_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
+                      resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
+                    }
+                  }}
+                  disabled={resetPass.isPending}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <Mail className="size-3.5" />
+                  <span className="hidden sm:inline">Enviar nueva clave</span>
+                </button>
+              )}
+              {s.estado === "atendida" && s.user_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
+                      reenviar.mutate(s.id);
+                    }
+                  }}
+                  disabled={reenviar.isPending}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
+                  title="Regenera la clave temporal y reenvía el correo"
+                >
+                  <Send className="size-3.5" />
+                  <span className="hidden sm:inline">Reenviar</span>
+                </button>
+              )}
+              {s.estado === "pendiente" && !s.user_id && (
+                <span className="text-[10px] text-destructive">Sin cuenta</span>
+              )}
+              {s.estado === "pendiente" && (
+                <button
+                  type="button"
+                  onClick={() => descartar.mutate(s.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Descartar"
+                  aria-label="Descartar"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </>
+          )}
+        />
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">

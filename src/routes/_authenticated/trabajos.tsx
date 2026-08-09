@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { parseConflictoError, formatConflictoMensaje } from "@/lib/conflict-format";
 import {
@@ -439,11 +440,11 @@ function Trabajos() {
           <option value="estado">Estado</option>
         </select>
       </div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 w-full min-w-0 sm:w-auto rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todos los estados</option>
           <option value="programado">Programado</option>
@@ -454,7 +455,7 @@ function Trabajos() {
         <select
           value={plantaFilter}
           onChange={(e) => setPlantaFilter(e.target.value)}
-          className="h-9 max-w-[240px] rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 w-full min-w-0 sm:w-auto sm:max-w-[240px] rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="">Todas las plantas</option>
           {[...((plantas.data as any[] | undefined) ?? [])]
@@ -472,7 +473,7 @@ function Trabajos() {
           <select
             value={tecFilter}
             onChange={(e) => setTecFilter(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-9 w-full min-w-0 sm:w-auto rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">Todos los técnicos</option>
             <option value="__sin__">Sin asignar</option>

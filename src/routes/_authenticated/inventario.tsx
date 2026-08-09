@@ -185,6 +185,73 @@ function Inventario() {
     });
   }
 
+  const itemColumns: ResponsiveColumn<Item>[] = [
+    {
+      key: "sku",
+      header: "SKU",
+      cell: (i) => <span className="font-mono text-xs">{i.sku}</span>,
+    },
+    {
+      key: "nombre",
+      header: "Item",
+      primary: true,
+      cell: (i) => <span className="font-medium">{i.nombre}</span>,
+    },
+    {
+      key: "categoria",
+      header: "Categoría",
+      secondary: true,
+      cell: (i) => <span className="text-xs text-muted-foreground">{catLabel[i.categoria]}</span>,
+    },
+    {
+      key: "ubicacion",
+      header: "Ubicación",
+      cell: (i) => <span className="text-xs font-mono text-muted-foreground">{i.ubicacion ?? "—"}</span>,
+    },
+    {
+      key: "stock",
+      header: "Stock",
+      align: "right",
+      cell: (i) => <span className="font-mono font-semibold">{i.stock_actual} {i.unidad}</span>,
+    },
+    {
+      key: "minimo",
+      header: "Mínimo",
+      align: "right",
+      cell: (i) => <span className="font-mono text-muted-foreground">{i.stock_minimo}</span>,
+    },
+    {
+      key: "estado",
+      header: "Estado",
+      align: "center",
+      cell: (i) =>
+        isLow(i) ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-destructive/10 text-destructive">
+            <AlertTriangle className="size-3" /> Pedir
+          </span>
+        ) : (
+          <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-accent/10 text-accent">OK</span>
+        ),
+    },
+  ];
+
+  const itemRowActions = (i: Item) => (
+    <>
+      <button onClick={() => setMovFor(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Movimiento">
+        <ArrowDownUp className="size-3.5" />
+      </button>
+      {canEdit && <>
+        <button onClick={() => setEditing(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+          <Pencil className="size-3.5" />
+        </button>
+        <button onClick={() => { if (confirm(`Eliminar ${i.sku}?`)) remove.mutate(i.id); }}
+          className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Eliminar">
+          <Trash2 className="size-3.5" />
+        </button>
+      </>}
+    </>
+  );
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
@@ -244,20 +311,20 @@ function Inventario() {
       {list.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
 
       {/* Toolbar de filtros / orden / vista */}
-      <div className="bg-card border border-border rounded-lg p-3 mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="bg-card border border-border rounded-lg p-3 mb-3 grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap md:items-center gap-2">
+        <div className="relative w-full min-w-0 sm:col-span-2 md:flex-1 md:min-w-[220px]">
           <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(0); }}
             placeholder="Buscar por SKU, item o ubicación…"
-            className={inputCls + " pl-8"}
+            className={inputCls + " w-full min-w-0 pl-8"}
           />
         </div>
         <select
           value={catFilter}
           onChange={(e) => { setCatFilter(e.target.value as any); setPage(0); }}
-          className={inputCls + " max-w-[160px]"}
+          className={inputCls + " w-full min-w-0 md:max-w-[160px]"}
           title="Categoría"
         >
           <option value="todas">Todas las categorías</option>
@@ -268,7 +335,7 @@ function Inventario() {
         <select
           value={estadoFilter}
           onChange={(e) => { setEstadoFilter(e.target.value as any); setPage(0); }}
-          className={inputCls + " max-w-[150px]"}
+          className={inputCls + " w-full min-w-0 md:max-w-[150px]"}
           title="Estado"
         >
           <option value="todos">Todos los estados</option>
@@ -278,7 +345,7 @@ function Inventario() {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as any)}
-          className={inputCls + " max-w-[190px]"}
+          className={inputCls + " w-full min-w-0 md:max-w-[190px]"}
           title="Ordenar"
         >
           <option value="critico">Ordenar: crítico primero</option>
@@ -286,138 +353,65 @@ function Inventario() {
           <option value="sku">Ordenar: SKU A–Z</option>
           <option value="stock_asc">Ordenar: stock menor</option>
         </select>
-        <label className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground border border-border rounded-md px-2 h-9 cursor-pointer hover:bg-secondary">
-          <input type="checkbox" checked={agrupar} onChange={(e) => setAgrupar(e.target.checked)} className="size-3" />
-          Agrupar por categoría
+        <label className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground border border-border rounded-md px-2 min-h-11 md:h-9 md:min-h-0 cursor-pointer hover:bg-secondary w-full min-w-0 sm:col-span-2 md:w-auto">
+          <input type="checkbox" checked={agrupar} onChange={(e) => setAgrupar(e.target.checked)} className="size-3 shrink-0" />
+          <span className="truncate">Agrupar por categoría</span>
         </label>
-        <span className="text-[11px] text-muted-foreground ml-auto">
+        <span className="text-[11px] text-muted-foreground sm:col-span-2 md:ml-auto">
           Mostrando {filtered.length} de {items.length}
         </span>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[900px]">
-          <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left">SKU</th>
-              <th className="px-4 py-3 text-left">Item</th>
-              <th className="px-4 py-3 text-left">Categoría</th>
-              <th className="px-4 py-3 text-left">Ubicación</th>
-              <th className="px-4 py-3 text-right">Stock</th>
-              <th className="px-4 py-3 text-right">Mínimo</th>
-              <th className="px-4 py-3 text-center">Estado</th>
-              <th className="px-4 py-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {(agrupar ? [] : paginated).map((i) => {
-              const low = isLow(i);
-              return (
-                <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
-                  <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
-                  <td className="px-4 py-4 font-medium">{i.nombre}</td>
-                  <td className="px-4 py-4 text-xs text-muted-foreground">{catLabel[i.categoria]}</td>
-                  <td className="px-4 py-4 text-xs font-mono text-muted-foreground">{i.ubicacion ?? "—"}</td>
-                  <td className="px-4 py-4 text-right font-mono font-semibold">{i.stock_actual} {i.unidad}</td>
-                  <td className="px-4 py-4 text-right font-mono text-muted-foreground">{i.stock_minimo}</td>
-                  <td className="px-4 py-4 text-center">
-                    {low ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-destructive/10 text-destructive">
-                        <AlertTriangle className="size-3" /> Pedir
-                      </span>
-                    ) : (
-                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-accent/10 text-accent">OK</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="inline-flex gap-1">
-                      <button onClick={() => setMovFor(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Movimiento">
-                        <ArrowDownUp className="size-3.5" />
-                      </button>
-                      {canEdit && <>
-                        <button onClick={() => setEditing(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
-                          <Pencil className="size-3.5" />
-                        </button>
-                        <button onClick={() => { if (confirm(`Eliminar ${i.sku}?`)) remove.mutate(i.id); }}
-                          className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Eliminar">
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </>}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {agrupar && grupos.map(({ cat, rows }) => {
+      <>
+        {!agrupar && (
+          <ResponsiveTable
+            data={paginated}
+            rowKey={(i) => i.id}
+            emptyMessage={items.length === 0 ? "Aún no hay items en bodega." : "Ningún ítem coincide con los filtros."}
+            columns={itemColumns}
+            rowActions={itemRowActions}
+          />
+        )}
+
+        {agrupar && (
+          <div className="space-y-3">
+            {grupos.map(({ cat, rows }) => {
               const isCollapsed = !!collapsed[cat];
               const bajos = rows.filter(isLow).length;
               return (
-                <>
-                  <tr key={`grp-${cat}`} className="bg-secondary/60">
-                    <td colSpan={8} className="px-3 py-2">
-                      <button
-                        onClick={() => setCollapsed((c) => ({ ...c, [cat]: !c[cat] }))}
-                        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground"
-                      >
-                        {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                        {catLabel[cat]}
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          · {rows.length} ítem{rows.length === 1 ? "" : "s"}
-                          {bajos > 0 && <span className="text-destructive"> · {bajos} bajo mínimo</span>}
-                        </span>
-                      </button>
-                    </td>
-                  </tr>
-                  {!isCollapsed && rows.map((i) => {
-                    const low = isLow(i);
-                    return (
-                      <tr key={i.id} className="hover:bg-secondary/50 transition-colors">
-                        <td className="px-4 py-4 font-mono text-xs">{i.sku}</td>
-                        <td className="px-4 py-4 font-medium">{i.nombre}</td>
-                        <td className="px-4 py-4 text-xs text-muted-foreground">{catLabel[i.categoria]}</td>
-                        <td className="px-4 py-4 text-xs font-mono text-muted-foreground">{i.ubicacion ?? "—"}</td>
-                        <td className="px-4 py-4 text-right font-mono font-semibold">{i.stock_actual} {i.unidad}</td>
-                        <td className="px-4 py-4 text-right font-mono text-muted-foreground">{i.stock_minimo}</td>
-                        <td className="px-4 py-4 text-center">
-                          {low ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-destructive/10 text-destructive">
-                              <AlertTriangle className="size-3" /> Pedir
-                            </span>
-                          ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-accent/10 text-accent">OK</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="inline-flex gap-1">
-                            <button onClick={() => setMovFor(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Movimiento">
-                              <ArrowDownUp className="size-3.5" />
-                            </button>
-                            {canEdit && <>
-                              <button onClick={() => setEditing(i)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
-                                <Pencil className="size-3.5" />
-                              </button>
-                              <button onClick={() => { if (confirm(`Eliminar ${i.sku}?`)) remove.mutate(i.id); }}
-                                className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Eliminar">
-                                <Trash2 className="size-3.5" />
-                              </button>
-                            </>}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </>
+                <div key={cat} className="rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => setCollapsed((c) => ({ ...c, [cat]: !c[cat] }))}
+                    className="w-full min-h-11 md:min-h-0 bg-secondary/60 px-3 py-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground text-left"
+                  >
+                    {isCollapsed ? <ChevronRight className="size-3.5 shrink-0" /> : <ChevronDown className="size-3.5 shrink-0" />}
+                    <span className="truncate">{catLabel[cat]}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                      · {rows.length} ítem{rows.length === 1 ? "" : "s"}
+                      {bajos > 0 && <span className="text-destructive"> · {bajos} bajo mínimo</span>}
+                    </span>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="p-2 bg-card">
+                      <ResponsiveTable
+                        data={rows}
+                        rowKey={(i) => i.id}
+                        columns={itemColumns}
+                        rowActions={itemRowActions}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
-            {!list.isLoading && filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-xs text-muted-foreground">
+            {filtered.length === 0 && (
+              <p className="px-4 py-6 text-center text-xs text-muted-foreground">
                 {items.length === 0 ? "Aún no hay items en bodega." : "Ningún ítem coincide con los filtros."}
-              </td></tr>
+              </p>
             )}
-          </tbody>
-        </table>
-      </div>
-
+          </div>
+        )}
+      </>
       {!agrupar && filtered.length > PAGE_SIZE && (
         <div className="flex items-center justify-between mt-3 text-xs">
           <span className="text-muted-foreground">

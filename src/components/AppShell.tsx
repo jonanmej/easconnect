@@ -352,11 +352,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Menu className="size-5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
+              <SheetContent side="left" className="p-0 w-[17rem] max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
                 <VisuallyHidden>
                   <SheetTitle>Navegación</SheetTitle>
                 </VisuallyHidden>
-                {sidebarBody}
+                {buildSidebar("full")}
               </SheetContent>
             </Sheet>
             <div className="relative w-full max-w-md min-w-0">
