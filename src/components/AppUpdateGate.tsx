@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Loader2, RefreshCw, RotateCcw, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   instalarActualizacion,
   limpiarError,
   onUpdateEstado,
+  reiniciarApp,
   type UpdateSnapshot,
 } from "@/lib/app-update";
 import { safeStorage } from "@/lib/safe-storage";
@@ -162,6 +163,13 @@ export function AppUpdateGate() {
                   ) : (
                     "Instalar actualización"
                   )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void reiniciarApp()}
+                >
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reiniciar app
                 </Button>
                 <Button
                   size="sm"
