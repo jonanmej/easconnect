@@ -54,6 +54,13 @@ export function AppUpdateGate() {
 
   // Búsqueda de actualizaciones: ingreso, cambio de pestaña, reconexión, sesión e intervalo.
   useEffect(() => {
+    // Limpia el parámetro técnico que usa el reinicio forzado.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("_r")) {
+      url.searchParams.delete("_r");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+
     void buscarActualizacion();
 
     const alVolver = () => {
