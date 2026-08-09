@@ -489,46 +489,50 @@ function UsersPage() {
             {purge.isPending ? "Limpiando…" : "Limpiar desvinculados"}
           </button>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Fecha</th>
-              <th className="text-left p-3">Acción</th>
-              <th className="text-left p-3">Rol</th>
-              <th className="text-left p-3">Usuario afectado</th>
-              <th className="text-left p-3">Realizado por</th>
-            </tr>
-          </thead>
-          <tbody>
-            {audit.isLoading && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {audit.data?.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">Sin eventos registrados.</td></tr>
-            )}
-            {audit.data?.map((l) => (
-              <tr key={l.id} className="border-t border-border">
-                <td className="p-3 text-xs text-muted-foreground font-mono">
-                  {new Date(l.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="p-3">
-                  <span className={
-                    "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
-                    (l.action === "granted"
-                      ? "bg-accent/10 text-accent"
-                      : "bg-destructive/10 text-destructive")
-                  }>
-                    {l.action === "granted" ? "Asignado" : "Revocado"}
-                  </span>
-                </td>
-                <td className="p-3">{ROLE_LABEL[l.role as AppRole] ?? l.role}</td>
-                <td className="p-3 text-xs">{l.target_email}</td>
-                <td className="p-3 text-xs text-muted-foreground">{l.performed_by_email}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="p-3 md:p-0">
+        <ResponsiveTable
+          data={(audit.data ?? []) as any[]}
+          rowKey={(l: any) => l.id}
+          emptyMessage={audit.isLoading ? "Cargando…" : "Sin eventos registrados."}
+          columns={[
+            {
+              key: "usuario",
+              header: "Usuario afectado",
+              primary: true,
+              cell: (l: any) => l.target_email,
+            },
+            {
+              key: "fecha",
+              header: "Fecha",
+              secondary: true,
+              cell: (l: any) => new Date(l.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }),
+            },
+            {
+              key: "accion",
+              header: "Acción",
+              cell: (l: any) => (
+                <span className={
+                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  (l.action === "granted"
+                    ? "bg-accent/10 text-accent"
+                    : "bg-destructive/10 text-destructive")
+                }>
+                  {l.action === "granted" ? "Asignado" : "Revocado"}
+                </span>
+              ),
+            },
+            {
+              key: "rol",
+              header: "Rol",
+              cell: (l: any) => ROLE_LABEL[l.role as AppRole] ?? l.role,
+            },
+            {
+              key: "por",
+              header: "Realizado por",
+              cell: (l: any) => <span className="text-muted-foreground">{l.performed_by_email}</span>,
+            },
+          ]}
+        />
         </div>
       </section>
     </div>

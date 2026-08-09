@@ -224,9 +224,9 @@ function Trabajos() {
   }, [alerta, list.data]);
 
   useEffect(() => {
-    if (highlightId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (!highlightId) return;
+    const el = document.querySelector(`[data-row-key="${highlightId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightId, currentPage]);
 
   // Cargar equipos asignados cuando se abre un trabajo existente
@@ -526,11 +526,6 @@ function Trabajos() {
             ),
           },
         ]}
-        onRowClick={(t) => {
-          if (highlightId === t.id && highlightRef.current) {
-            // no-op: el resaltado se maneja vía scroll effect existente
-          }
-        }}
         rowActions={
           canEdit
             ? (t) => (

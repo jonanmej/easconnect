@@ -83,6 +83,7 @@ export function ResponsiveTable<T>({
           return (
             <div
               key={rowKey(row, i)}
+              data-row-key={rowKey(row, i)}
               role={interactive ? "button" : undefined}
               tabIndex={interactive ? 0 : undefined}
               onClick={interactive ? () => onRowClick?.(row) : undefined}
@@ -163,6 +164,7 @@ export function ResponsiveTable<T>({
               return (
                 <tr
                   key={rowKey(row, i)}
+                  data-row-key={rowKey(row, i)}
                   onClick={interactive ? () => onRowClick?.(row) : undefined}
                   className={cn(
                     "border-t border-border",

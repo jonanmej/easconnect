@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { Field, inputCls } from "@/components/RecordDialog";
 import {
   listOrdenesCompra,
@@ -87,8 +88,12 @@ function OrdenesCompraPage() {
         title="Órdenes de compra"
         description="Ciclo completo: borrador, envío, recepciones parciales y total, con costo promedio ponderado."
         actions={
-          <>
-            <select value={filtro} onChange={(e) => setFiltro(e.target.value as any)} className={inputCls}>
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+            <select
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value as any)}
+              className={`${inputCls} w-full min-w-0 min-h-11 sm:min-h-9 sm:w-auto`}
+            >
               <option value="todas">Todos los estados</option>
               <option value="borrador">Borrador</option>
               <option value="enviada">Enviada</option>
@@ -99,12 +104,12 @@ function OrdenesCompraPage() {
             {canManage && (
               <button
                 onClick={() => { setPrefill(null); setNuevaOpen(true); }}
-                className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md"
+                className="min-h-11 sm:h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md w-full sm:w-auto"
               >
                 <Plus className="size-3.5" /> Nueva orden
               </button>
             )}
-          </>
+          </div>
         }
       />
 
