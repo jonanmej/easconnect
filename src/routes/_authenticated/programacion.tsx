@@ -65,12 +65,15 @@ function isWorkday(d: Date) {
   return !esNoLaborableSV(d);
 }
 function addWorkdays(start: Date, workdays: number) {
-  // Devuelve las N fechas laborables consecutivas (L-V) desde start (inclusive).
+  // Devuelve las N fechas que ocupa la OT desde start (inclusive).
+  // El día de inicio SIEMPRE se respeta tal como está programado, incluso si es
+  // sábado, domingo o feriado (casos de emergencia autorizada); solo los días
+  // siguientes saltan los no laborables.
   const out: Date[] = [];
   const d = new Date(start);
   d.setHours(0, 0, 0, 0);
   while (out.length < workdays) {
-    if (isWorkday(d)) out.push(new Date(d));
+    if (out.length === 0 || isWorkday(d)) out.push(new Date(d));
     d.setDate(d.getDate() + 1);
   }
   return out;
