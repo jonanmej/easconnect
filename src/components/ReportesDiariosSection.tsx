@@ -118,6 +118,19 @@ export function ReportesDiariosSection({
   const diariosArr = (diarios.data as any[] | undefined) ?? [];
   const pdfsArr = (pdfs.data as any[] | undefined) ?? [];
 
+  // Consolidación en vivo: cuando varios técnicos reportan el mismo día,
+  // se suman cantidades, se promedian mediciones y se toma el mayor avance.
+  const nombrePorId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of diariosArr) if (d.tecnico_id) m.set(d.tecnico_id, d.tecnico_nombre ?? "Técnico");
+    return m;
+  }, [diariosArr]);
+  const consolidados = useMemo(
+    () => consolidarDiarios(diariosArr as any[], nombrePorId).slice().reverse(),
+    [diariosArr, nombrePorId],
+  );
+  const hayMultiples = consolidados.some((c) => c.aportes > 1);
+
   return (
     <div className="pt-2 border-t border-border space-y-3">
       {hint && (
@@ -161,6 +174,48 @@ export function ReportesDiariosSection({
               panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
               duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
             />
+          )}
+          {consolidados.length > 0 && (
+            <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2.5">
+              <p className="text-[10px] uppercase font-bold text-primary mb-1.5">
+                Consolidado por día {hayMultiples ? "(varios técnicos unificados)" : ""}
+              </p>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Cada técnico registra su reporte por separado; así se unifican los datos para el
+                reporte ejecutivo diario o de varios días.
+              </p>
+              <div className="space-y-1.5">
+                {consolidados.map((c) => (
+                  <div key={c.fecha} className="rounded border border-border bg-card px-2 py-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[11px] text-muted-foreground">{c.fecha}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground/70">
+                        {c.aportes} {c.aportes === 1 ? "aporte" : "aportes"}
+                      </span>
+                      {c.tecnicos.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {c.tecnicos.join(" · ")}
+                        </span>
+                      )}
+                      {c.avance_pct != null && (
+                        <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {c.avance_pct}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mt-1.5">
+                      <Stat label="Paneles (suma)" value={c.paneles_limpiados ?? "—"} />
+                      <Stat label="Agua gal (suma)" value={c.agua_galones ?? "—"} />
+                      <Stat label="Horas (suma)" value={c.horas_trabajadas ?? "—"} />
+                      <Stat
+                        label="Watts totales"
+                        value={c.watts_totales != null ? `${c.watts_totales.toLocaleString("es-CL")} W` : "—"}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
           <div className="space-y-1.5 mt-2">
             {diarios.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
