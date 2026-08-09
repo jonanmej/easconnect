@@ -148,6 +148,9 @@ export function ResponsiveTable<T>({
   searchPlaceholder = "Buscar…",
   filters,
   swipeActions,
+  pageSize = 50,
+  virtualize,
+  label,
 }: ResponsiveTableProps<T>) {
   const padY = density === "compact" ? "py-2" : "py-3";
   const [q, setQ] = usePersistedState<string>(`tabla.${searchKey ?? "sin-clave"}.q`, "", {
@@ -159,6 +162,38 @@ export function ResponsiveTable<T>({
     if (!buscando || !term) return data;
     return data.filter((r) => (searchValue?.(r) ?? "").toLowerCase().includes(term));
   }, [data, buscando, term, searchValue]);
+
+  // ===== Paginación inteligente: se agranda el lote al llegar al final =====
+  const [shown, setShown] = useState(pageSize);
+  useEffect(() => {
+    setShown(pageSize);
+  }, [pageSize, term, data]);
+  const visibles = useMemo(() => rows.slice(0, shown), [rows, shown]);
+  const hayMas = visibles.length < rows.length;
+  const sentinela = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinela.current;
+    if (!el || !hayMas || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setShown((s) => s + pageSize);
+      },
+      { rootMargin: "400px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hayMas, pageSize, visibles.length]);
+
+  // ===== Virtualización de tarjetas en móvil =====
+  const listaRef = useRef<HTMLDivElement | null>(null);
+  const virtualizando = (virtualize ?? visibles.length > 40) && virtualize !== false;
+  const virtualizer = useVirtualizer({
+    count: virtualizando ? visibles.length : 0,
+    getScrollElement: () => (typeof window === "undefined" ? null : document.scrollingElement as HTMLElement),
+    estimateSize: () => 132,
+    overscan: 8,
+    scrollMargin: listaRef.current?.offsetTop ?? 0,
+  });
 
   const toolbar =
     buscando || filters ? (
