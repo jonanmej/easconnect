@@ -93,7 +93,7 @@ export async function snapshotZonas(zonas: ZonaSnapshot[]): Promise<string | nul
  * Devuelve la imagen y los datos de proyección Web Mercator usados.
  */
 export type BasemapZonas = {
-  tiles: { src: string; x: number; y: number }[];
+  tiles: { src: string; x: number; y: number; w?: number; h?: number }[];
   w: number;
   h: number;
   z: number;
@@ -160,7 +160,7 @@ export async function basemapZonas(
     const buf = Buffer.from(await res.arrayBuffer());
     if (!buf.length) return null;
     return {
-      tiles: [{ src: `data:image/png;base64,${buf.toString("base64")}`, x: 0, y: 0 }],
+      tiles: [{ src: `data:image/png;base64,${buf.toString("base64")}`, x: 0, y: 0, w: W, h: H }],
       w: W,
       h: H,
       z,
