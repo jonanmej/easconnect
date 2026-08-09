@@ -44,6 +44,15 @@ export type DiarioConsolidado = {
   hallazgos: string | null;
   bloqueos: string | null;
   observaciones: string | null;
+  /** Desglose individual por técnico del mismo día (no altera el total). */
+  por_tecnico: {
+    tecnico_id: string | null;
+    tecnico: string;
+    paneles_limpiados: number | null;
+    agua_galones: number | null;
+    horas_trabajadas: number | null;
+    avance_pct: number | null;
+  }[];
 };
 
 const num = (v: unknown): number | null => {
@@ -96,7 +105,15 @@ export function consolidarDiarios(
   nombrePorId: Map<string, string> = new Map(),
 ): DiarioConsolidado[] {
   const grupos = new Map<string, DiarioCrudo[]>();
+  // Deduplicación defensiva: una sola fila por (trabajo, fecha, técnico).
+  // Si llega más de una (caché desactualizada, edición concurrente), se
+  // conserva la última recibida para no sumar dos veces el mismo aporte.
+  const unicos = new Map<string, DiarioCrudo>();
   for (const d of diarios) {
+    const k = `${d.trabajo_id ?? "—"}|${String(d.fecha ?? "")}|${d.tecnico_id ?? d.id ?? "—"}`;
+    unicos.set(k, d);
+  }
+  for (const d of unicos.values()) {
     const key = `${d.trabajo_id ?? "—"}|${String(d.fecha ?? "")}`;
     const arr = grupos.get(key) ?? [];
     arr.push(d);
@@ -125,6 +142,14 @@ export function consolidarDiarios(
       fecha: String(base.fecha ?? ""),
       tecnicos,
       aportes: filas.length,
+      por_tecnico: filas.map((f) => ({
+        tecnico_id: f.tecnico_id ?? null,
+        tecnico: (f.tecnico_id ? nombrePorId.get(f.tecnico_id) : null) ?? "Técnico",
+        paneles_limpiados: num(f.paneles_limpiados),
+        agua_galones: num(f.agua_galones),
+        horas_trabajadas: num(f.horas_trabajadas),
+        avance_pct: num(f.avance_pct),
+      })),
       avance_pct: maximo(filas.map((f) => num(f.avance_pct))),
       paneles_limpiados: paneles,
       agua_galones: sumar(filas.map((f) => num(f.agua_galones))),

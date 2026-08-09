@@ -1211,6 +1211,19 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         agua_galones: d.agua_galones,
         horas_trabajadas: d.horas_trabajadas,
       })),
+      // Desglose individual por técnico (opcional en el PDF): los totales por
+      // día siguen siendo los consolidados de arriba; esto solo los detalla.
+      desglose_tecnico: diariosConsolidadosPdf.flatMap((d) =>
+        d.por_tecnico.map((t) => ({
+          fecha: d.fecha,
+          folio: d.trabajo_id ? folioPorTrabajoPdf.get(d.trabajo_id) ?? null : null,
+          tecnico: t.tecnico,
+          paneles_limpiados: t.paneles_limpiados,
+          agua_galones: t.agua_galones,
+          horas_trabajadas: t.horas_trabajadas,
+          avance_pct: t.avance_pct,
+        })),
+      ),
       mapas_diarios: mapasDiarios,
       responsable_id: (rep as any).generado_por ?? null,
       reporte_id: (rep as any).id,

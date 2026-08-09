@@ -172,6 +172,16 @@ export type ReporteData = {
     agua_galones?: number | null;
     horas_trabajadas?: number | null;
   }[];
+  /** Desglose opcional por técnico; los totales por día siguen consolidados. */
+  desglose_tecnico?: {
+    fecha: string;
+    folio?: string | null;
+    tecnico: string;
+    paneles_limpiados?: number | null;
+    agua_galones?: number | null;
+    horas_trabajadas?: number | null;
+    avance_pct?: number | null;
+  }[];
   mapas_diarios?: {
     fecha: string;
     folio?: string | null;
@@ -809,6 +819,93 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               </View>
             </View>
           </>
+          );
+        })()}
+        {data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
+          const filas = data.desglose_tecnico;
+          const cols = [
+            { key: "fecha", head: "Fecha", ancho: 16, align: "left" as const },
+            { key: "folio", head: "Folio", ancho: 18, align: "left" as const, mono: true },
+            { key: "tecnico", head: "Técnico", ancho: 26, align: "left" as const, multilinea: true },
+            { key: "paneles", head: "Paneles", ancho: 10, align: "center" as const },
+            { key: "agua", head: "Agua gal", ancho: 10, align: "center" as const },
+            { key: "horas", head: "Horas", ancho: 10, align: "center" as const },
+            { key: "avance", head: "Meta diaria", ancho: 10, align: "center" as const, bold: true },
+          ];
+          const valor = (d: (typeof filas)[number], key: string) => {
+            switch (key) {
+              case "fecha": return d.fecha ?? "—";
+              case "folio": return d.folio ?? "—";
+              case "tecnico": return d.tecnico ?? "—";
+              case "paneles": return d.paneles_limpiados ?? "—";
+              case "agua": return d.agua_galones ?? "—";
+              case "horas": return d.horas_trabajadas ?? "—";
+              default: return d.avance_pct == null ? "—" : `${d.avance_pct}%`;
+            }
+          };
+          const esc = escalaTabla(
+            ANCHO_UTIL,
+            cols.map((c) => ({
+              ancho: c.ancho,
+              head: c.head,
+              mono: c.mono,
+              multilinea: c.multilinea,
+              textos: filas.map((d) => valor(d, c.key)),
+            })),
+            { min: 5.4, max: 8.5 },
+          );
+          return (
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>Desglose por técnico</Text>
+              <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
+                Aporte individual de cada técnico por jornada. Es un detalle informativo: los totales
+                del día y del rango son los consolidados del cuadro anterior y no se duplican aquí.
+              </Text>
+              <View style={styles.table}>
+                <View style={styles.tr}>
+                  {cols.map((c) => (
+                    <Text
+                      key={c.key}
+                      style={[
+                        styles.thSm,
+                        {
+                          width: `${c.ancho}%`,
+                          textAlign: c.align,
+                          fontSize: esc.fontSizeHead,
+                          paddingVertical: esc.padV,
+                          paddingHorizontal: esc.padH,
+                        },
+                      ]}
+                    >
+                      {c.head}
+                    </Text>
+                  ))}
+                </View>
+                {filas.map((d, i, arr) => (
+                  <View key={i} style={i === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
+                    {cols.map((c) => (
+                      <Text
+                        key={c.key}
+                        style={[
+                          styles.tdSm,
+                          {
+                            width: `${c.ancho}%`,
+                            textAlign: c.align,
+                            fontSize: esc.fontSize,
+                            paddingVertical: esc.padV,
+                            paddingHorizontal: esc.padH,
+                            ...(c.mono ? { fontFamily: "Courier" } : {}),
+                            ...(c.bold ? { fontFamily: FONT_BOLD } : {}),
+                          },
+                        ]}
+                      >
+                        {valor(d, c.key)}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </View>
           );
         })()}
         <PageFooter data={data} />

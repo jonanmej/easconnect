@@ -52,6 +52,25 @@ export const upsertReporteDiario = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const payload: any = { ...data, tecnico_id: context.userId };
     if (!payload.id) delete payload.id;
+    if (payload.id) {
+      // Solo el autor (o admin/supervisor) puede editar un reporte diario.
+      const { data: prev } = await context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("tecnico_id")
+        .eq("id", payload.id)
+        .maybeSingle();
+      if (prev && (prev as any).tecnico_id !== context.userId) {
+        const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
+          context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+          context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+        ]);
+        if (!esAdmin && !esSup) {
+          throw new Error("Solo puedes editar tus propios reportes diarios.");
+        }
+        // El staff edita conservando la autoría original (no mezcla datos).
+        payload.tecnico_id = (prev as any).tecnico_id;
+      }
+    }
     const { data: row, error } = await context.supabase
       .from("trabajo_reportes_diarios")
       .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id" })
@@ -78,10 +97,29 @@ export const eliminarReporteDiario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    const { data: prev } = await context.supabase
+      .from("trabajo_reportes_diarios")
+      .select("id, trabajo_id, fecha, tecnico_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!prev) throw new Error("El reporte diario ya no existe.");
+    if ((prev as any).tecnico_id !== context.userId) {
+      const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
+        context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+        context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+      ]);
+      if (!esAdmin && !esSup) throw new Error("Solo puedes borrar tus propios reportes diarios.");
+    }
     const { error } = await context.supabase
       .from("trabajo_reportes_diarios").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    // El consolidado se recalcula desde las filas vigentes, así que al borrar
+    // este aporte el ejecutivo del día/rango queda actualizado sin duplicar.
+    return {
+      ok: true,
+      trabajo_id: (prev as any).trabajo_id as string,
+      fecha: (prev as any).fecha as string,
+    };
   });
 
 /** PDFs subidos (caso st.solar@easervice.app) */
