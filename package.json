@@ -66,6 +66,7 @@
     "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "mapbox-gl": "^3.28.1",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
@@ -85,10 +86,11 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
     "@capacitor/cli": "^8.4.2",
+    "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.9.1",
     "@types/google.maps": "^3.65.2",
+    "@types/mapbox-gl": "^3.5.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
