@@ -288,3 +288,35 @@ async function limpiarCaches() {
 export function limpiarError() {
   if (estado === "error") setEstado("idle");
 }
+
+/**
+ * Reinicio completo de la app: activa cualquier versión en espera, limpia las
+ * cachés del build anterior y vuelve a cargar desde el servidor. Es la salida
+ * segura cuando el aviso de "nueva versión" no se puede aplicar de otra forma.
+ */
+export async function reiniciarApp(): Promise<void> {
+  try {
+    if (soporteSW()) {
+      const reg = registro ?? (await navigator.serviceWorker.getRegistration(SW_URL));
+      if (reg?.waiting) {
+        const listo = new Promise<boolean>((resolve) => {
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(true), {
+            once: true,
+          });
+          window.setTimeout(() => resolve(false), 4000);
+        });
+        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        await listo;
+      }
+    }
+    await limpiarCaches();
+    const { safeStorage } = await import("@/lib/safe-storage");
+    const huella = await huellaRemota();
+    if (huella) safeStorage.setItem(HUELLA_KEY, huella);
+  } catch {
+    /* ignorado: el reinicio debe ocurrir siempre */
+  } finally {
+    setEstado("idle");
+    window.location.replace(`${window.location.pathname}${window.location.search}`);
+  }
+}
