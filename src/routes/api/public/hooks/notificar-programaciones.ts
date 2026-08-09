@@ -142,7 +142,7 @@ export const Route = createFileRoute("/api/public/hooks/notificar-programaciones
 
             if (destEmail) {
               try {
-                const id = await sendEmail({ from: FROM, to: destEmail, subject: asunto, html });
+                const id = await sendEmail({ from: FROM, to: destEmail, subject: asunto, html, categoria: "avisos_programacion" });
                 resultados.push({ canal: "email", estado: "enviado", id });
               } catch (e: any) {
                 resultados.push({ canal: "email", estado: "error", error: String(e.message ?? e) });

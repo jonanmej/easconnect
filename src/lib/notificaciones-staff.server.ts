@@ -63,7 +63,7 @@ export async function notificarStaff(opts: {
         userIds.map((uid) => {
           const to = emailById.get(uid);
           if (!to) return Promise.resolve();
-          return sendGmail({ to, subject, html }).catch(() => undefined);
+          return sendGmail({ to, subject, html, categoria: "staff_interno" }).catch(() => undefined);
         }),
       );
     } catch (e) {

@@ -350,6 +350,7 @@ export const generarProgramacionAnual = createServerFn({ method: "POST" })
             to: cliente.email,
             subject: `[EA Service Connect] Programación ${c.servicio} ${c.anio} - ${(planta as any).nombre}`,
             html,
+            categoria: "contratos",
           });
         }
       } catch (e) {
@@ -565,6 +566,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
           to: cliente.email,
           subject: `[EA Service Connect] Reprogramación confirmada - ${(planta as any).nombre}`,
           html,
+          categoria: "contratos",
         });
       }
     } catch (e) {

@@ -425,7 +425,7 @@ export const enviarRutaEmail = createServerFn({ method: "POST" })
     );
 
     const resultados = await Promise.all(
-      data.destinatarios.map((to) => sendGmail({ to, subject: data.asunto, html })),
+      data.destinatarios.map((to) => sendGmail({ to, subject: data.asunto, html, categoria: "rutas" })),
     );
     const enviados = resultados.filter((r) => r.ok).length;
     const fallidos = resultados.length - enviados;

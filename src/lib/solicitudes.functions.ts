@@ -46,7 +46,7 @@ async function notificarStaffNuevaSolicitud(opts: {
     );
     await Promise.allSettled(
       emails.map((to) =>
-        sendGmail({ to, subject: "EA Service Connect · Nueva solicitud de visita", html }),
+        sendGmail({ to, subject: "EA Service Connect · Nueva solicitud de visita", html, categoria: "solicitudes_visita" }),
       ),
     );
   } catch (e) {
@@ -82,7 +82,7 @@ async function notificarClienteResultado(opts: {
         </p>
       `,
     );
-    await sendGmail({ to: email, subject: `EA Service Connect · ${titulo}`, html });
+    await sendGmail({ to: email, subject: `EA Service Connect · ${titulo}`, html, categoria: "solicitudes_visita" });
   } catch (e) {
     console.warn("[solicitudes] No se pudo notificar al cliente", e);
   }
