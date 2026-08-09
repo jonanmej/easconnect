@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MapPinned } from "lucide-react";
-import { cargarGoogleMaps } from "@/lib/gmaps-loader";
+import { cargarMapbox, ESTILO_SATELITE, ajustarA, type MapboxNS } from "@/lib/mapbox-loader";
 import { listZonasDeTrabajo, listZonasDiario, marcarZonaDiario } from "@/lib/planta-zonas.functions";
 
 type Estado = "en_proceso" | "completada" | null;
@@ -14,7 +14,9 @@ const ESTILO: Record<string, { stroke: string; fill: string; label: string }> = 
   pendiente: { stroke: "#94a3b8", fill: "#94a3b8", label: "Pendiente" },
 };
 
-/** Mapa satelital donde el técnico marca el avance del día por zona. */
+const SRC = "zonas-avance";
+
+/** Mapa satelital (Mapbox) donde el técnico marca el avance del día por zona. */
 export function MapaAvanceDiario({
   trabajoId,
   reporteDiarioId,
@@ -47,7 +49,9 @@ export function MapaAvanceDiario({
 
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
-  const polysRef = useRef<Map<string, any>>(new Map());
+  const mbRef = useRef<MapboxNS | null>(null);
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,55 +59,91 @@ export function MapaAvanceDiario({
   const marcas = new Map<string, Estado>(
     ((marcasQ.data as any[] | undefined) ?? []).map((m) => [m.zona_id, m.estado as Estado]),
   );
+  const marcasRef = useRef(marcas);
+  marcasRef.current = marcas;
 
   useEffect(() => {
     if (!zonas.length) return;
     let cancelado = false;
-    cargarGoogleMaps()
-      .then((google) => {
+    cargarMapbox()
+      .then((mb) => {
         if (cancelado || !mapEl.current || mapRef.current) return;
-        mapRef.current = new google.maps.Map(mapEl.current, {
-          zoom: 18,
-          center: { lat: 13.7, lng: -89.2 },
-          mapTypeId: "hybrid",
-          streetViewControl: false,
-          fullscreenControl: true,
+        mbRef.current = mb;
+        const map = new mb.Map({
+          container: mapEl.current,
+          style: ESTILO_SATELITE,
+          center: [-89.2, 13.7],
+          zoom: 16,
+          attributionControl: false,
         });
-        setListo(true);
+        map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("load", () => {
+          map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+          map.addLayer({
+            id: `${SRC}-fill`,
+            type: "fill",
+            source: SRC,
+            paint: { "fill-color": ["get", "fill"], "fill-opacity": ["get", "opacity"] },
+          });
+          map.addLayer({
+            id: `${SRC}-line`,
+            type: "line",
+            source: SRC,
+            paint: { "line-color": ["get", "stroke"], "line-width": 2 },
+          });
+          map.on("click", `${SRC}-fill`, (ev: any) => {
+            if (readOnlyRef.current) return;
+            const f = ev.features?.[0];
+            if (!f) return;
+            ciclar(f.properties.zonaId, marcasRef.current.get(f.properties.zonaId) ?? null);
+          });
+          map.on("mouseenter", `${SRC}-fill`, () => {
+            if (!readOnlyRef.current) map.getCanvas().style.cursor = "pointer";
+          });
+          map.on("mouseleave", `${SRC}-fill`, () => {
+            map.getCanvas().style.cursor = "";
+          });
+          mapRef.current = map;
+          setListo(true);
+        });
       })
       .catch((e) => setError(e.message));
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, [zonas.length]);
 
   useEffect(() => {
-    if (!listo || !mapRef.current) return;
-    const google = (window as any).google;
-    polysRef.current.forEach((p) => p.setMap(null));
-    polysRef.current.clear();
-    const bounds = new google.maps.LatLngBounds();
-    let hay = false;
+    const map = mapRef.current;
+    const mb = mbRef.current;
+    if (!listo || !map || !mb) return;
+    const features: any[] = [];
+    const todos: { lat: number; lng: number }[] = [];
     zonas.forEach((z) => {
       const pts = Array.isArray(z.poligono) ? z.poligono : [];
       if (pts.length < 3) return;
       const est = marcas.get(z.id) ?? null;
       const style = ESTILO[est ?? "pendiente"];
-      const poly = new google.maps.Polygon({
-        paths: pts,
-        strokeColor: style.stroke,
-        strokeWeight: 2,
-        fillColor: style.fill,
-        fillOpacity: est ? 0.5 : 0.15,
-        map: mapRef.current,
-        clickable: !readOnly,
+      const ring = pts.map((p: any) => [Number(p.lng), Number(p.lat)]);
+      ring.push(ring[0]);
+      features.push({
+        type: "Feature",
+        properties: {
+          zonaId: z.id,
+          stroke: style.stroke,
+          fill: style.fill,
+          opacity: est ? 0.5 : 0.15,
+        },
+        geometry: { type: "Polygon", coordinates: [ring] },
       });
-      if (!readOnly) {
-        poly.addListener("click", () => ciclar(z.id, est));
-      }
-      polysRef.current.set(z.id, poly);
-      pts.forEach((p: any) => { bounds.extend(p); hay = true; });
+      pts.forEach((p: any) => todos.push({ lat: Number(p.lat), lng: Number(p.lng) }));
     });
-    if (hay) mapRef.current.fitBounds(bounds, 40);
-  }, [listo, zonas, marcasQ.data, readOnly]);
+    map.getSource(SRC)?.setData({ type: "FeatureCollection", features });
+    ajustarA(mb, map, todos, 40);
+  }, [listo, zonas, marcasQ.data]);
 
   function ciclar(zonaId: string, actual: Estado) {
     const siguiente: Estado = actual === null ? "en_proceso" : actual === "en_proceso" ? "completada" : null;
@@ -131,7 +171,7 @@ export function MapaAvanceDiario({
       </div>
       <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
         {error && (
-          <div className="absolute inset-0 grid place-items-center p-4 text-center text-xs text-destructive">
+          <div className="absolute inset-0 grid place-items-center p-4 text-center text-xs text-destructive z-10">
             No se pudo cargar el mapa: {error}
           </div>
         )}
