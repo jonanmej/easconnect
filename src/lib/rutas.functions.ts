@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/mapbox";
 
 /** Oficina EA Service & Consulting — punto de salida fijo. */
 export const OFICINA_ORIGEN = {
@@ -18,7 +18,8 @@ export type RutaAlternativa = {
   distanciaTexto: string;
   duracionSegundos: number;
   duracionTexto: string;
-  polyline: string;
+  /** Trazado de la ruta como pares [lng, lat]. */
+  coordenadas: [number, number][];
   warnings: string[];
 };
 
@@ -29,7 +30,7 @@ export type ComputeRutasResult = {
 };
 
 function fmtDistancia(m: number): string {
-  if (m < 1000) return `${m} m`;
+  if (m < 1000) return `${Math.round(m)} m`;
   return `${(m / 1000).toFixed(1)} km`;
 }
 
@@ -43,12 +44,20 @@ function fmtDuracion(s: number): string {
 
 function requireKeys() {
   const lovable = process.env.LOVABLE_API_KEY;
-  const gmaps = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovable || !gmaps) {
-    throw new Error("Credenciales de Google Maps no disponibles en el servidor");
+  const mapbox = process.env.MAPBOX_API_KEY;
+  if (!lovable || !mapbox) {
+    throw new Error("Credenciales de Mapbox no disponibles en el servidor");
   }
-  return { lovable, gmaps };
+  return { lovable, mapbox };
 }
+
+/** Perfil de enrutamiento de Mapbox equivalente a cada medio de transporte. */
+const PERFIL_MAPBOX: Record<string, string> = {
+  DRIVE: "driving-traffic",
+  TWO_WHEELER: "driving",
+  WALK: "walking",
+  BICYCLE: "cycling",
+};
 
 const inputSchema = z
   .object({
@@ -66,99 +75,96 @@ export const computeRutas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<ComputeRutasResult> => {
-    const { lovable, gmaps } = requireKeys();
+    const { lovable, mapbox } = requireKeys();
+    const headers = {
+      Authorization: `Bearer ${lovable}`,
+      "X-Connection-Api-Key": mapbox,
+    };
 
-    // 1) Resolver destino (geocoding si vino como texto)
+    // 1) Resolver destino (geocoding de Mapbox si vino como texto)
     let destLat = data.destinoLat;
     let destLng = data.destinoLng;
     let destLabel = data.destinoTexto ?? "";
 
     if (typeof destLat !== "number" || typeof destLng !== "number") {
-      const geoResp = await fetch(
-        `${GATEWAY_URL}/maps/api/geocode/json?address=${encodeURIComponent(
-          data.destinoTexto ?? "",
-        )}&region=sv&language=es`,
-        {
-          headers: {
-            Authorization: `Bearer ${lovable}`,
-            "X-Connection-Api-Key": gmaps,
-          },
-        },
-      );
+      const q = new URLSearchParams({
+        q: data.destinoTexto ?? "",
+        country: "sv",
+        language: "es",
+        limit: "1",
+        proximity: `${OFICINA_ORIGEN.lng},${OFICINA_ORIGEN.lat}`,
+      });
+      const geoResp = await fetch(`${GATEWAY_URL}/search/geocode/v6/forward?${q.toString()}`, { headers });
       if (!geoResp.ok) {
         const text = await geoResp.text();
         throw new Error(`Geocoding falló (${geoResp.status}): ${text.slice(0, 200)}`);
       }
       const geo = (await geoResp.json()) as {
-        status: string;
-        results: Array<{
-          formatted_address: string;
-          geometry: { location: { lat: number; lng: number } };
+        features?: Array<{
+          properties?: { full_address?: string; name?: string; place_formatted?: string };
+          geometry?: { coordinates?: [number, number] };
         }>;
       };
-      if (geo.status !== "OK" || !geo.results.length) {
-        throw new Error("No se encontró la dirección de destino");
-      }
-      const top = geo.results[0];
-      destLat = top.geometry.location.lat;
-      destLng = top.geometry.location.lng;
-      destLabel = top.formatted_address;
+      const top = geo.features?.[0];
+      const coords = top?.geometry?.coordinates;
+      if (!top || !coords) throw new Error("No se encontró la dirección de destino");
+      destLng = Number(coords[0]);
+      destLat = Number(coords[1]);
+      destLabel =
+        top.properties?.full_address ||
+        [top.properties?.name, top.properties?.place_formatted].filter(Boolean).join(", ") ||
+        destLabel;
     }
 
-    // 2) Routes API — pedir rutas alternativas
-    const routesResp = await fetch(`${GATEWAY_URL}/routes/directions/v2:computeRoutes`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovable}`,
-        "X-Connection-Api-Key": gmaps,
-        "Content-Type": "application/json",
-        "X-Goog-FieldMask":
-          "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.description,routes.warnings,routes.routeLabels",
-      },
-      body: JSON.stringify({
-        origin: { location: { latLng: { latitude: OFICINA_ORIGEN.lat, longitude: OFICINA_ORIGEN.lng } } },
-        destination: { location: { latLng: { latitude: destLat, longitude: destLng } } },
-        travelMode: data.modo,
-        routingPreference: data.modo === "DRIVE" ? "TRAFFIC_AWARE" : undefined,
-        computeAlternativeRoutes: true,
-        languageCode: "es-SV",
-        units: "METRIC",
-      }),
+    // 2) Directions API — rutas alternativas
+    const perfil = PERFIL_MAPBOX[data.modo] ?? "driving";
+    const coordsPath = `${OFICINA_ORIGEN.lng},${OFICINA_ORIGEN.lat};${destLng},${destLat}`;
+    const rq = new URLSearchParams({
+      alternatives: "true",
+      geometries: "geojson",
+      overview: "full",
+      language: "es",
+      steps: "false",
     });
-
+    const routesResp = await fetch(
+      `${GATEWAY_URL}/directions/v5/mapbox/${perfil}/${coordsPath}?${rq.toString()}`,
+      { headers },
+    );
     if (!routesResp.ok) {
       const text = await routesResp.text();
-      throw new Error(`Routes API falló (${routesResp.status}): ${text.slice(0, 300)}`);
+      throw new Error(`Directions API falló (${routesResp.status}): ${text.slice(0, 300)}`);
     }
 
     const payload = (await routesResp.json()) as {
+      code?: string;
+      message?: string;
       routes?: Array<{
-        distanceMeters?: number;
-        duration?: string;
-        polyline?: { encodedPolyline?: string };
-        description?: string;
-        warnings?: string[];
-        routeLabels?: string[];
+        distance?: number;
+        duration?: number;
+        weight_name?: string;
+        geometry?: { coordinates?: [number, number][] };
+        legs?: Array<{ summary?: string }>;
       }>;
     };
+    if (payload.code && payload.code !== "Ok") {
+      throw new Error(payload.message || `Directions API: ${payload.code}`);
+    }
 
     const rutas: RutaAlternativa[] = (payload.routes ?? [])
-      .filter((r) => r.polyline?.encodedPolyline)
+      .filter((r) => (r.geometry?.coordinates?.length ?? 0) > 1)
       .map((r, i) => {
-        const secs = r.duration ? parseInt(String(r.duration).replace("s", ""), 10) || 0 : 0;
-        const meters = r.distanceMeters ?? 0;
-        const labels = r.routeLabels ?? [];
-        const isDefault = labels.includes("DEFAULT_ROUTE");
-        const resumen = r.description || (isDefault ? "Ruta recomendada" : `Alternativa ${i}`);
+        const secs = Math.round(Number(r.duration ?? 0));
+        const meters = Math.round(Number(r.distance ?? 0));
+        const summary = (r.legs ?? []).map((l) => l.summary).filter(Boolean).join(" · ");
         return {
           index: i,
-          resumen,
+          resumen: summary || (i === 0 ? "Ruta recomendada" : `Alternativa ${i}`),
           distanciaMetros: meters,
           distanciaTexto: fmtDistancia(meters),
           duracionSegundos: secs,
           duracionTexto: fmtDuracion(secs),
-          polyline: r.polyline!.encodedPolyline!,
-          warnings: r.warnings ?? [],
+          coordenadas: r.geometry!.coordinates! as [number, number][],
+          warnings: [],
         };
       });
 

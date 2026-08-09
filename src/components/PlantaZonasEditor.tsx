@@ -3,7 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw } from "lucide-react";
-import { cargarGoogleMaps, centroDe } from "@/lib/gmaps-loader";
+import {
+  cargarMapbox, centroDe, ajustarA, ESTILO_SATELITE, type MapboxNS,
+} from "@/lib/mapbox-loader";
 import {
   listZonasPlanta,
   upsertZonaPlanta,
@@ -13,8 +15,10 @@ import {
 type Punto = { lat: number; lng: number };
 
 const COLORES = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#14b8a6"];
+const SRC_ZONAS = "zonas-planta";
+const SRC_DIBUJO = "zonas-dibujo";
 
-/** Editor de zonas (polígonos) sobre la vista satelital de una planta. */
+/** Editor de zonas (polígonos) sobre la vista satelital de Mapbox. */
 export function PlantaZonasEditor({
   planta,
   onClose,
@@ -34,10 +38,8 @@ export function PlantaZonasEditor({
 
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
-  const shapesRef = useRef<Map<string, any>>(new Map());
-  const nuevoRef = useRef<any>(null);
-  const previewRef = useRef<any>(null);
-  const clickListenerRef = useRef<any>(null);
+  const mbRef = useRef<MapboxNS | null>(null);
+  const modoDibujoRef = useRef(false);
 
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
@@ -47,6 +49,8 @@ export function PlantaZonasEditor({
   const [puntosDibujo, setPuntosDibujo] = useState<Punto[]>([]);
 
   const rows = (zonas.data as any[] | undefined) ?? [];
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
 
   const save = useMutation({
     mutationFn: (v: any) => fSave({ data: v }),
@@ -67,103 +71,161 @@ export function PlantaZonasEditor({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function limpiarPreview() {
-    if (previewRef.current) { previewRef.current.setMap(null); previewRef.current = null; }
-    if (clickListenerRef.current) { clickListenerRef.current.remove(); clickListenerRef.current = null; }
-  }
-
   function limpiarBorrador() {
-    if (nuevoRef.current) { nuevoRef.current.setMap(null); nuevoRef.current = null; }
-    limpiarPreview();
     setBorrador(null);
     setPuntosDibujo([]);
     setModoDibujo(false);
+    modoDibujoRef.current = false;
   }
 
   useEffect(() => {
     let cancelado = false;
-    cargarGoogleMaps()
-      .then(async (google) => {
-        if (cancelado || !mapEl.current) return;
-        const center =
+    cargarMapbox()
+      .then((mb) => {
+        if (cancelado || !mapEl.current || mapRef.current) return;
+        mbRef.current = mb;
+        const center: [number, number] =
           planta.latitud != null && planta.longitud != null
-            ? { lat: Number(planta.latitud), lng: Number(planta.longitud) }
-            : { lat: 13.7, lng: -89.2 };
-        mapRef.current = new google.maps.Map(mapEl.current, {
-          zoom: planta.latitud != null ? 18 : 8,
+            ? [Number(planta.longitud), Number(planta.latitud)]
+            : [-89.2, 13.7];
+        const map = new mb.Map({
+          container: mapEl.current,
+          style: ESTILO_SATELITE,
           center,
-          mapTypeId: "hybrid",
-          streetViewControl: false,
-          tilt: 0,
+          zoom: planta.latitud != null ? 18 : 8,
+          attributionControl: false,
         });
-        setListo(true);
+        map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("load", () => {
+          const vacio = { type: "FeatureCollection", features: [] } as any;
+          map.addSource(SRC_ZONAS, { type: "geojson", data: vacio });
+          map.addLayer({
+            id: `${SRC_ZONAS}-fill`,
+            type: "fill",
+            source: SRC_ZONAS,
+            paint: { "fill-color": ["get", "color"], "fill-opacity": 0.25 },
+          });
+          map.addLayer({
+            id: `${SRC_ZONAS}-line`,
+            type: "line",
+            source: SRC_ZONAS,
+            paint: { "line-color": ["get", "color"], "line-width": 2 },
+          });
+          map.addSource(SRC_DIBUJO, { type: "geojson", data: vacio });
+          map.addLayer({
+            id: `${SRC_DIBUJO}-fill`,
+            type: "fill",
+            source: SRC_DIBUJO,
+            filter: ["==", ["geometry-type"], "Polygon"],
+            paint: { "fill-color": "#22c55e", "fill-opacity": 0.3 },
+          });
+          map.addLayer({
+            id: `${SRC_DIBUJO}-line`,
+            type: "line",
+            source: SRC_DIBUJO,
+            paint: { "line-color": "#22c55e", "line-width": 3 },
+          });
+          map.addLayer({
+            id: `${SRC_DIBUJO}-pts`,
+            type: "circle",
+            source: SRC_DIBUJO,
+            filter: ["==", ["geometry-type"], "Point"],
+            paint: {
+              "circle-radius": 5,
+              "circle-color": "#ffffff",
+              "circle-stroke-color": "#22c55e",
+              "circle-stroke-width": 2,
+            },
+          });
+
+          map.on("click", (ev: any) => {
+            if (modoDibujoRef.current) {
+              const { lng, lat } = ev.lngLat;
+              setPuntosDibujo((actuales) => [...actuales, { lat, lng }]);
+              return;
+            }
+            const hits = map.queryRenderedFeatures(ev.point, { layers: [`${SRC_ZONAS}-fill`] });
+            const id = (hits?.[0] as any)?.properties?.zonaId as string | undefined;
+            if (id) {
+              const z = rowsRef.current.find((r: any) => r.id === id);
+              if (z) setEditando(z);
+            }
+          });
+          mapRef.current = map;
+          setListo(true);
+        });
       })
       .catch((e) => setError(e.message));
     return () => {
       cancelado = true;
-      limpiarPreview();
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
   }, [planta.id, planta.latitud, planta.longitud]);
 
   // Pinta las zonas guardadas.
   useEffect(() => {
-    if (!listo || !mapRef.current) return;
-    const google = (window as any).google;
-    shapesRef.current.forEach((s) => s.setMap(null));
-    shapesRef.current.clear();
-    const bounds = new google.maps.LatLngBounds();
-    let hay = false;
+    const map = mapRef.current;
+    const mb = mbRef.current;
+    if (!listo || !map || !mb) return;
+    const features: any[] = [];
+    const todos: Punto[] = [];
     rows.forEach((z) => {
       const pts: Punto[] = Array.isArray(z.poligono) ? z.poligono : [];
       if (pts.length < 3) return;
-      const poly = new google.maps.Polygon({
-        paths: pts,
-        strokeColor: z.color || "#22c55e",
-        strokeWeight: 2,
-        fillColor: z.color || "#22c55e",
-        fillOpacity: 0.25,
-        map: mapRef.current,
+      const ring = pts.map((p) => [Number(p.lng), Number(p.lat)]);
+      ring.push(ring[0]);
+      features.push({
+        type: "Feature",
+        properties: { zonaId: z.id, color: z.color || "#22c55e" },
+        geometry: { type: "Polygon", coordinates: [ring] },
       });
-      poly.addListener("click", () => setEditando(z));
-      shapesRef.current.set(z.id, poly);
-      pts.forEach((p) => { bounds.extend(p); hay = true; });
+      pts.forEach((p) => todos.push(p));
     });
-    if (hay && planta.latitud == null) mapRef.current.fitBounds(bounds, 60);
+    map.getSource(SRC_ZONAS)?.setData({ type: "FeatureCollection", features });
+    if (todos.length && planta.latitud == null) ajustarA(mb, map, todos, 60);
   }, [listo, rows, planta.latitud]);
 
+  // Cursor y trazo del dibujo en curso / borrador.
   useEffect(() => {
-    if (!modoDibujo || !listo || !mapRef.current) return;
-    const google = (window as any).google;
-    mapRef.current.setOptions({ draggableCursor: "crosshair", gestureHandling: "greedy" });
-    clickListenerRef.current = mapRef.current.addListener("click", (ev: any) => {
-      const latLng = ev.latLng;
-      if (!latLng) return;
-      setPuntosDibujo((actuales) => [...actuales, { lat: latLng.lat(), lng: latLng.lng() }]);
-    });
-    return () => {
-      if (clickListenerRef.current) { clickListenerRef.current.remove(); clickListenerRef.current = null; }
-      mapRef.current?.setOptions({ draggableCursor: null, gestureHandling: "auto" });
-    };
-  }, [modoDibujo, listo]);
-
-  useEffect(() => {
-    if (!listo || !mapRef.current) return;
-    const google = (window as any).google;
-    if (previewRef.current) { previewRef.current.setMap(null); previewRef.current = null; }
-    if (puntosDibujo.length === 0) return;
-    previewRef.current = new google.maps.Polyline({
-      path: puntosDibujo,
-      strokeColor: "#22c55e",
-      strokeWeight: 3,
-      strokeOpacity: 0.95,
-      map: mapRef.current,
-    });
-  }, [listo, puntosDibujo]);
+    const map = mapRef.current;
+    if (!listo || !map) return;
+    map.getCanvas().style.cursor = modoDibujo ? "crosshair" : "";
+    const pts = borrador ?? puntosDibujo;
+    const features: any[] = [];
+    if (pts.length) {
+      features.push(
+        ...pts.map((p) => ({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        })),
+      );
+      if (borrador && pts.length >= 3) {
+        const ring = pts.map((p) => [p.lng, p.lat]);
+        ring.push(ring[0]);
+        features.push({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Polygon", coordinates: [ring] },
+        });
+      } else if (pts.length >= 2) {
+        features.push({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: pts.map((p) => [p.lng, p.lat]) },
+        });
+      }
+    }
+    map.getSource(SRC_DIBUJO)?.setData({ type: "FeatureCollection", features });
+  }, [listo, puntosDibujo, borrador, modoDibujo]);
 
   function dibujar() {
     if (!mapRef.current) return;
     limpiarBorrador();
     setModoDibujo(true);
+    modoDibujoRef.current = true;
     toast.message("Toca el mapa para marcar los vértices de la zona. Finaliza cuando tengas al menos 3 puntos.");
   }
 
@@ -172,22 +234,10 @@ export function PlantaZonasEditor({
       toast.error("Marca al menos 3 puntos para formar una zona.");
       return;
     }
-    const google = (window as any).google;
-    if (nuevoRef.current) nuevoRef.current.setMap(null);
-    limpiarPreview();
-    const poly = new google.maps.Polygon({
-      paths: puntosDibujo,
-      strokeColor: "#22c55e",
-      strokeWeight: 2,
-      fillColor: "#22c55e",
-      fillOpacity: 0.3,
-      editable: true,
-      map: mapRef.current,
-    });
-    nuevoRef.current = poly;
     setBorrador(puntosDibujo);
     setPuntosDibujo([]);
     setModoDibujo(false);
+    modoDibujoRef.current = false;
     setEditando(null);
     toast.success("Zona marcada. Completa los datos y guarda.");
   }
@@ -199,9 +249,7 @@ export function PlantaZonasEditor({
   function guardarBorrador(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const pts = nuevoRef.current
-      ? nuevoRef.current.getPath().getArray().map((p: any) => ({ lat: p.lat(), lng: p.lng() }))
-      : borrador;
+    const pts = borrador;
     if (!pts || pts.length < 3) { toast.error("Dibuja primero la zona en el mapa."); return; }
     save.mutate({
       planta_id: planta.id,
@@ -249,7 +297,7 @@ export function PlantaZonasEditor({
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] overflow-hidden">
           <div className="relative bg-secondary/40 min-h-[320px]">
             {error && (
-              <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-destructive">
+              <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-destructive z-10">
                 No se pudo cargar el mapa: {error}
               </div>
             )}
@@ -354,8 +402,7 @@ export function PlantaZonasEditor({
                     onClick={() => {
                       setEditando(z);
                       const c = centroDe(z.poligono ?? []);
-                      mapRef.current?.panTo(c);
-                      mapRef.current?.setZoom(19);
+                      mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 19, duration: 400 });
                     }}
                     className="size-7 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground"
                     aria-label="Editar"

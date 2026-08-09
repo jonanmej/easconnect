@@ -1,4 +1,3 @@
-/// <reference types="google.maps" />
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,6 +12,7 @@ import {
   enviarRutaEmail, OFICINA_ORIGEN,
   type ComputeRutasResult, type RutaAlternativa, type DestinoOT, type RecipienteRuta,
 } from "@/lib/rutas.functions";
+import { cargarMapbox, ESTILO_CALLES, type MapboxNS } from "@/lib/mapbox-loader";
 
 export const Route = createFileRoute("/_authenticated/rutas")({
   component: RutasPage,
@@ -30,45 +30,6 @@ export const Route = createFileRoute("/_authenticated/rutas")({
   },
   notFoundComponent: () => <div className="p-8 text-sm">No encontrado</div>,
 });
-
-const BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
-const TRACKING_ID = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
-
-declare global {
-  interface Window {
-    google?: typeof google;
-    __initSolarosMap?: () => void;
-  }
-}
-
-let mapsLoader: Promise<typeof google> | null = null;
-function loadGoogleMaps(): Promise<typeof google> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (window.google?.maps) return Promise.resolve(window.google);
-  if (mapsLoader) return mapsLoader;
-  if (!BROWSER_KEY) return Promise.reject(new Error("Falta clave del navegador de Google Maps"));
-  mapsLoader = new Promise((resolve, reject) => {
-    window.__initSolarosMap = () => {
-      if (window.google?.maps) resolve(window.google);
-      else reject(new Error("Google Maps no se inicializó"));
-    };
-    const params = new URLSearchParams({
-      key: BROWSER_KEY,
-      libraries: "geometry",
-      loading: "async",
-      callback: "__initSolarosMap",
-      language: "es",
-      region: "SV",
-    });
-    if (TRACKING_ID) params.set("channel", TRACKING_ID);
-    const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
-    s.async = true;
-    s.onerror = () => reject(new Error("No se pudo cargar Google Maps"));
-    document.head.appendChild(s);
-  });
-  return mapsLoader;
-}
 
 const COLORES = ["#1d4ed8", "#16a34a", "#ea580c", "#9333ea", "#dc2626"];
 
@@ -294,79 +255,104 @@ function RutaCard({ ruta, color, activa, onSelect }: { ruta: RutaAlternativa; co
 
 function MapaRutas({ resultado, seleccion }: { resultado: ComputeRutasResult | null; seleccion: number }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const polysRef = useRef<google.maps.Polyline[]>([]);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const mapRef = useRef<any>(null);
+  const mbRef = useRef<MapboxNS | null>(null);
+  const markersRef = useRef<any[]>([]);
+  const capasRef = useRef<string[]>([]);
+  const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Init map once
   useEffect(() => {
     let cancelled = false;
-    loadGoogleMaps()
-      .then((g) => {
-        if (cancelled || !ref.current) return;
-        mapRef.current = new g.maps.Map(ref.current, {
-          center: { lat: OFICINA_ORIGEN.lat, lng: OFICINA_ORIGEN.lng },
+    cargarMapbox()
+      .then((mb) => {
+        if (cancelled || !ref.current || mapRef.current) return;
+        mbRef.current = mb;
+        const map = new mb.Map({
+          container: ref.current,
+          style: ESTILO_CALLES,
+          center: [OFICINA_ORIGEN.lng, OFICINA_ORIGEN.lat],
           zoom: 12,
-          mapTypeControl: true,
-          mapTypeId: g.maps.MapTypeId.ROADMAP,
-          streetViewControl: false,
-          fullscreenControl: true,
+          attributionControl: false,
         });
-        markersRef.current.push(
-          new g.maps.Marker({
-            position: { lat: OFICINA_ORIGEN.lat, lng: OFICINA_ORIGEN.lng },
-            map: mapRef.current,
-            title: "Oficina EA Service & Consulting",
-            label: { text: "O", color: "#fff", fontWeight: "700" },
-          }),
-        );
+        map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("load", () => {
+          new mb.Marker({ color: "#1d4ed8" })
+            .setLngLat([OFICINA_ORIGEN.lng, OFICINA_ORIGEN.lat])
+            .setPopup(new mb.Popup({ offset: 12 }).setText("Oficina EA Service & Consulting"))
+            .addTo(map);
+          mapRef.current = map;
+          setListo(true);
+        });
       })
       .catch((e: Error) => setError(e.message));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, []);
 
-  // Draw routes
   useEffect(() => {
-    const g = window.google;
     const map = mapRef.current;
-    if (!g || !map || !resultado) return;
+    const mb = mbRef.current;
+    if (!listo || !map || !mb || !resultado) return;
 
-    polysRef.current.forEach((p) => p.setMap(null));
-    polysRef.current = [];
-    // Drop existing destination marker (keep origin = index 0)
-    markersRef.current.slice(1).forEach((m) => m.setMap(null));
-    markersRef.current = markersRef.current.slice(0, 1);
+    capasRef.current.forEach((id) => {
+      if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(id)) map.removeSource(id);
+    });
+    capasRef.current = [];
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-    const bounds = new g.maps.LatLngBounds();
-    bounds.extend({ lat: resultado.origen.lat, lng: resultado.origen.lng });
-    bounds.extend({ lat: resultado.destino.lat, lng: resultado.destino.lng });
-
-    resultado.rutas.forEach((r) => {
-      const path = g.maps.geometry.encoding.decodePath(r.polyline);
+    // Dibuja primero las alternativas y al final la ruta activa (queda encima).
+    const orden = [...resultado.rutas].sort((a, b) =>
+      (a.index === seleccion ? 1 : 0) - (b.index === seleccion ? 1 : 0),
+    );
+    orden.forEach((r) => {
+      const id = `ruta-${r.index}`;
       const activa = r.index === seleccion;
-      const poly = new g.maps.Polyline({
-        path,
-        map,
-        strokeColor: COLORES[r.index % COLORES.length],
-        strokeOpacity: activa ? 0.95 : 0.45,
-        strokeWeight: activa ? 6 : 4,
-        zIndex: activa ? 10 : 1,
+      map.addSource(id, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: r.coordenadas },
+        },
       });
-      polysRef.current.push(poly);
+      map.addLayer({
+        id,
+        type: "line",
+        source: id,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": COLORES[r.index % COLORES.length],
+          "line-opacity": activa ? 0.95 : 0.45,
+          "line-width": activa ? 6 : 4,
+        },
+      });
+      capasRef.current.push(id);
     });
 
     markersRef.current.push(
-      new g.maps.Marker({
-        position: { lat: resultado.destino.lat, lng: resultado.destino.lng },
-        map,
-        title: resultado.destino.label,
-        label: { text: "D", color: "#fff", fontWeight: "700" },
-      }),
+      new mb.Marker({ color: "#dc2626" })
+        .setLngLat([resultado.destino.lng, resultado.destino.lat])
+        .setPopup(new mb.Popup({ offset: 12 }).setText(resultado.destino.label))
+        .addTo(map),
     );
 
-    map.fitBounds(bounds, 64);
-  }, [resultado, seleccion]);
+    const bounds = new mb.LngLatBounds(
+      [resultado.origen.lng, resultado.origen.lat],
+      [resultado.origen.lng, resultado.origen.lat],
+    );
+    bounds.extend([resultado.destino.lng, resultado.destino.lat]);
+    (resultado.rutas.find((r) => r.index === seleccion) ?? resultado.rutas[0])?.coordenadas.forEach((c) =>
+      bounds.extend(c),
+    );
+    map.fitBounds(bounds, { padding: 64, duration: 500 });
+  }, [listo, resultado, seleccion]);
 
   if (error) {
     return (

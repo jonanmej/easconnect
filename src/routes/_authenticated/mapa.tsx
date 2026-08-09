@@ -6,12 +6,16 @@ import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { listPlantas } from "@/lib/operations.functions";
 import { MapPin, Satellite, Map as MapIcon } from "lucide-react";
+import {
+  cargarMapbox, ajustarA, ESTILO_SATELITE, ESTILO_SATELITE_PURO, ESTILO_CALLES,
+  type MapboxNS,
+} from "@/lib/mapbox-loader";
 
 export const Route = createFileRoute("/_authenticated/mapa")({
   head: () => ({
     meta: [
-      { title: "Mapa de plantas · EA Service Connect" },
-      { name: "description", content: "Ubicación satelital de todas las plantas registradas." },
+      { title: "Mapa de plantas \u00b7 EA Service Connect" },
+      { name: "description", content: "Ubicaci\u00f3n satelital de todas las plantas registradas." },
     ],
   }),
   component: MapaPage,
@@ -19,47 +23,22 @@ export const Route = createFileRoute("/_authenticated/mapa")({
   notFoundComponent: () => <div className="p-8 text-sm text-muted-foreground">No encontrado.</div>,
 });
 
-declare global {
-  interface Window {
-    __eaInitMap?: () => void;
-  }
-}
-const gmaps = (): any => (typeof window !== "undefined" ? (window as any).google : undefined);
-
-function loadGoogleMaps(): Promise<any> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (gmaps()?.maps) return Promise.resolve(gmaps());
-  const existing = document.getElementById("gmaps-js") as HTMLScriptElement | null;
-  if (existing) {
-    return new Promise((resolve, reject) => {
-      const timer = setInterval(() => {
-        if (gmaps()?.maps) { clearInterval(timer); resolve(gmaps()); }
-      }, 100);
-      setTimeout(() => { clearInterval(timer); reject(new Error("timeout")); }, 15000);
-    });
-  }
-  return new Promise((resolve, reject) => {
-    const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
-    const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
-    if (!key) { reject(new Error("Falta clave de Google Maps")); return; }
-    window.__eaInitMap = () => resolve(gmaps());
-    const s = document.createElement("script");
-    s.id = "gmaps-js";
-    s.async = true;
-    s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&callback=__eaInitMap${channel ? `&channel=${channel}` : ""}`;
-    s.onerror = () => reject(new Error("No se pudo cargar Google Maps"));
-    document.body.appendChild(s);
-  });
-}
+type Vista = "satellite" | "hybrid" | "roadmap";
+const ESTILOS: Record<Vista, string> = {
+  hybrid: ESTILO_SATELITE,
+  satellite: ESTILO_SATELITE_PURO,
+  roadmap: ESTILO_CALLES,
+};
 
 function MapaPage() {
   const fPlantas = useServerFn(listPlantas);
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const mbRef = useRef<MapboxNS | null>(null);
   const markersRef = useRef<any[]>([]);
-  const [tipo, setTipo] = usePersistedState<"satellite" | "hybrid" | "roadmap">("mapa.tipo", "hybrid");
+  const [listo, setListo] = useState(false);
+  const [tipo, setTipo] = usePersistedState<Vista>("mapa.tipo", "hybrid");
   const [selected, setSelected] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,60 +48,57 @@ function MapaPage() {
 
   useEffect(() => {
     let cancelled = false;
-    loadGoogleMaps()
-      .then((google) => {
-        if (cancelled || !mapEl.current) return;
-        mapRef.current = new google.maps.Map(mapEl.current, {
+    cargarMapbox()
+      .then((mb) => {
+        if (cancelled || !mapEl.current || mapRef.current) return;
+        mbRef.current = mb;
+        const map = new mb.Map({
+          container: mapEl.current,
+          style: ESTILOS[tipo] ?? ESTILO_SATELITE,
+          center: [-89.2, 13.7],
           zoom: 6,
-          center: { lat: 13.7, lng: -89.2 },
-          mapTypeId: "hybrid",
-          streetViewControl: false,
-          fullscreenControl: true,
+          attributionControl: false,
         });
+        map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("load", () => { mapRef.current = map; setListo(true); });
       })
       .catch((e) => setError(e.message));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !gmaps()?.maps) return;
-    mapRef.current.setMapTypeId(tipo);
-  }, [tipo]);
+    if (!listo || !mapRef.current) return;
+    mapRef.current.setStyle(ESTILOS[tipo] ?? ESTILO_SATELITE);
+  }, [listo, tipo]);
 
   useEffect(() => {
-    if (!mapRef.current || !gmaps()?.maps || rows.length === 0) return;
-    const google = gmaps();
-    markersRef.current.forEach((m) => m.setMap(null));
+    const map = mapRef.current;
+    const mb = mbRef.current;
+    if (!listo || !map || !mb || rows.length === 0) return;
+    markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
-    const bounds = new google.maps.LatLngBounds();
     rows.forEach((p) => {
-      const pos = { lat: Number(p.latitud), lng: Number(p.longitud) };
-      const marker = new google.maps.Marker({
-        position: pos,
-        map: mapRef.current,
-        title: p.nombre,
-      });
-      marker.addListener("click", () => {
+      const pos: [number, number] = [Number(p.longitud), Number(p.latitud)];
+      const marker = new mb.Marker({ color: "#16a34a" }).setLngLat(pos).addTo(map);
+      marker.getElement().style.cursor = "pointer";
+      marker.getElement().setAttribute("aria-label", p.nombre);
+      marker.getElement().addEventListener("click", () => {
         setSelected(p);
-        mapRef.current.panTo(pos);
-        if (mapRef.current.getZoom() < 15) mapRef.current.setZoom(17);
+        map.flyTo({ center: pos, zoom: Math.max(map.getZoom(), 16), duration: 500 });
       });
       markersRef.current.push(marker);
-      bounds.extend(pos);
     });
-    if (rows.length === 1) {
-      mapRef.current.setCenter(bounds.getCenter());
-      mapRef.current.setZoom(15);
-    } else {
-      mapRef.current.fitBounds(bounds, 60);
-    }
-  }, [rows.length]);
+    ajustarA(mb, map, rows.map((p) => ({ lat: Number(p.latitud), lng: Number(p.longitud) })), 60, 16);
+  }, [listo, rows.length]);
 
   function enfocar(p: any) {
-    if (!mapRef.current || !gmaps()?.maps) return;
-    const pos = { lat: Number(p.latitud), lng: Number(p.longitud) };
-    mapRef.current.panTo(pos);
-    mapRef.current.setZoom(18);
+    if (!mapRef.current) return;
+    mapRef.current.flyTo({ center: [Number(p.longitud), Number(p.latitud)], zoom: 18, duration: 600 });
     setSelected(p);
   }
 

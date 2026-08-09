@@ -188,7 +188,7 @@ export type ReporteData = {
     planta?: string | null;
     dataUrl?: string | null;
     basemap?: {
-      tiles: { src: string; x: number; y: number }[];
+      tiles: { src: string; x: number; y: number; w?: number; h?: number }[];
       w: number; h: number; z: number; ox: number; oy: number; tile: number;
     } | null;
     zonas?: { nombre: string; poligono: { lat: number; lng: number }[]; estado: string | null }[];
@@ -273,8 +273,8 @@ function LayoutSatelital({
             position: "absolute",
             left: t.x * k,
             top: t.y * k,
-            width: tile * k,
-            height: tile * k,
+            width: (t.w ?? tile) * k,
+            height: (t.h ?? tile) * k,
           }}
         />
       ))}
