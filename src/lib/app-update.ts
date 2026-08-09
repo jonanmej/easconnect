@@ -203,8 +203,11 @@ async function buscarSinSW() {
 /** Consulta si hay una versión nueva publicada (sólo con buena conectividad). */
 export async function buscarActualizacion(opciones?: { forzar?: boolean }) {
   if (typeof window === "undefined") return;
-  if (estado === "listo" || estado === "descargando") return;
-  if (!opciones?.forzar && !conectividadBuena()) return;
+  if (estado === "descargando") return;
+  if (estado === "buscando") return;
+  // Permitir forzar la verificación incluso cuando ya hay una versión lista,
+  // para que el usuario pueda desbloquear un aviso que se quedó pegado.
+  if (!opciones?.forzar && estado === "listo") return;
 
   setEstado("buscando");
 
