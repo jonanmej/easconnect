@@ -450,9 +450,49 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none safe-x safe-bottom">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 flex flex-col focus:outline-none safe-x pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0 md:safe-bottom"
+        >
           {children}
         </div>
+
+        {/* Barra de navegación inferior (móvil), estilo app nativa */}
+        <nav
+          aria-label="Navegación rápida"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur-md safe-bottom safe-x no-print"
+        >
+          <div className="grid grid-cols-5">
+            {tabItems.map((item) => {
+              const active = pathname === item.to;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? "page" : undefined}
+                  className={
+                    "flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-[10px] font-medium transition-colors " +
+                    (active ? "text-primary" : "text-muted-foreground active:bg-secondary/60")
+                  }
+                >
+                  <Icon className={"size-5 " + (active ? "scale-110" : "")} aria-hidden="true" />
+                  <span className="w-full truncate text-center leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Abrir más secciones"
+              className="flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-[10px] font-medium text-muted-foreground active:bg-secondary/60"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+              <span className="leading-tight">Más</span>
+            </button>
+          </div>
+        </nav>
       </main>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>

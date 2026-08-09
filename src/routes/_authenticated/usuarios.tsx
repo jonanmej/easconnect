@@ -343,42 +343,35 @@ function UsersPage() {
       </section>
 
       <section className="border border-border rounded-lg bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-          <thead className="bg-secondary/50 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <tr>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Cliente</th>
-              {ALL_ROLES.map((r) => (
-                <th key={r} className="text-center p-3">
-                  {ROLE_LABEL[r]}
-                </th>
-              ))}
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={ALL_ROLES.length + 3} className="p-6 text-center text-xs text-muted-foreground">
-                  Cargando…
-                </td>
-              </tr>
-            )}
-            {data?.map((u) => {
-              const isCliente = u.roles.includes("cliente");
-              const missingCliente = isCliente && !u.cliente_id;
-              return (
-              <tr key={u.id} className="border-t border-border">
-                <td className="p-3">
-                  <div className="font-medium">{u.email}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}</div>
-                </td>
-                <td className="p-3">
+        <div className="p-3 md:p-0">
+        <ResponsiveTable
+          data={(data ?? []) as any[]}
+          rowKey={(u: any) => u.id}
+          emptyMessage={isLoading ? "Cargando…" : "Sin usuarios."}
+          columns={[
+            {
+              key: "email",
+              header: "Email",
+              primary: true,
+              cell: (u: any) => u.email,
+            },
+            {
+              key: "id",
+              header: "ID",
+              secondary: true,
+              mobileLabel: "ID",
+              cell: (u: any) => u.id.slice(0, 8),
+            },
+            {
+              key: "cliente",
+              header: "Cliente",
+              cell: (u: any) => {
+                const isCliente = u.roles.includes("cliente");
+                const missingCliente = isCliente && !u.cliente_id;
+                if (!isCliente) return <span className="text-xs text-muted-foreground">—</span>;
+                return (
                   <div className="flex items-center gap-2">
-                    {isCliente ? (
-                      <>
-                      <select
+                    <select
                       value={u.cliente_id ?? ""}
                       disabled={setCliente.isPending || clientes.isLoading}
                       onChange={(e) =>
@@ -388,7 +381,7 @@ function UsersPage() {
                         })
                       }
                       className={
-                        "bg-secondary border rounded-md px-2 py-1.5 text-xs min-w-[180px] " +
+                        "bg-secondary border rounded-md px-2 py-1.5 text-xs min-w-0 w-full max-w-[220px] " +
                         (missingCliente ? "border-destructive" : "border-border")
                       }
                     >
@@ -401,60 +394,67 @@ function UsersPage() {
                     </select>
                     {missingCliente && (
                       <span title="Usuario con rol cliente sin cliente asignado: no podrá ver sus plantas.">
-                        <AlertTriangle className="size-4 text-destructive" />
+                        <AlertTriangle className="size-4 text-destructive shrink-0" />
                       </span>
                     )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
                   </div>
-                </td>
-                {ALL_ROLES.map((r) => {
-                  const enabled = u.roles.includes(r);
-                  return (
-                    <td key={r} className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={enabled}
-                        disabled={toggle.isPending}
-                        onChange={(e) =>
-                          toggle.mutate({ userId: u.id, role: r, enabled: e.target.checked })
-                        }
-                        className="accent-primary size-4"
-                      />
-                    </td>
-                  );
-                })}
-                <td className="p-3 text-right">
-                  <button
-                    onClick={() => {
-                      if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
-                        resetPass.mutate({ userId: u.id });
-                      }
-                    }}
-                    disabled={resetPass.isPending}
-                    className="text-muted-foreground hover:text-primary mr-3"
-                    aria-label="Restablecer contraseña y enviar por correo"
-                    title="Restablecer contraseña y enviar por correo"
-                  >
-                    <KeyRound className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
-                    }}
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-          </table>
+                );
+              },
+            },
+            {
+              key: "roles",
+              header: "Roles",
+              mobileLabel: "Roles",
+              cell: (u: any) => (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {ALL_ROLES.map((r) => {
+                    const enabled = u.roles.includes(r);
+                    return (
+                      <label key={r} className="inline-flex items-center gap-1.5 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          disabled={toggle.isPending}
+                          onChange={(e) =>
+                            toggle.mutate({ userId: u.id, role: r, enabled: e.target.checked })
+                          }
+                          className="accent-primary size-4"
+                        />
+                        {ROLE_LABEL[r]}
+                      </label>
+                    );
+                  })}
+                </div>
+              ),
+            },
+          ]}
+          rowActions={(u: any) => (
+            <>
+              <button
+                onClick={() => {
+                  if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
+                    resetPass.mutate({ userId: u.id });
+                  }
+                }}
+                disabled={resetPass.isPending}
+                className="text-muted-foreground hover:text-primary"
+                aria-label="Restablecer contraseña y enviar por correo"
+                title="Restablecer contraseña y enviar por correo"
+              >
+                <KeyRound className="size-4" />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
+                }}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Eliminar"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </>
+          )}
+        />
         </div>
         {setCliente.error && (
           <p className="text-xs text-destructive px-5 py-3 border-t border-border">

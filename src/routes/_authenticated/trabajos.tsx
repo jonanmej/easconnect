@@ -484,85 +484,83 @@ function Trabajos() {
         )}
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
-          <thead className="bg-secondary border-b border-border text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left">Folio</th>
-              <th className="px-4 py-3 text-left">Cliente / Planta</th>
-              <th className="px-4 py-3 text-left">Servicio</th>
-              <th className="px-4 py-3 text-left">Fecha</th>
-              <th className="px-4 py-3 text-left">Estado</th>
-              {canEdit && <th />}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {list.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Cargando…</td></tr>
-            )}
-            {!list.isLoading && visibles.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">Sin resultados</td></tr>
-            )}
-            {visibles.map((t) => {
-              const isHi = highlightId === t.id;
-              return (
-              <tr
-                key={t.id}
-                ref={isHi ? highlightRef : undefined}
-                className={
-                  "transition-colors " +
-                  (isHi
-                    ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
-                    : "hover:bg-secondary/40")
-                }
-              >
-                <td className="px-4 py-4 font-mono text-xs">{t.folio}</td>
-                <td className="px-4 py-4">
-                  <p className="font-medium">{t.cliente_nombre}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre}</p>
-                </td>
-                <td className="px-4 py-4 text-xs">{t.servicio}</td>
-                <td className="px-4 py-4 text-xs text-muted-foreground">
-                  {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
-                </td>
-                <td className="px-4 py-4">
-                  <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
-                    {estadoLabel[t.estado] ?? t.estado}
-                  </span>
-                </td>
-                {canEdit && (
-                  <td className="px-4 py-4 text-right">
-                    <div className="inline-flex gap-1">
-                      {t.estado === "completado" && !t.firmado_at && !(t.notas ?? "").startsWith("[HISTÓRICO]") && (
-                        <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
-                      )}
-                      {t.firmado_at && (
-                        <span
-                          className="size-8 grid place-items-center rounded-md text-accent"
-                          title={`Firmado por ${t.firmado_por ?? "cliente"}`}
-                        >
-                          <FileSignature className="size-3.5" />
-                        </span>
-                      )}
-                      <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
-                        <Pencil className="size-3.5" />
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`Eliminar ${t.folio}?`)) remove.mutate(t.id); }}
-                        className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        data={visibles}
+        rowKey={(t) => t.id}
+        emptyMessage={list.isLoading ? "Cargando…" : "Sin resultados"}
+        cardClassName={(t) =>
+          highlightId === t.id
+            ? "bg-destructive/10 ring-2 ring-destructive/60 animate-pulse"
+            : undefined
+        }
+        columns={[
+          { key: "folio", header: "Folio", mobileLabel: "Folio", cell: (t) => <span className="font-mono text-xs">{t.folio}</span> },
+          {
+            key: "cliente_planta",
+            header: "Cliente / Planta",
+            primary: true,
+            cell: (t) => (
+              <>
+                <p className="font-medium">{t.cliente_nombre}</p>
+                <p className="text-[10px] text-muted-foreground">{t.planta_nombre}</p>
+              </>
+            ),
+          },
+          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{t.servicio}</span> },
+          {
+            key: "fecha",
+            header: "Fecha",
+            cell: (t) => (
+              <span className="text-xs text-muted-foreground">
+                {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })}
+              </span>
+            ),
+          },
+          {
+            key: "estado",
+            header: "Estado",
+            cell: (t) => (
+              <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
+                {estadoLabel[t.estado] ?? t.estado}
+              </span>
+            ),
+          },
+        ]}
+        onRowClick={(t) => {
+          if (highlightId === t.id && highlightRef.current) {
+            // no-op: el resaltado se maneja vía scroll effect existente
+          }
+        }}
+        rowActions={
+          canEdit
+            ? (t) => (
+                <>
+                  {t.estado === "completado" && !t.firmado_at && !(t.notas ?? "").startsWith("[HISTÓRICO]") && (
+                    <SolicitarFirmaButton trabajoId={t.id} folio={t.folio} />
+                  )}
+                  {t.firmado_at && (
+                    <span
+                      className="size-8 grid place-items-center rounded-md text-accent"
+                      title={`Firmado por ${t.firmado_por ?? "cliente"}`}
+                    >
+                      <FileSignature className="size-3.5" />
+                    </span>
+                  )}
+                  <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                    <Pencil className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm(`Eliminar ${t.folio}?`)) remove.mutate(t.id); }}
+                    className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </>
+              )
+            : undefined
+        }
+      />
 
       {filtrados.length > PAGE_SIZE && (
         (() => {

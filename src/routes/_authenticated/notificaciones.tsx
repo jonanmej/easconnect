@@ -11,6 +11,7 @@ import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
@@ -67,6 +68,50 @@ function Notificaciones() {
   const enviados = items.filter((i) => i.estado === "enviado").length;
   const errores = items.filter((i) => i.estado === "error").length;
 
+  const notifColumns: ResponsiveColumn<any>[] = [
+    {
+      key: "fecha",
+      header: "Fecha",
+      cell: (n) => (
+        <span className="font-mono text-xs">
+          {new Date(n.enviado_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "short", timeStyle: "short" })}
+        </span>
+      ),
+    },
+    {
+      key: "cliente",
+      header: "Cliente · Planta",
+      primary: true,
+      cell: (n) => (
+        <div>
+          <p className="font-medium">{n.cliente_nombre}</p>
+          {n.planta_nombre && <p className="text-xs text-muted-foreground">{n.planta_nombre}</p>}
+        </div>
+      ),
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      secondary: true,
+      cell: (n) => <span className="text-[10px] font-bold uppercase">{n.tipo}</span>,
+    },
+    {
+      key: "destinatario",
+      header: "Destinatario",
+      cell: (n) => <span className="text-xs">{n.destinatario}</span>,
+    },
+    {
+      key: "estado",
+      header: "Estado",
+      cell: (n) =>
+        n.estado === "enviado" ? (
+          <span className="inline-flex items-center gap-1.5 text-accent text-xs"><CheckCircle2 className="size-3.5" /> Enviado</span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-destructive text-xs" title={n.error_mensaje ?? ""}><XCircle className="size-3.5" /> Error</span>
+        ),
+    },
+  ];
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
@@ -100,7 +145,7 @@ function Notificaciones() {
       </div>
 
       {isStaff && (
-        <div className="bg-card border border-border rounded-xl p-4 mb-4 grid md:grid-cols-6 gap-3">
+        <div className="bg-card border border-border rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
           <Field label="Cliente">
             <select className={inputCls} value={filtros.cliente_id ?? ""} onChange={(e) => setFiltros((f) => ({ ...f, cliente_id: e.target.value || undefined, planta_id: undefined }))}>
               <option value="">Todos</option>
@@ -138,50 +183,27 @@ function Notificaciones() {
         </div>
       )}
 
-      <div className="bg-card border border-border rounded-xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
-          <thead className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="text-left p-3 font-bold">Fecha</th>
-              <th className="text-left p-3 font-bold">Cliente · Planta</th>
-              <th className="text-left p-3 font-bold">Tipo</th>
-              <th className="text-left p-3 font-bold">Destinatario</th>
-              <th className="text-left p-3 font-bold">Estado</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {list.isLoading && (<tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Cargando…</td></tr>)}
-            {!list.isLoading && items.length === 0 && (<tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Sin notificaciones registradas con esos filtros.</td></tr>)}
-            {items.map((n: any) => (
-              <tr key={n.id} className="border-t border-border">
-                <td className="p-3 font-mono text-xs">{new Date(n.enviado_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "short", timeStyle: "short" })}</td>
-                <td className="p-3">
-                  <p className="font-medium">{n.cliente_nombre}</p>
-                  {n.planta_nombre && <p className="text-xs text-muted-foreground">{n.planta_nombre}</p>}
-                </td>
-                <td className="p-3"><span className="text-[10px] font-bold uppercase">{n.tipo}</span></td>
-                <td className="p-3 text-xs">{n.destinatario}</td>
-                <td className="p-3">
-                  {n.estado === "enviado" ? (
-                    <span className="inline-flex items-center gap-1.5 text-accent text-xs"><CheckCircle2 className="size-3.5" /> Enviado</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-destructive text-xs" title={n.error_mensaje ?? ""}><XCircle className="size-3.5" /> Error</span>
-                  )}
-                </td>
-                <td className="p-3 text-right">
-                  {isStaff && n.estado === "error" && (
+      {list.isLoading ? (
+        <p className="p-6 text-center text-sm text-muted-foreground">Cargando…</p>
+      ) : (
+        <ResponsiveTable
+          data={items}
+          rowKey={(n) => n.id}
+          emptyMessage="Sin notificaciones registradas con esos filtros."
+          columns={notifColumns}
+          rowActions={
+            isStaff
+              ? (n) =>
+                  n.estado === "error" ? (
                     <button onClick={() => retry.mutate(n.id)} disabled={retry.isPending}
-                      className="h-8 px-2 inline-flex items-center gap-1.5 text-xs border border-border rounded-md hover:bg-secondary disabled:opacity-50">
+                      className="min-h-11 md:h-8 md:min-h-0 px-2 inline-flex items-center gap-1.5 text-xs border border-border rounded-md hover:bg-secondary disabled:opacity-50">
                       <RotateCw className="size-3.5" /> Reintentar
                     </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  ) : null
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
