@@ -159,7 +159,6 @@ function Trabajos() {
   const { alerta } = Route.useSearch();
   const navigate = Route.useNavigate();
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   // Filtrado + búsqueda + ordenamiento (single source of truth)
   const filtrados = (() => {
