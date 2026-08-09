@@ -30,11 +30,7 @@ export function RecordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          // Móvil: hoja inferior a ancho completo (sensación nativa).
-          "w-screen max-w-none top-auto bottom-0 left-0 translate-x-0 translate-y-0 rounded-b-none rounded-t-2xl",
-          "max-h-[92dvh] overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",
-          // sm+: diálogo centrado clásico.
-          "sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:p-6 sm:pb-6",
+          "max-h-[92dvh] sm:max-w-lg",
           className,
         )}
       >
