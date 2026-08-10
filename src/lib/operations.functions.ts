@@ -388,6 +388,7 @@ export const listTrabajos = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const ids = (data ?? []).map((t: any) => t.id);
     let excepcionesPorTrabajo: Record<string, Array<{ fecha_original: string; fecha_movida: string }>> = {};
+    const tecnicosPorTrabajo: Record<string, string[]> = {};
     if (ids.length > 0) {
       const { data: excs } = await context.supabase
         .from("trabajo_dia_excepciones")
@@ -399,6 +400,13 @@ export const listTrabajos = createServerFn({ method: "GET" })
           fecha_movida: e.fecha_movida,
         });
       });
+      const { data: tts } = await context.supabase
+        .from("trabajo_tecnicos")
+        .select("trabajo_id, tecnico_id")
+        .in("trabajo_id", ids);
+      (tts ?? []).forEach((r: any) => {
+        (tecnicosPorTrabajo[r.trabajo_id] ??= []).push(r.tecnico_id);
+      });
     }
     return (data ?? []).map((t: any) => ({
       ...t,
@@ -406,6 +414,9 @@ export const listTrabajos = createServerFn({ method: "GET" })
       cliente_nombre: t.plantas?.clientes?.nombre ?? "—",
       cliente_id: t.plantas?.cliente_id ?? null,
       excepciones_dia: excepcionesPorTrabajo[t.id] ?? [],
+      tecnicos_ids: Array.from(
+        new Set([...(t.tecnico_id ? [t.tecnico_id] : []), ...(tecnicosPorTrabajo[t.id] ?? [])]),
+      ),
     }));
   });
 
