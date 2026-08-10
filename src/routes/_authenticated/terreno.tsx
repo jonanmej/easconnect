@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, upsertTrabajo, listTecnicos } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
-import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon, ClipboardList, X } from "lucide-react";
+import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon, ClipboardList, X, Users } from "lucide-react";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 
@@ -130,11 +130,24 @@ function Terreno() {
             {isStaff ? "No hay trabajos asignados pendientes." : "No tienes trabajos pendientes asignados."}
           </p>
         )}
+        {list.length > 0 && (
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+            {isStaff ? "Trabajos activos" : "Mis trabajos asignados"} · {list.length}
+          </p>
+        )}
         {list.map((t) => (
           <TrabajoCard
             key={t.id}
             trabajo={t}
             tecnicoNombre={t.tecnico_id ? (tecMap.get(t.tecnico_id) ?? "Técnico desconocido") : "Sin asignar"}
+            equipo={(Array.isArray(t.tecnicos_ids) ? t.tecnicos_ids : t.tecnico_id ? [t.tecnico_id] : []).map(
+              (id: string) => ({
+                id,
+                nombre: tecMap.get(id) ?? "Técnico",
+                principal: id === t.tecnico_id,
+                yo: id === (user?.id ?? ""),
+              }),
+            )}
             soloLectura={soloMonitoreo}
             onIniciar={() =>
               mEstado.mutate({ id: t.id, estado: "en_progreso", planta_id: t.planta_id, servicio: t.servicio, fecha_programada: t.fecha_programada, tecnico_id: t.tecnico_id ?? null })
@@ -153,6 +166,7 @@ function Terreno() {
 function TrabajoCard({
   trabajo,
   tecnicoNombre,
+  equipo,
   soloLectura,
   onIniciar,
   onCompletar,
@@ -160,6 +174,7 @@ function TrabajoCard({
 }: {
   trabajo: any;
   tecnicoNombre: string;
+  equipo: Array<{ id: string; nombre: string; principal: boolean; yo: boolean }>;
   soloLectura: boolean;
   onIniciar: () => void;
   onCompletar: () => void;
@@ -212,6 +227,32 @@ function TrabajoCard({
           {tecnicoNombre}
         </span>
       </div>
+
+      {equipo.length > 0 && (
+        <div className="rounded-md border border-border/70 bg-secondary/20 p-2 space-y-1">
+          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase font-bold text-muted-foreground">
+            <Users className="size-3" />
+            Equipo asignado ({equipo.length})
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {equipo.map((m) => (
+              <li
+                key={m.id}
+                className={
+                  "text-[11px] px-2 py-0.5 rounded-full border " +
+                  (m.yo
+                    ? "border-primary/40 bg-primary/10 text-primary font-semibold"
+                    : "border-border bg-background text-foreground")
+                }
+              >
+                {m.nombre}
+                {m.principal ? " · responsable" : ""}
+                {m.yo ? " (tú)" : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {soloLectura ? null : (
       <div className="grid grid-cols-3 gap-2 pt-2">
@@ -312,7 +353,7 @@ function TrabajoCard({
             <div className="p-4">
               <ReportesDiariosSection
                 trabajoId={trabajo.id}
-                hint="Este es el único punto de captura del reporte diario y sus fotos. Adjunta la evidencia dentro del reporte del día."
+                hint="Este es el único punto de captura del reporte diario y sus fotos. Cada técnico puede registrar su avance por fase (diagnóstico, intervención y cierre) dentro del mismo trabajo."
               />
             </div>
           </div>

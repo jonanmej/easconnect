@@ -1830,6 +1830,7 @@ export type Database = {
           bloqueos: string | null
           clima: string | null
           created_at: string
+          fase: string
           fecha: string
           hallazgos: string | null
           hora_fin: string | null
@@ -1853,6 +1854,7 @@ export type Database = {
           bloqueos?: string | null
           clima?: string | null
           created_at?: string
+          fase?: string
           fecha?: string
           hallazgos?: string | null
           hora_fin?: string | null
@@ -1876,6 +1878,7 @@ export type Database = {
           bloqueos?: string | null
           clima?: string | null
           created_at?: string
+          fase?: string
           fecha?: string
           hallazgos?: string | null
           hora_fin?: string | null

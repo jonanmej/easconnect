@@ -23,6 +23,11 @@ import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envo
 import { consolidarDiarios } from "@/lib/consolidar-diarios";
 
 const BUCKET = "trabajos-evidencia";
+export const FASE_LABEL = {
+  diagnostico: "Diagnóstico",
+  intervencion: "Intervención",
+  cierre: "Cierre",
+} as const;
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
 const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background text-sm";
 const textareaCls = "w-full px-3 py-2 rounded-md border border-input bg-background text-sm";
@@ -280,6 +285,9 @@ export function ReportesDiariosSection({
                   <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
                   <span className="font-mono text-xs text-muted-foreground">{d.fecha}</span>
                     <span className="font-medium truncate">{d.tecnico_nombre}</span>
+                  <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-secondary text-foreground shrink-0">
+                    {FASE_LABEL[d.fase as keyof typeof FASE_LABEL] ?? "Intervención"}
+                  </span>
                   <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-primary">
                     <Camera className="size-3" /> Fotos del día
                   </span>
@@ -456,6 +464,7 @@ function DiarioForm({
   duracionDias: number | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">("intervencion");
   const [panelesDia, setPanelesDia] = useState<string>("");
   const [wattsPanel, setWattsPanel] = useState<string>("");
   const [horaInicio, setHoraInicio] = useState<string>("");
@@ -521,6 +530,7 @@ function DiarioForm({
     try {
       await onSave({
         fecha: get("fecha") || today(),
+        fase,
         avance_pct: avancePct,
         paneles_limpiados: num("paneles_limpiados"),
         agua_galones: num("agua_galones"),
@@ -545,6 +555,7 @@ function DiarioForm({
       setWattsPanel("");
       setHoraInicio("");
       setHoraFin("");
+      setFase("intervencion");
       setOpen(false);
     } catch {
       // El toast de error ya se mostró desde la mutación; mantener el formulario abierto.
@@ -565,6 +576,17 @@ function DiarioForm({
     <div ref={formRef} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
+        <FieldS label="Fase del trabajo">
+          <select
+            value={fase}
+            onChange={(e) => setFase(e.currentTarget.value as typeof fase)}
+            className={inputCls}
+          >
+            <option value="diagnostico">Diagnóstico</option>
+            <option value="intervencion">Intervención</option>
+            <option value="cierre">Cierre</option>
+          </select>
+        </FieldS>
         <FieldS label="Avance % (calculado)">
           <input
             value={avancePct == null ? "" : `${avancePct}%`}

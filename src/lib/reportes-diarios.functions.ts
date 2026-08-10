@@ -8,6 +8,7 @@ const ZDiario = z.object({
   id: z.string().uuid().optional(),
   trabajo_id: z.string().uuid(),
   fecha: z.string().min(8), // YYYY-MM-DD
+  fase: z.enum(["diagnostico", "intervencion", "cierre"]).default("intervencion"),
   avance_pct: z.number().int().min(0).max(100).nullable().optional(),
   paneles_limpiados: z.number().int().min(0).nullable().optional(),
   agua_galones: z.number().min(0).nullable().optional(),
@@ -73,7 +74,7 @@ export const upsertReporteDiario = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("trabajo_reportes_diarios")
-      .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id" })
+      .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id,fase" })
       .select()
       .single();
     if (error) throw new Error(error.message);
