@@ -464,6 +464,7 @@ function DiarioForm({
   duracionDias: number | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">("intervencion");
   const [panelesDia, setPanelesDia] = useState<string>("");
   const [wattsPanel, setWattsPanel] = useState<string>("");
   const [horaInicio, setHoraInicio] = useState<string>("");
@@ -529,6 +530,7 @@ function DiarioForm({
     try {
       await onSave({
         fecha: get("fecha") || today(),
+        fase,
         avance_pct: avancePct,
         paneles_limpiados: num("paneles_limpiados"),
         agua_galones: num("agua_galones"),
@@ -553,6 +555,7 @@ function DiarioForm({
       setWattsPanel("");
       setHoraInicio("");
       setHoraFin("");
+      setFase("intervencion");
       setOpen(false);
     } catch {
       // El toast de error ya se mostró desde la mutación; mantener el formulario abierto.
@@ -573,6 +576,17 @@ function DiarioForm({
     <div ref={formRef} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
+        <FieldS label="Fase del trabajo">
+          <select
+            value={fase}
+            onChange={(e) => setFase(e.currentTarget.value as typeof fase)}
+            className={inputCls}
+          >
+            <option value="diagnostico">Diagnóstico</option>
+            <option value="intervencion">Intervención</option>
+            <option value="cierre">Cierre</option>
+          </select>
+        </FieldS>
         <FieldS label="Avance % (calculado)">
           <input
             value={avancePct == null ? "" : `${avancePct}%`}
