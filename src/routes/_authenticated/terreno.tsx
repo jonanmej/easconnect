@@ -73,7 +73,13 @@ function Terreno() {
   }, []);
 
   const list = ((trabajos.data as any[] | undefined) ?? [])
-    .filter((t) => (isStaff ? true : t.tecnico_id === user?.id))
+    .filter((t) =>
+      isStaff
+        ? true
+        : Array.isArray(t.tecnicos_ids)
+          ? t.tecnicos_ids.includes(user?.id ?? "")
+          : t.tecnico_id === user?.id,
+    )
     .filter((t) => t.estado !== "completado" && t.estado !== "cancelado")
     .sort((a, b) => {
       // En progreso primero, luego programados por fecha más próxima.
