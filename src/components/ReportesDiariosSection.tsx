@@ -23,6 +23,11 @@ import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envo
 import { consolidarDiarios } from "@/lib/consolidar-diarios";
 
 const BUCKET = "trabajos-evidencia";
+export const FASE_LABEL = {
+  diagnostico: "Diagnóstico",
+  intervencion: "Intervención",
+  cierre: "Cierre",
+} as const;
 const ST_SOLAR_EMAIL = "st.solar@easervice.app";
 const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background text-sm";
 const textareaCls = "w-full px-3 py-2 rounded-md border border-input bg-background text-sm";
