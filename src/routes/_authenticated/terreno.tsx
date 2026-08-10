@@ -353,7 +353,7 @@ function TrabajoCard({
             <div className="p-4">
               <ReportesDiariosSection
                 trabajoId={trabajo.id}
-                hint="Este es el único punto de captura del reporte diario y sus fotos. Adjunta la evidencia dentro del reporte del día."
+                hint="Este es el único punto de captura del reporte diario y sus fotos. Cada técnico puede registrar su avance por fase (diagnóstico, intervención y cierre) dentro del mismo trabajo."
               />
             </div>
           </div>
