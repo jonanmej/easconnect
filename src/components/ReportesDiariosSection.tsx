@@ -280,6 +280,9 @@ export function ReportesDiariosSection({
                   <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
                   <span className="font-mono text-xs text-muted-foreground">{d.fecha}</span>
                     <span className="font-medium truncate">{d.tecnico_nombre}</span>
+                  <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-secondary text-foreground shrink-0">
+                    {FASE_LABEL[d.fase as keyof typeof FASE_LABEL] ?? "Intervención"}
+                  </span>
                   <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-primary">
                     <Camera className="size-3" /> Fotos del día
                   </span>
