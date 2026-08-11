@@ -139,6 +139,47 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Fallback para clientes que sólo piden /favicon.ico
       { rel: "shortcut icon", href: "/favicon.ico?v=4" },
     ],
+    // Datos estructurados: identifican la organización y el sitio ante buscadores
+    // y habilitan el cuadro de búsqueda enriquecido en los resultados.
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://easconnect.lovable.app/#organizacion",
+              name: "EA Service & Consulting",
+              alternateName: "EA Service Connect",
+              url: "https://easconnect.lovable.app/",
+              logo: "https://easconnect.lovable.app/icon-512.png",
+              description:
+                "Gestión operativa de plantas solares y térmicas: programación, reportes técnicos y mantenimiento.",
+              areaServed: "SV",
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://easconnect.lovable.app/#sitio",
+              url: "https://easconnect.lovable.app/",
+              name: "EA Service Connect",
+              inLanguage: "es-SV",
+              publisher: { "@id": "https://easconnect.lovable.app/#organizacion" },
+            },
+            {
+              "@type": "SoftwareApplication",
+              name: "EA Service Connect",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web, iOS, Android",
+              url: "https://easconnect.lovable.app/",
+              description:
+                "Plataforma de gestión operativa para plantas solares: programación de servicios, reportes diarios, inventario y órdenes de compra.",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            },
+          ],
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

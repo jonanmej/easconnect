@@ -19,6 +19,7 @@ import {
   CalendarPlus,
   Mail,
   History,
+  LineChart,
   AlertTriangle,
   FileSignature,
   Moon,
@@ -112,6 +113,7 @@ const allGroups: NavGroup[] = [
     title: "Administración",
     items: [
       { to: "/usuarios", label: "Usuarios y Roles", icon: Users },
+      { to: "/search-console", label: "Buscadores (SEO)", icon: LineChart },
       { to: "/auditoria", label: "Auditoría", icon: History },
       { to: "/configuracion", label: "Configuración", icon: Settings },
     ],

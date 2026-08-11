@@ -19,6 +19,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTrabajosRouteImport } from './routes/_authenticated/trabajos'
 import { Route as AuthenticatedTerrenoRouteImport } from './routes/_authenticated/terreno'
 import { Route as AuthenticatedSolicitudesRouteImport } from './routes/_authenticated/solicitudes'
+import { Route as AuthenticatedSearchConsoleRouteImport } from './routes/_authenticated/search-console'
 import { Route as AuthenticatedRutasRouteImport } from './routes/_authenticated/rutas'
 import { Route as AuthenticatedReportesRouteImport } from './routes/_authenticated/reportes'
 import { Route as AuthenticatedProgramacionRouteImport } from './routes/_authenticated/programacion'
@@ -91,6 +92,12 @@ const AuthenticatedSolicitudesRoute =
   AuthenticatedSolicitudesRouteImport.update({
     id: '/solicitudes',
     path: '/solicitudes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSearchConsoleRoute =
+  AuthenticatedSearchConsoleRouteImport.update({
+    id: '/search-console',
+    path: '/search-console',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRutasRoute = AuthenticatedRutasRouteImport.update({
@@ -245,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
   '/rutas': typeof AuthenticatedRutasRoute
+  '/search-console': typeof AuthenticatedSearchConsoleRoute
   '/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/terreno': typeof AuthenticatedTerrenoRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
@@ -278,6 +286,7 @@ export interface FileRoutesByTo {
   '/programacion': typeof AuthenticatedProgramacionRoute
   '/reportes': typeof AuthenticatedReportesRoute
   '/rutas': typeof AuthenticatedRutasRoute
+  '/search-console': typeof AuthenticatedSearchConsoleRoute
   '/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/terreno': typeof AuthenticatedTerrenoRoute
   '/trabajos': typeof AuthenticatedTrabajosRoute
@@ -314,6 +323,7 @@ export interface FileRoutesById {
   '/_authenticated/programacion': typeof AuthenticatedProgramacionRoute
   '/_authenticated/reportes': typeof AuthenticatedReportesRoute
   '/_authenticated/rutas': typeof AuthenticatedRutasRoute
+  '/_authenticated/search-console': typeof AuthenticatedSearchConsoleRoute
   '/_authenticated/solicitudes': typeof AuthenticatedSolicitudesRoute
   '/_authenticated/terreno': typeof AuthenticatedTerrenoRoute
   '/_authenticated/trabajos': typeof AuthenticatedTrabajosRoute
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/programacion'
     | '/reportes'
     | '/rutas'
+    | '/search-console'
     | '/solicitudes'
     | '/terreno'
     | '/trabajos'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/programacion'
     | '/reportes'
     | '/rutas'
+    | '/search-console'
     | '/solicitudes'
     | '/terreno'
     | '/trabajos'
@@ -419,6 +431,7 @@ export interface FileRouteTypes {
     | '/_authenticated/programacion'
     | '/_authenticated/reportes'
     | '/_authenticated/rutas'
+    | '/_authenticated/search-console'
     | '/_authenticated/solicitudes'
     | '/_authenticated/terreno'
     | '/_authenticated/trabajos'
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/solicitudes'
       fullPath: '/solicitudes'
       preLoaderRoute: typeof AuthenticatedSolicitudesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/search-console': {
+      id: '/_authenticated/search-console'
+      path: '/search-console'
+      fullPath: '/search-console'
+      preLoaderRoute: typeof AuthenticatedSearchConsoleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rutas': {
@@ -700,6 +720,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProgramacionRoute: typeof AuthenticatedProgramacionRoute
   AuthenticatedReportesRoute: typeof AuthenticatedReportesRoute
   AuthenticatedRutasRoute: typeof AuthenticatedRutasRoute
+  AuthenticatedSearchConsoleRoute: typeof AuthenticatedSearchConsoleRoute
   AuthenticatedSolicitudesRoute: typeof AuthenticatedSolicitudesRoute
   AuthenticatedTerrenoRoute: typeof AuthenticatedTerrenoRoute
   AuthenticatedTrabajosRoute: typeof AuthenticatedTrabajosRoute
@@ -724,6 +745,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProgramacionRoute: AuthenticatedProgramacionRoute,
   AuthenticatedReportesRoute: AuthenticatedReportesRoute,
   AuthenticatedRutasRoute: AuthenticatedRutasRoute,
+  AuthenticatedSearchConsoleRoute: AuthenticatedSearchConsoleRoute,
   AuthenticatedSolicitudesRoute: AuthenticatedSolicitudesRoute,
   AuthenticatedTerrenoRoute: AuthenticatedTerrenoRoute,
   AuthenticatedTrabajosRoute: AuthenticatedTrabajosRoute,
