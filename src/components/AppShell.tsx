@@ -278,69 +278,76 @@ export function AppShell({ children }: { children: ReactNode }) {
         </LayoutGroup>
       </nav>
 
-      <div className={"border-t border-border " + (mode === "rail" ? "p-2 lg:p-4" : "p-4")}>
-        <div className={"mb-3 " + (mode === "rail" ? "hidden lg:block" : "")}>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">
+      <div className={"border-t border-border " + (mode === "rail" ? "p-2 lg:p-3" : "p-3")}>
+        <div className={"mb-2 " + (mode === "rail" ? "hidden lg:block" : "")}>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-1.5">
             Marcas asociadas
           </p>
-          <div className="flex flex-col items-start gap-2 px-2">
+          <div className="flex flex-col items-start gap-1.5 px-2">
             <img
               src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
               alt="PVSTOP El Salvador"
-              className="h-8 w-auto object-contain"
+              className="h-7 w-auto object-contain"
             />
             <img
               src={theme === "dark" ? chemitekDarkAsset.url : chemitekLightAsset.url}
               alt="Chemitek Solar"
-              className="h-5 w-auto object-contain"
+              className="h-4 w-auto object-contain"
             />
           </div>
         </div>
-        <div className={"flex items-center gap-3 p-2 " + (mode === "rail" ? "flex-col lg:flex-row" : "")}>
-          <div className="size-8 shrink-0 rounded-full bg-secondary grid place-items-center text-xs font-bold">{initials}</div>
-          <div className={"flex-1 min-w-0 " + (mode === "rail" ? "hidden lg:block" : "")}>
-            <p className="text-xs font-semibold truncate">{user?.email}</p>
-            <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
-              <ShieldCheck className="size-3 shrink-0" />
-              {role ? ROLE_LABEL[role] : "Sin rol asignado"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            aria-label="Cerrar sesión"
-            className="size-9 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-          >
-            <LogOut className="size-4 text-muted-foreground" />
-          </button>
-        </div>
-        <Link
-          to="/completar-perfil"
-          title="Completar perfil"
-          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-        >
-          <UserCheck className="size-3" />
-          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Completar perfil</span>
-        </Link>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          title="Sincronizar permisos"
-          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-        >
-          <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
-          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Sincronizar permisos</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => void reiniciarApp()}
-          title="Reiniciar app (aplica la última versión publicada)"
-          className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground py-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-        >
-          <RotateCcw className="size-3" />
-          <span className={mode === "rail" ? "hidden lg:inline" : ""}>Reiniciar app</span>
-        </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+            >
+              <div className="size-8 shrink-0 rounded-full bg-secondary grid place-items-center text-xs font-bold">
+                {initials}
+              </div>
+              <div className={"flex-1 min-w-0 text-left " + (mode === "rail" ? "hidden lg:block" : "")}>
+                <p className="text-xs font-semibold truncate">{user?.email}</p>
+                <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
+                  <ShieldCheck className="size-3 shrink-0" />
+                  {role ? ROLE_LABEL[role] : "Sin rol asignado"}
+                </p>
+              </div>
+              <MoreVertical className={"size-4 shrink-0 text-muted-foreground " + (mode === "rail" ? "hidden lg:block" : "")} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col">
+                <span className="text-xs font-medium truncate">{user?.email}</span>
+                <span className="text-[10px] text-muted-foreground uppercase">
+                  {role ? ROLE_LABEL[role] : "Sin rol asignado"}
+                </span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate({ to: "/completar-perfil" })}>
+              <UserCheck className="size-4" />
+              <span>Completar perfil</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void handleRefresh()} disabled={refreshing}>
+              <RefreshCw className={"size-4 " + (refreshing ? "animate-spin" : "")} />
+              <span>Sincronizar permisos</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void reiniciarApp()}>
+              <RotateCcw className="size-4" />
+              <span>Reiniciar app</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => void handleSignOut()}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <LogOut className="size-4" />
+              <span>Cerrar sesión</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </>
   );
