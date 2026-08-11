@@ -19,6 +19,7 @@ import {
   CalendarPlus,
   Mail,
   History,
+  LineChart,
   AlertTriangle,
   FileSignature,
   Moon,
