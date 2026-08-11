@@ -84,6 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "EA Service Connect" },
       { name: "description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
       { name: "author", content: "Lovable" },
+      { name: "google-site-verification", content: "0G-ktisW1aql2vFEtARka1kvJOSz97kiRk7aWkEkux4" },
       { property: "og:title", content: "EA Service Connect" },
       { property: "og:description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
       { property: "og:type", content: "website" },
