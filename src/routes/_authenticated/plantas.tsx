@@ -19,7 +19,20 @@ import { PlantaZonasEditor } from "@/components/PlantaZonasEditor";
 
 export const Route = createFileRoute("/_authenticated/plantas")({
   head: () => ({
-    meta: [{ title: "Plantas · EA Service Connect" }, { name: "description", content: "Instalaciones bajo gestión: solares y térmicas." }],
+    meta: [
+      { title: "Plantas · EA Service Connect" },
+      {
+        name: "description",
+        content:
+          "Inventario de plantas solares y térmicas bajo gestión: cliente, ubicación, capacidad instalada y equipos asociados a cada instalación.",
+      },
+      { property: "og:title", content: "Plantas solares y térmicas · EA Service Connect" },
+      {
+        property: "og:description",
+        content:
+          "Consulta y administra las instalaciones bajo gestión: datos del cliente, ubicación, capacidad y equipos de cada planta.",
+      },
+    ],
   }),
   component: Plantas,
   errorComponent: ({ error }) => (
