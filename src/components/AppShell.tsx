@@ -33,6 +33,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  MoreVertical,
 } from "lucide-react";
 import { RotateCcw } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
@@ -57,6 +58,14 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type NavItem = {
   to: string;
