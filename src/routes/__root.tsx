@@ -109,12 +109,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
-      // Íconos con fondo sólido de marca: evita esquinas blancas al redondearse
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
-      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+      { rel: "manifest", href: "/manifest.webmanifest?v=4" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png?v=4" },
+      // Íconos con fondo sólido de marca: evita esquinas blancas al redondearse.
+      // El sufijo ?v=4 fuerza a los navegadores a refrescar el favicon en caché.
+      { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16.png?v=4" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=4" },
+      { rel: "icon", type: "image/png", sizes: "64x64", href: "/favicon.png?v=4" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png?v=4" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png?v=4" },
+      // Variante para esquemas claros (barras claras): mismo emblema navy con borde de separación
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "64x64",
+        href: "/favicon-light.png?v=4",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "64x64",
+        href: "/favicon.png?v=4",
+        media: "(prefers-color-scheme: dark)",
+      },
+      // Fallback para clientes que sólo piden /favicon.ico
+      { rel: "shortcut icon", href: "/favicon.ico?v=4" },
     ],
   }),
   shellComponent: RootShell,
