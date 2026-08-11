@@ -11,6 +11,24 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => ({
     next: typeof s.next === "string" && s.next.startsWith("/") ? s.next : undefined,
   }),
+  head: () => ({
+    meta: [
+      { title: "Iniciar sesión · EA Service Connect" },
+      {
+        name: "description",
+        content:
+          "Accede a EA Service Connect para gestionar plantas solares y térmicas, órdenes de trabajo, reportes técnicos y programación de servicios.",
+      },
+      { property: "og:title", content: "Iniciar sesión · EA Service Connect" },
+      {
+        property: "og:description",
+        content:
+          "Ingreso al sistema de gestión operativa de EA Service & Consulting: plantas, órdenes de trabajo y reportes.",
+      },
+      { property: "og:url", content: "https://easconnect.lovable.app/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://easconnect.lovable.app/auth" }],
+  }),
   component: AuthPage,
 });
 
