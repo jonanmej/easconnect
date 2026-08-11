@@ -22,6 +22,22 @@ import { ROLE_LABEL, type AppRole } from "@/lib/roles";
 import { Trash2, UserPlus, History, AlertTriangle, Eraser, KeyRound, Mail, X, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
+  head: () => ({
+    meta: [
+      { title: "Usuarios y roles · EA Service Connect" },
+      {
+        name: "description",
+        content:
+          "Administración de usuarios del sistema: asignación de roles de administrador, supervisor, técnico y cliente, con control de permisos.",
+      },
+      { property: "og:title", content: "Usuarios y roles · EA Service Connect" },
+      {
+        property: "og:description",
+        content:
+          "Gestiona el acceso al sistema y los roles de cada usuario: administrador, supervisor, técnico y cliente.",
+      },
+    ],
+  }),
   component: UsersPage,
 });
 
