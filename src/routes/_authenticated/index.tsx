@@ -480,7 +480,7 @@ function StaffDashboard() {
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
               <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
-            </h3>
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Total acumulado: <span className="font-mono font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", )}</span> galones
             </p>
@@ -672,7 +672,7 @@ function ClienteDashboard() {
       <section className="bg-card border border-border rounded-xl p-5">
         <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
           <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", )} gal
-        </h3>
+        </h2>
         <ul className="divide-y divide-border text-sm">
           {(agua.data?.filas ?? []).slice(0, 8).map((r: any) => (
             <li key={r.planta_id} className="flex items-center justify-between py-2">
