@@ -51,7 +51,7 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
     <section className="bg-card border border-border rounded-xl p-5">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · por trabajo</h3>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · por trabajo</h2>
           <p className="text-xs text-muted-foreground mt-1">
             Paneles limpiados por trabajo (completado o en curso) para cada cliente y planta con registro diario ingresado.
           </p>
@@ -177,7 +177,7 @@ function CumplimientoContratos() {
     <section className="bg-card border border-border rounded-xl p-5">
       <div className="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold uppercase tracking-wider break-words">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h3>
+          <h2 className="text-sm font-bold uppercase tracking-wider break-words">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
@@ -435,7 +435,7 @@ function StaffDashboard() {
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider">Trabajos por semana</h3>
+              <h2 className="text-sm font-bold uppercase tracking-wider">Trabajos por semana</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Últimas 12 semanas, apilado por estado</p>
             </div>
             <TrendingUp className="size-4 text-muted-foreground" />
@@ -446,7 +446,7 @@ function StaffDashboard() {
         </section>
 
         <section className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Distribución por tipo</h3>
+          <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Distribución por tipo</h2>
           <Suspense fallback={<ChartSkeleton />}>
             {series.isLoading ? <ChartSkeleton /> : <StaffCharts.DistribucionTipoChart data={series.data?.porTipo ?? []} />}
           </Suspense>
@@ -455,7 +455,7 @@ function StaffDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
-          <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Top 5 plantas con más trabajos</h3>
+          <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Top 5 plantas con más trabajos</h2>
           <Suspense fallback={<ChartSkeleton />}>
             {series.isLoading ? <ChartSkeleton /> : <StaffCharts.TopPlantasChart data={series.data?.topPlantas ?? []} />}
           </Suspense>
@@ -463,7 +463,7 @@ function StaffDashboard() {
 
         <section className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold uppercase tracking-wider">Alertas activas</h3>
+            <h2 className="text-sm font-bold uppercase tracking-wider">Alertas activas</h2>
             <AlertTriangle className="size-4 text-destructive" />
           </div>
           <ul className="space-y-2 text-sm">
@@ -478,7 +478,7 @@ function StaffDashboard() {
       <section className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
               <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -497,7 +497,7 @@ function StaffDashboard() {
       <div className="grid grid-cols-1 gap-8">
         <aside className="space-y-6">
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Trabajos con SLA en riesgo</h3>
+            <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Trabajos con SLA en riesgo</h2>
             <ul className="space-y-3 text-sm">
               {((sla.data as any[]) ?? [])
                 .filter((r) => r.estado_sla === "vencido" || r.estado_sla === "en_riesgo")
@@ -633,7 +633,7 @@ function ClienteDashboard() {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold uppercase tracking-wider">Próximos trabajos</h3>
+            <h2 className="text-sm font-bold uppercase tracking-wider">Próximos trabajos</h2>
             <Link to="/trabajos" className="text-xs text-primary hover:underline font-medium">Ver →</Link>
           </div>
           <ul className="space-y-3 text-sm">
@@ -651,7 +651,7 @@ function ClienteDashboard() {
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold uppercase tracking-wider">Pendientes de tu firma</h3>
+            <h2 className="text-sm font-bold uppercase tracking-wider">Pendientes de tu firma</h2>
             <Link to="/mis-trabajos" className="text-xs text-primary hover:underline font-medium">Firmar →</Link>
           </div>
           <ul className="space-y-3 text-sm">
@@ -670,7 +670,7 @@ function ClienteDashboard() {
       </section>
 
       <section className="bg-card border border-border rounded-xl p-5">
-        <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+        <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
           <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", )} gal
         </h3>
         <ul className="divide-y divide-border text-sm">
