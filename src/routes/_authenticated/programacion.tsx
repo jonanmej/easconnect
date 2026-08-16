@@ -229,8 +229,12 @@ function Programacion() {
     }
   }
 
-  // Solo Lun-Vie
-  const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
+  // Lun-Vie por defecto; con fin de semana visible (emergencias) son 7 días.
+  const nDias = verFinDeSemana ? 7 : 5;
+  const days = useMemo(
+    () => Array.from({ length: nDias }, (_, i) => addDays(cursor, i)),
+    [cursor, nDias],
+  );
 
   const byDay = useMemo(() => {
     const map = new Map<string, any[]>();
