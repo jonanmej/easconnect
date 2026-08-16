@@ -10,6 +10,10 @@ export type ResultadoProveedor = {
   moneda: string;
   /** Precio con impuesto aplicado según configuración del usuario. */
   precio_con_impuesto: number | null;
+  /** true si el precio publicado por el proveedor ya venía con impuesto incluido. */
+  impuesto_incluido: boolean;
+  /** Porcentaje de impuesto usado en el cálculo. */
+  impuesto_pct: number;
   /** Unidades que trae el empaque (1 si es venta por unidad). */
   unidades_por_empaque: number;
   empaque: string;
@@ -92,7 +96,7 @@ export async function buscarEnWeb(termino: string, pais: string) {
 export async function extraerProveedores(
   termino: string,
   fuentes: Array<{ url: string; title: string; description: string; markdown: string }>,
-  opts: { moneda: string; impuestoPct: number },
+  opts: { moneda: string; impuestoPct: number; impuestoIncluido: boolean },
 ): Promise<ResultadoProveedor[]> {
   if (fuentes.length === 0) return [];
   const g = gateway();
@@ -139,14 +143,23 @@ function parsearJson(text: string): any {
   }
 }
 
-function normalizar(rows: any[], opts: { moneda: string; impuestoPct: number }): ResultadoProveedor[] {
-  const factor = 1 + Math.max(0, Number(opts.impuestoPct) || 0) / 100;
+function normalizar(
+  rows: any[],
+  opts: { moneda: string; impuestoPct: number; impuestoIncluido: boolean },
+): ResultadoProveedor[] {
+  const pct = Math.max(0, Number(opts.impuestoPct) || 0);
+  const factor = 1 + pct / 100;
+  const incluido = !!opts.impuestoIncluido;
+  const r4 = (n: number) => Math.round(n * 10000) / 10000;
   return rows
     .filter((r) => r && String(r.proveedor ?? "").trim())
     .slice(0, 10)
     .map((r) => {
-      const precio = r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio);
-      const conImp = precio == null ? null : Math.round(precio * factor * 10000) / 10000;
+      const publicado = r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio);
+      // En países donde el precio de lista ya incluye impuesto (ej. El Salvador, México),
+      // el precio publicado ES el precio final y el neto se obtiene dividiendo por el factor.
+      const precio = publicado == null ? null : incluido ? r4(publicado / factor) : publicado;
+      const conImp = publicado == null ? null : incluido ? r4(publicado) : r4(publicado * factor);
       const unidades = Math.max(1, Number(r.unidades_por_empaque) || 1);
       return {
         proveedor: String(r.proveedor).trim().slice(0, 80),
@@ -154,9 +167,11 @@ function normalizar(rows: any[], opts: { moneda: string; impuestoPct: number }):
         precio,
         moneda: (String(r.moneda ?? "").trim().slice(0, 6) || opts.moneda || "USD").toUpperCase(),
         precio_con_impuesto: conImp,
+        impuesto_incluido: incluido,
+        impuesto_pct: pct,
         unidades_por_empaque: unidades,
         empaque: String(r.empaque ?? "").trim().slice(0, 60),
-        precio_por_unidad: conImp == null ? null : Math.round((conImp / unidades) * 10000) / 10000,
+        precio_por_unidad: conImp == null ? null : r4(conImp / unidades),
         tiempo_entrega: String(r.tiempo_entrega ?? "").trim().slice(0, 90),
         url: String(r.url ?? "").trim(),
         disponibilidad: String(r.disponibilidad ?? "").trim().slice(0, 90),

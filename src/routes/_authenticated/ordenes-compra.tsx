@@ -476,7 +476,9 @@ function OrdenDetalleDialog({
                                 <div className="mt-1 text-[10px] text-muted-foreground border-l-2 border-primary/50 pl-2">
                                   <div>
                                     Oferta IA · {it.oferta_ia.moneda} {Number(it.oferta_ia.precio_con_impuesto ?? it.oferta_ia.precio ?? 0).toFixed(2)}
-                                    {it.oferta_ia.impuesto_pct ? ` (imp. ${it.oferta_ia.impuesto_pct}%)` : ""}
+                                    {it.oferta_ia.impuesto_pct
+                                      ? ` (imp. ${it.oferta_ia.impuesto_pct}% ${it.oferta_ia.impuesto_incluido === false ? "agregado" : "incluido"})`
+                                      : ""}
                                     {it.oferta_ia.precio_por_unidad != null ? ` · c/u ${Number(it.oferta_ia.precio_por_unidad).toFixed(2)}` : ""}
                                     {it.oferta_ia.empaque ? ` · ${it.oferta_ia.empaque}` : ""}
                                   </div>

@@ -21,10 +21,28 @@ export type OfertaProveedor = {
   notas: string;
   pais?: string;
   impuesto_pct?: number;
+  impuesto_incluido?: boolean;
   fecha?: string;
 };
 
 const MONEDAS = ["USD", "GTQ", "HNL", "NIO", "CRC", "MXN", "EUR", "CLP", "COP", "PEN"];
+
+/** Reglas comerciales por país: IVA/IVA-equivalente y si el precio de lista ya lo incluye. */
+const PAISES: Array<{ pais: string; moneda: string; impuesto: number; incluido: boolean }> = [
+  { pais: "El Salvador", moneda: "USD", impuesto: 13, incluido: true },
+  { pais: "Guatemala", moneda: "GTQ", impuesto: 12, incluido: true },
+  { pais: "Honduras", moneda: "HNL", impuesto: 15, incluido: true },
+  { pais: "Nicaragua", moneda: "NIO", impuesto: 15, incluido: true },
+  { pais: "Costa Rica", moneda: "CRC", impuesto: 13, incluido: true },
+  { pais: "Panamá", moneda: "USD", impuesto: 7, incluido: true },
+  { pais: "México", moneda: "MXN", impuesto: 16, incluido: true },
+  { pais: "Colombia", moneda: "COP", impuesto: 19, incluido: true },
+  { pais: "Perú", moneda: "PEN", impuesto: 18, incluido: true },
+  { pais: "Chile", moneda: "CLP", impuesto: 19, incluido: true },
+  { pais: "España", moneda: "EUR", impuesto: 21, incluido: true },
+  { pais: "Estados Unidos", moneda: "USD", impuesto: 8, incluido: false },
+  { pais: "Otro", moneda: "USD", impuesto: 0, incluido: false },
+];
 
 function fmt(n: number | null | undefined, moneda: string) {
   return n == null ? "—" : `${moneda} ${n.toFixed(2)}`;
@@ -53,6 +71,7 @@ export function BuscadorProveedoresIA({
   const [pais, setPais] = useState("El Salvador");
   const [moneda, setMoneda] = useState("USD");
   const [impuesto, setImpuesto] = useState<number>(13);
+  const [incluido, setIncluido] = useState(true);
   const [comparar, setComparar] = useState<"unidad" | "empaque">("unidad");
   const [tab, setTab] = useState<"buscar" | "historial">("buscar");
   const [file, setFile] = useState<File | null>(null);
@@ -78,7 +97,7 @@ export function BuscadorProveedoresIA({
     setBuscado(false);
     setTab("buscar");
     try {
-      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto };
+      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto, impuesto_incluido: incluido };
       if (file && !terminoForzado) {
         payload.imagen_base64 = await fileToBase64(file);
         payload.imagen_mime = file.type || "image/jpeg";
@@ -103,6 +122,7 @@ export function BuscadorProveedoresIA({
         ...r,
         pais,
         impuesto_pct: impuesto,
+        impuesto_incluido: incluido,
         fecha: new Date().toISOString(),
       },
       termino,
@@ -115,6 +135,8 @@ export function BuscadorProveedoresIA({
     setPais(h.pais);
     setMoneda(h.moneda);
     setImpuesto(Number(h.impuesto_pct ?? 0));
+    const primero = Array.isArray(h.resultados) ? h.resultados[0] : null;
+    if (primero && typeof primero.impuesto_incluido === "boolean") setIncluido(primero.impuesto_incluido);
     setTermino(h.termino);
     setResultados(Array.isArray(h.resultados) ? h.resultados : []);
     setBuscado(true);
@@ -166,7 +188,20 @@ export function BuscadorProveedoresIA({
             </label>
             <label className="text-[11px] md:col-span-4">
               <span className="block text-muted-foreground mb-1">País / mercado</span>
-              <input value={pais} onChange={(e) => setPais(e.target.value)} className={inputCls} />
+              <select
+                value={PAISES.some((p) => p.pais === pais) ? pais : "Otro"}
+                onChange={(e) => {
+                  const cfg = PAISES.find((p) => p.pais === e.target.value);
+                  if (!cfg) return;
+                  setPais(cfg.pais);
+                  setMoneda(cfg.moneda);
+                  setImpuesto(cfg.impuesto);
+                  setIncluido(cfg.incluido);
+                }}
+                className={inputCls}
+              >
+                {PAISES.map((p) => <option key={p.pais} value={p.pais}>{p.pais}</option>)}
+              </select>
             </label>
             <label className="text-[11px] md:col-span-3">
               <span className="block text-muted-foreground mb-1">Moneda</span>
@@ -201,6 +236,19 @@ export function BuscadorProveedoresIA({
           </label>
 
           <div className="flex items-center gap-2 text-[11px]">
+            <span className="text-muted-foreground">Precio publicado:</span>
+            {([true, false] as const).map((v) => (
+              <button
+                key={String(v)}
+                onClick={() => setIncluido(v)}
+                className={`h-7 px-2 rounded-md border text-[11px] ${incluido === v ? "border-primary text-primary font-medium" : "border-border text-muted-foreground"}`}
+              >
+                {v ? `ya incluye IVA (${impuesto}%)` : "sin IVA (se agrega)"}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px]">
             <span className="text-muted-foreground">Comparar por:</span>
             {(["unidad", "empaque"] as const).map((m) => (
               <button
@@ -222,7 +270,7 @@ export function BuscadorProveedoresIA({
           {!busy && ordenados.length > 0 && (
             <>
               <p className="text-[11px] text-muted-foreground mb-2">
-                Resultados para <span className="font-medium text-foreground">{termino}</span> · {pais} · {moneda} · IVA {impuesto}% · ordenados por {comparar === "unidad" ? "precio por unidad" : "precio del empaque"}
+                Resultados para <span className="font-medium text-foreground">{termino}</span> · {pais} · {moneda} · IVA {impuesto}% {incluido ? "incluido en el precio" : "agregado al precio"} · ordenados por {comparar === "unidad" ? "precio por unidad" : "precio del empaque"}
               </p>
               <div className="space-y-2">
                 {ordenados.map((r, i) => (
@@ -256,7 +304,7 @@ export function BuscadorProveedoresIA({
                           : `c/u ${fmt(r.precio_por_unidad ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        {r.precio != null ? `sin imp. ${fmt(r.precio, r.moneda)}` : ""}
+                        {r.precio != null ? `neto sin imp. ${fmt(r.precio, r.moneda)}` : ""}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -276,7 +324,7 @@ export function BuscadorProveedoresIA({
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-3">
-                Precios de referencia obtenidos de la web (impuesto estimado {impuesto}%); verifica con el proveedor antes de emitir la orden.
+                Precios de referencia obtenidos de la web ({pais}: IVA {impuesto}% {incluido ? "ya incluido en el precio de lista" : "agregado sobre el precio de lista"}); verifica con el proveedor antes de emitir la orden.
               </p>
             </>
           )}
