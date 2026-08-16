@@ -49,6 +49,63 @@ export function PlantaZonasEditor({
   const [modoDibujo, setModoDibujo] = useState(false);
   const [puntosDibujo, setPuntosDibujo] = useState<Punto[]>([]);
   const [modoLista, setModoLista] = useState(false);
+  /** Motor de mapa: principal (Mapbox/WebGL) o alternativo por imágenes. */
+  const [motor, setMotor] = useState<"principal" | "imagenes">("principal");
+  const [motivo, setMotivo] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
+  const [restaurado, setRestaurado] = useState(false);
+
+  const usarAlterno = motor === "imagenes";
+  const CLAVE_BORRADOR = `zonas-borrador:${planta.id}`;
+
+  /** Activa el mapa alternativo al instante, sin recargar, explicando el motivo. */
+  function activarAlterno(razon: string) {
+    setMotor((m) => {
+      if (m === "imagenes") return m;
+      toast.message("Mapa alternativo activado", { description: razon });
+      return "imagenes";
+    });
+    setMotivo(razon);
+  }
+
+  function volverPrincipal() {
+    setMotivo(null);
+    setError(null);
+    setListo(false);
+    setMotor("principal");
+    setIntento((n) => n + 1);
+  }
+
+  // Autoguardado del trazo en curso (sobrevive al cambio de mapa y a recargas).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CLAVE_BORRADOR);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (Array.isArray(d?.borrador) && d.borrador.length >= 3) {
+          setBorrador(d.borrador);
+          toast.message("Se recuperó un trazo sin guardar de esta planta.");
+        } else if (Array.isArray(d?.puntos) && d.puntos.length) {
+          setPuntosDibujo(d.puntos);
+          setModoDibujo(true);
+          modoDibujoRef.current = true;
+          toast.message(`Se recuperaron ${d.puntos.length} puntos del trazo en curso.`);
+        }
+      }
+    } catch { /* sin autoguardado */ }
+    setRestaurado(true);
+  }, [planta.id]);
+
+  useEffect(() => {
+    if (!restaurado) return;
+    try {
+      if (borrador?.length || puntosDibujo.length) {
+        localStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ borrador, puntos: puntosDibujo, ts: Date.now() }));
+      } else {
+        localStorage.removeItem(CLAVE_BORRADOR);
+      }
+    } catch { /* almacenamiento lleno */ }
+  }, [restaurado, borrador, puntosDibujo, CLAVE_BORRADOR]);
 
   const rows = (zonas.data as any[] | undefined) ?? [];
   const rowsRef = useRef(rows);
