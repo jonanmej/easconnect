@@ -19,10 +19,11 @@ import {
   subirCotizacion,
 } from "@/lib/ordenes-compra.functions";
 import { listInventario, upsertInventarioItem } from "@/lib/inventario.functions";
+import { BuscadorProveedoresIA, type OfertaProveedor } from "@/components/BuscadorProveedoresIA";
 import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Send, PackageCheck, XCircle, Trash2, Download, ExternalLink, Pencil, AlertTriangle, Plus, Paperclip } from "lucide-react";
+import { Send, PackageCheck, XCircle, Trash2, Download, ExternalLink, Pencil, AlertTriangle, Plus, Paperclip, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/ordenes-compra")({
   head: () => ({
