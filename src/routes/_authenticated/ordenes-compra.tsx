@@ -19,10 +19,11 @@ import {
   subirCotizacion,
 } from "@/lib/ordenes-compra.functions";
 import { listInventario, upsertInventarioItem } from "@/lib/inventario.functions";
+import { BuscadorProveedoresIA, type OfertaProveedor } from "@/components/BuscadorProveedoresIA";
 import { generarYDescargarOrdenCompraPdf } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { Send, PackageCheck, XCircle, Trash2, Download, ExternalLink, Pencil, AlertTriangle, Plus, Paperclip } from "lucide-react";
+import { Send, PackageCheck, XCircle, Trash2, Download, ExternalLink, Pencil, AlertTriangle, Plus, Paperclip, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/ordenes-compra")({
   head: () => ({
@@ -1056,6 +1057,7 @@ function NuevaOrdenDialog({
   const [notas, setNotas] = useState("");
   const [busy, setBusy] = useState(false);
   const [proveedores, setProveedores] = useState<NuevoProv[]>([]);
+  const [iaOpen, setIaOpen] = useState(false);
   const [filas, setFilas] = useState<NuevaFila[]>(() => {
     if (!prefill?.length) return [];
     return prefill.map((p, i) => ({
@@ -1168,6 +1170,45 @@ function NuevaOrdenDialog({
   }
   function updFila(key: string, patch: Partial<NuevaFila>) {
     setFilas((fs) => fs.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+  }
+
+  /** Inserta una oferta encontrada por IA como ítem libre y registra al proveedor. */
+  function usarOfertaIA(of: OfertaProveedor, termino: string) {
+    const nombreProv = of.proveedor.trim();
+    if (nombreProv) {
+      setProveedores((ps) =>
+        ps.some((p) => p.nombre.trim().toLowerCase() === nombreProv.toLowerCase())
+          ? ps
+          : [
+              ...ps,
+              {
+                key: `prov-ia-${Date.now()}-${ps.length}`,
+                nombre: nombreProv,
+                cotizacion_folio: "",
+                cotizacion_fecha: "",
+                cotizacion_monto: of.precio ?? "",
+                cotizacion_storage_path: null,
+                file: null,
+              },
+            ],
+      );
+    }
+    setFilas((fs) => [
+      ...fs,
+      {
+        key: `ia-${Date.now()}-${fs.length}`,
+        source: "libre",
+        item_id: null,
+        sku_texto: null,
+        nombre: (of.producto || termino).slice(0, 140),
+        categoria: "",
+        unidad: "un",
+        cantidad_pedida: 1,
+        precio_unitario: of.precio ?? "",
+        proveedor: nombreProv,
+      },
+    ]);
+    setNotas((n) => (of.url && !n.includes(of.url) ? `${n ? `${n} · ` : ""}Ref: ${of.url}`.slice(0, 500) : n));
   }
   function rmFila(key: string) {
     setFilas((fs) => fs.filter((f) => f.key !== key));
@@ -1337,6 +1378,14 @@ function NuevaOrdenDialog({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => setIaOpen(true)}
+                  className="h-8 px-2 text-[11px] rounded-md border border-primary/40 text-primary hover:bg-primary/10 inline-flex items-center gap-1"
+                  title="Buscar proveedores y precios en la web con IA (por nombre o foto)"
+                >
+                  <Sparkles className="size-3" /> Buscar con IA
+                </button>
+                <button
+                  type="button"
                   onClick={cargarBajoMinimo}
                   className="h-8 px-2 text-[11px] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
                   title="Agrega los ítems agotados o por debajo del mínimo"
@@ -1444,6 +1493,8 @@ function NuevaOrdenDialog({
           </button>
         </div>
       </div>
+
+      {iaOpen && <BuscadorProveedoresIA onUsar={usarOfertaIA} onClose={() => setIaOpen(false)} />}
     </div>
   );
 }
