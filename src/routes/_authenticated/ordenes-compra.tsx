@@ -1493,6 +1493,8 @@ function NuevaOrdenDialog({
           </button>
         </div>
       </div>
+
+      {iaOpen && <BuscadorProveedoresIA onUsar={usarOfertaIA} onClose={() => setIaOpen(false)} />}
     </div>
   );
 }
