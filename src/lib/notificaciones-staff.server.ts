@@ -1,6 +1,7 @@
 import { sendGmail, emailLayout } from "./notifications.server";
 
 type Tipo =
+  | "trabajo_iniciado"
   | "trabajo_completado"
   | "reporte_diario"
   | "nueva_evidencia"
