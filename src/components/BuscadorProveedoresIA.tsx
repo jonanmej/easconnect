@@ -21,10 +21,28 @@ export type OfertaProveedor = {
   notas: string;
   pais?: string;
   impuesto_pct?: number;
+  impuesto_incluido?: boolean;
   fecha?: string;
 };
 
 const MONEDAS = ["USD", "GTQ", "HNL", "NIO", "CRC", "MXN", "EUR", "CLP", "COP", "PEN"];
+
+/** Reglas comerciales por país: IVA/IVA-equivalente y si el precio de lista ya lo incluye. */
+const PAISES: Array<{ pais: string; moneda: string; impuesto: number; incluido: boolean }> = [
+  { pais: "El Salvador", moneda: "USD", impuesto: 13, incluido: true },
+  { pais: "Guatemala", moneda: "GTQ", impuesto: 12, incluido: true },
+  { pais: "Honduras", moneda: "HNL", impuesto: 15, incluido: true },
+  { pais: "Nicaragua", moneda: "NIO", impuesto: 15, incluido: true },
+  { pais: "Costa Rica", moneda: "CRC", impuesto: 13, incluido: true },
+  { pais: "Panamá", moneda: "USD", impuesto: 7, incluido: true },
+  { pais: "México", moneda: "MXN", impuesto: 16, incluido: true },
+  { pais: "Colombia", moneda: "COP", impuesto: 19, incluido: true },
+  { pais: "Perú", moneda: "PEN", impuesto: 18, incluido: true },
+  { pais: "Chile", moneda: "CLP", impuesto: 19, incluido: true },
+  { pais: "España", moneda: "EUR", impuesto: 21, incluido: true },
+  { pais: "Estados Unidos", moneda: "USD", impuesto: 8, incluido: false },
+  { pais: "Otro", moneda: "USD", impuesto: 0, incluido: false },
+];
 
 function fmt(n: number | null | undefined, moneda: string) {
   return n == null ? "—" : `${moneda} ${n.toFixed(2)}`;
@@ -53,6 +71,7 @@ export function BuscadorProveedoresIA({
   const [pais, setPais] = useState("El Salvador");
   const [moneda, setMoneda] = useState("USD");
   const [impuesto, setImpuesto] = useState<number>(13);
+  const [incluido, setIncluido] = useState(true);
   const [comparar, setComparar] = useState<"unidad" | "empaque">("unidad");
   const [tab, setTab] = useState<"buscar" | "historial">("buscar");
   const [file, setFile] = useState<File | null>(null);
@@ -78,7 +97,7 @@ export function BuscadorProveedoresIA({
     setBuscado(false);
     setTab("buscar");
     try {
-      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto };
+      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto, impuesto_incluido: incluido };
       if (file && !terminoForzado) {
         payload.imagen_base64 = await fileToBase64(file);
         payload.imagen_mime = file.type || "image/jpeg";
@@ -103,6 +122,7 @@ export function BuscadorProveedoresIA({
         ...r,
         pais,
         impuesto_pct: impuesto,
+        impuesto_incluido: incluido,
         fecha: new Date().toISOString(),
       },
       termino,
@@ -115,6 +135,8 @@ export function BuscadorProveedoresIA({
     setPais(h.pais);
     setMoneda(h.moneda);
     setImpuesto(Number(h.impuesto_pct ?? 0));
+    const primero = Array.isArray(h.resultados) ? h.resultados[0] : null;
+    if (primero && typeof primero.impuesto_incluido === "boolean") setIncluido(primero.impuesto_incluido);
     setTermino(h.termino);
     setResultados(Array.isArray(h.resultados) ? h.resultados : []);
     setBuscado(true);
