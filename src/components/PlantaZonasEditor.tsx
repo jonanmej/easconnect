@@ -279,30 +279,34 @@ export function PlantaZonasEditor({
   const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background text-sm";
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] bg-black/60 flex items-stretch sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
         className="w-full sm:max-w-6xl h-full sm:h-[90vh] bg-background sm:rounded-xl border border-border flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
+        <div className="safe-top safe-x sm:!pt-3 flex items-center justify-between gap-2 px-4 pb-3 border-b border-border shrink-0 bg-background">
           <div className="min-w-0">
             <p className="text-[11px] uppercase text-primary font-semibold">Layout de zonas</p>
             <p className="text-sm font-medium truncate">{planta.nombre}</p>
           </div>
-          <button onClick={onClose} className="size-8 grid place-items-center rounded-md hover:bg-secondary" aria-label="Cerrar">
-            <X className="size-4" />
+          <button
+            onClick={onClose}
+            className="size-10 shrink-0 grid place-items-center rounded-md border border-border hover:bg-secondary active:scale-95"
+            aria-label="Cerrar"
+          >
+            <X className="size-5" />
           </button>
         </div>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] overflow-hidden">
-          <div className="relative bg-secondary/40 min-h-[320px]">
+        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_320px]">
+          <div className="relative bg-secondary/40 h-[46vh] min-h-[260px] lg:h-auto">
             {error && (
-              <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-destructive z-10">
-                No se pudo cargar el mapa: {error}
+              <div className="absolute inset-0 overflow-y-auto grid place-items-center p-4 sm:p-6 text-center text-xs sm:text-sm text-destructive z-10">
+                <p className="max-w-md">No se pudo cargar el mapa: {error}</p>
               </div>
             )}
             <div ref={mapEl} className="w-full h-full" />
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2 w-[92%]">
               {modoDibujo && (
                 <div className="rounded-full bg-background/95 border border-border px-3 py-1.5 text-xs font-medium shadow-lg">
                   {puntosDibujo.length} punto{puntosDibujo.length === 1 ? "" : "s"} marcados
@@ -345,7 +349,7 @@ export function PlantaZonasEditor({
             </div>
           </div>
 
-          <aside className="border-t lg:border-t-0 lg:border-l border-border overflow-y-auto p-3 space-y-3">
+          <aside className="border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto p-3 pb-[max(env(safe-area-inset-bottom),1rem)] space-y-3">
             {borrador && (
               <form onSubmit={guardarBorrador} className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-semibold text-primary">Nueva zona ({borrador.length} vértices)</p>

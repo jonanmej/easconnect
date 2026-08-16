@@ -171,8 +171,14 @@ export function MapaAvanceDiario({
       </div>
       <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
         {error && (
-          <div className="absolute inset-0 grid place-items-center p-4 text-center text-xs text-destructive z-10">
-            No se pudo cargar el mapa: {error}
+          <div className="absolute inset-0 overflow-y-auto grid place-items-center p-3 text-center text-[11px] text-destructive z-10">
+            <p>
+              No se pudo cargar el mapa: {error}
+              <br />
+              <span className="text-muted-foreground">
+                Puedes marcar el avance con los botones de zona de abajo.
+              </span>
+            </p>
           </div>
         )}
         <div ref={mapEl} className="w-full h-full" />
