@@ -285,6 +285,7 @@ export function ReportesDiariosSection({
             {diariosArr.map((d, idx) => {
             const mine = d.tecnico_id === user?.id;
             const canDelete = mine || isStaff;
+            const canEditRow = (mine || isStaff) && !readOnly;
             return (
               <details key={d.id} open={idx === 0} className="rounded-md border border-border bg-card group">
                 <summary className="px-3 py-2 flex items-center gap-2 cursor-pointer text-sm list-none [&::-webkit-details-marker]:hidden">
@@ -355,8 +356,29 @@ export function ReportesDiariosSection({
                       <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={d.id} />
                     )}
                   </div>
-                  {canDelete && !readOnly && (
-                    <div className="flex justify-end">
+                  {canEditRow && editandoId === d.id && (
+                    <DiarioForm
+                      key={`edit-${d.id}`}
+                      initial={d}
+                      onCancel={() => setEditandoId(null)}
+                      onSave={(v) => save.mutateAsync(v)}
+                      saving={save.isPending}
+                      panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+                      duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+                    />
+                  )}
+                  {(canEditRow || (canDelete && !readOnly)) && (
+                    <div className="flex justify-end gap-3">
+                      {canEditRow && editandoId !== d.id && (
+                        <button
+                          type="button"
+                          onClick={() => setEditandoId(d.id)}
+                          className="text-primary text-xs inline-flex items-center gap-1 hover:underline"
+                        >
+                          <Pencil className="size-3" /> Editar
+                        </button>
+                      )}
+                      {canDelete && !readOnly && (
                       <button
                         type="button"
                         onClick={() => { if (confirm("¿Eliminar este reporte diario?")) del.mutate(d.id); }}
@@ -364,6 +386,7 @@ export function ReportesDiariosSection({
                       >
                         <Trash2 className="size-3" /> Eliminar
                       </button>
+                      )}
                     </div>
                   )}
                 </div>
