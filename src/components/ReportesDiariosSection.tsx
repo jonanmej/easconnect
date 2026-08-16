@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -60,6 +60,8 @@ export function ReportesDiariosSection({
   const role = highestRole(roles);
   const isStaff = role === "admin" || role === "supervisor";
   const isStSolar = (user?.email ?? "").toLowerCase() === ST_SOLAR_EMAIL;
+  // Reporte diario que se está editando (por id).
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const fList = useServerFn(listReportesDiarios);
