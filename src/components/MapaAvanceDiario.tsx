@@ -162,27 +162,33 @@ export function MapaAvanceDiario({
   const completadas = zonas.filter((z) => marcas.get(z.id) === "completada").length;
   const enProceso = zonas.filter((z) => marcas.get(z.id) === "en_proceso").length;
 
+  const sinMapa = !!error;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
         <MapPinned className="size-3.5 text-primary" />
         <span>{completadas} completadas · {enProceso} en proceso · {zonas.length} zonas</span>
-        {!readOnly && <span className="ml-auto">Toca una zona para cambiar su estado</span>}
-      </div>
-      <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
-        {error && (
-          <div className="absolute inset-0 overflow-y-auto grid place-items-center p-3 text-center text-[11px] text-destructive z-10">
-            <p>
-              No se pudo cargar el mapa: {error}
-              <br />
-              <span className="text-muted-foreground">
-                Puedes marcar el avance con los botones de zona de abajo.
-              </span>
-            </p>
-          </div>
+        {!readOnly && (
+          <span className="ml-auto">
+            {sinMapa ? "Modo lista: usa los botones de zona" : "Toca una zona para cambiar su estado"}
+          </span>
         )}
-        <div ref={mapEl} className="w-full h-full" />
       </div>
+      {sinMapa ? (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-[11px] space-y-1">
+          <p className="text-destructive font-medium">No se pudo cargar el mapa satelital.</p>
+          <p className="text-muted-foreground">{error}</p>
+          <p className="text-muted-foreground">
+            Modo alternativo activo: marca el avance de cada zona con los botones de abajo. Todo se guarda igual
+            en el reporte diario.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
+          <div ref={mapEl} className="w-full h-full" />
+        </div>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {zonas.map((z) => {
           const est = marcas.get(z.id) ?? null;
