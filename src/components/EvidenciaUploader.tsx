@@ -44,6 +44,40 @@ function fileToDataURL(file: File | Blob): Promise<string> {
   });
 }
 
+const MAX_LADO = 2000;
+const MAX_BYTES_DIRECTO = 1_200_000;
+
+/**
+ * Reduce la foto antes de subirla: las cámaras de teléfono generan archivos de
+ * 4-8 MB que fallan con conexión de campo y desbordan el respaldo offline.
+ */
+async function comprimirImagen(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  if (file.size <= MAX_BYTES_DIRECTO) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const escala = Math.min(1, MAX_LADO / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * escala));
+    const h = Math.max(1, Math.round(bitmap.height * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob((b) => res(b), "image/jpeg", 0.82),
+    );
+    if (!blob || blob.size >= file.size) return file;
+    const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], nombre, { type: "image/jpeg" });
+  } catch (e) {
+    console.warn("[Evidencias] no se pudo comprimir, se sube original", e);
+    return file;
+  }
+}
+
 export function EvidenciaUploader({
   trabajoId,
   reporteDiarioId,
