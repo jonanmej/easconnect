@@ -80,7 +80,13 @@ export async function buscarEnWeb(termino: string, pais: string) {
     throw new Error(`Búsqueda web falló [${res.status}]: ${body.slice(0, 300)}`);
   }
   const json: any = await res.json();
-  const rows: any[] = Array.isArray(json?.data) ? json.data : Array.isArray(json?.web) ? json.web : [];
+  const rows: any[] = Array.isArray(json?.data?.web)
+    ? json.data.web
+    : Array.isArray(json?.data)
+      ? json.data
+      : Array.isArray(json?.web)
+        ? json.web
+        : [];
   return rows.map((r) => ({
     url: String(r?.url ?? ""),
     title: String(r?.title ?? ""),
