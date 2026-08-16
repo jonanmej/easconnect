@@ -139,6 +139,7 @@ export function PlantaZonasEditor({
 
   useEffect(() => {
     let cancelado = false;
+    if (usarAlterno) return;
     cargarMapbox()
       .then((mb) => {
         if (cancelado || !mapEl.current || mapRef.current) return;
@@ -156,6 +157,13 @@ export function PlantaZonasEditor({
         });
         map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("error", (ev: any) => {
+          const msg = String(ev?.error?.message ?? "");
+          if (/webgl|context|gl\b/i.test(msg)) activarAlterno(`Mapbox no pudo usar la aceleración gráfica: ${msg}`);
+        });
+        map.getCanvas?.()?.addEventListener?.("webglcontextlost", () => {
+          activarAlterno("El dispositivo perdió el contexto gráfico (WebGL) del mapa.");
+        });
         map.on("load", () => {
           const vacio = { type: "FeatureCollection", features: [] } as any;
           map.addSource(SRC_ZONAS, { type: "geojson", data: vacio });
@@ -215,13 +223,16 @@ export function PlantaZonasEditor({
           setListo(true);
         });
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        setError(e.message);
+        activarAlterno(e.message);
+      });
     return () => {
       cancelado = true;
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [planta.id, planta.latitud, planta.longitud]);
+  }, [planta.id, planta.latitud, planta.longitud, usarAlterno, intento]);
 
   // Pinta las zonas guardadas.
   useEffect(() => {
