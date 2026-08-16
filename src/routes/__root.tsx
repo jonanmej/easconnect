@@ -229,7 +229,7 @@ function RootComponent() {
       <ThemeProvider>
         <Outlet />
         <AppUpdateGate />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-center" expand={false} />
       </ThemeProvider>
     </QueryClientProvider>
   );
