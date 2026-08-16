@@ -188,6 +188,9 @@ export function EvidenciaUploader({
     if (procesandoRef.current.has(itemId)) return;
     let item = itemInicial ?? cola.find((c) => c.id === itemId);
     if (!item) return;
+    // Al reintentar manualmente se reinicia el contador; si no, el bucle no se
+    // ejecutaba y el aviso salía sin detalle del error.
+    if (item.intentos >= MAX_INTENTOS) item = { ...item, intentos: 0, error: undefined };
     procesandoRef.current.add(itemId);
     try {
       for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
