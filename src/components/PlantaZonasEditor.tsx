@@ -372,7 +372,7 @@ export function PlantaZonasEditor({
             ) : (
               <div ref={mapEl} className="w-full h-full" />
             )}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2 w-[92%]">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[500] pointer-events-auto flex flex-col items-center gap-2 w-[92%]">
               {modoDibujo && (
                 <div className="rounded-full bg-background/95 border border-border px-3 py-1.5 text-xs font-medium shadow-lg">
                   {puntosDibujo.length} punto{puntosDibujo.length === 1 ? "" : "s"} marcados
@@ -382,7 +382,7 @@ export function PlantaZonasEditor({
                 {!modoDibujo ? (
                   <button
                     onClick={dibujar}
-                    disabled={!listo}
+                    disabled={!listo && !error}
                     className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
                   >
                     <Shapes className="size-4" /> Dibujar zona
