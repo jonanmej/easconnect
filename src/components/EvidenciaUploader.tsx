@@ -9,6 +9,7 @@ import { listEvidencias, recordEvidencia, deleteEvidencia } from "@/lib/evidenci
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { enqueue, flushQueue, pendingCount, onQueueChange } from "@/lib/offline-queue";
+import { mensajeDeError } from "@/lib/error-msg";
 
 const BUCKET = "trabajos-evidencia";
 
@@ -165,7 +166,9 @@ export function EvidenciaUploader({
           setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2000);
           return;
         } catch (e: any) {
-          item = { ...item, intentos: intento + 1, error: e?.message ?? "Error" };
+          const msg = await mensajeDeError(e);
+          console.error("[Evidencias] intento fallido", intento + 1, msg, e);
+          item = { ...item, intentos: intento + 1, error: msg };
           await new Promise((r) => setTimeout(r, 400 * (intento + 1)));
         }
       }
@@ -184,7 +187,7 @@ export function EvidenciaUploader({
         setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
       } catch {
         setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
-        toast.error(`Error al subir "${item.file.name}": ${item.error ?? "desconocido"}`);
+        toast.error(`Error al subir "${item.file.name}": ${item.error ?? "sin detalle"}`);
       }
     } finally {
       procesandoRef.current.delete(itemId);
