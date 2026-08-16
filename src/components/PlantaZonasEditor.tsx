@@ -6,6 +6,7 @@ import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw, ListPlus, RefreshCw 
 import {
   cargarMapbox, centroDe, ajustarA, ESTILO_SATELITE, type MapboxNS,
 } from "@/lib/mapbox-loader";
+import { MapaZonasLeaflet } from "@/components/MapaZonasLeaflet";
 import {
   listZonasPlanta,
   upsertZonaPlanta,
@@ -223,7 +224,7 @@ export function PlantaZonasEditor({
   }, [listo, puntosDibujo, borrador, modoDibujo]);
 
   function dibujar() {
-    if (!mapRef.current) return;
+    if (!mapRef.current && !error) return;
     limpiarBorrador();
     setModoDibujo(true);
     modoDibujoRef.current = true;
@@ -231,7 +232,7 @@ export function PlantaZonasEditor({
   }
 
   function finalizarDibujo() {
-    if (!mapRef.current || puntosDibujo.length < 3) {
+    if ((!mapRef.current && !error) || puntosDibujo.length < 3) {
       toast.error("Marca al menos 3 puntos para formar una zona.");
       return;
     }
