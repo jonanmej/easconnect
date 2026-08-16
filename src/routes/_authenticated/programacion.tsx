@@ -448,7 +448,13 @@ function Programacion() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Programación"
-        description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
+        description={
+          canEdit && vista === "semana"
+            ? "Arrastra un trabajo a otro día para reprogramarlo. Activa «Fin de semana» para programar emergencias en sábado, domingo o feriado."
+            : verFinDeSemana
+              ? "Calendario operativo (lunes a domingo)."
+              : "Calendario operativo (lunes a viernes)."
+        }
         actions={
           <div className="inline-flex items-center gap-2 flex-wrap no-print">
             <div className="inline-flex rounded-md border border-border overflow-hidden text-xs">
@@ -551,14 +557,17 @@ function Programacion() {
 
       {vista === "semana" && (
       <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
-        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div
+          style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }}
+          className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+        >
           {days.map((d) => (
             <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
               {fmtDayLabel(d)}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] min-h-[420px]">
+        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -578,6 +587,11 @@ function Programacion() {
               >
                 {motivo === "feriado" && (
                   <p className="text-[9px] uppercase tracking-wide text-destructive/80 font-semibold">Feriado</p>
+                )}
+                {(motivo === "sábado" || motivo === "domingo") && (
+                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    {motivo} · solo emergencias
+                  </p>
                 )}
                 {items.length === 0 && (
                   <p className="text-[10px] text-muted-foreground/60 px-1 py-2">—</p>
