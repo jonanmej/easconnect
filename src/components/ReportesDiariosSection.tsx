@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown } from "lucide-react";
+import { Trash2, FileText, ExternalLink, Upload, Plus, Sparkles, ChevronDown, ClipboardList, FileBox, Camera, Loader2, FileDown, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listReportesDiarios,
@@ -38,6 +38,12 @@ function fmtHora(h?: string | null): string {
   const m = /^(\d{2}):(\d{2})/.exec(h);
   return m ? `${m[1]}:${m[2]}` : String(h);
 }
+/** Normaliza una hora guardada (HH:MM[:SS]) al valor que espera <input type="time">. */
+function hhmm(h?: string | null): string {
+  if (!h) return "";
+  const m = /^(\d{2}):(\d{2})/.exec(String(h));
+  return m ? `${m[1]}:${m[2]}` : "";
+}
 
 export function ReportesDiariosSection({
   trabajoId,
@@ -54,6 +60,8 @@ export function ReportesDiariosSection({
   const role = highestRole(roles);
   const isStaff = role === "admin" || role === "supervisor";
   const isStSolar = (user?.email ?? "").toLowerCase() === ST_SOLAR_EMAIL;
+  // Reporte diario que se está editando (por id).
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const fList = useServerFn(listReportesDiarios);
@@ -279,6 +287,7 @@ export function ReportesDiariosSection({
             {diariosArr.map((d, idx) => {
             const mine = d.tecnico_id === user?.id;
             const canDelete = mine || isStaff;
+            const canEditRow = (mine || isStaff) && !readOnly;
             return (
               <details key={d.id} open={idx === 0} className="rounded-md border border-border bg-card group">
                 <summary className="px-3 py-2 flex items-center gap-2 cursor-pointer text-sm list-none [&::-webkit-details-marker]:hidden">
@@ -349,8 +358,29 @@ export function ReportesDiariosSection({
                       <EvidenciaUploader trabajoId={trabajoId} reporteDiarioId={d.id} />
                     )}
                   </div>
-                  {canDelete && !readOnly && (
-                    <div className="flex justify-end">
+                  {canEditRow && editandoId === d.id && (
+                    <DiarioForm
+                      key={`edit-${d.id}`}
+                      initial={d}
+                      onCancel={() => setEditandoId(null)}
+                      onSave={(v) => save.mutateAsync(v)}
+                      saving={save.isPending}
+                      panelesPlanta={(trabajoInfo.data as any)?.planta?.paneles ?? null}
+                      duracionDias={(trabajoInfo.data as any)?.duracion_dias ?? null}
+                    />
+                  )}
+                  {(canEditRow || (canDelete && !readOnly)) && (
+                    <div className="flex justify-end gap-3">
+                      {canEditRow && editandoId !== d.id && (
+                        <button
+                          type="button"
+                          onClick={() => setEditandoId(d.id)}
+                          className="text-primary text-xs inline-flex items-center gap-1 hover:underline"
+                        >
+                          <Pencil className="size-3" /> Editar
+                        </button>
+                      )}
+                      {canDelete && !readOnly && (
                       <button
                         type="button"
                         onClick={() => { if (confirm("¿Eliminar este reporte diario?")) del.mutate(d.id); }}
@@ -358,6 +388,7 @@ export function ReportesDiariosSection({
                       >
                         <Trash2 className="size-3" /> Eliminar
                       </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -456,30 +487,40 @@ function Block({ title, children }: { title: string; children: any }) {
 }
 
 function DiarioForm({
-  onSave, saving, panelesPlanta, duracionDias,
+  onSave, saving, panelesPlanta, duracionDias, initial, onCancel,
 }: {
   onSave: (v: any) => Promise<unknown>;
   saving: boolean;
   panelesPlanta: number | null;
   duracionDias: number | null;
+  /** Cuando viene, el formulario abre en modo edición con estos valores. */
+  initial?: any;
+  onCancel?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">("intervencion");
-  const [panelesDia, setPanelesDia] = useState<string>("");
-  const [wattsPanel, setWattsPanel] = useState<string>("");
-  const [horaInicio, setHoraInicio] = useState<string>("");
-  const [horaFin, setHoraFin] = useState<string>("");
+  const editando = !!initial?.id;
+  const [open, setOpen] = useState(editando);
+  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">(
+    (initial?.fase as any) ?? "intervencion",
+  );
+  const [panelesDia, setPanelesDia] = useState<string>(
+    initial?.paneles_limpiados != null ? String(initial.paneles_limpiados) : "",
+  );
+  const [wattsPanel, setWattsPanel] = useState<string>(
+    initial?.watts_panel != null ? String(initial.watts_panel) : "",
+  );
+  const [horaInicio, setHoraInicio] = useState<string>(hhmm(initial?.hora_inicio));
+  const [horaFin, setHoraFin] = useState<string>(hhmm(initial?.hora_fin));
   const formRef = useRef<HTMLDivElement>(null);
   const fJornada = useServerFn(getJornadaHoy);
   const jornada = useQuery({
     queryKey: ["jornada-hoy"],
     queryFn: () => fJornada(),
-    enabled: open,
+    enabled: open && !editando,
     staleTime: 60_000,
   });
   // Autocompletar horas desde la jornada al abrir el formulario
   useEffect(() => {
-    if (!open) return;
+    if (!open || editando) return;
     const j: any = jornada.data;
     if (!j) return;
     const toHM = (iso: string | null | undefined) => {
@@ -529,6 +570,7 @@ function DiarioForm({
     };
     try {
       await onSave({
+        ...(editando ? { id: initial.id } : {}),
         fecha: get("fecha") || today(),
         fase,
         avance_pct: avancePct,
@@ -547,6 +589,7 @@ function DiarioForm({
         observaciones: get("observaciones") || null,
       });
       // Limpiar campos solo si el guardado fue exitoso
+      if (editando) { onCancel?.(); return; }
       root.querySelectorAll("input, textarea").forEach((el) => {
         const node = el as HTMLInputElement | HTMLTextAreaElement;
         if (node.type !== "date") node.value = "";
@@ -574,8 +617,13 @@ function DiarioForm({
   }
   return (
     <div ref={formRef} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
+      {editando && (
+        <p className="text-[11px] font-semibold text-primary">
+          Editando el reporte del {initial.fecha}
+        </p>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
+        <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={initial?.fecha ?? today()} className={inputCls} /></FieldS>
         <FieldS label="Fase del trabajo">
           <select
             value={fase}
@@ -608,7 +656,7 @@ function DiarioForm({
             min={0}
             step="0.25"
             key={horasCalc != null ? "calc" : "manual"}
-            defaultValue={horasCalc != null ? String(horasCalc) : ""}
+            defaultValue={horasCalc != null ? String(horasCalc) : (initial?.horas_trabajadas ?? "")}
             readOnly={horasCalc != null}
             placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
             className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
@@ -624,7 +672,7 @@ function DiarioForm({
             className={inputCls}
           />
         </FieldS>
-        <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" className={inputCls} /></FieldS>
+        <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" defaultValue={initial?.agua_galones ?? ""} className={inputCls} /></FieldS>
         <FieldS label="Watts del panel instalado">
           <input
             name="watts_panel"
@@ -645,27 +693,27 @@ function DiarioForm({
             className={inputCls + " bg-secondary/50 text-muted-foreground"}
           />
         </FieldS>
-        <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
+        <FieldS label="Clima"><input name="clima" defaultValue={initial?.clima ?? ""} className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="TDS (PPM)">
-          <input name="tds_ppm" type="number" min={0} step="1" placeholder="Ej. 150" className={inputCls} />
+          <input name="tds_ppm" type="number" min={0} step="1" defaultValue={initial?.tds_ppm ?? ""} placeholder="Ej. 150" className={inputCls} />
         </FieldS>
         <FieldS label="Ángulo de inclinación (°)">
-          <input name="angulo_inclinacion" type="number" step="0.1" placeholder="Ej. 15" className={inputCls} />
+          <input name="angulo_inclinacion" type="number" step="0.1" defaultValue={initial?.angulo_inclinacion ?? ""} placeholder="Ej. 15" className={inputCls} />
         </FieldS>
         <FieldS label="Presión de agua (PSI)">
-          <input name="presion_agua_psi" type="number" min={0} step="1" placeholder="Ej. 60" className={inputCls} />
+          <input name="presion_agua_psi" type="number" min={0} step="1" defaultValue={initial?.presion_agua_psi ?? ""} placeholder="Ej. 60" className={inputCls} />
         </FieldS>
       </div>
-      <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
-      <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
-      <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
+      <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} defaultValue={initial?.trabajo_realizado ?? ""} className={textareaCls} /></FieldS>
+      <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} defaultValue={initial?.hallazgos ?? ""} className={textareaCls} /></FieldS>
+      <FieldS label="Observaciones"><textarea name="observaciones" rows={2} defaultValue={initial?.observaciones ?? ""} className={textareaCls} /></FieldS>
       <div className="flex gap-2 justify-end">
-        <button type="button" onClick={() => setOpen(false)} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
+        <button type="button" onClick={() => { if (editando) onCancel?.(); else setOpen(false); }} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
         <button type="button" onClick={submit} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5">
           {saving && <Loader2 className="size-3.5 animate-spin" />}
-          {saving ? "Guardando…" : "Guardar reporte del día"}
+          {saving ? "Guardando…" : editando ? "Guardar cambios" : "Guardar reporte del día"}
         </button>
       </div>
     </div>

@@ -99,6 +99,11 @@ function Programacion() {
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
   const fetchMoverDia = useServerFn(moverDiaTrabajo);
   const [vista, setVista] = usePersistedState<Vista>("programacion.vista", "semana");
+  // Mostrar sábado y domingo (necesario para programar emergencias en fin de semana).
+  const [verFinDeSemana, setVerFinDeSemana] = usePersistedState<boolean>(
+    "programacion.verFinDeSemana",
+    false,
+  );
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   // Ahora arrastramos UN DÍA específico (no toda la OT). El drag lleva la
   // fecha real que se está moviendo y la fecha original (para escribir la
@@ -229,8 +234,12 @@ function Programacion() {
     }
   }
 
-  // Solo Lun-Vie
-  const days = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(cursor, i)), [cursor]);
+  // Lun-Vie por defecto; con fin de semana visible (emergencias) son 7 días.
+  const nDias = verFinDeSemana ? 7 : 5;
+  const days = useMemo(
+    () => Array.from({ length: nDias }, (_, i) => addDays(cursor, i)),
+    [cursor, nDias],
+  );
 
   const byDay = useMemo(() => {
     const map = new Map<string, any[]>();
@@ -439,7 +448,13 @@ function Programacion() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Programación"
-        description={canEdit && vista === "semana" ? "Arrastra un trabajo a otro día para reprogramarlo." : "Calendario operativo (lunes a viernes)."}
+        description={
+          canEdit && vista === "semana"
+            ? "Arrastra un trabajo a otro día para reprogramarlo. Activa «Fin de semana» para programar emergencias en sábado, domingo o feriado."
+            : verFinDeSemana
+              ? "Calendario operativo (lunes a domingo)."
+              : "Calendario operativo (lunes a viernes)."
+        }
         actions={
           <div className="inline-flex items-center gap-2 flex-wrap no-print">
             <div className="inline-flex rounded-md border border-border overflow-hidden text-xs">
@@ -453,6 +468,18 @@ function Programacion() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setVerFinDeSemana(!verFinDeSemana)}
+              className={
+                "h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border rounded-md " +
+                (verFinDeSemana
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border hover:bg-secondary")
+              }
+              title="Muestra sábado y domingo para programar emergencias"
+            >
+              <CalendarDays className="size-3.5" /> Fin de semana
+            </button>
             <button onClick={() => nav(-1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Anterior">
               <ChevronLeft className="size-3.5" />
             </button>
@@ -530,14 +557,17 @@ function Programacion() {
 
       {vista === "semana" && (
       <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
-        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div
+          style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }}
+          className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+        >
           {days.map((d) => (
             <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
               {fmtDayLabel(d)}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-[repeat(5,minmax(0,1fr))] min-h-[420px]">
+        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -557,6 +587,11 @@ function Programacion() {
               >
                 {motivo === "feriado" && (
                   <p className="text-[9px] uppercase tracking-wide text-destructive/80 font-semibold">Feriado</p>
+                )}
+                {(motivo === "sábado" || motivo === "domingo") && (
+                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    {motivo} · solo emergencias
+                  </p>
                 )}
                 {items.length === 0 && (
                   <p className="text-[10px] text-muted-foreground/60 px-1 py-2">—</p>
@@ -596,11 +631,11 @@ function Programacion() {
         <div className="print-hide-visual">
           {/* Móvil/tablet pequeña: calendario compacto (mismo estilo que la vista anual). */}
           <div className="sm:hidden">
-            <MiniMonth year={cursor.getFullYear()} month={cursor.getMonth()} byDay={byDay} expanded />
+            <MiniMonth year={cursor.getFullYear()} month={cursor.getMonth()} byDay={byDay} expanded nDias={nDias} />
           </div>
           {/* Escritorio: grilla completa con drag & drop. */}
           <div className="hidden sm:block">
-            <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
+            <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} nDias={nDias} />
           </div>
         </div>
       )}
@@ -624,7 +659,7 @@ function Programacion() {
               {clienteFilter && ` · mostrando ${trabajosFiltrados.length} trabajo${trabajosFiltrados.length === 1 ? "" : "s"}`}
             </span>
           </div>
-          <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+          <YearView year={cursor.getFullYear()} byDay={byDay} nDias={nDias} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
         </div>
       )}
 
@@ -682,12 +717,13 @@ function Programacion() {
   );
 }
 
-// ============== Vista Mes (L-V) ==============
-function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
+// ============== Vista Mes (L-V o L-D) ==============
+function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 }: {
   cursor: Date; byDay: Map<string, any[]>; canEdit: boolean;
   dragId: string | null;
   setDrag: (d: null | { id: string; fechaOriginal: string; duracion: number }) => void;
   onDrop: (d: Date) => void;
+  nDias?: number;
 }) {
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -695,21 +731,23 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
   const weeks: Date[][] = [];
   let cur = firstMonday;
   while (cur <= monthEnd || weeks.length < 5) {
-    const row = Array.from({ length: 5 }, (_, i) => addDays(cur, i));
+    const row = Array.from({ length: nDias }, (_, i) => addDays(cur, i));
     weeks.push(row);
     cur = addDays(cur, 7);
     if (weeks.length >= 6) break;
   }
+  const gridStyle = { gridTemplateColumns: `60px repeat(${nDias},minmax(0,1fr))` } as const;
+  const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].slice(0, nDias);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+      <div style={gridStyle} className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
-        {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
+        {dayLabels.map((d) => (
           <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
         ))}
       </div>
       {weeks.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
+        <div key={ri} style={gridStyle} className="grid border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
           <div className="min-w-0 p-1 sm:p-2 text-center text-[9px] sm:text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
@@ -776,20 +814,20 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
 }
 
 // ============== Vista Año ==============
-function YearView({ year, byDay, onPickMonth }: {
-  year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
+function YearView({ year, byDay, onPickMonth, nDias = 5 }: {
+  year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void; nDias?: number;
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 12 }, (_, m) => (
-        <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
+        <MiniMonth key={m} year={year} month={m} byDay={byDay} nDias={nDias} onClick={() => onPickMonth(m)} />
       ))}
     </div>
   );
 }
 
-function MiniMonth({ year, month, byDay, onClick, expanded }: {
-  year: number; month: number; byDay: Map<string, any[]>; onClick?: () => void; expanded?: boolean;
+function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
+  year: number; month: number; byDay: Map<string, any[]>; onClick?: () => void; expanded?: boolean; nDias?: number;
 }) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
@@ -797,7 +835,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded }: {
   const rows: Date[][] = [];
   let cur = firstMonday;
   while (cur <= last || rows.length < 5) {
-    rows.push(Array.from({ length: 5 }, (_, i) => addDays(cur, i)));
+    rows.push(Array.from({ length: nDias }, (_, i) => addDays(cur, i)));
     cur = addDays(cur, 7);
     if (rows.length >= 6) break;
   }
@@ -824,9 +862,9 @@ function MiniMonth({ year, month, byDay, onClick, expanded }: {
           {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
         </p>
       <div className="px-0 pb-2">
-      <div className="grid grid-cols-[24px_repeat(5,1fr)] gap-y-0.5 text-[9px] text-muted-foreground">
+      <div style={{ gridTemplateColumns: `24px repeat(${nDias},1fr)` }} className="grid gap-y-0.5 text-[9px] text-muted-foreground">
         <div />
-        {["L", "M", "X", "J", "V"].map((d) => (
+        {["L", "M", "X", "J", "V", "S", "D"].slice(0, nDias).map((d) => (
           <div key={d} className="text-center font-bold">{d}</div>
         ))}
         {rows.map((row, ri) => (
