@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw, ListPlus, RefreshCw } from "lucide-react";
+import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw, ListPlus, RefreshCw, Download, Upload } from "lucide-react";
 import {
   cargarMapbox, centroDe, ajustarA, ESTILO_SATELITE, type MapboxNS,
 } from "@/lib/mapbox-loader";
@@ -292,7 +292,7 @@ export function PlantaZonasEditor({
   }, [listo, puntosDibujo, borrador, modoDibujo]);
 
   function dibujar() {
-    if (!mapRef.current && !error) return;
+    if (!mapRef.current && !usarAlterno) return;
     limpiarBorrador();
     setModoDibujo(true);
     modoDibujoRef.current = true;
@@ -300,7 +300,7 @@ export function PlantaZonasEditor({
   }
 
   function finalizarDibujo() {
-    if ((!mapRef.current && !error) || puntosDibujo.length < 3) {
+    if ((!mapRef.current && !usarAlterno) || puntosDibujo.length < 3) {
       toast.error("Marca al menos 3 puntos para formar una zona.");
       return;
     }
@@ -381,6 +381,64 @@ export function PlantaZonasEditor({
     e.currentTarget.reset();
   }
 
+  /** Descarga un respaldo JSON con las zonas (trazos, colores y paneles). */
+  function exportarZonas() {
+    if (!rows.length) { toast.error("No hay zonas para exportar."); return; }
+    const payload = {
+      tipo: "solaros-zonas",
+      version: 1,
+      planta: { id: planta.id, nombre: planta.nombre },
+      exportado_at: new Date().toISOString(),
+      zonas: rows.map((z: any) => ({
+        nombre: z.nombre,
+        paneles_estimados: z.paneles_estimados ?? 0,
+        color: z.color ?? "#22c55e",
+        orden: z.orden ?? 0,
+        poligono: z.poligono,
+      })),
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `zonas-${planta.nombre.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Respaldo con ${rows.length} zona(s) descargado`);
+  }
+
+  /** Importa zonas desde un respaldo JSON (se agregan a esta planta). */
+  async function importarZonas(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const lista: any[] = Array.isArray(data) ? data : (data?.zonas ?? []);
+      const validas = lista.filter(
+        (z) => Array.isArray(z?.poligono) && z.poligono.length >= 3 && z.poligono.every((p: any) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng))),
+      );
+      if (!validas.length) { toast.error("El archivo no contiene zonas válidas."); return; }
+      let ok = 0;
+      for (const [i, z] of validas.entries()) {
+        await fSave({
+          data: {
+            planta_id: planta.id,
+            nombre: String(z.nombre || `Zona importada ${i + 1}`).slice(0, 120),
+            paneles_estimados: Number(z.paneles_estimados || 0),
+            color: String(z.color || "#22c55e").slice(0, 20),
+            poligono: z.poligono.map((p: any) => ({ lat: Number(p.lat), lng: Number(p.lng) })),
+            orden: Number(z.orden ?? rows.length + i),
+          },
+        });
+        ok++;
+      }
+      qc.invalidateQueries({ queryKey: ["planta-zonas", planta.id] });
+      toast.success(`${ok} zona(s) importada(s)`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo leer el archivo de zonas");
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[80] bg-black/60 flex items-stretch sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
@@ -392,6 +450,31 @@ export function PlantaZonasEditor({
             <p className="text-[11px] uppercase text-primary font-semibold">Layout de zonas</p>
             <p className="text-sm font-medium truncate">{planta.nombre}</p>
           </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => (usarAlterno ? volverPrincipal() : activarAlterno("Cambio manual al mapa por imágenes."))}
+              className="h-9 px-2.5 rounded-md border border-border text-[11px] font-semibold hover:bg-secondary"
+              title="Alternar entre el mapa principal (WebGL) y el mapa por imágenes"
+            >
+              {usarAlterno ? "Mapa principal" : "Mapa por imágenes"}
+            </button>
+            <button
+              type="button"
+              onClick={exportarZonas}
+              className="size-9 grid place-items-center rounded-md border border-border hover:bg-secondary"
+              aria-label="Exportar zonas"
+              title="Exportar zonas (respaldo JSON)"
+            >
+              <Download className="size-4" />
+            </button>
+            <label
+              className="size-9 grid place-items-center rounded-md border border-border hover:bg-secondary cursor-pointer"
+              title="Importar zonas desde un respaldo JSON"
+            >
+              <Upload className="size-4" />
+              <input type="file" accept="application/json,.json" className="hidden" onChange={importarZonas} />
+            </label>
           <button
             onClick={onClose}
             className="size-10 shrink-0 grid place-items-center rounded-md border border-border hover:bg-secondary active:scale-95"
@@ -399,21 +482,23 @@ export function PlantaZonasEditor({
           >
             <X className="size-5" />
           </button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_320px]">
           <div className="relative bg-secondary/40 h-[46vh] min-h-[260px] lg:h-auto">
-            {error ? (
+            {usarAlterno ? (
               <>
                 <div className="absolute top-2 left-2 right-2 z-[400] rounded-md border border-primary/40 bg-background/95 px-2.5 py-1.5 text-[10px] leading-snug shadow-sm">
                   <span className="font-semibold text-primary">Mapa alternativo activo</span> — imágenes
-                  satelitales sin aceleración gráfica. Puedes dibujar y editar zonas normalmente.
+                  satelitales sin aceleración gráfica. Tus zonas y trazos se conservan.
+                  {motivo && <span className="block text-muted-foreground">Motivo: {motivo}</span>}
                   <button
                     type="button"
-                    onClick={() => window.location.reload()}
-                    className="ml-1.5 inline-flex items-center gap-1 font-semibold underline"
+                    onClick={volverPrincipal}
+                    className="mt-0.5 inline-flex items-center gap-1 font-semibold underline"
                   >
-                    <RefreshCw className="size-3" /> Reintentar mapa principal
+                    <RefreshCw className="size-3" /> Volver al mapa principal
                   </button>
                 </div>
                 <MapaZonasLeaflet
@@ -450,7 +535,7 @@ export function PlantaZonasEditor({
                 {!modoDibujo ? (
                   <button
                     onClick={dibujar}
-                    disabled={!listo && !error}
+                    disabled={!listo && !usarAlterno}
                     className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-black/20 active:scale-95 transition-transform disabled:opacity-50"
                   >
                     <Shapes className="size-4" /> Dibujar zona
@@ -484,7 +569,7 @@ export function PlantaZonasEditor({
           </div>
 
           <aside className="border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto p-3 pb-[max(env(safe-area-inset-bottom),1rem)] space-y-3">
-            {(modoLista || error) && (
+            {(modoLista || usarAlterno) && (
               <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-semibold text-primary inline-flex items-center gap-1.5">
                   <ListPlus className="size-3.5" /> Modo lista (sin mapa)
