@@ -40,8 +40,10 @@ export function canAccess(roles: AppRole[], path: string): boolean {
 }
 
 /** Rutas restringidas a un correo específico, además del control por rol. */
+export const SEO_PANEL_EMAIL = "proyectos@easervice.app";
+
 export const EMAIL_ONLY_ROUTES: Record<string, string> = {
-  "/search-console": "proyectos@easervice.app",
+  "/search-console": SEO_PANEL_EMAIL,
 };
 
 export function canAccessWithEmail(
