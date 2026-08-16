@@ -13,6 +13,7 @@ export const buscarProveedoresIA = createServerFn({ method: "POST" })
         pais: z.string().max(40).optional(),
         moneda: z.string().max(6).optional(),
         impuesto_pct: z.coerce.number().min(0).max(100).optional(),
+        impuesto_incluido: z.coerce.boolean().optional(),
       })
       .refine((v) => (v.texto && v.texto.trim().length >= 2) || v.imagen_base64, {
         message: "Escribe qué buscar o adjunta una foto del producto",
