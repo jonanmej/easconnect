@@ -545,6 +545,7 @@ function DiarioForm({
     };
     try {
       await onSave({
+        ...(editando ? { id: initial.id } : {}),
         fecha: get("fecha") || today(),
         fase,
         avance_pct: avancePct,
@@ -563,6 +564,7 @@ function DiarioForm({
         observaciones: get("observaciones") || null,
       });
       // Limpiar campos solo si el guardado fue exitoso
+      if (editando) { onCancel?.(); return; }
       root.querySelectorAll("input, textarea").forEach((el) => {
         const node = el as HTMLInputElement | HTMLTextAreaElement;
         if (node.type !== "date") node.value = "";
@@ -590,8 +592,13 @@ function DiarioForm({
   }
   return (
     <div ref={formRef} className="space-y-3 rounded-md border border-border p-3 bg-secondary/20">
+      {editando && (
+        <p className="text-[11px] font-semibold text-primary">
+          Editando el reporte del {initial.fecha}
+        </p>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={today()} className={inputCls} /></FieldS>
+        <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={initial?.fecha ?? today()} className={inputCls} /></FieldS>
         <FieldS label="Fase del trabajo">
           <select
             value={fase}
@@ -624,7 +631,7 @@ function DiarioForm({
             min={0}
             step="0.25"
             key={horasCalc != null ? "calc" : "manual"}
-            defaultValue={horasCalc != null ? String(horasCalc) : ""}
+            defaultValue={horasCalc != null ? String(horasCalc) : (initial?.horas_trabajadas ?? "")}
             readOnly={horasCalc != null}
             placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
             className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
@@ -640,7 +647,7 @@ function DiarioForm({
             className={inputCls}
           />
         </FieldS>
-        <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" className={inputCls} /></FieldS>
+        <FieldS label="Agua (gal)"><input name="agua_galones" type="number" min={0} step="0.1" defaultValue={initial?.agua_galones ?? ""} className={inputCls} /></FieldS>
         <FieldS label="Watts del panel instalado">
           <input
             name="watts_panel"
@@ -661,27 +668,27 @@ function DiarioForm({
             className={inputCls + " bg-secondary/50 text-muted-foreground"}
           />
         </FieldS>
-        <FieldS label="Clima"><input name="clima" className={inputCls} placeholder="Soleado, viento…" /></FieldS>
+        <FieldS label="Clima"><input name="clima" defaultValue={initial?.clima ?? ""} className={inputCls} placeholder="Soleado, viento…" /></FieldS>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <FieldS label="TDS (PPM)">
-          <input name="tds_ppm" type="number" min={0} step="1" placeholder="Ej. 150" className={inputCls} />
+          <input name="tds_ppm" type="number" min={0} step="1" defaultValue={initial?.tds_ppm ?? ""} placeholder="Ej. 150" className={inputCls} />
         </FieldS>
         <FieldS label="Ángulo de inclinación (°)">
-          <input name="angulo_inclinacion" type="number" step="0.1" placeholder="Ej. 15" className={inputCls} />
+          <input name="angulo_inclinacion" type="number" step="0.1" defaultValue={initial?.angulo_inclinacion ?? ""} placeholder="Ej. 15" className={inputCls} />
         </FieldS>
         <FieldS label="Presión de agua (PSI)">
-          <input name="presion_agua_psi" type="number" min={0} step="1" placeholder="Ej. 60" className={inputCls} />
+          <input name="presion_agua_psi" type="number" min={0} step="1" defaultValue={initial?.presion_agua_psi ?? ""} placeholder="Ej. 60" className={inputCls} />
         </FieldS>
       </div>
-      <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} className={textareaCls} /></FieldS>
-      <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} className={textareaCls} /></FieldS>
-      <FieldS label="Observaciones"><textarea name="observaciones" rows={2} className={textareaCls} /></FieldS>
+      <FieldS label="Trabajo realizado hoy"><textarea name="trabajo_realizado" rows={2} defaultValue={initial?.trabajo_realizado ?? ""} className={textareaCls} /></FieldS>
+      <FieldS label="Hallazgos"><textarea name="hallazgos" rows={2} defaultValue={initial?.hallazgos ?? ""} className={textareaCls} /></FieldS>
+      <FieldS label="Observaciones"><textarea name="observaciones" rows={2} defaultValue={initial?.observaciones ?? ""} className={textareaCls} /></FieldS>
       <div className="flex gap-2 justify-end">
-        <button type="button" onClick={() => setOpen(false)} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
+        <button type="button" onClick={() => { if (editando) onCancel?.(); else setOpen(false); }} className="h-9 px-3 rounded-md border border-input text-xs">Cancelar</button>
         <button type="button" onClick={submit} disabled={saving} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5">
           {saving && <Loader2 className="size-3.5 animate-spin" />}
-          {saving ? "Guardando…" : "Guardar reporte del día"}
+          {saving ? "Guardando…" : editando ? "Guardar cambios" : "Guardar reporte del día"}
         </button>
       </div>
     </div>
