@@ -717,12 +717,13 @@ function Programacion() {
   );
 }
 
-// ============== Vista Mes (L-V) ==============
-function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
+// ============== Vista Mes (L-V o L-D) ==============
+function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 }: {
   cursor: Date; byDay: Map<string, any[]>; canEdit: boolean;
   dragId: string | null;
   setDrag: (d: null | { id: string; fechaOriginal: string; duracion: number }) => void;
   onDrop: (d: Date) => void;
+  nDias?: number;
 }) {
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -730,21 +731,23 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop }: {
   const weeks: Date[][] = [];
   let cur = firstMonday;
   while (cur <= monthEnd || weeks.length < 5) {
-    const row = Array.from({ length: 5 }, (_, i) => addDays(cur, i));
+    const row = Array.from({ length: nDias }, (_, i) => addDays(cur, i));
     weeks.push(row);
     cur = addDays(cur, 7);
     if (weeks.length >= 6) break;
   }
+  const gridStyle = { gridTemplateColumns: `60px repeat(${nDias},minmax(0,1fr))` } as const;
+  const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].slice(0, nDias);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+      <div style={gridStyle} className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
-        {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
+        {dayLabels.map((d) => (
           <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
         ))}
       </div>
       {weeks.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-[32px_repeat(5,minmax(0,1fr))] sm:grid-cols-[60px_repeat(5,minmax(0,1fr))] border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
+        <div key={ri} style={gridStyle} className="grid border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
           <div className="min-w-0 p-1 sm:p-2 text-center text-[9px] sm:text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
