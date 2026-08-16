@@ -10,6 +10,10 @@ export type ResultadoProveedor = {
   moneda: string;
   /** Precio con impuesto aplicado según configuración del usuario. */
   precio_con_impuesto: number | null;
+  /** true si el precio publicado por el proveedor ya venía con impuesto incluido. */
+  impuesto_incluido: boolean;
+  /** Porcentaje de impuesto usado en el cálculo. */
+  impuesto_pct: number;
   /** Unidades que trae el empaque (1 si es venta por unidad). */
   unidades_por_empaque: number;
   empaque: string;
