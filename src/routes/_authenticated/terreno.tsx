@@ -239,6 +239,7 @@ function TrabajoCard({
   }
 
   const inProgress = trabajo.estado === "en_progreso";
+  const completado = trabajo.estado === "completado";
 
   return (
     <article className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -248,8 +249,8 @@ function TrabajoCard({
           <div className="font-medium">{trabajo.servicio}</div>
           <div className="text-xs text-muted-foreground">{trabajo.planta_nombre} · {trabajo.cliente_nombre}</div>
         </div>
-        <span className={"text-[10px] font-bold uppercase px-2 py-0.5 rounded " + (inProgress ? "bg-primary/15 text-primary" : "bg-secondary text-foreground")}>
-          {inProgress ? "En progreso" : "Programado"}
+        <span className={"text-[10px] font-bold uppercase px-2 py-0.5 rounded " + (inProgress ? "bg-primary/15 text-primary" : completado ? "bg-accent/15 text-accent" : "bg-secondary text-foreground")}>
+          {inProgress ? "En progreso" : completado ? "Completado" : "Programado"}
         </span>
       </div>
       <div className="text-xs text-muted-foreground">
@@ -288,7 +289,7 @@ function TrabajoCard({
         </div>
       )}
 
-      {soloLectura ? null : (
+      {soloLectura || completado ? null : (
       <div className="grid grid-cols-3 gap-2 pt-2">
         <button
           type="button"
@@ -343,14 +344,14 @@ function TrabajoCard({
       </div>
       )}
 
-      {!soloLectura && inProgress && (
+      {!soloLectura && (inProgress || completado) && (
         <button
           type="button"
           onClick={() => setReporteOpen(true)}
           className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10"
         >
           <ClipboardList className="size-4" />
-          Reporte diario del día
+          {completado ? "Registrar reporte atrasado" : "Reporte diario del día"}
         </button>
       )}
 
@@ -387,7 +388,11 @@ function TrabajoCard({
             <div className="p-4">
               <ReportesDiariosSection
                 trabajoId={trabajo.id}
-                hint="Este es el único punto de captura del reporte diario y sus fotos. Cada técnico puede registrar su avance por fase (diagnóstico, intervención y cierre) dentro del mismo trabajo."
+                hint={
+                  completado
+                    ? "Trabajo ya cerrado: puedes registrar un reporte atrasado indicando la fecha real en que se ejecutó la labor."
+                    : "Este es el único punto de captura del reporte diario y sus fotos. Cada técnico puede registrar su avance por fase (diagnóstico, intervención y cierre) dentro del mismo trabajo."
+                }
               />
             </div>
           </div>
