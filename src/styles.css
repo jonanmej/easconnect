@@ -223,6 +223,28 @@
     text-size-adjust: 100%;
   }
 
+  /* iOS Safari hace zoom automático ("la vista se agranda sola") al enfocar
+     cualquier campo con tipografía < 16px. Algunas utilidades de Tailwind
+     (text-sm, text-xs) ganan a la regla base, por eso se fuerza el mínimo
+     solo en pantallas táctiles pequeñas. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    [contenteditable="true"] {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Evita el desbordamiento horizontal que provoca zoom-out/zoom-in
+     inesperado en móvil. */
+  @media (max-width: 767px) {
+    html, body {
+      max-width: 100%;
+      overflow-x: clip;
+    }
+  }
+
   /* Componer en GPU los elementos que suelen animarse (menús, diálogos,
      tooltips, toasts, drawers) para evitar repaint en cada frame a 120Hz. */
   [data-radix-popper-content-wrapper],
