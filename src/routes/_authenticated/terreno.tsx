@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, upsertTrabajo, listTecnicos } from "@/lib/operations.functions";
 import { useAuth } from "@/lib/auth-context";
-import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon, ClipboardList, X, Users } from "lucide-react";
+import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as UserIcon, ClipboardList, X, Users, History } from "lucide-react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 
@@ -50,6 +51,9 @@ function Terreno() {
   });
 
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  // Permite volver a trabajos ya cerrados para subir un reporte diario que no
+  // se pudo registrar el día correspondiente (reportes atrasados).
+  const [verAtrasados, setVerAtrasados] = usePersistedState<boolean>("terreno.verAtrasados", false);
   const [queueCount, setQueueCount] = useState(0);
   useEffect(() => {
     setQueueCount(pendingCount());
@@ -72,6 +76,7 @@ function Terreno() {
     };
   }, []);
 
+  const hace30dias = Date.now() - 30 * 86400000;
   const list = ((trabajos.data as any[] | undefined) ?? [])
     .filter((t) =>
       isStaff
@@ -80,10 +85,17 @@ function Terreno() {
           ? t.tecnicos_ids.includes(user?.id ?? "")
           : t.tecnico_id === user?.id,
     )
-    .filter((t) => t.estado !== "completado" && t.estado !== "cancelado")
+    .filter((t) => {
+      if (t.estado === "cancelado") return false;
+      if (t.estado !== "completado") return true;
+      if (!verAtrasados) return false;
+      // Solo cierres recientes: evita arrastrar el histórico completo.
+      const ref = new Date(t.fecha_completado ?? t.fecha_programada).getTime();
+      return isNaN(ref) ? true : ref >= hace30dias;
+    })
     .sort((a, b) => {
-      // En progreso primero, luego programados por fecha más próxima.
-      const rank = (s: string) => (s === "en_progreso" ? 0 : 1);
+      // En progreso primero, luego programados y al final los completados.
+      const rank = (s: string) => (s === "en_progreso" ? 0 : s === "completado" ? 2 : 1);
       const rd = rank(a.estado) - rank(b.estado);
       if (rd !== 0) return rd;
       return String(a.fecha_programada).localeCompare(String(b.fecha_programada));
@@ -114,6 +126,20 @@ function Terreno() {
           {online ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
           {online ? "Conectado" : "Sin conexión"}
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setVerAtrasados(!verAtrasados)}
+          title="Muestra trabajos ya cerrados (últimos 30 días) para subir un reporte diario atrasado"
+          className={
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border " +
+            (verAtrasados
+              ? "bg-primary text-primary-foreground border-primary"
+              : "border-input bg-background hover:bg-secondary")
+          }
+        >
+          <History className="size-3.5" />
+          Reportes atrasados
+        </button>
         <button
           onClick={sincronizar}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background hover:bg-secondary"
@@ -121,7 +147,15 @@ function Terreno() {
           <RefreshCw className="size-3.5" />
           {queueCount > 0 ? `Sincronizar (${queueCount})` : "Sincronizar"}
         </button>
+        </div>
       </div>
+      )}
+
+      {verAtrasados && !soloMonitoreo && (
+        <p className="text-[11px] text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
+          Se incluyen trabajos completados de los últimos 30 días. Puedes abrir su reporte diario y
+          registrarlo con la fecha en que se ejecutó el trabajo, aunque la subas después.
+        </p>
       )}
 
       <div className="space-y-3">
