@@ -335,34 +335,43 @@ export function PlantaZonasEditor({
 
         <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_320px]">
           <div className="relative bg-secondary/40 h-[46vh] min-h-[260px] lg:h-auto">
-            {error && (
-              <div className="absolute inset-0 overflow-y-auto grid place-items-center p-4 sm:p-6 text-center text-xs sm:text-sm text-destructive z-10">
-                <div className="max-w-md space-y-3">
-                  <p>No se pudo cargar el mapa: {error}</p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setModoLista(true)}
-                      className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-                    >
-                      <ListPlus className="size-4" /> Continuar en modo lista
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setError(null); window.location.reload(); }}
-                      className="h-10 px-4 inline-flex items-center gap-2 rounded-full border border-border bg-background text-foreground text-xs font-semibold"
-                    >
-                      <RefreshCw className="size-4" /> Reintentar mapa
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    En modo lista puedes crear, renombrar y ajustar los paneles de cada zona. El trazo se dibuja
-                    después, cuando el mapa vuelva a estar disponible; nada de lo registrado se pierde.
-                  </p>
+            {error ? (
+              <>
+                <div className="absolute top-2 left-2 right-2 z-[400] rounded-md border border-primary/40 bg-background/95 px-2.5 py-1.5 text-[10px] leading-snug shadow-sm">
+                  <span className="font-semibold text-primary">Mapa alternativo activo</span> — imágenes
+                  satelitales sin aceleración gráfica. Puedes dibujar y editar zonas normalmente.
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="ml-1.5 inline-flex items-center gap-1 font-semibold underline"
+                  >
+                    <RefreshCw className="size-3" /> Reintentar mapa principal
+                  </button>
                 </div>
-              </div>
+                <MapaZonasLeaflet
+                  zonas={rows.map((z: any) => ({
+                    id: z.id,
+                    nombre: z.nombre,
+                    color: z.color,
+                    poligono: z.poligono,
+                  }))}
+                  center={
+                    planta.latitud != null && planta.longitud != null
+                      ? { lat: Number(planta.latitud), lng: Number(planta.longitud) }
+                      : null
+                  }
+                  modoDibujo={modoDibujo}
+                  puntos={borrador ?? puntosDibujo}
+                  onPunto={(p) => setPuntosDibujo((a) => [...a, p])}
+                  onClickZona={(id) => {
+                    const z = rowsRef.current.find((r: any) => r.id === id);
+                    if (z) setEditando(z);
+                  }}
+                />
+              </>
+            ) : (
+              <div ref={mapEl} className="w-full h-full" />
             )}
-            <div ref={mapEl} className="w-full h-full" />
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2 w-[92%]">
               {modoDibujo && (
                 <div className="rounded-full bg-background/95 border border-border px-3 py-1.5 text-xs font-medium shadow-lg">
