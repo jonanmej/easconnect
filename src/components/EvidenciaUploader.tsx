@@ -44,6 +44,40 @@ function fileToDataURL(file: File | Blob): Promise<string> {
   });
 }
 
+const MAX_LADO = 2000;
+const MAX_BYTES_DIRECTO = 1_200_000;
+
+/**
+ * Reduce la foto antes de subirla: las cámaras de teléfono generan archivos de
+ * 4-8 MB que fallan con conexión de campo y desbordan el respaldo offline.
+ */
+async function comprimirImagen(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  if (file.size <= MAX_BYTES_DIRECTO) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const escala = Math.min(1, MAX_LADO / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * escala));
+    const h = Math.max(1, Math.round(bitmap.height * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob((b) => res(b), "image/jpeg", 0.82),
+    );
+    if (!blob || blob.size >= file.size) return file;
+    const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], nombre, { type: "image/jpeg" });
+  } catch (e) {
+    console.warn("[Evidencias] no se pudo comprimir, se sube original", e);
+    return file;
+  }
+}
+
 export function EvidenciaUploader({
   trabajoId,
   reporteDiarioId,
@@ -117,18 +151,20 @@ export function EvidenciaUploader({
 
   async function subirItem(item: ItemSubida, cat: Categoria): Promise<void> {
     if (!trabajoId) throw new Error("trabajoId no definido");
-    const rawExt = (item.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const archivo = await comprimirImagen(item.file);
+    const rawExt = (archivo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const ext = rawExt.slice(0, 5) || "jpg";
     const path = `trabajos/${trabajoId}/${crypto.randomUUID()}.${ext}`;
-    const contentType = item.file.type
+    const contentType = archivo.type
       || (ext === "heic" ? "image/heic" : ext === "png" ? "image/png" : "image/jpeg");
-    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, item.file, {
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, archivo, {
       contentType,
       upsert: false,
     });
     if (upErr) {
       console.error("[Evidencias] storage upload error", upErr);
-      throw new Error(upErr.message || "Falló la subida a Storage");
+      const detalle = await mensajeDeError(upErr);
+      throw new Error(detalle || "Falló la subida a Storage");
     }
     try {
       await fetchRecord({
@@ -152,6 +188,9 @@ export function EvidenciaUploader({
     if (procesandoRef.current.has(itemId)) return;
     let item = itemInicial ?? cola.find((c) => c.id === itemId);
     if (!item) return;
+    // Al reintentar manualmente se reinicia el contador; si no, el bucle no se
+    // ejecutaba y el aviso salía sin detalle del error.
+    if (item.intentos >= MAX_INTENTOS) item = { ...item, intentos: 0, error: undefined };
     procesandoRef.current.add(itemId);
     try {
       for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
@@ -174,7 +213,8 @@ export function EvidenciaUploader({
       }
       // Fallback: encolar offline
       try {
-        const dataUrl = await fileToDataURL(item.file);
+        const comprimida = await comprimirImagen(item.file);
+        const dataUrl = await fileToDataURL(comprimida);
         enqueue({
           trabajo_id: trabajoId,
           reporte_diario_id: reporteDiarioId ?? null,
@@ -185,9 +225,14 @@ export function EvidenciaUploader({
         setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
         toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
         setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
-      } catch {
+      } catch (e2) {
+        const detalleCola = await mensajeDeError(e2);
+        console.error("[Evidencias] fallo al guardar offline", e2);
         setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
-        toast.error(`Error al subir "${item.file.name}": ${item.error ?? "sin detalle"}`);
+        toast.error(
+          `Error al subir "${item.file.name}": ${item.error ?? detalleCola ?? "sin detalle"}` +
+            (item.error ? ` · respaldo offline falló: ${detalleCola}` : ""),
+        );
       }
     } finally {
       procesandoRef.current.delete(itemId);
