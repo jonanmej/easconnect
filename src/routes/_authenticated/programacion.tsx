@@ -814,20 +814,20 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
 }
 
 // ============== Vista Año ==============
-function YearView({ year, byDay, onPickMonth }: {
-  year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void;
+function YearView({ year, byDay, onPickMonth, nDias = 5 }: {
+  year: number; byDay: Map<string, any[]>; onPickMonth: (m: number) => void; nDias?: number;
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 12 }, (_, m) => (
-        <MiniMonth key={m} year={year} month={m} byDay={byDay} onClick={() => onPickMonth(m)} />
+        <MiniMonth key={m} year={year} month={m} byDay={byDay} nDias={nDias} onClick={() => onPickMonth(m)} />
       ))}
     </div>
   );
 }
 
-function MiniMonth({ year, month, byDay, onClick, expanded }: {
-  year: number; month: number; byDay: Map<string, any[]>; onClick?: () => void; expanded?: boolean;
+function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
+  year: number; month: number; byDay: Map<string, any[]>; onClick?: () => void; expanded?: boolean; nDias?: number;
 }) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
@@ -835,7 +835,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded }: {
   const rows: Date[][] = [];
   let cur = firstMonday;
   while (cur <= last || rows.length < 5) {
-    rows.push(Array.from({ length: 5 }, (_, i) => addDays(cur, i)));
+    rows.push(Array.from({ length: nDias }, (_, i) => addDays(cur, i)));
     cur = addDays(cur, 7);
     if (rows.length >= 6) break;
   }
@@ -862,9 +862,9 @@ function MiniMonth({ year, month, byDay, onClick, expanded }: {
           {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
         </p>
       <div className="px-0 pb-2">
-      <div className="grid grid-cols-[24px_repeat(5,1fr)] gap-y-0.5 text-[9px] text-muted-foreground">
+      <div style={{ gridTemplateColumns: `24px repeat(${nDias},1fr)` }} className="grid gap-y-0.5 text-[9px] text-muted-foreground">
         <div />
-        {["L", "M", "X", "J", "V"].map((d) => (
+        {["L", "M", "X", "J", "V", "S", "D"].slice(0, nDias).map((d) => (
           <div key={d} className="text-center font-bold">{d}</div>
         ))}
         {rows.map((row, ri) => (
