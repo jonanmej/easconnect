@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw } from "lucide-react";
+import { X, Pencil, Trash2, Save, Shapes, Check, RotateCcw, ListPlus, RefreshCw } from "lucide-react";
 import {
   cargarMapbox, centroDe, ajustarA, ESTILO_SATELITE, type MapboxNS,
 } from "@/lib/mapbox-loader";
@@ -47,6 +47,7 @@ export function PlantaZonasEditor({
   const [editando, setEditando] = useState<any | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
   const [puntosDibujo, setPuntosDibujo] = useState<Punto[]>([]);
+  const [modoLista, setModoLista] = useState(false);
 
   const rows = (zonas.data as any[] | undefined) ?? [];
   const rowsRef = useRef(rows);
@@ -278,6 +279,39 @@ export function PlantaZonasEditor({
 
   const inputCls = "w-full h-9 px-3 rounded-md border border-input bg-background text-sm";
 
+  /** Crea un cuadrado pequeño alrededor de la planta para poder registrar la zona sin mapa. */
+  function poligonoAproximado(): Punto[] | null {
+    if (planta.latitud == null || planta.longitud == null) return null;
+    const lat = Number(planta.latitud);
+    const lng = Number(planta.longitud);
+    const d = 0.0003;
+    return [
+      { lat: lat + d, lng: lng - d },
+      { lat: lat + d, lng: lng + d },
+      { lat: lat - d, lng: lng + d },
+      { lat: lat - d, lng: lng - d },
+    ];
+  }
+
+  function guardarSinMapa(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const pts = poligonoAproximado();
+    if (!pts) {
+      toast.error("Esta planta no tiene coordenadas. Regístralas en Plantas para poder crear zonas sin mapa.");
+      return;
+    }
+    const f = new FormData(e.currentTarget);
+    save.mutate({
+      planta_id: planta.id,
+      nombre: String(f.get("nombre") || "").trim() || `Zona ${rows.length + 1}`,
+      paneles_estimados: Number(f.get("paneles") || 0),
+      color: String(f.get("color") || "#22c55e"),
+      poligono: pts,
+      orden: rows.length,
+    });
+    e.currentTarget.reset();
+  }
+
   return (
     <div className="fixed inset-0 z-[80] bg-black/60 flex items-stretch sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
@@ -302,7 +336,29 @@ export function PlantaZonasEditor({
           <div className="relative bg-secondary/40 h-[46vh] min-h-[260px] lg:h-auto">
             {error && (
               <div className="absolute inset-0 overflow-y-auto grid place-items-center p-4 sm:p-6 text-center text-xs sm:text-sm text-destructive z-10">
-                <p className="max-w-md">No se pudo cargar el mapa: {error}</p>
+                <div className="max-w-md space-y-3">
+                  <p>No se pudo cargar el mapa: {error}</p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setModoLista(true)}
+                      className="h-10 px-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                    >
+                      <ListPlus className="size-4" /> Continuar en modo lista
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setError(null); window.location.reload(); }}
+                      className="h-10 px-4 inline-flex items-center gap-2 rounded-full border border-border bg-background text-foreground text-xs font-semibold"
+                    >
+                      <RefreshCw className="size-4" /> Reintentar mapa
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    En modo lista puedes crear, renombrar y ajustar los paneles de cada zona. El trazo se dibuja
+                    después, cuando el mapa vuelva a estar disponible; nada de lo registrado se pierde.
+                  </p>
+                </div>
               </div>
             )}
             <div ref={mapEl} className="w-full h-full" />
@@ -350,6 +406,42 @@ export function PlantaZonasEditor({
           </div>
 
           <aside className="border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto p-3 pb-[max(env(safe-area-inset-bottom),1rem)] space-y-3">
+            {(modoLista || error) && (
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-semibold text-primary inline-flex items-center gap-1.5">
+                  <ListPlus className="size-3.5" /> Modo lista (sin mapa)
+                </p>
+                {!modoLista ? (
+                  <button
+                    type="button"
+                    onClick={() => setModoLista(true)}
+                    className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold"
+                  >
+                    Activar modo lista
+                  </button>
+                ) : (
+                  <form onSubmit={guardarSinMapa} className="space-y-2">
+                    <input name="nombre" placeholder="Nombre de la zona" className={inputCls} required />
+                    <input name="paneles" type="number" min="0" placeholder="Paneles estimados" className={inputCls} />
+                    <select name="color" className={inputCls} defaultValue="#22c55e">
+                      {COLORES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={save.isPending}
+                      className="w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                    >
+                      <Save className="size-3.5" /> Guardar zona sin trazo
+                    </button>
+                    <p className="text-[10px] text-muted-foreground">
+                      Se guarda con una ubicación aproximada de la planta; podrás corregir el trazo en el mapa
+                      cuando esté disponible.
+                    </p>
+                  </form>
+                )}
+              </div>
+            )}
+
             {borrador && (
               <form onSubmit={guardarBorrador} className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-semibold text-primary">Nueva zona ({borrador.length} vértices)</p>
