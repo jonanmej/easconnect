@@ -574,6 +574,20 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         });
       } catch { /* silenciar */ }
     }
+    // Aviso a admins/supervisores cuando el técnico inicia el trabajo
+    if (id && rest.estado === "en_progreso" && estadoPrevio !== "en_progreso") {
+      try {
+        const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
+        const folio = (row as any)?.folio ?? id.slice(0, 8);
+        await notificarStaff({
+          tipo: "trabajo_iniciado",
+          titulo: `Trabajo ${folio} iniciado`,
+          mensaje: `El técnico inició el trabajo ${folio} (${rest.servicio ?? ""}).`,
+          trabajo_id: id,
+          excluirUserId: null,
+        });
+      } catch { /* silenciar */ }
+    }
     // Notificación automática al cliente cuando un trabajo pasa a "completado"
     if (id && rest.estado === "completado" && estadoPrevio !== "completado") {
       try {
@@ -594,7 +608,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
           titulo: `Trabajo ${folio} completado`,
           mensaje: `El técnico finalizó el trabajo ${folio} (${rest.servicio ?? ""}).`,
           trabajo_id: id,
-          excluirUserId: context.userId,
+          excluirUserId: null,
         });
       } catch { /* silenciar */ }
     }
@@ -610,19 +624,24 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         }).catch(() => {});
       } catch { /* silenciar */ }
     }
-    // Notificar evento de trabajo (creado / reprogramado / cancelado)
-    try {
-      const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
-      const trabajoId = (row as any).id as string;
-      const evento = !id
-        ? "creado"
-        : (rest.estado === "cancelado" && estadoPrevio !== "cancelado")
-          ? "cancelado"
-          : "reprogramado";
-      // Emitimos "reprogramado" solo si realmente cambió la fecha o hubo edición relevante.
-      // Para simplificar, notificamos siempre en updates: reduce ruido dedupe in-app en cliente.
-      await notificarEventoTrabajo({ evento, trabajoId, actorId: context.userId }).catch(() => {});
-    } catch { /* silenciar */ }
+    // Notificar evento de trabajo (creado / reprogramado / cancelado).
+    // Regla: los técnicos solo reciben aviso cuando el trabajo se crea, se
+    // cancela o cambia su fecha de inicio. Otras ediciones (agregar o quitar
+    // técnicos, cambio de estado, notas) NO generan correo.
+    const cancelado = !!id && rest.estado === "cancelado" && estadoPrevio !== "cancelado";
+    const evento: "creado" | "cancelado" | "reprogramado" | null = !id
+      ? "creado"
+      : cancelado
+        ? "cancelado"
+        : fechaCambio
+          ? "reprogramado"
+          : null;
+    if (evento) {
+      try {
+        const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
+        await notificarEventoTrabajo({ evento, trabajoId: (row as any).id as string, actorId: context.userId }).catch(() => {});
+      } catch { /* silenciar */ }
+    }
     return row;
   });
 
