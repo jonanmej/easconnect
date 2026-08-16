@@ -1171,6 +1171,45 @@ function NuevaOrdenDialog({
   function updFila(key: string, patch: Partial<NuevaFila>) {
     setFilas((fs) => fs.map((f) => (f.key === key ? { ...f, ...patch } : f)));
   }
+
+  /** Inserta una oferta encontrada por IA como ítem libre y registra al proveedor. */
+  function usarOfertaIA(of: OfertaProveedor, termino: string) {
+    const nombreProv = of.proveedor.trim();
+    if (nombreProv) {
+      setProveedores((ps) =>
+        ps.some((p) => p.nombre.trim().toLowerCase() === nombreProv.toLowerCase())
+          ? ps
+          : [
+              ...ps,
+              {
+                key: `prov-ia-${Date.now()}-${ps.length}`,
+                nombre: nombreProv,
+                cotizacion_folio: "",
+                cotizacion_fecha: "",
+                cotizacion_monto: of.precio ?? "",
+                cotizacion_storage_path: null,
+                file: null,
+              },
+            ],
+      );
+    }
+    setFilas((fs) => [
+      ...fs,
+      {
+        key: `ia-${Date.now()}-${fs.length}`,
+        source: "libre",
+        item_id: null,
+        sku_texto: null,
+        nombre: (of.producto || termino).slice(0, 140),
+        categoria: "",
+        unidad: "un",
+        cantidad_pedida: 1,
+        precio_unitario: of.precio ?? "",
+        proveedor: nombreProv,
+      },
+    ]);
+    setNotas((n) => (of.url && !n.includes(of.url) ? `${n ? `${n} · ` : ""}Ref: ${of.url}`.slice(0, 500) : n));
+  }
   function rmFila(key: string) {
     setFilas((fs) => fs.filter((f) => f.key !== key));
   }
