@@ -1,12 +1,12 @@
 import { useRouterState, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
-import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
+import { canAccessWithEmail, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function RoleGate({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { roles, loading } = useAuth();
+  const { roles, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ export function RoleGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!canAccess(roles, pathname)) {
+  if (!canAccessWithEmail(roles, pathname, user?.email)) {
     const role = highestRole(roles);
     return (
       <div className="flex-1 grid place-items-center px-6">
