@@ -631,11 +631,11 @@ function Programacion() {
         <div className="print-hide-visual">
           {/* Móvil/tablet pequeña: calendario compacto (mismo estilo que la vista anual). */}
           <div className="sm:hidden">
-            <MiniMonth year={cursor.getFullYear()} month={cursor.getMonth()} byDay={byDay} expanded />
+            <MiniMonth year={cursor.getFullYear()} month={cursor.getMonth()} byDay={byDay} expanded nDias={nDias} />
           </div>
           {/* Escritorio: grilla completa con drag & drop. */}
           <div className="hidden sm:block">
-            <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} />
+            <MonthView cursor={cursor} byDay={byDay} canEdit={canEdit} dragId={dragId} setDrag={setDrag} onDrop={onDrop} nDias={nDias} />
           </div>
         </div>
       )}
@@ -659,7 +659,7 @@ function Programacion() {
               {clienteFilter && ` · mostrando ${trabajosFiltrados.length} trabajo${trabajosFiltrados.length === 1 ? "" : "s"}`}
             </span>
           </div>
-          <YearView year={cursor.getFullYear()} byDay={byDay} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
+          <YearView year={cursor.getFullYear()} byDay={byDay} nDias={nDias} onPickMonth={(m) => { setCursor(new Date(cursor.getFullYear(), m, 1)); setVista("mes"); }} />
         </div>
       )}
 
