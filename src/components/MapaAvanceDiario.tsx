@@ -55,6 +55,26 @@ export function MapaAvanceDiario({
   readOnlyRef.current = readOnly;
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alterno, setAlterno] = useState(false);
+  const [motivo, setMotivo] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
+
+  /** Cambia al mapa por imágenes al instante, sin recargar la página. */
+  function activarAlterno(razon: string) {
+    setMotivo(razon);
+    setAlterno((a) => {
+      if (!a) toast.message("Mapa alternativo activado", { description: razon });
+      return true;
+    });
+  }
+
+  function volverPrincipal() {
+    setError(null);
+    setMotivo(null);
+    setListo(false);
+    setAlterno(false);
+    setIntento((n) => n + 1);
+  }
 
   const zonas: any[] = (zonasQ.data as any)?.zonas ?? [];
   const marcas = new Map<string, Estado>(
@@ -64,7 +84,7 @@ export function MapaAvanceDiario({
   marcasRef.current = marcas;
 
   useEffect(() => {
-    if (!zonas.length) return;
+    if (!zonas.length || alterno) return;
     let cancelado = false;
     cargarMapbox()
       .then((mb) => {
@@ -79,6 +99,13 @@ export function MapaAvanceDiario({
         });
         map.addControl(new mb.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new mb.FullscreenControl(), "top-right");
+        map.on("error", (ev: any) => {
+          const msg = String(ev?.error?.message ?? "");
+          if (/webgl|context|gl\b/i.test(msg)) activarAlterno(`Mapbox no pudo usar la aceleración gráfica: ${msg}`);
+        });
+        map.getCanvas?.()?.addEventListener?.("webglcontextlost", () =>
+          activarAlterno("El dispositivo perdió el contexto gráfico (WebGL) del mapa."),
+        );
         map.on("load", () => {
           map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           map.addLayer({
@@ -109,13 +136,16 @@ export function MapaAvanceDiario({
           setListo(true);
         });
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        setError(e.message);
+        activarAlterno(e.message);
+      });
     return () => {
       cancelado = true;
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [zonas.length]);
+  }, [zonas.length, alterno, intento]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -163,13 +193,20 @@ export function MapaAvanceDiario({
   const completadas = zonas.filter((z) => marcas.get(z.id) === "completada").length;
   const enProceso = zonas.filter((z) => marcas.get(z.id) === "en_proceso").length;
 
-  const sinMapa = !!error;
+  const sinMapa = alterno || !!error;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
         <MapPinned className="size-3.5 text-primary" />
         <span>{completadas} completadas · {enProceso} en proceso · {zonas.length} zonas</span>
+        <button
+          type="button"
+          onClick={() => (sinMapa ? volverPrincipal() : activarAlterno("Cambio manual al mapa por imágenes."))}
+          className="underline font-medium"
+        >
+          {sinMapa ? "Volver al mapa principal" : "Usar mapa por imágenes"}
+        </button>
         {!readOnly && (
           <span className="ml-auto">
             {sinMapa ? "Mapa alternativo activo: toca una zona o usa los botones" : "Toca una zona para cambiar su estado"}
@@ -179,8 +216,8 @@ export function MapaAvanceDiario({
       {sinMapa ? (
         <div className="space-y-2">
           <p className="text-[10px] text-muted-foreground">
-            Servicio alternativo de mapa (imágenes satelitales, sin aceleración gráfica). Puedes marcar el avance
-            igual que siempre.
+            Servicio alternativo de mapa (imágenes satelitales, sin aceleración gráfica). El avance marcado se
+            conserva igual al cambiar de mapa.{motivo ? ` Motivo: ${motivo}` : ""}
           </p>
           <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
             <MapaZonasLeaflet
