@@ -1378,6 +1378,14 @@ function NuevaOrdenDialog({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => setIaOpen(true)}
+                  className="h-8 px-2 text-[11px] rounded-md border border-primary/40 text-primary hover:bg-primary/10 inline-flex items-center gap-1"
+                  title="Buscar proveedores y precios en la web con IA (por nombre o foto)"
+                >
+                  <Sparkles className="size-3" /> Buscar con IA
+                </button>
+                <button
+                  type="button"
                   onClick={cargarBajoMinimo}
                   className="h-8 px-2 text-[11px] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
                   title="Agrega los ítems agotados o por debajo del mínimo"
