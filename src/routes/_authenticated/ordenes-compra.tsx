@@ -1057,6 +1057,7 @@ function NuevaOrdenDialog({
   const [notas, setNotas] = useState("");
   const [busy, setBusy] = useState(false);
   const [proveedores, setProveedores] = useState<NuevoProv[]>([]);
+  const [iaOpen, setIaOpen] = useState(false);
   const [filas, setFilas] = useState<NuevaFila[]>(() => {
     if (!prefill?.length) return [];
     return prefill.map((p, i) => ({
