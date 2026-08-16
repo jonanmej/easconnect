@@ -47,6 +47,10 @@ export function cargarMapbox(): Promise<MapboxNS> {
     mb.accessToken = token;
     return mb;
   })();
+  // No cachear fallos: permite reintentar más tarde.
+  promesa.catch(() => {
+    promesa = null;
+  });
   return promesa;
 }
 
