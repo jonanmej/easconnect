@@ -151,18 +151,20 @@ export function EvidenciaUploader({
 
   async function subirItem(item: ItemSubida, cat: Categoria): Promise<void> {
     if (!trabajoId) throw new Error("trabajoId no definido");
-    const rawExt = (item.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const archivo = await comprimirImagen(item.file);
+    const rawExt = (archivo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const ext = rawExt.slice(0, 5) || "jpg";
     const path = `trabajos/${trabajoId}/${crypto.randomUUID()}.${ext}`;
-    const contentType = item.file.type
+    const contentType = archivo.type
       || (ext === "heic" ? "image/heic" : ext === "png" ? "image/png" : "image/jpeg");
-    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, item.file, {
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, archivo, {
       contentType,
       upsert: false,
     });
     if (upErr) {
       console.error("[Evidencias] storage upload error", upErr);
-      throw new Error(upErr.message || "Falló la subida a Storage");
+      const detalle = await mensajeDeError(upErr);
+      throw new Error(detalle || "Falló la subida a Storage");
     }
     try {
       await fetchRecord({
@@ -208,7 +210,8 @@ export function EvidenciaUploader({
       }
       // Fallback: encolar offline
       try {
-        const dataUrl = await fileToDataURL(item.file);
+        const comprimida = await comprimirImagen(item.file);
+        const dataUrl = await fileToDataURL(comprimida);
         enqueue({
           trabajo_id: trabajoId,
           reporte_diario_id: reporteDiarioId ?? null,
@@ -219,9 +222,14 @@ export function EvidenciaUploader({
         setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "encolado" } : c));
         toast.warning(`No se pudo subir "${item.file.name}". Guardada offline para reintento. (${item.error ?? "Error"})`);
         setTimeout(() => setCola((prev) => prev.filter((c) => c.id !== itemId)), 2500);
-      } catch {
+      } catch (e2) {
+        const detalleCola = await mensajeDeError(e2);
+        console.error("[Evidencias] fallo al guardar offline", e2);
         setCola((prev) => prev.map((c) => c.id === itemId ? { ...c, estado: "error" } : c));
-        toast.error(`Error al subir "${item.file.name}": ${item.error ?? "sin detalle"}`);
+        toast.error(
+          `Error al subir "${item.file.name}": ${item.error ?? detalleCola ?? "sin detalle"}` +
+            (item.error ? ` · respaldo offline falló: ${detalleCola}` : ""),
+        );
       }
     } finally {
       procesandoRef.current.delete(itemId);
