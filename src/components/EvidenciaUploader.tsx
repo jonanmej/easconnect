@@ -451,13 +451,14 @@ export function EvidenciaUploader({
         >
           <button
             type="button"
-            className="absolute top-4 right-4 size-9 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            className="absolute right-4 size-11 grid place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 z-10"
+            style={{ top: "max(env(safe-area-inset-top), 1rem)" }}
             onClick={() => setLightbox(null)}
             aria-label="Cerrar"
           >
-            <X className="size-4" />
+            <X className="size-5" />
           </button>
-          <img src={lightbox.url} alt={lightbox.alt} className="max-h-[90vh] max-w-[95vw] object-contain rounded" />
+          <img src={lightbox.url} alt={lightbox.alt} className="max-h-[78vh] max-w-[95vw] object-contain rounded" />
         </div>
       )}
     </div>
