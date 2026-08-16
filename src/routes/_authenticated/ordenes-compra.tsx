@@ -1024,6 +1024,7 @@ type NuevaFila = {
   cantidad_pedida: number;
   precio_unitario: number | "";
   proveedor: string;
+  oferta_ia?: OfertaProveedor | null;
 };
 
 type NuevoProv = {
@@ -1175,6 +1176,7 @@ function NuevaOrdenDialog({
   /** Inserta una oferta encontrada por IA como ítem libre y registra al proveedor. */
   function usarOfertaIA(of: OfertaProveedor, termino: string) {
     const nombreProv = of.proveedor.trim();
+    const precioRef = of.precio_con_impuesto ?? of.precio ?? "";
     if (nombreProv) {
       setProveedores((ps) =>
         ps.some((p) => p.nombre.trim().toLowerCase() === nombreProv.toLowerCase())
@@ -1185,8 +1187,8 @@ function NuevaOrdenDialog({
                 key: `prov-ia-${Date.now()}-${ps.length}`,
                 nombre: nombreProv,
                 cotizacion_folio: "",
-                cotizacion_fecha: "",
-                cotizacion_monto: of.precio ?? "",
+                cotizacion_fecha: (of.fecha ?? new Date().toISOString()).slice(0, 10),
+                cotizacion_monto: precioRef,
                 cotizacion_storage_path: null,
                 file: null,
               },
@@ -1202,13 +1204,13 @@ function NuevaOrdenDialog({
         sku_texto: null,
         nombre: (of.producto || termino).slice(0, 140),
         categoria: "",
-        unidad: "un",
+        unidad: (of.unidades_por_empaque ?? 1) > 1 ? (of.empaque || "empaque").slice(0, 20) : "un",
         cantidad_pedida: 1,
-        precio_unitario: of.precio ?? "",
+        precio_unitario: precioRef,
         proveedor: nombreProv,
+        oferta_ia: { ...of, fecha: of.fecha ?? new Date().toISOString() },
       },
     ]);
-    setNotas((n) => (of.url && !n.includes(of.url) ? `${n ? `${n} · ` : ""}Ref: ${of.url}`.slice(0, 500) : n));
   }
   function rmFila(key: string) {
     setFilas((fs) => fs.filter((f) => f.key !== key));
@@ -1255,6 +1257,25 @@ function NuevaOrdenDialog({
         cantidad_pedida: Number(f.cantidad_pedida),
         precio_unitario: f.precio_unitario === "" ? null : Number(f.precio_unitario),
         proveedor: f.proveedor?.trim() || null,
+        oferta_ia: f.oferta_ia
+          ? {
+              proveedor: f.oferta_ia.proveedor,
+              producto: f.oferta_ia.producto,
+              precio: f.oferta_ia.precio ?? null,
+              moneda: f.oferta_ia.moneda,
+              precio_con_impuesto: f.oferta_ia.precio_con_impuesto ?? null,
+              precio_por_unidad: f.oferta_ia.precio_por_unidad ?? null,
+              unidades_por_empaque: f.oferta_ia.unidades_por_empaque ?? 1,
+              empaque: f.oferta_ia.empaque ?? "",
+              tiempo_entrega: f.oferta_ia.tiempo_entrega ?? "",
+              disponibilidad: f.oferta_ia.disponibilidad ?? "",
+              notas: f.oferta_ia.notas ?? "",
+              url: f.oferta_ia.url ?? "",
+              pais: f.oferta_ia.pais ?? "",
+              impuesto_pct: f.oferta_ia.impuesto_pct ?? 0,
+              fecha: f.oferta_ia.fecha ?? new Date().toISOString(),
+            }
+          : null,
       }));
       const res = await fSave({ data: { solicitante, notas: notas || null, proveedores: provsPayload, items: itemsPayload } });
       const ordenId = (res as any).id as string;
