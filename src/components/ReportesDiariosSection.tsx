@@ -456,30 +456,40 @@ function Block({ title, children }: { title: string; children: any }) {
 }
 
 function DiarioForm({
-  onSave, saving, panelesPlanta, duracionDias,
+  onSave, saving, panelesPlanta, duracionDias, initial, onCancel,
 }: {
   onSave: (v: any) => Promise<unknown>;
   saving: boolean;
   panelesPlanta: number | null;
   duracionDias: number | null;
+  /** Cuando viene, el formulario abre en modo edición con estos valores. */
+  initial?: any;
+  onCancel?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">("intervencion");
-  const [panelesDia, setPanelesDia] = useState<string>("");
-  const [wattsPanel, setWattsPanel] = useState<string>("");
-  const [horaInicio, setHoraInicio] = useState<string>("");
-  const [horaFin, setHoraFin] = useState<string>("");
+  const editando = !!initial?.id;
+  const [open, setOpen] = useState(editando);
+  const [fase, setFase] = useState<"diagnostico" | "intervencion" | "cierre">(
+    (initial?.fase as any) ?? "intervencion",
+  );
+  const [panelesDia, setPanelesDia] = useState<string>(
+    initial?.paneles_limpiados != null ? String(initial.paneles_limpiados) : "",
+  );
+  const [wattsPanel, setWattsPanel] = useState<string>(
+    initial?.watts_panel != null ? String(initial.watts_panel) : "",
+  );
+  const [horaInicio, setHoraInicio] = useState<string>(hhmm(initial?.hora_inicio));
+  const [horaFin, setHoraFin] = useState<string>(hhmm(initial?.hora_fin));
   const formRef = useRef<HTMLDivElement>(null);
   const fJornada = useServerFn(getJornadaHoy);
   const jornada = useQuery({
     queryKey: ["jornada-hoy"],
     queryFn: () => fJornada(),
-    enabled: open,
+    enabled: open && !editando,
     staleTime: 60_000,
   });
   // Autocompletar horas desde la jornada al abrir el formulario
   useEffect(() => {
-    if (!open) return;
+    if (!open || editando) return;
     const j: any = jornada.data;
     if (!j) return;
     const toHM = (iso: string | null | undefined) => {
