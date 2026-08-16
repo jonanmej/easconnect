@@ -8,6 +8,26 @@ export type MapboxNS = typeof mapboxgl;
 
 let promesa: Promise<MapboxNS> | null = null;
 
+/** Detecta si el dispositivo/navegador puede crear un contexto WebGL. */
+export function soportaWebGL(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      (canvas.getContext as any).call(canvas, "experimental-webgl");
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
+
+export const MSG_SIN_WEBGL =
+  "Tu navegador no pudo activar la aceleración gráfica (WebGL), necesaria para el mapa. " +
+  "En iPhone/iPad: Ajustes → Safari → Avanzado → activa WebGL / desactiva el Modo de bajo consumo, " +
+  "cierra pestañas abiertas y recarga. También puedes seguir trabajando con la lista de zonas.";
+
 /** Estilo satelital con etiquetas de calles (equivalente al "hybrid"). */
 export const ESTILO_SATELITE = "mapbox://styles/mapbox/satellite-streets-v12";
 export const ESTILO_SATELITE_PURO = "mapbox://styles/mapbox/satellite-v9";
@@ -18,6 +38,7 @@ export function cargarMapbox(): Promise<MapboxNS> {
   if (promesa) return promesa;
   const token = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
   if (!token) return Promise.reject(new Error("Falta el token público de Mapbox"));
+  if (!soportaWebGL()) return Promise.reject(new Error(MSG_SIN_WEBGL));
 
   promesa = (async () => {
     await import("mapbox-gl/dist/mapbox-gl.css");
