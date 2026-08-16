@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MapPinned } from "lucide-react";
 import { cargarMapbox, ESTILO_SATELITE, ajustarA, type MapboxNS } from "@/lib/mapbox-loader";
+import { MapaZonasLeaflet } from "@/components/MapaZonasLeaflet";
 import { listZonasDeTrabajo, listZonasDiario, marcarZonaDiario } from "@/lib/planta-zonas.functions";
 
 type Estado = "en_proceso" | "completada" | null;
@@ -171,18 +172,34 @@ export function MapaAvanceDiario({
         <span>{completadas} completadas · {enProceso} en proceso · {zonas.length} zonas</span>
         {!readOnly && (
           <span className="ml-auto">
-            {sinMapa ? "Modo lista: usa los botones de zona" : "Toca una zona para cambiar su estado"}
+            {sinMapa ? "Mapa alternativo activo: toca una zona o usa los botones" : "Toca una zona para cambiar su estado"}
           </span>
         )}
       </div>
       {sinMapa ? (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-[11px] space-y-1">
-          <p className="text-destructive font-medium">No se pudo cargar el mapa satelital.</p>
-          <p className="text-muted-foreground">{error}</p>
-          <p className="text-muted-foreground">
-            Modo alternativo activo: marca el avance de cada zona con los botones de abajo. Todo se guarda igual
-            en el reporte diario.
+        <div className="space-y-2">
+          <p className="text-[10px] text-muted-foreground">
+            Servicio alternativo de mapa (imágenes satelitales, sin aceleración gráfica). Puedes marcar el avance
+            igual que siempre.
           </p>
+          <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
+            <MapaZonasLeaflet
+              zonas={zonas.map((z) => {
+                const est = marcas.get(z.id) ?? null;
+                const style = ESTILO[est ?? "pendiente"];
+                return {
+                  id: z.id,
+                  nombre: `${z.nombre} · ${style.label}`,
+                  color: style.stroke,
+                  poligono: z.poligono,
+                  opacidad: est ? 0.5 : 0.15,
+                };
+              })}
+              onClickZona={
+                readOnly ? undefined : (id) => ciclar(id, marcas.get(id) ?? null)
+              }
+            />
+          </div>
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden relative" style={{ height: 280 }}>
