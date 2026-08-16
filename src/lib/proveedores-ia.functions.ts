@@ -36,9 +36,10 @@ export const buscarProveedoresIA = createServerFn({ method: "POST" })
     const pais = (data.pais ?? "El Salvador").trim();
     const moneda = (data.moneda ?? "USD").trim().toUpperCase() || "USD";
     const impuestoPct = Number(data.impuesto_pct ?? 0);
+    const impuestoIncluido = data.impuesto_incluido ?? true;
     try {
       const fuentes = await buscarEnWeb(termino, pais);
-      const resultados = await extraerProveedores(termino, fuentes, { moneda, impuestoPct });
+      const resultados = await extraerProveedores(termino, fuentes, { moneda, impuestoPct, impuestoIncluido });
       if (resultados.length > 0) {
         await context.supabase.from("busquedas_ia_proveedores" as any).insert({
           termino,
