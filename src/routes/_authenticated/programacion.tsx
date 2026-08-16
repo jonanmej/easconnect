@@ -462,6 +462,18 @@ function Programacion() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setVerFinDeSemana(!verFinDeSemana)}
+              className={
+                "h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border rounded-md " +
+                (verFinDeSemana
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border hover:bg-secondary")
+              }
+              title="Muestra sábado y domingo para programar emergencias"
+            >
+              <CalendarDays className="size-3.5" /> Fin de semana
+            </button>
             <button onClick={() => nav(-1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Anterior">
               <ChevronLeft className="size-3.5" />
             </button>
