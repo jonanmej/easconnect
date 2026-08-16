@@ -536,10 +536,6 @@ function OrdenDetalleDialog({
           )}
         </div>
       </div>
-
-      {iaOpen && (
-        <BuscadorProveedoresIA onUsar={usarOfertaIA} onClose={() => setIaOpen(false)} />
-      )}
     </div>
   );
 }
