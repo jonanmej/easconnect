@@ -472,6 +472,32 @@ function OrdenDetalleDialog({
                             <td className="px-2 py-2">
                               <div className="font-medium">{it.nombre}</div>
                               <div className="text-[10px] text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
+                              {it.oferta_ia && (
+                                <div className="mt-1 text-[10px] text-muted-foreground border-l-2 border-primary/50 pl-2">
+                                  <div>
+                                    Oferta IA · {it.oferta_ia.moneda} {Number(it.oferta_ia.precio_con_impuesto ?? it.oferta_ia.precio ?? 0).toFixed(2)}
+                                    {it.oferta_ia.impuesto_pct ? ` (imp. ${it.oferta_ia.impuesto_pct}%)` : ""}
+                                    {it.oferta_ia.precio_por_unidad != null ? ` · c/u ${Number(it.oferta_ia.precio_por_unidad).toFixed(2)}` : ""}
+                                    {it.oferta_ia.empaque ? ` · ${it.oferta_ia.empaque}` : ""}
+                                  </div>
+                                  <div>
+                                    {[it.oferta_ia.pais, it.oferta_ia.disponibilidad, it.oferta_ia.tiempo_entrega ? `entrega: ${it.oferta_ia.tiempo_entrega}` : ""]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </div>
+                                  <div>
+                                    Consultado: {it.oferta_ia.fecha ? new Date(it.oferta_ia.fecha).toLocaleString("es-SV") : "—"}
+                                    {it.oferta_ia.url && (
+                                      <>
+                                        {" · "}
+                                        <a href={it.oferta_ia.url} target="_blank" rel="noreferrer" className="underline text-primary break-all">
+                                          fuente
+                                        </a>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </td>
                             <td className="px-2 py-2 text-muted-foreground">{it.proveedor || "—"}</td>
                             <td className="px-2 py-2 text-right font-mono">{Number(it.cantidad_pedida).toFixed(2)}</td>
