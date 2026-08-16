@@ -38,6 +38,12 @@ function fmtHora(h?: string | null): string {
   const m = /^(\d{2}):(\d{2})/.exec(h);
   return m ? `${m[1]}:${m[2]}` : String(h);
 }
+/** Normaliza una hora guardada (HH:MM[:SS]) al valor que espera <input type="time">. */
+function hhmm(h?: string | null): string {
+  if (!h) return "";
+  const m = /^(\d{2}):(\d{2})/.exec(String(h));
+  return m ? `${m[1]}:${m[2]}` : "";
+}
 
 export function ReportesDiariosSection({
   trabajoId,
