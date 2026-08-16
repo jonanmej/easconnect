@@ -99,6 +99,11 @@ function Programacion() {
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
   const fetchMoverDia = useServerFn(moverDiaTrabajo);
   const [vista, setVista] = usePersistedState<Vista>("programacion.vista", "semana");
+  // Mostrar sábado y domingo (necesario para programar emergencias en fin de semana).
+  const [verFinDeSemana, setVerFinDeSemana] = usePersistedState<boolean>(
+    "programacion.verFinDeSemana",
+    false,
+  );
   const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
   // Ahora arrastramos UN DÍA específico (no toda la OT). El drag lleva la
   // fecha real que se está moviendo y la fecha original (para escribir la
