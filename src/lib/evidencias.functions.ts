@@ -53,25 +53,10 @@ export const recordEvidencia = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(prefix)) {
       throw new Error("storage_path no corresponde al trabajo indicado");
     }
-    // Defensa: si se vincula a un reporte diario, debe pertenecer al mismo trabajo
-    if (data.reporte_diario_id) {
-      // Se valida con el cliente administrativo: un técnico no puede leer los
-      // reportes diarios de otro técnico (RLS), pero sí puede adjuntar fotos a
-      // un reporte del mismo trabajo cuando son varios técnicos asignados.
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: rd, error: rdErr } = await supabaseAdmin
-        .from("trabajo_reportes_diarios")
-        .select("id, trabajo_id")
-        .eq("id", data.reporte_diario_id)
-        .maybeSingle();
-      if (rdErr) throw new Error(rdErr.message);
-      if (!rd) {
-        throw new Error("El reporte diario indicado ya no existe");
-      }
-      if (rd.trabajo_id !== data.trabajo_id) {
-        throw new Error("El reporte diario no pertenece al trabajo");
-      }
-    }
+    // La correspondencia entre el reporte diario y el trabajo la valida el
+    // trigger `validar_trabajo_evidencia` en la base de datos, así que aquí no
+    // se hace una lectura extra (los técnicos no pueden leer los reportes de
+    // sus compañeros por RLS y eso hacía fallar la subida en equipos de 2+).
     const { data: row, error } = await context.supabase
       .from("trabajo_evidencias")
       .insert({
