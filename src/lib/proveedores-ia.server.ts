@@ -1,5 +1,4 @@
-import { generateText, Output, NoObjectGeneratedError } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 
 const GATEWAY_FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
@@ -9,24 +8,18 @@ export type ResultadoProveedor = {
   producto: string;
   precio: number | null;
   moneda: string;
+  /** Precio con impuesto aplicado según configuración del usuario. */
+  precio_con_impuesto: number | null;
+  /** Unidades que trae el empaque (1 si es venta por unidad). */
+  unidades_por_empaque: number;
+  empaque: string;
+  /** Precio por unidad (con impuesto) para comparar ofertas de forma transparente. */
+  precio_por_unidad: number | null;
+  tiempo_entrega: string;
   url: string;
   disponibilidad: string;
   notas: string;
 };
-
-const EsquemaResultados = z.object({
-  resultados: z.array(
-    z.object({
-      proveedor: z.string(),
-      producto: z.string(),
-      precio: z.number().nullable(),
-      moneda: z.string(),
-      url: z.string(),
-      disponibilidad: z.string(),
-      notas: z.string(),
-    }),
-  ),
-});
 
 function gateway() {
   const key = process.env.LOVABLE_API_KEY;
@@ -99,6 +92,7 @@ export async function buscarEnWeb(termino: string, pais: string) {
 export async function extraerProveedores(
   termino: string,
   fuentes: Array<{ url: string; title: string; description: string; markdown: string }>,
+  opts: { moneda: string; impuestoPct: number },
 ): Promise<ResultadoProveedor[]> {
   if (fuentes.length === 0) return [];
   const g = gateway();
@@ -108,46 +102,66 @@ export async function extraerProveedores(
 
   const prompt = [
     `Producto buscado: "${termino}".`,
-    "A partir de las fuentes web, extrae hasta 8 ofertas de proveedores reales con su precio unitario.",
-    "Reglas: usa solo datos presentes en las fuentes; precio numérico sin símbolos (null si no aparece);",
-    "moneda en código (USD, GTQ, MXN, etc.); url exacta de la fuente; disponibilidad y notas breves (máx 90 caracteres cada una);",
-    "ordena de menor a mayor precio y descarta resultados que no correspondan al producto.",
+    "A partir de las fuentes web, extrae hasta 8 ofertas de proveedores reales.",
+    'Responde ÚNICAMENTE con JSON válido con esta forma: {"resultados":[{"proveedor":"","producto":"","precio":0,"moneda":"USD","unidades_por_empaque":1,"empaque":"","tiempo_entrega":"","url":"","disponibilidad":"","notas":""}]}',
+    "Reglas: usa solo datos presentes en las fuentes; precio numérico del empaque completo sin símbolos (null si no aparece);",
+    "moneda en código ISO (USD, GTQ, MXN, EUR…); unidades_por_empaque = cantidad de piezas/litros que incluye el precio (1 si es unitario);",
+    "empaque = descripción corta del formato (ej: 'caja 12 un', 'galón 3.8 L'); tiempo_entrega = plazo de entrega o envío si aparece;",
+    "url exacta de la fuente; disponibilidad, tiempo_entrega y notas breves (máx 90 caracteres cada una);",
+    "descarta resultados que no correspondan al producto. Sin texto fuera del JSON.",
     "",
     contexto,
   ].join("\n");
 
+  const { text } = await generateText({ model: g("google/gemini-2.5-flash"), prompt });
+  const raw = parsearJson(text);
+  return normalizar(Array.isArray(raw?.resultados) ? raw.resultados : [], opts);
+}
+
+function parsearJson(text: string): any {
+  const limpio = String(text ?? "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   try {
-    const { output } = await generateText({
-      model: g("google/gemini-2.5-flash"),
-      output: Output.object({ schema: EsquemaResultados }),
-      prompt,
-    });
-    return normalizar(output?.resultados ?? []);
-  } catch (error) {
-    if (NoObjectGeneratedError.isInstance(error)) {
+    return JSON.parse(limpio);
+  } catch {
+    const ini = limpio.indexOf("{");
+    const fin = limpio.lastIndexOf("}");
+    if (ini >= 0 && fin > ini) {
       try {
-        const raw = JSON.parse(String(error.text ?? "").replace(/^```json|```$/g, "").trim());
-        return normalizar(raw?.resultados ?? []);
+        return JSON.parse(limpio.slice(ini, fin + 1));
       } catch {
-        return [];
+        return null;
       }
     }
-    throw error;
+    return null;
   }
 }
 
-function normalizar(rows: any[]): ResultadoProveedor[] {
+function normalizar(rows: any[], opts: { moneda: string; impuestoPct: number }): ResultadoProveedor[] {
+  const factor = 1 + Math.max(0, Number(opts.impuestoPct) || 0) / 100;
   return rows
     .filter((r) => r && String(r.proveedor ?? "").trim())
-    .slice(0, 8)
-    .map((r) => ({
-      proveedor: String(r.proveedor).trim().slice(0, 80),
-      producto: String(r.producto ?? "").trim().slice(0, 140),
-      precio: r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio),
-      moneda: String(r.moneda ?? "USD").trim().slice(0, 6) || "USD",
-      url: String(r.url ?? "").trim(),
-      disponibilidad: String(r.disponibilidad ?? "").trim().slice(0, 90),
-      notas: String(r.notas ?? "").trim().slice(0, 90),
-    }))
-    .sort((a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity));
+    .slice(0, 10)
+    .map((r) => {
+      const precio = r.precio == null || Number.isNaN(Number(r.precio)) ? null : Number(r.precio);
+      const conImp = precio == null ? null : Math.round(precio * factor * 10000) / 10000;
+      const unidades = Math.max(1, Number(r.unidades_por_empaque) || 1);
+      return {
+        proveedor: String(r.proveedor).trim().slice(0, 80),
+        producto: String(r.producto ?? "").trim().slice(0, 140),
+        precio,
+        moneda: (String(r.moneda ?? "").trim().slice(0, 6) || opts.moneda || "USD").toUpperCase(),
+        precio_con_impuesto: conImp,
+        unidades_por_empaque: unidades,
+        empaque: String(r.empaque ?? "").trim().slice(0, 60),
+        precio_por_unidad: conImp == null ? null : Math.round((conImp / unidades) * 10000) / 10000,
+        tiempo_entrega: String(r.tiempo_entrega ?? "").trim().slice(0, 90),
+        url: String(r.url ?? "").trim(),
+        disponibilidad: String(r.disponibilidad ?? "").trim().slice(0, 90),
+        notas: String(r.notas ?? "").trim().slice(0, 90),
+      };
+    })
+    .sort((a, b) => (a.precio_por_unidad ?? Infinity) - (b.precio_por_unidad ?? Infinity));
 }

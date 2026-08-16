@@ -22,6 +22,26 @@ const ItemSchema = z.object({
   cantidad_pedida: z.coerce.number().positive(),
   precio_unitario: z.coerce.number().nullable().optional(),
   proveedor: z.string().nullable().optional(),
+  oferta_ia: z
+    .object({
+      proveedor: z.string().optional(),
+      producto: z.string().optional(),
+      precio: z.number().nullable().optional(),
+      moneda: z.string().optional(),
+      precio_con_impuesto: z.number().nullable().optional(),
+      precio_por_unidad: z.number().nullable().optional(),
+      unidades_por_empaque: z.number().optional(),
+      empaque: z.string().optional(),
+      tiempo_entrega: z.string().optional(),
+      disponibilidad: z.string().optional(),
+      notas: z.string().optional(),
+      url: z.string().optional(),
+      pais: z.string().optional(),
+      impuesto_pct: z.number().optional(),
+      fecha: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 function genFolio() {
@@ -175,6 +195,7 @@ export const guardarOrdenCompra = createServerFn({ method: "POST" })
       cantidad_pedida: it.cantidad_pedida,
       precio_unitario: it.precio_unitario ?? null,
       proveedor: it.proveedor?.trim() || null,
+      oferta_ia: (it.oferta_ia ?? null) as any,
     }));
     const { error: itemsErr } = await context.supabase.from("orden_compra_items").insert(filas);
     if (itemsErr) throw new Error(itemsErr.message);

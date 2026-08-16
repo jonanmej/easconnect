@@ -47,6 +47,45 @@ export type Database = {
         }
         Relationships: []
       }
+      busquedas_ia_proveedores: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          desde_imagen: boolean
+          fuentes: number
+          id: string
+          impuesto_pct: number
+          moneda: string
+          pais: string
+          resultados: Json
+          termino: string
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          desde_imagen?: boolean
+          fuentes?: number
+          id?: string
+          impuesto_pct?: number
+          moneda?: string
+          pais?: string
+          resultados?: Json
+          termino: string
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          desde_imagen?: boolean
+          fuentes?: number
+          id?: string
+          impuesto_pct?: number
+          moneda?: string
+          pais?: string
+          resultados?: Json
+          termino?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           capacidad: string | null
@@ -614,6 +653,7 @@ export type Database = {
           id: string
           item_id: string | null
           nombre: string
+          oferta_ia: Json | null
           orden_id: string
           precio_unitario: number | null
           proveedor: string | null
@@ -628,6 +668,7 @@ export type Database = {
           id?: string
           item_id?: string | null
           nombre: string
+          oferta_ia?: Json | null
           orden_id: string
           precio_unitario?: number | null
           proveedor?: string | null
@@ -642,6 +683,7 @@ export type Database = {
           id?: string
           item_id?: string | null
           nombre?: string
+          oferta_ia?: Json | null
           orden_id?: string
           precio_unitario?: number | null
           proveedor?: string | null
