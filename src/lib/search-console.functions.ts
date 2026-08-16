@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { SEO_PANEL_EMAIL } from "@/lib/roles";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_search_console";
 const SITE_TARGET = "https://easconnect.lovable.app/";
@@ -102,15 +103,8 @@ export const getPanelSearchConsole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => inputSchema.parse(raw ?? {}))
   .handler(async ({ data, context }): Promise<PanelGsc> => {
-    const { data: esAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    const { data: esSupervisor } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "supervisor",
-    });
-    if (!esAdmin && !esSupervisor) throw new Error("Solo administradores y supervisores pueden ver este panel.");
+    const email = String((context.claims as { email?: string }).email ?? "").trim().toLowerCase();
+    if (email !== SEO_PANEL_EMAIL) throw new Error("No autorizado.");
 
     const prop = await resolverPropiedad(data.siteUrl);
     if (prop.estado === "seleccion_requerida") {
@@ -168,7 +162,9 @@ export const getPanelSearchConsole = createServerFn({ method: "POST" })
 export const getEstadoSitemap = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ siteUrl: z.string().trim().max(300).optional() }).parse(raw ?? {}))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const email = String((context.claims as { email?: string }).email ?? "").trim().toLowerCase();
+    if (email !== SEO_PANEL_EMAIL) throw new Error("No autorizado.");
     const prop = await resolverPropiedad(data.siteUrl);
     if (prop.estado === "seleccion_requerida") return { estado: "seleccion_requerida" as const };
     const sitemap = "https://easconnect.lovable.app/sitemap.xml";
