@@ -39,6 +39,21 @@ export function canAccess(roles: AppRole[], path: string): boolean {
   return roles.some((r) => ROLE_ACCESS[r]?.includes(path));
 }
 
+/** Rutas restringidas a un correo específico, además del control por rol. */
+export const EMAIL_ONLY_ROUTES: Record<string, string> = {
+  "/search-console": "proyectos@easervice.app",
+};
+
+export function canAccessWithEmail(
+  roles: AppRole[],
+  path: string,
+  email?: string | null,
+): boolean {
+  const requerido = EMAIL_ONLY_ROUTES[path];
+  if (requerido && (email ?? "").trim().toLowerCase() !== requerido) return false;
+  return canAccess(roles, path);
+}
+
 export function highestRole(roles: AppRole[]): AppRole | null {
   const order: AppRole[] = ["admin", "supervisor", "tecnico", "cliente"];
   return order.find((r) => roles.includes(r)) ?? null;

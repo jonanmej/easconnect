@@ -43,7 +43,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { canAccess, highestRole, ROLE_LABEL } from "@/lib/roles";
+import { canAccessWithEmail, highestRole, ROLE_LABEL } from "@/lib/roles";
 import { useTheme } from "@/lib/theme-context";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { reiniciarApp } from "@/lib/app-update";
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const groups = allGroups
     .map((g) => ({
       ...g,
-      items: g.items.filter((i) => canAccess(roles, i.to)),
+      items: g.items.filter((i) => canAccessWithEmail(roles, i.to, user?.email)),
     }))
     .filter((g) => g.items.length > 0);
 
