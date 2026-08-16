@@ -368,7 +368,7 @@ function TrabajoCard({
           onClick={() => setReporteOpen(false)}
         >
           <div
-            className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto bg-background rounded-t-xl sm:rounded-xl border border-border shadow-xl"
+            className="w-full sm:max-w-2xl max-h-[88vh] overflow-y-auto overscroll-contain bg-background rounded-t-xl sm:rounded-xl border border-border shadow-xl pb-[max(env(safe-area-inset-bottom),0.5rem)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background">
@@ -379,10 +379,10 @@ function TrabajoCard({
               <button
                 type="button"
                 onClick={() => setReporteOpen(false)}
-                className="size-8 grid place-items-center rounded-md hover:bg-secondary"
+                className="size-10 shrink-0 grid place-items-center rounded-md border border-border hover:bg-secondary active:scale-95"
                 aria-label="Cerrar"
               >
-                <X className="size-4" />
+                <X className="size-5" />
               </button>
             </div>
             <div className="p-4">
