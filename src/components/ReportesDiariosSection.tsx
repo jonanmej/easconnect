@@ -623,7 +623,18 @@ function DiarioForm({
         </p>
       )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        <FieldS label="Fecha"><input name="fecha" type="date" defaultValue={initial?.fecha ?? today()} className={inputCls} /></FieldS>
+        <FieldS label="Fecha del trabajo">
+          <input
+            name="fecha"
+            type="date"
+            max={today()}
+            defaultValue={initial?.fecha ?? today()}
+            className={inputCls}
+          />
+          <span className="block mt-1 text-[10px] text-muted-foreground">
+            Si no pudiste subirlo ese día, elige la fecha real en que se ejecutó.
+          </span>
+        </FieldS>
         <FieldS label="Fase del trabajo">
           <select
             value={fase}
