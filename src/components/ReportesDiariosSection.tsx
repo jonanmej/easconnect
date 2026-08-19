@@ -510,6 +510,8 @@ function DiarioForm({
   );
   const [horaInicio, setHoraInicio] = useState<string>(hhmm(initial?.hora_inicio));
   const [horaFin, setHoraFin] = useState<string>(hhmm(initial?.hora_fin));
+  // Minutos de pausa de almuerzo que NO se cuentan como horas laboradas.
+  const [almuerzoMin, setAlmuerzoMin] = useState<string>("60");
   const formRef = useRef<HTMLDivElement>(null);
   const fJornada = useServerFn(getJornadaHoy);
   const jornada = useQuery({
@@ -531,6 +533,12 @@ function DiarioForm({
     };
     setHoraInicio((prev) => prev || toHM(j.hora_inicio));
     setHoraFin((prev) => prev || toHM(j.hora_fin));
+    if (j.almuerzo_inicio && j.almuerzo_fin) {
+      const mins = Math.round(
+        (new Date(j.almuerzo_fin).getTime() - new Date(j.almuerzo_inicio).getTime()) / 60000,
+      );
+      if (Number.isFinite(mins) && mins >= 0) setAlmuerzoMin(String(mins));
+    }
   }, [open, jornada.data]);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
