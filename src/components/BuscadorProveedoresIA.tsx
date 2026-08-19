@@ -12,7 +12,20 @@ export type OfertaProveedor = {
   precio: number | null;
   moneda: string;
   precio_con_impuesto?: number | null;
+  precio_final?: number | null;
   precio_por_unidad?: number | null;
+  arancel_pct?: number;
+  retencion_pct?: number;
+  cargos_fijos?: number;
+  envio?: number;
+  desglose?: {
+    neto: number | null;
+    arancel: number;
+    envio: number;
+    impuesto: number;
+    retencion: number;
+    cargos_fijos: number;
+  } | null;
   unidades_por_empaque?: number;
   empaque?: string;
   tiempo_entrega?: string;
@@ -72,6 +85,10 @@ export function BuscadorProveedoresIA({
   const [moneda, setMoneda] = useState("USD");
   const [impuesto, setImpuesto] = useState<number>(13);
   const [incluido, setIncluido] = useState(true);
+  const [arancel, setArancel] = useState<number>(0);
+  const [retencion, setRetencion] = useState<number>(0);
+  const [cargos, setCargos] = useState<number>(0);
+  const [verCargos, setVerCargos] = useState(false);
   const [comparar, setComparar] = useState<"unidad" | "empaque">("unidad");
   const [tab, setTab] = useState<"buscar" | "historial">("buscar");
   const [file, setFile] = useState<File | null>(null);
@@ -85,8 +102,8 @@ export function BuscadorProveedoresIA({
   const ordenados = useMemo(() => {
     const clave = (o: OfertaProveedor) =>
       comparar === "unidad"
-        ? (o.precio_por_unidad ?? o.precio_con_impuesto ?? o.precio ?? Infinity)
-        : (o.precio_con_impuesto ?? o.precio ?? Infinity);
+        ? (o.precio_por_unidad ?? o.precio_final ?? o.precio_con_impuesto ?? o.precio ?? Infinity)
+        : (o.precio_final ?? o.precio_con_impuesto ?? o.precio ?? Infinity);
     return [...resultados].sort((a, b) => clave(a) - clave(b));
   }, [resultados, comparar]);
 
@@ -97,7 +114,16 @@ export function BuscadorProveedoresIA({
     setBuscado(false);
     setTab("buscar");
     try {
-      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto, impuesto_incluido: incluido };
+      const payload: any = {
+        texto: q || undefined,
+        pais,
+        moneda,
+        impuesto_pct: impuesto,
+        impuesto_incluido: incluido,
+        arancel_pct: arancel,
+        retencion_pct: retencion,
+        cargos_fijos: cargos,
+      };
       if (file && !terminoForzado) {
         payload.imagen_base64 = await fileToBase64(file);
         payload.imagen_mime = file.type || "image/jpeg";
