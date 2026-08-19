@@ -286,6 +286,35 @@ export function BuscadorProveedoresIA({
               </button>
             ))}
           </div>
+
+          <div className="rounded-md border border-border">
+            <button
+              onClick={() => setVerCargos((v) => !v)}
+              className="w-full h-8 px-3 flex items-center justify-between text-[11px] text-muted-foreground hover:bg-secondary/60 rounded-md"
+            >
+              <span>Impuestos y cargos adicionales (arancel, retención, cargos locales)</span>
+              <span className="font-mono">{verCargos ? "−" : "+"}</span>
+            </button>
+            {verCargos && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 pt-0">
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Arancel / importación %</span>
+                  <input type="number" min={0} max={100} step="0.5" value={arancel} onChange={(e) => setArancel(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Retención %</span>
+                  <input type="number" min={0} max={100} step="0.5" value={retencion} onChange={(e) => setRetencion(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Cargos locales fijos ({moneda})</span>
+                  <input type="number" min={0} step="0.01" value={cargos} onChange={(e) => setCargos(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <p className="md:col-span-3 text-[10px] text-muted-foreground">
+                  El envío se toma de la fuente cuando la publica. Arancel y envío entran a la base gravable; retención y cargos fijos se suman al precio final.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="p-4 overflow-y-auto">
