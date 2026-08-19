@@ -6,6 +6,7 @@ import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, FileDown, 
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta, metaCumplimientoLimpieza } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
+import { colorCliente } from "@/lib/color-cliente";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
@@ -136,6 +137,30 @@ function CumplimientoContratos() {
     for (const f of filas) if (f.cliente_id) map.set(f.cliente_id, f.cliente_nombre ?? "—");
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [filas]);
+  // Cumplimiento agrupado por cliente: cada cliente con su propio resumen.
+  const gruposCliente = useMemo(() => {
+    const visibles = clienteSel === "all" ? filas : filas.filter((f) => f.cliente_id === clienteSel);
+    const map = new Map<string, { cliente_id: string; cliente_nombre: string; filas: any[] }>();
+    for (const f of visibles) {
+      const id = f.cliente_id ?? "sin-cliente";
+      const g = map.get(id) ?? { cliente_id: id, cliente_nombre: f.cliente_nombre ?? "Sin cliente", filas: [] };
+      g.filas.push(f);
+      map.set(id, g);
+    }
+    return Array.from(map.values())
+      .map((g) => {
+        const contratados = g.filas.reduce((s, r) => s + (r.cantidad_anual ?? 0), 0);
+        const completados = g.filas.reduce((s, r) => s + (r.completados ?? 0), 0);
+        return {
+          ...g,
+          filas: g.filas.sort((a, b) => String(a.planta_nombre).localeCompare(String(b.planta_nombre), "es")),
+          contratados,
+          completados,
+          pct: contratados > 0 ? Math.round((completados / contratados) * 1000) / 10 : 0,
+        };
+      })
+      .sort((a, b) => a.cliente_nombre.localeCompare(b.cliente_nombre, "es"));
+  }, [filas, clienteSel]);
   async function exportarPdf() {
     if (!data) return;
     setDownloading(true);
