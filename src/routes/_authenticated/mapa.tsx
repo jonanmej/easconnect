@@ -160,33 +160,46 @@ function MapaPage() {
                 Ninguna planta tiene coordenadas registradas todavía. Añade latitud/longitud desde el módulo de Plantas.
               </p>
             )}
-            {rows.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => enfocar(p)}
-                className={
-                  "w-full text-left px-4 py-3 hover:bg-secondary/60 transition-colors " +
-                  (selected?.id === p.id ? "bg-secondary" : "")
-                }
-              >
-                <div className="flex items-start gap-2">
-                  <MapPin className="size-4 text-primary mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{p.nombre}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {p.clientes?.nombre ?? "Sin cliente"}
-                    </p>
-                    <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
-                      {Number(p.latitud).toFixed(5)}, {Number(p.longitud).toFixed(5)}
-                    </p>
+            {grupos.map((g) => {
+              const color = colorDe(g.plantas[0]);
+              return (
+                <div key={g.cliente}>
+                  <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-secondary/80 backdrop-blur-sm border-b border-border">
+                    <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider truncate">{g.cliente}</p>
+                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">{g.plantas.length}</span>
                   </div>
+                  {g.plantas.map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => enfocar(p)}
+                      className={
+                        "w-full text-left px-4 py-3 border-b border-border hover:bg-secondary/60 transition-colors " +
+                        (selected?.id === p.id ? "bg-secondary" : "")
+                      }
+                    >
+                      <div className="flex items-start gap-2">
+                        <MapPin className="size-4 mt-0.5 shrink-0" style={{ color }} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{p.nombre}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                            {Number(p.latitud).toFixed(5)}, {Number(p.longitud).toFixed(5)}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
           {selected && (
             <div className="border-t border-border p-3 text-xs bg-secondary/30">
-              <p className="font-semibold">{selected.nombre}</p>
+              <p className="font-semibold inline-flex items-center gap-2">
+                <span className="size-2.5 rounded-full" style={{ backgroundColor: colorDe(selected) }} />
+                {selected.nombre}
+              </p>
+              <p className="text-muted-foreground">{selected.cliente_nombre ?? "Sin cliente"}</p>
               <a
                 target="_blank" rel="noreferrer"
                 href={`https://www.google.com/maps/search/?api=1&query=${selected.latitud},${selected.longitud}`}
