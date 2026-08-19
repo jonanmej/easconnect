@@ -13,6 +13,7 @@ import { highestRole } from "@/lib/roles";
 import { ExportButton } from "@/components/ExportButton";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
   head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" }] }),
@@ -155,7 +156,7 @@ function Notificaciones() {
           <Field label="Planta">
             <select className={inputCls} value={filtros.planta_id ?? ""} onChange={(e) => setFiltros((f) => ({ ...f, planta_id: e.target.value || undefined }))}>
               <option value="">Todas</option>
-              {plantasFiltradas.map((p: any) => (<option key={p.id} value={p.id}>{p.nombre}</option>))}
+              <PlantaOptions plantas={plantasFiltradas as any[]} />
             </select>
           </Field>
           <Field label="Desde">

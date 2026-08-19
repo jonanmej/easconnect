@@ -22,6 +22,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { exportarCSV, reportesARows } from "@/lib/exportar";
 import { Sparkles as _Sparkles, Send, CheckCircle2, XCircle, History, GitBranch } from "lucide-react";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
@@ -462,9 +463,7 @@ function Reportes() {
           >
             <option value="">Todas las plantas</option>
             <option value="__sin__">Sin planta (consolidado del cliente)</option>
-            {plantasFiltro.map((p: any) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
+            <PlantaOptions plantas={plantasFiltro as any[]} />
           </select>
         </label>
         )}
@@ -673,9 +672,7 @@ function Reportes() {
         <Field label="Planta (opcional · todas si vacío)">
           <select name="planta_id" defaultValue="" className={inputCls}>
             <option value="">Todas las plantas del cliente</option>
-            {plantasFiltradas.map((p: any) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
+            <PlantaOptions plantas={plantasFiltradas as any[]} />
           </select>
         </Field>
         <Field label="Servicio (opcional · todos si vacío)">

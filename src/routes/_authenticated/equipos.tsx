@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/equipos")({
   head: () => ({
@@ -214,9 +215,7 @@ function Equipos() {
           <Field label="Planta asignada">
             <select name="planta_id" defaultValue={editing?.planta_id ?? ""} className={inputCls}>
               <option value="">— En Bodega —</option>
-              {(plantas.data as any[] | undefined)?.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
+              <PlantaOptions plantas={plantas.data as any[] | undefined} />
             </select>
           </Field>
           <Field label="Ubicación específica (opcional)">
