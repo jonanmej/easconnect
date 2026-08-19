@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT } from "@/lib/servicios";
 import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
@@ -1314,7 +1315,7 @@ function ClienteCalendar() {
         <Field label="Planta">
           <select name="planta_id" required className={inputCls} defaultValue="">
             <option value="" disabled>Selecciona…</option>
-            {plantas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            <PlantaOptions plantas={plantas as any[]} />
           </select>
         </Field>
         <Field label="Tipo de visita">

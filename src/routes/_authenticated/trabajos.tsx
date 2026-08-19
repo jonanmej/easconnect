@@ -68,6 +68,7 @@ function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: 
 }
 
 import { SERVICIOS_OT } from "@/lib/servicios";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 const CAT_RECURSO = [
   { value: "herramienta", label: "Herramienta" },
@@ -639,9 +640,7 @@ function Trabajos() {
         <Field label="Planta">
           <select name="planta_id" required defaultValue={editing?.planta_id ?? ""} className={inputCls}>
             <option value="">— Selecciona planta —</option>
-            {(plantas.data as any[] | undefined)?.map((p) => (
-              <option key={p.id} value={p.id}>{p.cliente_nombre} · {p.nombre}</option>
-            ))}
+            <PlantaOptions plantas={plantas.data as any[] | undefined} />
           </select>
         </Field>
         <Field label="Servicio">
@@ -848,9 +847,7 @@ function Trabajos() {
         <Field label="Planta">
           <select name="planta_id" required className={inputCls} defaultValue="">
             <option value="">— Selecciona planta —</option>
-            {(plantas.data as any[] | undefined)?.map((p) => (
-              <option key={p.id} value={p.id}>{p.cliente_nombre} · {p.nombre}</option>
-            ))}
+            <PlantaOptions plantas={plantas.data as any[] | undefined} />
           </select>
         </Field>
         <Field label="Servicio">

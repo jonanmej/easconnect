@@ -510,6 +510,8 @@ function DiarioForm({
   );
   const [horaInicio, setHoraInicio] = useState<string>(hhmm(initial?.hora_inicio));
   const [horaFin, setHoraFin] = useState<string>(hhmm(initial?.hora_fin));
+  // Minutos de pausa de almuerzo que NO se cuentan como horas laboradas.
+  const [almuerzoMin, setAlmuerzoMin] = useState<string>("60");
   const formRef = useRef<HTMLDivElement>(null);
   const fJornada = useServerFn(getJornadaHoy);
   const jornada = useQuery({
@@ -531,6 +533,12 @@ function DiarioForm({
     };
     setHoraInicio((prev) => prev || toHM(j.hora_inicio));
     setHoraFin((prev) => prev || toHM(j.hora_fin));
+    if (j.almuerzo_inicio && j.almuerzo_fin) {
+      const mins = Math.round(
+        (new Date(j.almuerzo_fin).getTime() - new Date(j.almuerzo_inicio).getTime()) / 60000,
+      );
+      if (Number.isFinite(mins) && mins >= 0) setAlmuerzoMin(String(mins));
+    }
   }, [open, jornada.data]);
   const expectedDia = useMemo(() => {
     if (!panelesPlanta || !duracionDias || duracionDias <= 0) return null;
@@ -548,8 +556,10 @@ function DiarioForm({
     if ([hi, mi, hf, mf].some((v) => !Number.isFinite(v))) return null;
     let diff = (hf * 60 + mf) - (hi * 60 + mi);
     if (diff < 0) diff += 24 * 60;
-    return Math.round((diff / 60) * 100) / 100;
-  }, [horaInicio, horaFin]);
+    // El almuerzo es una pausa del trabajo: se descuenta de las horas laboradas.
+    const pausa = Math.max(0, Math.min(diff, Number(almuerzoMin) || 0));
+    return Math.round(((diff - pausa) / 60) * 100) / 100;
+  }, [horaInicio, horaFin, almuerzoMin]);
   const wattsTotales = useMemo(() => {
     const p = Number(panelesDia);
     const w = Number(wattsPanel);
@@ -660,18 +670,37 @@ function DiarioForm({
         <FieldS label="Hora de fin">
           <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.currentTarget.value)} className={inputCls} />
         </FieldS>
+        <FieldS label="Almuerzo (min · pausa)">
+          <input
+            type="number"
+            min={0}
+            max={240}
+            step="5"
+            value={almuerzoMin}
+            onChange={(e) => setAlmuerzoMin(e.currentTarget.value)}
+            className={inputCls}
+          />
+          <span className="block mt-1 text-[10px] text-muted-foreground">
+            El almuerzo es pausa: se descuenta de las horas laboradas.
+          </span>
+        </FieldS>
         <FieldS label="Horas trabajadas">
           <input
             name="horas_trabajadas"
             type="number"
             min={0}
             step="0.25"
-            key={horasCalc != null ? "calc" : "manual"}
+            key={horasCalc != null ? `calc-${horasCalc}` : "manual"}
             defaultValue={horasCalc != null ? String(horasCalc) : (initial?.horas_trabajadas ?? "")}
             readOnly={horasCalc != null}
-            placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
+            placeholder={horasCalc != null ? "" : "Se calcula desde las horas menos el almuerzo"}
             className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
           />
+          {horasCalc != null && (
+            <span className="block mt-1 text-[10px] text-muted-foreground">
+              Netas, sin la hora de almuerzo ({almuerzoMin || 0} min descontados).
+            </span>
+          )}
         </FieldS>
         <FieldS label="Paneles limpiados">
           <input

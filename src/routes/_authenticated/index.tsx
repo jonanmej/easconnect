@@ -6,6 +6,7 @@ import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, FileDown, 
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta, metaCumplimientoLimpieza } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
+import { colorCliente } from "@/lib/color-cliente";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
@@ -136,6 +137,30 @@ function CumplimientoContratos() {
     for (const f of filas) if (f.cliente_id) map.set(f.cliente_id, f.cliente_nombre ?? "—");
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [filas]);
+  // Cumplimiento agrupado por cliente: cada cliente con su propio resumen.
+  const gruposCliente = useMemo(() => {
+    const visibles = clienteSel === "all" ? filas : filas.filter((f) => f.cliente_id === clienteSel);
+    const map = new Map<string, { cliente_id: string; cliente_nombre: string; filas: any[] }>();
+    for (const f of visibles) {
+      const id = f.cliente_id ?? "sin-cliente";
+      const g = map.get(id) ?? { cliente_id: id, cliente_nombre: f.cliente_nombre ?? "Sin cliente", filas: [] as any[] };
+      g.filas.push(f);
+      map.set(id, g);
+    }
+    return Array.from(map.values())
+      .map((g) => {
+        const contratados = g.filas.reduce((s, r) => s + (r.cantidad_anual ?? 0), 0);
+        const completados = g.filas.reduce((s, r) => s + (r.completados ?? 0), 0);
+        return {
+          ...g,
+          filas: g.filas.sort((a, b) => String(a.planta_nombre).localeCompare(String(b.planta_nombre), "es")),
+          contratados,
+          completados,
+          pct: contratados > 0 ? Math.round((completados / contratados) * 1000) / 10 : 0,
+        };
+      })
+      .sort((a, b) => a.cliente_nombre.localeCompare(b.cliente_nombre, "es"));
+  }, [filas, clienteSel]);
   async function exportarPdf() {
     if (!data) return;
     setDownloading(true);
@@ -213,8 +238,24 @@ function CumplimientoContratos() {
       {filas.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">Aún no hay contratos definidos para el año en curso.</p>
       ) : (
-        <ResponsiveTable
-          data={filas}
+        <div className="space-y-5">
+        {gruposCliente.map((g) => (
+          <div key={g.cliente_id ?? g.cliente_nombre} className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: colorCliente(g.cliente_id ?? g.cliente_nombre) }} />
+              <h3 className="text-xs font-semibold uppercase tracking-wider">{g.cliente_nombre}</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {g.completados} de {g.contratados} completados
+              </span>
+              <span className="ml-auto inline-flex items-center gap-2">
+                <span className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <span className="block h-full bg-accent" style={{ width: `${Math.min(100, g.pct)}%` }} />
+                </span>
+                <span className="font-mono text-xs font-semibold">{g.pct}%</span>
+              </span>
+            </div>
+            <ResponsiveTable
+          data={g.filas}
           rowKey={(f) => f.contrato_id}
           columns={[
             { key: "planta", header: "Planta", primary: true, cell: (f) => f.planta_nombre },
@@ -246,6 +287,9 @@ function CumplimientoContratos() {
             },
           ]}
         />
+          </div>
+        ))}
+        </div>
       )}
     </section>
   );

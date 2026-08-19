@@ -475,7 +475,7 @@ function OrdenDetalleDialog({
                               {it.oferta_ia && (
                                 <div className="mt-1 text-[10px] text-muted-foreground border-l-2 border-primary/50 pl-2">
                                   <div>
-                                    Oferta IA · {it.oferta_ia.moneda} {Number(it.oferta_ia.precio_con_impuesto ?? it.oferta_ia.precio ?? 0).toFixed(2)}
+                                    Oferta IA · {it.oferta_ia.moneda} {Number(it.oferta_ia.precio_final ?? it.oferta_ia.precio_con_impuesto ?? it.oferta_ia.precio ?? 0).toFixed(2)}
                                     {it.oferta_ia.impuesto_pct
                                       ? ` (imp. ${it.oferta_ia.impuesto_pct}% ${it.oferta_ia.impuesto_incluido === false ? "agregado" : "incluido"})`
                                       : ""}
@@ -487,6 +487,20 @@ function OrdenDetalleDialog({
                                       .filter(Boolean)
                                       .join(" · ")}
                                   </div>
+                                  {it.oferta_ia.desglose && (
+                                    <div>
+                                      {[
+                                        it.oferta_ia.desglose.neto != null ? `neto ${Number(it.oferta_ia.desglose.neto).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.envio > 0 ? `envío ${Number(it.oferta_ia.desglose.envio).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.arancel > 0 ? `arancel ${Number(it.oferta_ia.desglose.arancel).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.impuesto > 0 ? `IVA ${Number(it.oferta_ia.desglose.impuesto).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.retencion > 0 ? `retención ${Number(it.oferta_ia.desglose.retencion).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.cargos_fijos > 0 ? `cargos ${Number(it.oferta_ia.desglose.cargos_fijos).toFixed(2)}` : null,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" + ")}
+                                    </div>
+                                  )}
                                   <div>
                                     Consultado: {it.oferta_ia.fecha ? new Date(it.oferta_ia.fecha).toLocaleString("es-SV") : "—"}
                                     {it.oferta_ia.url && (
@@ -1204,7 +1218,8 @@ function NuevaOrdenDialog({
   /** Inserta una oferta encontrada por IA como ítem libre y registra al proveedor. */
   function usarOfertaIA(of: OfertaProveedor, termino: string) {
     const nombreProv = of.proveedor.trim();
-    const precioRef = of.precio_con_impuesto ?? of.precio ?? "";
+    // Precio final: incluye IVA y cargos adicionales (arancel, retención, cargos locales).
+    const precioRef = of.precio_final ?? of.precio_con_impuesto ?? of.precio ?? "";
     if (nombreProv) {
       setProveedores((ps) =>
         ps.some((p) => p.nombre.trim().toLowerCase() === nombreProv.toLowerCase())
@@ -1301,6 +1316,12 @@ function NuevaOrdenDialog({
               url: f.oferta_ia.url ?? "",
               pais: f.oferta_ia.pais ?? "",
               impuesto_pct: f.oferta_ia.impuesto_pct ?? 0,
+              precio_final: f.oferta_ia.precio_final ?? null,
+              arancel_pct: f.oferta_ia.arancel_pct ?? 0,
+              retencion_pct: f.oferta_ia.retencion_pct ?? 0,
+              cargos_fijos: f.oferta_ia.cargos_fijos ?? 0,
+              envio: f.oferta_ia.envio ?? 0,
+              desglose: f.oferta_ia.desglose ?? null,
               fecha: f.oferta_ia.fecha ?? new Date().toISOString(),
             }
           : null,

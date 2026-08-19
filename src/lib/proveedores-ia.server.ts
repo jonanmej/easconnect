@@ -14,15 +14,43 @@ export type ResultadoProveedor = {
   impuesto_incluido: boolean;
   /** Porcentaje de impuesto usado en el cálculo. */
   impuesto_pct: number;
+  /** Arancel / derecho de importación aplicado (%). */
+  arancel_pct: number;
+  /** Retención (IVA/renta) aplicada al proveedor (%). */
+  retencion_pct: number;
+  /** Cargos locales fijos por oferta (trámites, aduana, manejo). */
+  cargos_fijos: number;
+  /** Envío/flete detectado en la fuente (0 si no aparece o es gratis). */
+  envio: number;
+  /** Desglose para auditoría: neto + arancel + envío + IVA + retención + cargos. */
+  desglose: {
+    neto: number | null;
+    arancel: number;
+    envio: number;
+    impuesto: number;
+    retencion: number;
+    cargos_fijos: number;
+  } | null;
+  /** Precio final exacto con IVA y todos los cargos adicionales aplicados. */
+  precio_final: number | null;
   /** Unidades que trae el empaque (1 si es venta por unidad). */
   unidades_por_empaque: number;
   empaque: string;
-  /** Precio por unidad (con impuesto) para comparar ofertas de forma transparente. */
+  /** Precio por unidad (con impuestos y cargos) para comparar de forma transparente. */
   precio_por_unidad: number | null;
   tiempo_entrega: string;
   url: string;
   disponibilidad: string;
   notas: string;
+};
+
+export type OpcionesFiscales = {
+  moneda: string;
+  impuestoPct: number;
+  impuestoIncluido: boolean;
+  arancelPct?: number;
+  retencionPct?: number;
+  cargosFijos?: number;
 };
 
 function gateway() {
@@ -96,7 +124,7 @@ export async function buscarEnWeb(termino: string, pais: string) {
 export async function extraerProveedores(
   termino: string,
   fuentes: Array<{ url: string; title: string; description: string; markdown: string }>,
-  opts: { moneda: string; impuestoPct: number; impuestoIncluido: boolean },
+  opts: OpcionesFiscales,
 ): Promise<ResultadoProveedor[]> {
   if (fuentes.length === 0) return [];
   const g = gateway();
@@ -107,8 +135,9 @@ export async function extraerProveedores(
   const prompt = [
     `Producto buscado: "${termino}".`,
     "A partir de las fuentes web, extrae hasta 8 ofertas de proveedores reales.",
-    'Responde ÚNICAMENTE con JSON válido con esta forma: {"resultados":[{"proveedor":"","producto":"","precio":0,"moneda":"USD","unidades_por_empaque":1,"empaque":"","tiempo_entrega":"","url":"","disponibilidad":"","notas":""}]}',
+    'Responde ÚNICAMENTE con JSON válido con esta forma: {"resultados":[{"proveedor":"","producto":"","precio":0,"moneda":"USD","envio":0,"unidades_por_empaque":1,"empaque":"","tiempo_entrega":"","url":"","disponibilidad":"","notas":""}]}',
     "Reglas: usa solo datos presentes en las fuentes; precio numérico del empaque completo sin símbolos (null si no aparece);",
+    "envio = costo de envío/flete numérico si la fuente lo indica (0 si es gratis o no aparece);",
     "moneda en código ISO (USD, GTQ, MXN, EUR…); unidades_por_empaque = cantidad de piezas/litros que incluye el precio (1 si es unitario);",
     "empaque = descripción corta del formato (ej: 'caja 12 un', 'galón 3.8 L'); tiempo_entrega = plazo de entrega o envío si aparece;",
     "url exacta de la fuente; disponibilidad, tiempo_entrega y notas breves (máx 90 caracteres cada una);",
@@ -143,13 +172,13 @@ function parsearJson(text: string): any {
   }
 }
 
-function normalizar(
-  rows: any[],
-  opts: { moneda: string; impuestoPct: number; impuestoIncluido: boolean },
-): ResultadoProveedor[] {
+function normalizar(rows: any[], opts: OpcionesFiscales): ResultadoProveedor[] {
   const pct = Math.max(0, Number(opts.impuestoPct) || 0);
   const factor = 1 + pct / 100;
   const incluido = !!opts.impuestoIncluido;
+  const arancelPct = Math.max(0, Number(opts.arancelPct) || 0);
+  const retencionPct = Math.max(0, Number(opts.retencionPct) || 0);
+  const cargosFijos = Math.max(0, Number(opts.cargosFijos) || 0);
   const r4 = (n: number) => Math.round(n * 10000) / 10000;
   return rows
     .filter((r) => r && String(r.proveedor ?? "").trim())
@@ -161,6 +190,14 @@ function normalizar(
       const precio = publicado == null ? null : incluido ? r4(publicado / factor) : publicado;
       const conImp = publicado == null ? null : incluido ? r4(publicado) : r4(publicado * factor);
       const unidades = Math.max(1, Number(r.unidades_por_empaque) || 1);
+      const envio = Math.max(0, Number(r.envio) || 0);
+      // Cargos adicionales sobre el neto: arancel y envío entran a la base
+      // gravable; la retención y los cargos locales fijos se suman al final.
+      const arancel = precio == null ? 0 : r4(precio * (arancelPct / 100));
+      const base = precio == null ? null : r4(precio + arancel + envio);
+      const impuesto = base == null ? 0 : r4(base * (pct / 100));
+      const retencion = base == null ? 0 : r4(base * (retencionPct / 100));
+      const precioFinal = base == null ? null : r4(base + impuesto + retencion + cargosFijos);
       return {
         proveedor: String(r.proveedor).trim().slice(0, 80),
         producto: String(r.producto ?? "").trim().slice(0, 140),
@@ -169,9 +206,15 @@ function normalizar(
         precio_con_impuesto: conImp,
         impuesto_incluido: incluido,
         impuesto_pct: pct,
+        arancel_pct: arancelPct,
+        retencion_pct: retencionPct,
+        cargos_fijos: cargosFijos,
+        envio,
+        precio_final: precioFinal,
+        desglose: precio == null ? null : { neto: precio, arancel, envio, impuesto, retencion, cargos_fijos: cargosFijos },
         unidades_por_empaque: unidades,
         empaque: String(r.empaque ?? "").trim().slice(0, 60),
-        precio_por_unidad: conImp == null ? null : r4(conImp / unidades),
+        precio_por_unidad: precioFinal == null ? null : r4(precioFinal / unidades),
         tiempo_entrega: String(r.tiempo_entrega ?? "").trim().slice(0, 90),
         url: String(r.url ?? "").trim(),
         disponibilidad: String(r.disponibilidad ?? "").trim().slice(0, 90),

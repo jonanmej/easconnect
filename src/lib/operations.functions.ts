@@ -140,12 +140,13 @@ export const listPlantas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("plantas")
-      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, latitud, longitud, clientes(nombre)")
+      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, latitud, longitud, clientes(nombre, color_acento)")
       .order("nombre");
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
       ...p,
       cliente_nombre: p.clientes?.nombre ?? "—",
+      cliente_color: p.clientes?.color_acento ?? null,
     }));
   });
 

@@ -12,7 +12,20 @@ export type OfertaProveedor = {
   precio: number | null;
   moneda: string;
   precio_con_impuesto?: number | null;
+  precio_final?: number | null;
   precio_por_unidad?: number | null;
+  arancel_pct?: number;
+  retencion_pct?: number;
+  cargos_fijos?: number;
+  envio?: number;
+  desglose?: {
+    neto: number | null;
+    arancel: number;
+    envio: number;
+    impuesto: number;
+    retencion: number;
+    cargos_fijos: number;
+  } | null;
   unidades_por_empaque?: number;
   empaque?: string;
   tiempo_entrega?: string;
@@ -72,6 +85,10 @@ export function BuscadorProveedoresIA({
   const [moneda, setMoneda] = useState("USD");
   const [impuesto, setImpuesto] = useState<number>(13);
   const [incluido, setIncluido] = useState(true);
+  const [arancel, setArancel] = useState<number>(0);
+  const [retencion, setRetencion] = useState<number>(0);
+  const [cargos, setCargos] = useState<number>(0);
+  const [verCargos, setVerCargos] = useState(false);
   const [comparar, setComparar] = useState<"unidad" | "empaque">("unidad");
   const [tab, setTab] = useState<"buscar" | "historial">("buscar");
   const [file, setFile] = useState<File | null>(null);
@@ -85,8 +102,8 @@ export function BuscadorProveedoresIA({
   const ordenados = useMemo(() => {
     const clave = (o: OfertaProveedor) =>
       comparar === "unidad"
-        ? (o.precio_por_unidad ?? o.precio_con_impuesto ?? o.precio ?? Infinity)
-        : (o.precio_con_impuesto ?? o.precio ?? Infinity);
+        ? (o.precio_por_unidad ?? o.precio_final ?? o.precio_con_impuesto ?? o.precio ?? Infinity)
+        : (o.precio_final ?? o.precio_con_impuesto ?? o.precio ?? Infinity);
     return [...resultados].sort((a, b) => clave(a) - clave(b));
   }, [resultados, comparar]);
 
@@ -97,7 +114,16 @@ export function BuscadorProveedoresIA({
     setBuscado(false);
     setTab("buscar");
     try {
-      const payload: any = { texto: q || undefined, pais, moneda, impuesto_pct: impuesto, impuesto_incluido: incluido };
+      const payload: any = {
+        texto: q || undefined,
+        pais,
+        moneda,
+        impuesto_pct: impuesto,
+        impuesto_incluido: incluido,
+        arancel_pct: arancel,
+        retencion_pct: retencion,
+        cargos_fijos: cargos,
+      };
       if (file && !terminoForzado) {
         payload.imagen_base64 = await fileToBase64(file);
         payload.imagen_mime = file.type || "image/jpeg";
@@ -260,6 +286,35 @@ export function BuscadorProveedoresIA({
               </button>
             ))}
           </div>
+
+          <div className="rounded-md border border-border">
+            <button
+              onClick={() => setVerCargos((v) => !v)}
+              className="w-full h-8 px-3 flex items-center justify-between text-[11px] text-muted-foreground hover:bg-secondary/60 rounded-md"
+            >
+              <span>Impuestos y cargos adicionales (arancel, retención, cargos locales)</span>
+              <span className="font-mono">{verCargos ? "−" : "+"}</span>
+            </button>
+            {verCargos && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 pt-0">
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Arancel / importación %</span>
+                  <input type="number" min={0} max={100} step="0.5" value={arancel} onChange={(e) => setArancel(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Retención %</span>
+                  <input type="number" min={0} max={100} step="0.5" value={retencion} onChange={(e) => setRetencion(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <label className="text-[11px]">
+                  <span className="block text-muted-foreground mb-1">Cargos locales fijos ({moneda})</span>
+                  <input type="number" min={0} step="0.01" value={cargos} onChange={(e) => setCargos(Number(e.target.value) || 0)} className={inputCls} />
+                </label>
+                <p className="md:col-span-3 text-[10px] text-muted-foreground">
+                  El envío se toma de la fuente cuando la publica. Arancel y envío entran a la base gravable; retención y cargos fijos se suman al precio final.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="p-4 overflow-y-auto">
@@ -295,17 +350,30 @@ export function BuscadorProveedoresIA({
                     <div className="text-right md:w-36">
                       <div className="font-mono text-sm font-semibold">
                         {comparar === "unidad"
-                          ? fmt(r.precio_por_unidad ?? r.precio_con_impuesto ?? r.precio, r.moneda)
-                          : fmt(r.precio_con_impuesto ?? r.precio, r.moneda)}
+                          ? fmt(r.precio_por_unidad ?? r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)
+                          : fmt(r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}
                       </div>
                       <div className="text-[10px] text-muted-foreground font-mono">
                         {comparar === "unidad"
-                          ? `empaque ${fmt(r.precio_con_impuesto ?? r.precio, r.moneda)}`
-                          : `c/u ${fmt(r.precio_por_unidad ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`}
+                          ? `empaque ${fmt(r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`
+                          : `c/u ${fmt(r.precio_por_unidad ?? r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
                         {r.precio != null ? `neto sin imp. ${fmt(r.precio, r.moneda)}` : ""}
                       </div>
+                      {r.desglose && (
+                        <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                          {[
+                            r.desglose.envio > 0 ? `envío ${fmt(r.desglose.envio, r.moneda)}` : null,
+                            r.desglose.arancel > 0 ? `arancel ${fmt(r.desglose.arancel, r.moneda)}` : null,
+                            r.desglose.impuesto > 0 ? `IVA ${fmt(r.desglose.impuesto, r.moneda)}` : null,
+                            r.desglose.retencion > 0 ? `retención ${fmt(r.desglose.retencion, r.moneda)}` : null,
+                            r.desglose.cargos_fijos > 0 ? `cargos ${fmt(r.desglose.cargos_fijos, r.moneda)}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" + ") || null}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {r.url && (

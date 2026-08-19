@@ -14,6 +14,9 @@ export const buscarProveedoresIA = createServerFn({ method: "POST" })
         moneda: z.string().max(6).optional(),
         impuesto_pct: z.coerce.number().min(0).max(100).optional(),
         impuesto_incluido: z.coerce.boolean().optional(),
+        arancel_pct: z.coerce.number().min(0).max(100).optional(),
+        retencion_pct: z.coerce.number().min(0).max(100).optional(),
+        cargos_fijos: z.coerce.number().min(0).optional(),
       })
       .refine((v) => (v.texto && v.texto.trim().length >= 2) || v.imagen_base64, {
         message: "Escribe qué buscar o adjunta una foto del producto",
@@ -37,9 +40,19 @@ export const buscarProveedoresIA = createServerFn({ method: "POST" })
     const moneda = (data.moneda ?? "USD").trim().toUpperCase() || "USD";
     const impuestoPct = Number(data.impuesto_pct ?? 0);
     const impuestoIncluido = data.impuesto_incluido ?? true;
+    const arancelPct = Number(data.arancel_pct ?? 0);
+    const retencionPct = Number(data.retencion_pct ?? 0);
+    const cargosFijos = Number(data.cargos_fijos ?? 0);
     try {
       const fuentes = await buscarEnWeb(termino, pais);
-      const resultados = await extraerProveedores(termino, fuentes, { moneda, impuestoPct, impuestoIncluido });
+      const resultados = await extraerProveedores(termino, fuentes, {
+        moneda,
+        impuestoPct,
+        impuestoIncluido,
+        arancelPct,
+        retencionPct,
+        cargosFijos,
+      });
       if (resultados.length > 0) {
         await context.supabase.from("busquedas_ia_proveedores" as any).insert({
           termino,

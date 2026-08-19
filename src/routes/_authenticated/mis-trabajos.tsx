@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, listPlantas } from "@/lib/operations.functions";
 import { reprogramarTrabajoCliente, disponibilidadGlobal } from "@/lib/contratos.functions";
 import { CalendarClock, CheckCircle2, FileSignature, ClipboardList, CalendarRange } from "lucide-react";
+import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/mis-trabajos")({
   head: () => ({
@@ -84,9 +85,7 @@ function MisTrabajos() {
           className="h-9 px-3 rounded-md border border-input bg-background text-sm"
         >
           <option value="">Todas mis plantas</option>
-          {(plantas.data as any[] | undefined)?.map((p) => (
-            <option key={p.id} value={p.id}>{p.nombre}</option>
-          ))}
+          <PlantaOptions plantas={plantas.data as any[] | undefined} />
         </select>
         <select
           value={estadoFilter}
