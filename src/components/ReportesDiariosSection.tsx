@@ -670,18 +670,37 @@ function DiarioForm({
         <FieldS label="Hora de fin">
           <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.currentTarget.value)} className={inputCls} />
         </FieldS>
+        <FieldS label="Almuerzo (min · pausa)">
+          <input
+            type="number"
+            min={0}
+            max={240}
+            step="5"
+            value={almuerzoMin}
+            onChange={(e) => setAlmuerzoMin(e.currentTarget.value)}
+            className={inputCls}
+          />
+          <span className="block mt-1 text-[10px] text-muted-foreground">
+            El almuerzo es pausa: se descuenta de las horas laboradas.
+          </span>
+        </FieldS>
         <FieldS label="Horas trabajadas">
           <input
             name="horas_trabajadas"
             type="number"
             min={0}
             step="0.25"
-            key={horasCalc != null ? "calc" : "manual"}
+            key={horasCalc != null ? `calc-${horasCalc}` : "manual"}
             defaultValue={horasCalc != null ? String(horasCalc) : (initial?.horas_trabajadas ?? "")}
             readOnly={horasCalc != null}
-            placeholder={horasCalc != null ? "" : "Se calcula desde las horas"}
+            placeholder={horasCalc != null ? "" : "Se calcula desde las horas menos el almuerzo"}
             className={inputCls + (horasCalc != null ? " bg-secondary/50 text-muted-foreground" : "")}
           />
+          {horasCalc != null && (
+            <span className="block mt-1 text-[10px] text-muted-foreground">
+              Netas, sin la hora de almuerzo ({almuerzoMin || 0} min descontados).
+            </span>
+          )}
         </FieldS>
         <FieldS label="Paneles limpiados">
           <input
