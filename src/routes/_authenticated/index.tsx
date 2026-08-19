@@ -143,7 +143,7 @@ function CumplimientoContratos() {
     const map = new Map<string, { cliente_id: string; cliente_nombre: string; filas: any[] }>();
     for (const f of visibles) {
       const id = f.cliente_id ?? "sin-cliente";
-      const g = map.get(id) ?? { cliente_id: id, cliente_nombre: f.cliente_nombre ?? "Sin cliente", filas: [] };
+      const g = map.get(id) ?? { cliente_id: id, cliente_nombre: f.cliente_nombre ?? "Sin cliente", filas: [] as any[] };
       g.filas.push(f);
       map.set(id, g);
     }
