@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { listPlantas } from "@/lib/operations.functions";
+import { colorCliente } from "@/lib/color-cliente";
+import { agruparPorCliente } from "@/components/PlantaOptions";
 import { MapPin, Satellite, Map as MapIcon } from "lucide-react";
 import {
   cargarMapbox, ajustarA, ESTILO_SATELITE, ESTILO_SATELITE_PURO, ESTILO_CALLES,
@@ -45,6 +47,8 @@ function MapaPage() {
   const rows = ((plantas.data as any[] | undefined) ?? []).filter(
     (p) => p.latitud != null && p.longitud != null,
   );
+  const colorDe = (p: any) => colorCliente(p.cliente_id ?? p.clientes?.nombre ?? p.id, p.cliente_color);
+  const grupos = agruparPorCliente(rows as any[]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,9 +88,10 @@ function MapaPage() {
     markersRef.current = [];
     rows.forEach((p) => {
       const pos: [number, number] = [Number(p.longitud), Number(p.latitud)];
-      const marker = new mb.Marker({ color: "#16a34a" }).setLngLat(pos).addTo(map);
+      const marker = new mb.Marker({ color: colorDe(p) }).setLngLat(pos).addTo(map);
       marker.getElement().style.cursor = "pointer";
-      marker.getElement().setAttribute("aria-label", p.nombre);
+      marker.getElement().setAttribute("aria-label", `${p.cliente_nombre ?? ""} · ${p.nombre}`);
+      marker.getElement().title = `${p.cliente_nombre ?? "Sin cliente"} · ${p.nombre}`;
       marker.getElement().addEventListener("click", () => {
         setSelected(p);
         map.flyTo({ center: pos, zoom: Math.max(map.getZoom(), 16), duration: 500 });
