@@ -548,8 +548,10 @@ function DiarioForm({
     if ([hi, mi, hf, mf].some((v) => !Number.isFinite(v))) return null;
     let diff = (hf * 60 + mf) - (hi * 60 + mi);
     if (diff < 0) diff += 24 * 60;
-    return Math.round((diff / 60) * 100) / 100;
-  }, [horaInicio, horaFin]);
+    // El almuerzo es una pausa del trabajo: se descuenta de las horas laboradas.
+    const pausa = Math.max(0, Math.min(diff, Number(almuerzoMin) || 0));
+    return Math.round(((diff - pausa) / 60) * 100) / 100;
+  }, [horaInicio, horaFin, almuerzoMin]);
   const wattsTotales = useMemo(() => {
     const p = Number(panelesDia);
     const w = Number(wattsPanel);
