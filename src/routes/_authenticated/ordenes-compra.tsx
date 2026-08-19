@@ -487,6 +487,20 @@ function OrdenDetalleDialog({
                                       .filter(Boolean)
                                       .join(" · ")}
                                   </div>
+                                  {it.oferta_ia.desglose && (
+                                    <div>
+                                      {[
+                                        it.oferta_ia.desglose.neto != null ? `neto ${Number(it.oferta_ia.desglose.neto).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.envio > 0 ? `envío ${Number(it.oferta_ia.desglose.envio).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.arancel > 0 ? `arancel ${Number(it.oferta_ia.desglose.arancel).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.impuesto > 0 ? `IVA ${Number(it.oferta_ia.desglose.impuesto).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.retencion > 0 ? `retención ${Number(it.oferta_ia.desglose.retencion).toFixed(2)}` : null,
+                                        it.oferta_ia.desglose.cargos_fijos > 0 ? `cargos ${Number(it.oferta_ia.desglose.cargos_fijos).toFixed(2)}` : null,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" + ")}
+                                    </div>
+                                  )}
                                   <div>
                                     Consultado: {it.oferta_ia.fecha ? new Date(it.oferta_ia.fecha).toLocaleString("es-SV") : "—"}
                                     {it.oferta_ia.url && (
