@@ -213,8 +213,24 @@ function CumplimientoContratos() {
       {filas.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">Aún no hay contratos definidos para el año en curso.</p>
       ) : (
-        <ResponsiveTable
-          data={filas}
+        <div className="space-y-5">
+        {gruposCliente.map((g) => (
+          <div key={g.cliente_id ?? g.cliente_nombre} className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: colorCliente(g.cliente_id ?? g.cliente_nombre) }} />
+              <h3 className="text-xs font-semibold uppercase tracking-wider">{g.cliente_nombre}</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {g.completados} de {g.contratados} completados
+              </span>
+              <span className="ml-auto inline-flex items-center gap-2">
+                <span className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <span className="block h-full bg-accent" style={{ width: `${Math.min(100, g.pct)}%` }} />
+                </span>
+                <span className="font-mono text-xs font-semibold">{g.pct}%</span>
+              </span>
+            </div>
+            <ResponsiveTable
+          data={g.filas}
           rowKey={(f) => f.contrato_id}
           columns={[
             { key: "planta", header: "Planta", primary: true, cell: (f) => f.planta_nombre },
@@ -246,6 +262,9 @@ function CumplimientoContratos() {
             },
           ]}
         />
+          </div>
+        ))}
+        </div>
       )}
     </section>
   );
