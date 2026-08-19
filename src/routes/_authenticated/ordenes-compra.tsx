@@ -262,7 +262,7 @@ function OrdenDetalleDialog({
   const invItems = (inv.data ?? []) as any[];
   const vars = useQuery({
     queryKey: ["orden-compra-variaciones", id],
-    queryFn: () => fVars({ data: { id } }),
+    queryFn: () => fVars({ data: { orden_id: id } }),
     enabled: tab === "variaciones",
   });
 
