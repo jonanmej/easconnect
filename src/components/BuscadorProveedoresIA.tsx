@@ -350,17 +350,30 @@ export function BuscadorProveedoresIA({
                     <div className="text-right md:w-36">
                       <div className="font-mono text-sm font-semibold">
                         {comparar === "unidad"
-                          ? fmt(r.precio_por_unidad ?? r.precio_con_impuesto ?? r.precio, r.moneda)
-                          : fmt(r.precio_con_impuesto ?? r.precio, r.moneda)}
+                          ? fmt(r.precio_por_unidad ?? r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)
+                          : fmt(r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}
                       </div>
                       <div className="text-[10px] text-muted-foreground font-mono">
                         {comparar === "unidad"
-                          ? `empaque ${fmt(r.precio_con_impuesto ?? r.precio, r.moneda)}`
-                          : `c/u ${fmt(r.precio_por_unidad ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`}
+                          ? `empaque ${fmt(r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`
+                          : `c/u ${fmt(r.precio_por_unidad ?? r.precio_final ?? r.precio_con_impuesto ?? r.precio, r.moneda)}`}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
                         {r.precio != null ? `neto sin imp. ${fmt(r.precio, r.moneda)}` : ""}
                       </div>
+                      {r.desglose && (
+                        <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                          {[
+                            r.desglose.envio > 0 ? `envío ${fmt(r.desglose.envio, r.moneda)}` : null,
+                            r.desglose.arancel > 0 ? `arancel ${fmt(r.desglose.arancel, r.moneda)}` : null,
+                            r.desglose.impuesto > 0 ? `IVA ${fmt(r.desglose.impuesto, r.moneda)}` : null,
+                            r.desglose.retencion > 0 ? `retención ${fmt(r.desglose.retencion, r.moneda)}` : null,
+                            r.desglose.cargos_fijos > 0 ? `cargos ${fmt(r.desglose.cargos_fijos, r.moneda)}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" + ") || null}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {r.url && (
