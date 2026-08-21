@@ -89,6 +89,34 @@ function isoWeek(d: Date) {
 
 type Vista = "semana" | "mes" | "anio";
 
+/**
+ * Nombre legible del periodo visible, para el archivo PDF descargado.
+ * semana → "Semana-24-al-30-ago-2026" · mes → "agosto-2026" · año → "2026".
+ */
+function nombrePeriodoArchivo(vista: Vista, cursor: Date) {
+  const slug = (s: string) =>
+    s.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "-").replace(/\.+/g, "").trim();
+  if (vista === "anio") return String(cursor.getFullYear());
+  if (vista === "mes")
+    return slug(
+      cursor.toLocaleDateString("es-SV", {
+        timeZone: "America/El_Salvador",
+        month: "long",
+        year: "numeric",
+      }),
+    );
+  const ini = startOfWeek(cursor);
+  const fin = addDays(ini, 6);
+  const mesIni = ini.toLocaleDateString("es-SV", { month: "short" });
+  const mesFin = fin.toLocaleDateString("es-SV", { month: "short" });
+  const rango =
+    mesIni === mesFin
+      ? `${ini.getDate()}-al-${fin.getDate()}-${mesFin}-${fin.getFullYear()}`
+      : `${ini.getDate()}-${mesIni}-al-${fin.getDate()}-${mesFin}-${fin.getFullYear()}`;
+  return slug(`Semana-${rango}`);
+}
+
+
 function Programacion() {
   const qc = useQueryClient();
   const { roles } = useAuth();
