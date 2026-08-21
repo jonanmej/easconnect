@@ -61,32 +61,57 @@ function geojsonZonas(zonas: ZonaSnapshot[]) {
   };
 }
 
-/** Imagen satelital (data URL) con los polígonos ya dibujados por Mapbox. */
-export async function snapshotZonas(zonas: ZonaSnapshot[]): Promise<string | null> {
-  const headers = claves();
-  if (!headers) return null;
-  const zs = validas(zonas);
-  if (!zs.length) return null;
+const MAPBOX_API = "https://api.mapbox.com";
 
-  const overlay = encodeURIComponent(JSON.stringify(geojsonZonas(zs)));
-  const url =
-    `${GATEWAY_URL}/styles/v1/mapbox/${ESTILO}/static/geojson(${overlay})/auto/1000x420@2x` +
-    `?padding=30&attribution=false&logo=false`;
+/** Token público (pk.) disponible en el runtime del servidor. */
+function tokenPublico() {
+  return (
+    process.env.MAPBOX_PUBLIC_TOKEN ||
+    process.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN ||
+    null
+  );
+}
 
+/**
+ * Descarga una imagen estática de Mapbox como data URL.
+ * Preferimos la API directa con el token público (el gateway exige token
+ * secreto `sk.` y por eso las imágenes satelitales salían vacías); si no hay
+ * token público, se intenta a través del gateway.
+ */
+async function imagenEstatica(path: string, query: string): Promise<string | null> {
+  const tok = tokenPublico();
+  const url = tok
+    ? `${MAPBOX_API}${path}?${query}&access_token=${tok}`
+    : `${GATEWAY_URL}${path}?${query}`;
+  const headers = tok ? undefined : (claves() ?? undefined);
+  if (!tok && !headers) return null;
   try {
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, headers ? { headers } : undefined);
     if (!res.ok) {
       console.error(`Mapbox Static falló [${res.status}]: ${(await res.text()).slice(0, 300)}`);
       return null;
     }
+    const mime = res.headers.get("content-type")?.split(";")[0] || "image/png";
     const buf = Buffer.from(await res.arrayBuffer());
     if (!buf.length) return null;
-    return `data:image/png;base64,${buf.toString("base64")}`;
+    return `data:${mime};base64,${buf.toString("base64")}`;
   } catch (e) {
     console.error("Mapbox Static error", e);
     return null;
   }
 }
+
+/** Imagen satelital (data URL) con los polígonos ya dibujados por Mapbox. */
+export async function snapshotZonas(zonas: ZonaSnapshot[]): Promise<string | null> {
+  const zs = validas(zonas);
+  if (!zs.length) return null;
+  const overlay = encodeURIComponent(JSON.stringify(geojsonZonas(zs)));
+  return imagenEstatica(
+    `/styles/v1/mapbox/${ESTILO}/static/geojson(${overlay})/auto/1000x420@2x`,
+    "padding=30&attribution=false&logo=false",
+  );
+}
+
 
 /**
  * Base satelital para que el PDF dibuje los polígonos vectoriales encima.
