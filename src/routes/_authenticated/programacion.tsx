@@ -89,6 +89,34 @@ function isoWeek(d: Date) {
 
 type Vista = "semana" | "mes" | "anio";
 
+/**
+ * Nombre legible del periodo visible, para el archivo PDF descargado.
+ * semana → "Semana-24-al-30-ago-2026" · mes → "agosto-2026" · año → "2026".
+ */
+function nombrePeriodoArchivo(vista: Vista, cursor: Date) {
+  const slug = (s: string) =>
+    s.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "-").replace(/\.+/g, "").trim();
+  if (vista === "anio") return String(cursor.getFullYear());
+  if (vista === "mes")
+    return slug(
+      cursor.toLocaleDateString("es-SV", {
+        timeZone: "America/El_Salvador",
+        month: "long",
+        year: "numeric",
+      }),
+    );
+  const ini = startOfWeek(cursor);
+  const fin = addDays(ini, 6);
+  const mesIni = ini.toLocaleDateString("es-SV", { month: "short" });
+  const mesFin = fin.toLocaleDateString("es-SV", { month: "short" });
+  const rango =
+    mesIni === mesFin
+      ? `${ini.getDate()}-al-${fin.getDate()}-${mesFin}-${fin.getFullYear()}`
+      : `${ini.getDate()}-${mesIni}-al-${fin.getDate()}-${mesFin}-${fin.getFullYear()}`;
+  return slug(`Semana-${rango}`);
+}
+
+
 function Programacion() {
   const qc = useQueryClient();
   const { roles } = useAuth();
@@ -210,8 +238,8 @@ function Programacion() {
         pdfServicio ? { label: "Servicio", value: pdfServicio } : null,
         pdfFolio.trim() ? { label: "OT", value: pdfFolio.trim() } : null,
       ].filter(Boolean) as { label: string; value: string }[];
-      const filenameVista = vista === "semana" ? "semana" : vista === "mes" ? "mes" : "anio";
-      const filename = `programacion-${filenameVista}-${new Date().toISOString().slice(0,10)}.pdf`;
+      // El nombre del archivo refleja el periodo visible (semana / mes / año).
+      const filename = `Programacion-${nombrePeriodoArchivo(vista, cursor)}.pdf`;
       // Construimos las cuadrículas del calendario a partir de los trabajos ya filtrados.
       const grids = buildCalendarGrids(vista, cursor, trabajosParaPdf);
       await generarYDescargarProgramacionPdf({

@@ -197,14 +197,18 @@ function Reportes() {
         documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
         evidencias: evidenciasFinal,
       }, (() => {
-        const servicio = String(data.servicio ?? "General")
-          .replace(/[\\/:*?"<>|]+/g, "")
-          .replace(/\s+/g, "_")
-          .trim() || "General";
+        const limpio = (v: unknown, def: string) =>
+          String(v ?? def)
+            .replace(/[\\/:*?"<>|]+/g, "")
+            .replace(/\s+/g, "_")
+            .trim() || def;
+        const servicio = limpio(data.servicio, "General");
+        // El nombre incluye la planta sobre la que se corrió el reporte.
+        const planta = limpio(data.planta ?? data.planta_nombre, "Todas-las-plantas");
         const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
         const suf = modo === "interno" ? "-interno" : "";
         const sufCorreo = calidad === "correo" ? "-correo" : "";
-        return `Reporte-${servicio}-${fecha}${suf}${sufCorreo}.pdf`;
+        return `Reporte-${planta}-${servicio}-${fecha}${suf}${sufCorreo}.pdf`;
       })());
       const mb = res?.bytes ? (res.bytes / (1024 * 1024)).toFixed(1) : null;
       toast.success(
