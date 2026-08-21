@@ -210,8 +210,8 @@ function Programacion() {
         pdfServicio ? { label: "Servicio", value: pdfServicio } : null,
         pdfFolio.trim() ? { label: "OT", value: pdfFolio.trim() } : null,
       ].filter(Boolean) as { label: string; value: string }[];
-      const filenameVista = vista === "semana" ? "semana" : vista === "mes" ? "mes" : "anio";
-      const filename = `programacion-${filenameVista}-${new Date().toISOString().slice(0,10)}.pdf`;
+      // El nombre del archivo refleja el periodo visible (semana / mes / año).
+      const filename = `Programacion-${nombrePeriodoArchivo(vista, cursor)}.pdf`;
       // Construimos las cuadrículas del calendario a partir de los trabajos ya filtrados.
       const grids = buildCalendarGrids(vista, cursor, trabajosParaPdf);
       await generarYDescargarProgramacionPdf({
