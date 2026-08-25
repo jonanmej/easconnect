@@ -285,8 +285,9 @@ export function EvidenciaUploader({
 
   return (
     <div className="space-y-3">
+      {!soloCategoria && (
       <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 scrollbar-thin">
-        {CATEGORIAS.map((c) => (
+        {CATEGORIAS.filter((c) => c.value !== "inspeccion_previa").map((c) => (
           <button
             key={c.value}
             type="button"
@@ -304,6 +305,8 @@ export function EvidenciaUploader({
           </button>
         ))}
       </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] text-muted-foreground">{CATEGORIAS.find((c) => c.value === categoria)?.hint}</p>
         <div className="flex items-center gap-2">
