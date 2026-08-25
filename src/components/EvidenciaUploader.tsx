@@ -84,16 +84,20 @@ export function EvidenciaUploader({
   trabajoId,
   reporteDiarioId,
   readOnly = false,
+  soloCategoria,
 }: {
   trabajoId: string;
   reporteDiarioId?: string | null;
   readOnly?: boolean;
+  /** Fija una única categoría (oculta las pestañas). */
+  soloCategoria?: Categoria;
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const procesandoRef = useRef<Set<string>>(new Set());
-  const [categoria, setCategoria] = useState<Categoria>("antes");
+  const [categoria, setCategoria] = useState<Categoria>(soloCategoria ?? "antes");
+
   const [cola, setCola] = useState<ItemSubida[]>([]);
   const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
   const [offlineN, setOfflineN] = useState<number>(0);
