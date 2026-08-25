@@ -13,14 +13,16 @@ import { mensajeDeError } from "@/lib/error-msg";
 
 const BUCKET = "trabajos-evidencia";
 
-type Categoria = "antes" | "durante" | "despues" | "anomalia" | "mediciones";
+type Categoria = "antes" | "durante" | "despues" | "anomalia" | "mediciones" | "inspeccion_previa";
 const CATEGORIAS: { value: Categoria; label: string; hint: string }[] = [
   { value: "antes", label: "Antes", hint: "Estado inicial del sitio." },
   { value: "durante", label: "Durante", hint: "Trabajo en ejecución." },
   { value: "despues", label: "Después", hint: "Resultado final." },
   { value: "anomalia", label: "Anomalías", hint: "Hallazgos y fallas." },
   { value: "mediciones", label: "Mediciones", hint: "Lecturas de TDS, ángulo de inclinación y presión de agua." },
+  { value: "inspeccion_previa", label: "Estado previo", hint: "Condición del techo, accesos y sectores circundantes antes de iniciar." },
 ];
+
 
 type Estado = "pendiente" | "subiendo" | "ok" | "error" | "encolado";
 type ItemSubida = {
@@ -82,16 +84,20 @@ export function EvidenciaUploader({
   trabajoId,
   reporteDiarioId,
   readOnly = false,
+  soloCategoria,
 }: {
   trabajoId: string;
   reporteDiarioId?: string | null;
   readOnly?: boolean;
+  /** Fija una única categoría (oculta las pestañas). */
+  soloCategoria?: Categoria;
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const procesandoRef = useRef<Set<string>>(new Set());
-  const [categoria, setCategoria] = useState<Categoria>("antes");
+  const [categoria, setCategoria] = useState<Categoria>(soloCategoria ?? "antes");
+
   const [cola, setCola] = useState<ItemSubida[]>([]);
   const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
   const [offlineN, setOfflineN] = useState<number>(0);
@@ -272,15 +278,16 @@ export function EvidenciaUploader({
 
   const all = (list.data as any[] | undefined) ?? [];
   const filtered = all.filter((e) => (e.categoria ?? "durante") === categoria);
-  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0, mediciones: 0 };
+  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0, mediciones: 0, inspeccion_previa: 0 };
   all.forEach((e) => { const c = (e.categoria ?? "durante") as Categoria; counts[c] = (counts[c] ?? 0) + 1; });
   const enCola = cola.filter((c) => c.categoria === categoria);
   const subiendoN = cola.filter((c) => c.estado === "subiendo" || c.estado === "pendiente").length;
 
   return (
     <div className="space-y-3">
+      {!soloCategoria && (
       <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 scrollbar-thin">
-        {CATEGORIAS.map((c) => (
+        {CATEGORIAS.filter((c) => c.value !== "inspeccion_previa").map((c) => (
           <button
             key={c.value}
             type="button"
@@ -298,6 +305,8 @@ export function EvidenciaUploader({
           </button>
         ))}
       </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] text-muted-foreground">{CATEGORIAS.find((c) => c.value === categoria)?.hint}</p>
         <div className="flex items-center gap-2">

@@ -282,6 +282,64 @@ export type Database = {
         }
         Relationships: []
       }
+      inspeccion_previa_hallazgos: {
+        Row: {
+          area: string
+          created_at: string
+          descripcion: string
+          evidencia_id: string | null
+          id: string
+          inspeccion_id: string
+          severidad: string
+          updated_at: string
+          zona_id: string | null
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          descripcion: string
+          evidencia_id?: string | null
+          id?: string
+          inspeccion_id: string
+          severidad?: string
+          updated_at?: string
+          zona_id?: string | null
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          descripcion?: string
+          evidencia_id?: string | null
+          id?: string
+          inspeccion_id?: string
+          severidad?: string
+          updated_at?: string
+          zona_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspeccion_previa_hallazgos_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: false
+            referencedRelation: "trabajo_evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspeccion_previa_hallazgos_inspeccion_id_fkey"
+            columns: ["inspeccion_id"]
+            isOneToOne: false
+            referencedRelation: "trabajo_inspecciones_previas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspeccion_previa_hallazgos_zona_id_fkey"
+            columns: ["zona_id"]
+            isOneToOne: false
+            referencedRelation: "planta_zonas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventario_items: {
         Row: {
           categoria: Database["public"]["Enums"]["inventario_categoria"]
@@ -1704,6 +1762,84 @@ export type Database = {
             foreignKeyName: "trabajo_evidencias_trabajo_id_fkey"
             columns: ["trabajo_id"]
             isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trabajo_inspecciones_previas: {
+        Row: {
+          accesos_detalle: string | null
+          accesos_estado: string | null
+          apto: boolean
+          circundante_detalle: string | null
+          circundante_estado: string | null
+          created_at: string
+          cubierta_estado: string | null
+          cubierta_tipo: string | null
+          estructura_estado: string | null
+          fecha: string
+          id: string
+          observaciones: string | null
+          restricciones: string | null
+          riesgos: Json
+          techo_detalle: string | null
+          tecnico_id: string | null
+          trabajo_id: string
+          updated_at: string
+        }
+        Insert: {
+          accesos_detalle?: string | null
+          accesos_estado?: string | null
+          apto?: boolean
+          circundante_detalle?: string | null
+          circundante_estado?: string | null
+          created_at?: string
+          cubierta_estado?: string | null
+          cubierta_tipo?: string | null
+          estructura_estado?: string | null
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          restricciones?: string | null
+          riesgos?: Json
+          techo_detalle?: string | null
+          tecnico_id?: string | null
+          trabajo_id: string
+          updated_at?: string
+        }
+        Update: {
+          accesos_detalle?: string | null
+          accesos_estado?: string | null
+          apto?: boolean
+          circundante_detalle?: string | null
+          circundante_estado?: string | null
+          created_at?: string
+          cubierta_estado?: string | null
+          cubierta_tipo?: string | null
+          estructura_estado?: string | null
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          restricciones?: string | null
+          riesgos?: Json
+          techo_detalle?: string | null
+          tecnico_id?: string | null
+          trabajo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajo_inspecciones_previas_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: true
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabajo_inspecciones_previas_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: true
             referencedRelation: "trabajos_sla"
             referencedColumns: ["id"]
           },
