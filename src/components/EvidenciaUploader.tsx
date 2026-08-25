@@ -13,14 +13,16 @@ import { mensajeDeError } from "@/lib/error-msg";
 
 const BUCKET = "trabajos-evidencia";
 
-type Categoria = "antes" | "durante" | "despues" | "anomalia" | "mediciones";
+type Categoria = "antes" | "durante" | "despues" | "anomalia" | "mediciones" | "inspeccion_previa";
 const CATEGORIAS: { value: Categoria; label: string; hint: string }[] = [
   { value: "antes", label: "Antes", hint: "Estado inicial del sitio." },
   { value: "durante", label: "Durante", hint: "Trabajo en ejecución." },
   { value: "despues", label: "Después", hint: "Resultado final." },
   { value: "anomalia", label: "Anomalías", hint: "Hallazgos y fallas." },
   { value: "mediciones", label: "Mediciones", hint: "Lecturas de TDS, ángulo de inclinación y presión de agua." },
+  { value: "inspeccion_previa", label: "Estado previo", hint: "Condición del techo, accesos y sectores circundantes antes de iniciar." },
 ];
+
 
 type Estado = "pendiente" | "subiendo" | "ok" | "error" | "encolado";
 type ItemSubida = {
