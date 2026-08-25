@@ -274,7 +274,7 @@ export function EvidenciaUploader({
 
   const all = (list.data as any[] | undefined) ?? [];
   const filtered = all.filter((e) => (e.categoria ?? "durante") === categoria);
-  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0, mediciones: 0 };
+  const counts: Record<Categoria, number> = { antes: 0, durante: 0, despues: 0, anomalia: 0, mediciones: 0, inspeccion_previa: 0 };
   all.forEach((e) => { const c = (e.categoria ?? "durante") as Categoria; counts[c] = (counts[c] ?? 0) + 1; });
   const enCola = cola.filter((c) => c.categoria === categoria);
   const subiendoN = cola.filter((c) => c.estado === "subiendo" || c.estado === "pendiente").length;
