@@ -242,6 +242,45 @@ export async function generarYDescargarRecursosPdf(data: RecursosData, filename:
   return { documento_id, hash };
 }
 
+/** PDF del Reporte de Estado Previo a Trabajos (techos / áreas FV y sectores circundantes). */
+export async function generarYDescargarInspeccionPreviaPdf(
+  data: import("./InspeccionPreviaDoc").InspeccionPreviaData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { InspeccionPreviaDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./InspeccionPreviaDoc"),
+  ]);
+  type D = import("./InspeccionPreviaDoc").InspeccionPreviaData;
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: D = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-INS-PRE",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno",
+    documento_hash: undefined,
+    theme: data.theme ?? currentTheme(),
+  };
+  const initialBlob = await pdf(createElement(InspeccionPreviaDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: D = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(InspeccionPreviaDoc, { data: finalData }) as any).toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
+
+
 /**
  * Reformatea un PDF externo con el encabezado/pie institucional EA
  * conservando el texto original. NO reinterpreta el contenido.
