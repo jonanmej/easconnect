@@ -811,12 +811,16 @@ function Trabajos() {
         </div>
 
         {editing?.id && tab === "diarios" && (
-          <ReportesDiariosSection
-            trabajoId={editing.id}
-            readOnly
-            hint="El llenado de reportes diarios y sus fotos se realiza desde el módulo A.T. (Terreno). Aquí puedes consultarlos."
-          />
+          <div className="space-y-4">
+            <InspeccionPreviaSection trabajoId={editing.id} readOnly />
+            <ReportesDiariosSection
+              trabajoId={editing.id}
+              readOnly
+              hint="El llenado de reportes diarios y sus fotos se realiza desde el módulo A.T. (Terreno). Aquí puedes consultarlos."
+            />
+          </div>
         )}
+
         {editing?.id && tab === "recursos" && (
           <RecursosSection
             trabajoId={editing.id}
