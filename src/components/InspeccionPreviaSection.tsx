@@ -28,7 +28,7 @@ import {
   TIPOS_CUBIERTA,
   type NivelEstado,
 } from "@/lib/inspeccion-previa-catalogo";
-import { errMsg } from "@/lib/error-msg";
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e ?? "Error desconocido"));
 
 type Form = {
   fecha: string;
