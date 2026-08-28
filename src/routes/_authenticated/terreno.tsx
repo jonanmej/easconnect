@@ -10,6 +10,7 @@ import { Camera, Images, Play, CheckCircle2, RefreshCw, WifiOff, Wifi, User as U
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { enqueue, flushQueue, onQueueChange, pendingCount } from "@/lib/offline-queue";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
+import { InspeccionPreviaSection } from "@/components/InspeccionPreviaSection";
 
 export const Route = createFileRoute("/_authenticated/terreno")({
   head: () => ({
@@ -385,7 +386,8 @@ function TrabajoCard({
                 <X className="size-5" />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-4 space-y-4">
+              <InspeccionPreviaSection trabajoId={trabajo.id} />
               <ReportesDiariosSection
                 trabajoId={trabajo.id}
                 hint={
