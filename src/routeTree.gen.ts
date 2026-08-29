@@ -29,6 +29,7 @@ import { Route as AuthenticatedNotificacionesRouteImport } from './routes/_authe
 import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenticated/mis-trabajos'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
+import { Route as AuthenticatedJornadaRouteImport } from './routes/_authenticated/jornada'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
 import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
@@ -150,6 +151,11 @@ const AuthenticatedMantenimientosRoute =
     path: '/mantenimientos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedJornadaRoute = AuthenticatedJornadaRouteImport.update({
+  id: '/jornada',
+  path: '/jornada',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedInventarioRoute = AuthenticatedInventarioRouteImport.update({
   id: '/inventario',
   path: '/inventario',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
+  '/jornada': typeof AuthenticatedJornadaRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
   '/inventario': typeof AuthenticatedInventarioRoute
+  '/jornada': typeof AuthenticatedJornadaRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
+  '/_authenticated/jornada': typeof AuthenticatedJornadaRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/contratos'
     | '/equipos'
     | '/inventario'
+    | '/jornada'
     | '/mantenimientos'
     | '/mapa'
     | '/mis-trabajos'
@@ -386,6 +396,7 @@ export interface FileRouteTypes {
     | '/contratos'
     | '/equipos'
     | '/inventario'
+    | '/jornada'
     | '/mantenimientos'
     | '/mapa'
     | '/mis-trabajos'
@@ -422,6 +433,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contratos'
     | '/_authenticated/equipos'
     | '/_authenticated/inventario'
+    | '/_authenticated/jornada'
     | '/_authenticated/mantenimientos'
     | '/_authenticated/mapa'
     | '/_authenticated/mis-trabajos'
@@ -602,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMantenimientosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/jornada': {
+      id: '/_authenticated/jornada'
+      path: '/jornada'
+      fullPath: '/jornada'
+      preLoaderRoute: typeof AuthenticatedJornadaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/inventario': {
       id: '/_authenticated/inventario'
       path: '/inventario'
@@ -711,6 +730,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
+  AuthenticatedJornadaRoute: typeof AuthenticatedJornadaRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedMisTrabajosRoute: typeof AuthenticatedMisTrabajosRoute
@@ -736,6 +756,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
+  AuthenticatedJornadaRoute: AuthenticatedJornadaRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedMisTrabajosRoute: AuthenticatedMisTrabajosRoute,

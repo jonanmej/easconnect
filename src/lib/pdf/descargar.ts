@@ -392,3 +392,39 @@ export async function generarYDescargarProgramacionPdf(data: ProgramacionData, f
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   return { documento_id };
 }
+/**
+ * Genera y descarga el PDF del control de marcación de jornada laboral.
+ */
+export async function generarYDescargarJornadasPdf(
+  data: import("./JornadasDoc").JornadasData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { JornadasDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./JornadasDoc"),
+  ]);
+  type D = import("./JornadasDoc").JornadasData;
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: D = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-JOR-01",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno · RRHH",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(JornadasDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: D = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(JornadasDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
