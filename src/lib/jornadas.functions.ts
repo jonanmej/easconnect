@@ -185,3 +185,119 @@ export const finalizarJornada = createServerFn({ method: "POST" })
     } catch (e) { console.warn("[jornada] email fin", e); }
     return cerrada;
   });
+/* ─────────── Módulo de control de marcaciones (registro histórico) ─────────── */
+
+const ZRango = z.object({
+  desde: z.string().min(8),
+  hasta: z.string().min(8),
+  tecnico_id: z.string().uuid().optional(),
+});
+
+/**
+ * Listado de marcaciones en un rango de fechas. RLS decide el alcance:
+ * admin/supervisor ven a todo el personal, cada técnico ve solo lo propio.
+ */
+export const listJornadas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ZRango.parse(d))
+  .handler(async ({ context, data }) => {
+    let q = context.supabase
+      .from("jornadas_laborales")
+      .select("*")
+      .gte("fecha", data.desde)
+      .lte("fecha", data.hasta)
+      .order("fecha", { ascending: false })
+      .order("hora_inicio", { ascending: false });
+    if (data.tecnico_id) q = q.eq("tecnico_id", data.tecnico_id);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
+    let perfiles = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles").select("id, display_name, cargo").in("id", ids);
+      perfiles = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "—"]));
+    }
+    return (rows ?? []).map((r: any) => {
+      const resumen = calcularResumen(r);
+      return {
+        ...r,
+        tecnico_nombre: perfiles.get(r.tecnico_id) ?? "Colaborador",
+        total_min: resumen.totalMin,
+        almuerzo_min: resumen.almMin,
+        horas_efectivas: resumen.horasEfectivas,
+      };
+    });
+  });
+
+/** Personal con marcaciones registradas (para el filtro del módulo). */
+export const listPersonalJornadas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("jornadas_laborales")
+      .select("tecnico_id")
+      .order("fecha", { ascending: false })
+      .limit(2000);
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
+    if (!ids.length) return [];
+    const { data: profs } = await context.supabase
+      .from("profiles").select("id, display_name").in("id", ids);
+    return (profs ?? [])
+      .map((p: any) => ({ id: p.id as string, nombre: (p.display_name as string) ?? "Colaborador" }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  });
+
+async function requireStaff(context: any) {
+  const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+  ]);
+  if (!esAdmin && !esSup) throw new Error("Solo administradores y supervisores pueden hacer este ajuste.");
+}
+
+/** Corrección manual de una marcación (solo admin/supervisor). */
+export const ajustarJornada = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      hora_inicio: z.string().min(4),
+      hora_fin: z.string().min(4).nullable().optional(),
+      almuerzo_inicio: z.string().min(4).nullable().optional(),
+      almuerzo_fin: z.string().min(4).nullable().optional(),
+      notas: z.string().max(2000).nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await requireStaff(context);
+    const resumen = calcularResumen(data);
+    const { data: row, error } = await context.supabase
+      .from("jornadas_laborales")
+      .update({
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin ?? null,
+        almuerzo_inicio: data.almuerzo_inicio ?? null,
+        almuerzo_fin: data.almuerzo_fin ?? null,
+        almuerzo_excedido: resumen.almuerzoExcedido,
+        notas: data.notas ?? null,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+/** Elimina una marcación (solo admin/supervisor). */
+export const eliminarJornada = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await requireStaff(context);
+    const { error } = await context.supabase
+      .from("jornadas_laborales").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
