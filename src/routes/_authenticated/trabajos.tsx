@@ -816,8 +816,12 @@ function Trabajos() {
             <InspeccionPreviaSection trabajoId={editing.id} readOnly />
             <ReportesDiariosSection
               trabajoId={editing.id}
-              readOnly
-              hint="El llenado de reportes diarios y sus fotos se realiza desde el módulo A.T. (Terreno). Aquí puedes consultarlos."
+              readOnly={!puedeAutorizarEmergencia}
+              hint={
+                puedeAutorizarEmergencia
+                  ? "El llenado lo realizan los técnicos desde A.T. (Terreno). Como administrador/supervisor puedes corregir o eliminar cualquier reporte diario."
+                  : "El llenado de reportes diarios y sus fotos se realiza desde el módulo A.T. (Terreno). Aquí puedes consultarlos."
+              }
             />
           </div>
         )}
