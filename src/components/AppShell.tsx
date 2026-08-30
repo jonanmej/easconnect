@@ -87,6 +87,7 @@ const allGroups: NavGroup[] = [
       { to: "/mis-trabajos", label: "Mis trabajos", icon: Briefcase },
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
       { to: "/rutas", label: "Rutas", icon: MapIcon },
+      { to: "/jornada", label: "Jornada laboral", icon: Clock },
     ],
   },
   {
