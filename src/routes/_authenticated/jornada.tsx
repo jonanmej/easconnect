@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ExportButton } from "@/components/ExportButton";
 import { inputCls } from "@/components/RecordDialog";
 import { JornadaControl } from "@/components/JornadaControl";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { exportarExcel } from "@/lib/excel";
 import {
