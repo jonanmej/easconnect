@@ -312,8 +312,28 @@ export const generarReporte = createServerFn({ method: "POST" })
       const fin = ini + dur * 86400000 - 1;
       return ini <= hastaMs && fin >= desdeMs;
     };
-    const trabajosFull = (trabajosRawRes.data ?? []).filter(solapa);
+    // Ventana en días calendario para reportes diarios (columna `fecha` = date).
+    const ventanaDesdeDia = isDateOnly(data.desde) ? data.desde : new Date(desdeTs).toISOString().slice(0, 10);
+    const ventanaHastaDia = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
+    // Un servicio puede extenderse más allá de su duración planificada (atrasos,
+    // jornadas adicionales). Si el técnico cargó un reporte diario dentro de la
+    // ventana, la OT es relevante aunque su rango programado no la solape.
+    const idsConActividad = new Set<string>();
+    {
+      const idsRaw = (trabajosRawRes.data ?? []).map((t: any) => t.id);
+      if (idsRaw.length) {
+        const [{ data: dAct }, { data: pdfAct }] = await Promise.all([
+          supabase.from("trabajo_reportes_diarios").select("trabajo_id")
+            .in("trabajo_id", idsRaw).gte("fecha", ventanaDesdeDia).lte("fecha", ventanaHastaDia),
+          supabase.from("trabajo_reportes_pdf").select("trabajo_id")
+            .in("trabajo_id", idsRaw).gte("fecha", ventanaDesdeDia).lte("fecha", ventanaHastaDia),
+        ]);
+        for (const r of [...(dAct ?? []), ...(pdfAct ?? [])] as any[]) idsConActividad.add(r.trabajo_id);
+      }
+    }
+    const trabajosFull = (trabajosRawRes.data ?? []).filter((t: any) => solapa(t) || idsConActividad.has(t.id));
     const trabajos = trabajosFull.map(({ id: _id, duracion_dias: _d, ...rest }: any) => rest);
+
 
     // ---------------------------------------------------------------------
     // Estado EFECTIVO por trabajo.
@@ -755,16 +775,31 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       .select("id, folio, servicio, fecha_programada, duracion_dias, estado, notas, tecnico_id")
       .in("planta_id", plantasIds)
       .order("fecha_programada");
-    if (hasta) qb = qb.lte("fecha_programada", hasta);
     if (folioReporte) qb = qb.eq("folio", folioReporte);
     const { data: trabajosRaw } = await qb;
+    // Días calendario de la ventana (la columna `fecha` de los diarios es date).
+    const ventanaDesdeDia = desde ? new Date(desde).toISOString().slice(0, 10) : null;
+    const ventanaHastaDia = hasta ? new Date(hasta).toISOString().slice(0, 10) : null;
+    // OTs con actividad reportada dentro de la ventana, aunque su rango
+    // programado ya haya vencido (servicios que se extienden por atrasos).
+    const idsConActividad = new Set<string>();
+    if ((trabajosRaw ?? []).length && (ventanaDesdeDia || ventanaHastaDia)) {
+      const idsRaw = (trabajosRaw ?? []).map((t: any) => t.id);
+      let actQb = supabase.from("trabajo_reportes_diarios").select("trabajo_id").in("trabajo_id", idsRaw);
+      if (ventanaDesdeDia) actQb = actQb.gte("fecha", ventanaDesdeDia);
+      if (ventanaHastaDia) actQb = actQb.lte("fecha", ventanaHastaDia);
+      const { data: act } = await actQb;
+      for (const r of (act ?? []) as any[]) idsConActividad.add(r.trabajo_id);
+    }
     const trabajos = (trabajosRaw ?? []).filter((t: any) => {
       if (desdeMs === null || hastaMs === null) return true;
+      if (idsConActividad.has(t.id)) return true;
       const inicio = new Date(t.fecha_programada).getTime();
       const duracion = Math.max(1, Number(t.duracion_dias ?? 1));
       const fin = inicio + duracion * 86400000 - 1;
       return inicio <= hastaMs && fin >= desdeMs;
     });
+
 
     const trabajoIds = trabajos.map((t) => t.id);
     let diarios: any[] = [];
