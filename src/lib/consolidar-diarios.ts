@@ -24,6 +24,8 @@ export type DiarioCrudo = {
   hallazgos?: string | null;
   bloqueos?: string | null;
   observaciones?: string | null;
+  hora_inicio?: string | null;
+  hora_fin?: string | null;
 };
 
 export type DiarioConsolidado = {
@@ -45,6 +47,9 @@ export type DiarioConsolidado = {
   hallazgos: string | null;
   bloqueos: string | null;
   observaciones: string | null;
+  /** Jornada del equipo ese día: entrada más temprana y salida más tardía. */
+  hora_inicio: string | null;
+  hora_fin: string | null;
   /** Desglose individual por técnico del mismo día (no altera el total). */
   por_tecnico: {
     tecnico_id: string | null;
@@ -53,6 +58,8 @@ export type DiarioConsolidado = {
     agua_galones: number | null;
     horas_trabajadas: number | null;
     avance_pct: number | null;
+    hora_inicio: string | null;
+    hora_fin: string | null;
   }[];
 };
 
@@ -78,6 +85,24 @@ function maximo(vals: (number | null)[]): number | null {
   const xs = vals.filter((v): v is number => v !== null);
   if (!xs.length) return null;
   return Math.max(...xs);
+}
+
+const hhmm = (v: unknown): string | null => {
+  const t = (v ?? "").toString().trim();
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return null;
+  return `${m[1].padStart(2, "0")}:${m[2]}`;
+};
+
+function minHora(vals: (string | null)[]): string | null {
+  const xs = vals.filter((v): v is string => !!v).sort();
+  return xs.length ? xs[0] : null;
+}
+
+function maxHora(vals: (string | null)[]): string | null {
+  const xs = vals.filter((v): v is string => !!v).sort();
+  return xs.length ? xs[xs.length - 1] : null;
 }
 
 function unirTextos(
@@ -150,6 +175,8 @@ export function consolidarDiarios(
         agua_galones: num(f.agua_galones),
         horas_trabajadas: num(f.horas_trabajadas),
         avance_pct: num(f.avance_pct),
+        hora_inicio: hhmm(f.hora_inicio),
+        hora_fin: hhmm(f.hora_fin),
       })),
       avance_pct: maximo(filas.map((f) => num(f.avance_pct))),
       paneles_limpiados: paneles,
@@ -165,6 +192,8 @@ export function consolidarDiarios(
       hallazgos: unirTextos(filas, "hallazgos", nombrePorId),
       bloqueos: unirTextos(filas, "bloqueos", nombrePorId),
       observaciones: unirTextos(filas, "observaciones", nombrePorId),
+      hora_inicio: minHora(filas.map((f) => hhmm(f.hora_inicio))),
+      hora_fin: maxHora(filas.map((f) => hhmm(f.hora_fin))),
     });
   }
   return out.sort((a, b) => a.fecha.localeCompare(b.fecha));
