@@ -237,3 +237,100 @@ export const getPdfExternoParaFormato = createServerFn({ method: "POST" })
       pdf_base64: base64,
     };
   });
+/**
+ * Avance consolidado de una OT calculado a partir de los reportes diarios
+ * realmente cargados por los técnicos: horas, paneles, meta diaria y zonas
+ * marcadas en el mapa satelital. Se recalcula en cada consulta, así que al
+ * guardar un reporte diario el avance de la OT queda actualizado solo.
+ */
+export const getAvanceTrabajo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ trabajo_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const sb = context.supabase;
+    const { data: trab, error: e1 } = await sb
+      .from("trabajos")
+      .select("id, folio, estado, duracion_dias, planta_id, plantas(nombre, paneles)")
+      .eq("id", data.trabajo_id)
+      .single();
+    if (e1) throw new Error(e1.message);
+
+    const [{ data: diarios }, { data: zonas }, { data: marcas }] = await Promise.all([
+      sb.from("trabajo_reportes_diarios")
+        .select("id, fecha, avance_pct, paneles_limpiados, horas_trabajadas, hora_inicio, hora_fin")
+        .eq("trabajo_id", data.trabajo_id)
+        .order("fecha", { ascending: true }),
+      sb.from("planta_zonas")
+        .select("id, nombre, paneles_estimados, orden")
+        .eq("planta_id", (trab as any).planta_id)
+        .eq("activo", true)
+        .order("orden", { ascending: true }),
+      sb.from("reporte_diario_zonas")
+        .select("zona_id, estado")
+        .eq("trabajo_id", data.trabajo_id),
+    ]);
+
+    const filas = (diarios ?? []) as any[];
+    const num = (v: any) => (v === null || v === undefined || v === "" ? 0 : Number(v) || 0);
+    const paneles = filas.reduce((s, d) => s + num(d.paneles_limpiados), 0);
+    const horas = Number(filas.reduce((s, d) => s + num(d.horas_trabajadas), 0).toFixed(1));
+    const dias = new Set(filas.map((d) => String(d.fecha))).size;
+    const metaMax = filas.length
+      ? Math.max(...filas.map((d) => num(d.avance_pct)))
+      : null;
+    const ultimo = filas.length ? filas[filas.length - 1] : null;
+
+    // Estado consolidado por zona: "completada" gana sobre "en_proceso".
+    const estadoZona = new Map<string, "en_proceso" | "completada">();
+    for (const m of ((marcas ?? []) as any[])) {
+      const prev = estadoZona.get(m.zona_id);
+      if (prev === "completada") continue;
+      estadoZona.set(m.zona_id, m.estado === "completada" ? "completada" : "en_proceso");
+    }
+    const zonasArr = (zonas ?? []) as any[];
+    const completadas = zonasArr.filter((z) => estadoZona.get(z.id) === "completada").length;
+    const enProceso = zonasArr.filter((z) => estadoZona.get(z.id) === "en_proceso").length;
+
+    const panelesPlanta = num((trab as any).plantas?.paneles);
+    const avanceZonas = zonasArr.length
+      ? Math.round((completadas / zonasArr.length) * 100)
+      : null;
+    const avancePaneles = panelesPlanta > 0
+      ? Math.min(100, Math.round((paneles / panelesPlanta) * 100))
+      : null;
+    // Prioridad: zonas marcadas en el mapa → paneles limpiados → meta diaria.
+    const avance = avanceZonas ?? avancePaneles ?? metaMax;
+
+    return {
+      trabajo_id: (trab as any).id as string,
+      folio: (trab as any).folio as string,
+      estado: (trab as any).estado as string,
+      planta: (trab as any).plantas?.nombre ?? null,
+      paneles_planta: panelesPlanta || null,
+      avance_pct: avance,
+      avance_zonas_pct: avanceZonas,
+      avance_paneles_pct: avancePaneles,
+      meta_diaria_max: metaMax,
+      fuente: zonasArr.length
+        ? ("zonas" as const)
+        : panelesPlanta > 0
+          ? ("paneles" as const)
+          : ("meta" as const),
+      paneles_limpiados: paneles,
+      horas_trabajadas: horas,
+      dias_reportados: dias,
+      duracion_dias: num((trab as any).duracion_dias) || null,
+      ultima_fecha: ultimo ? String(ultimo.fecha) : null,
+      ultima_jornada: ultimo
+        ? { hora_inicio: ultimo.hora_inicio ?? null, hora_fin: ultimo.hora_fin ?? null }
+        : null,
+      zonas_total: zonasArr.length,
+      zonas_completadas: completadas,
+      zonas_en_proceso: enProceso,
+      zonas: zonasArr.map((z) => ({
+        id: z.id as string,
+        nombre: z.nombre as string,
+        estado: (estadoZona.get(z.id) ?? null) as "en_proceso" | "completada" | null,
+      })),
+    };
+  });
