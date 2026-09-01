@@ -403,7 +403,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const diariosHasta = isDateOnly(data.hasta) ? data.hasta : new Date(hastaTs).toISOString().slice(0, 10);
     const { data: reportesDiarios } = tIdsArr.length
       ? await supabase.from("trabajo_reportes_diarios")
-          .select("trabajo_id, tecnico_id, fecha, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
+          .select("trabajo_id, tecnico_id, fecha, fase, hora_inicio, hora_fin, paneles_limpiados, agua_galones, horas_trabajadas, clima, trabajo_realizado, hallazgos, observaciones, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi")
           .in("trabajo_id", tIdsArr)
           .gte("fecha", diariosDesde)
           .lte("fecha", diariosHasta)
@@ -479,6 +479,8 @@ export const generarReporte = createServerFn({ method: "POST" })
         fecha: r.fecha,
         tecnicos: r.tecnicos,
         aportes_tecnicos: r.aportes,
+        hora_inicio: r.hora_inicio,
+        hora_fin: r.hora_fin,
         avance_pct: r.avance_pct,
         paneles_limpiados: r.paneles_limpiados,
         agua_galones: r.agua_galones,
@@ -806,7 +808,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (trabajoIds.length) {
       let diariosQb = supabase
         .from("trabajo_reportes_diarios")
-        .select("id, trabajo_id, fecha, tecnico_id, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones, trabajo_realizado, hallazgos, observaciones, bloqueos")
+        .select("id, trabajo_id, fecha, fase, hora_inicio, hora_fin, tecnico_id, paneles_limpiados, horas_trabajadas, avance_pct, watts_panel, tds_ppm, angulo_inclinacion, presion_agua_psi, agua_galones, trabajo_realizado, hallazgos, observaciones, bloqueos")
         .in("trabajo_id", trabajoIds)
         .order("fecha", { ascending: true });
       if (desde) diariosQb = diariosQb.gte("fecha", new Date(desde).toISOString().slice(0, 10));
@@ -1236,6 +1238,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         folio: d.trabajo_id ? folioPorTrabajoPdf.get(d.trabajo_id) ?? null : null,
         tecnicos: d.tecnicos.join(", ") || null,
         aportes: d.aportes,
+        hora_inicio: d.hora_inicio,
+        hora_fin: d.hora_fin,
         avance_pct: d.avance_pct,
         paneles_limpiados: d.paneles_limpiados,
         watts_panel: d.watts_panel,
@@ -1253,6 +1257,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
           fecha: d.fecha,
           folio: d.trabajo_id ? folioPorTrabajoPdf.get(d.trabajo_id) ?? null : null,
           tecnico: t.tecnico,
+          hora_inicio: t.hora_inicio,
+          hora_fin: t.hora_fin,
           paneles_limpiados: t.paneles_limpiados,
           agua_galones: t.agua_galones,
           horas_trabajadas: t.horas_trabajadas,
