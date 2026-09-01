@@ -162,6 +162,8 @@ export type ReporteData = {
     folio?: string | null;
     tecnicos?: string | null;
     aportes?: number | null;
+    hora_inicio?: string | null;
+    hora_fin?: string | null;
     avance_pct?: number | null;
     paneles_limpiados?: number | null;
     watts_panel?: number | null;
@@ -177,6 +179,8 @@ export type ReporteData = {
     fecha: string;
     folio?: string | null;
     tecnico: string;
+    hora_inicio?: string | null;
+    hora_fin?: string | null;
     paneles_limpiados?: number | null;
     agua_galones?: number | null;
     horas_trabajadas?: number | null;
@@ -725,17 +729,18 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         {data.reportes_diarios && data.reportes_diarios.length > 0 && (() => {
           const filas = data.reportes_diarios;
           const cols = [
-            { key: "fecha", head: "Fecha", ancho: 11, align: "left" as const },
-            { key: "folio", head: "Folio", ancho: 12, align: "left" as const, mono: true },
-            { key: "tecnicos", head: "Técnicos", ancho: 18, align: "left" as const, multilinea: true },
+            { key: "fecha", head: "Fecha", ancho: 10, align: "left" as const },
+            { key: "folio", head: "Folio", ancho: 11, align: "left" as const, mono: true },
+            { key: "tecnicos", head: "Técnicos", ancho: 14, align: "left" as const, multilinea: true },
+            { key: "jornada", head: "Jornada", ancho: 10, align: "center" as const },
             { key: "meta", head: "Meta diaria", ancho: 8, align: "center" as const, bold: true },
             { key: "paneles", head: "Paneles", ancho: 8, align: "center" as const },
-            { key: "wpanel", head: "W / panel", ancho: 8, align: "center" as const },
-            { key: "wtot", head: "W totales", ancho: 9, align: "center" as const },
+            { key: "wpanel", head: "W / panel", ancho: 7, align: "center" as const },
+            { key: "wtot", head: "W totales", ancho: 8, align: "center" as const },
             { key: "tds", head: "TDS ppm", ancho: 6, align: "center" as const },
             { key: "angulo", head: "Áng. °", ancho: 6, align: "center" as const },
-            { key: "presion", head: "Pres. psi", ancho: 7, align: "center" as const },
-            { key: "horas", head: "Horas", ancho: 7, align: "center" as const },
+            { key: "presion", head: "Pres. psi", ancho: 6, align: "center" as const },
+            { key: "horas", head: "Horas", ancho: 6, align: "center" as const },
           ];
           const valor = (d: (typeof filas)[number], key: string) => {
             switch (key) {
@@ -743,6 +748,10 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               case "folio": return d.folio ?? "—";
               case "tecnicos":
                 return `${d.tecnicos ?? "—"}${d.aportes && d.aportes > 1 ? ` (${d.aportes} reportes)` : ""}`;
+              case "jornada":
+                return d.hora_inicio || d.hora_fin
+                  ? `${d.hora_inicio ?? "—"} a ${d.hora_fin ?? "—"}`
+                  : "—";
               case "meta": return d.avance_pct == null ? "—" : `${d.avance_pct}%`;
               case "paneles": return d.paneles_limpiados ?? "—";
               case "wpanel": return d.watts_panel ?? "—";
@@ -771,7 +780,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
-                Registro operativo por día: el avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea.
+                Registro operativo por día, con la jornada marcada por el equipo en campo (hora de inicio y de finalización). El avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea.
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
@@ -824,19 +833,24 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         {data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
           const filas = data.desglose_tecnico;
           const cols = [
-            { key: "fecha", head: "Fecha", ancho: 16, align: "left" as const },
-            { key: "folio", head: "Folio", ancho: 18, align: "left" as const, mono: true },
-            { key: "tecnico", head: "Técnico", ancho: 26, align: "left" as const, multilinea: true },
-            { key: "paneles", head: "Paneles", ancho: 10, align: "center" as const },
-            { key: "agua", head: "Agua gal", ancho: 10, align: "center" as const },
-            { key: "horas", head: "Horas", ancho: 10, align: "center" as const },
-            { key: "avance", head: "Meta diaria", ancho: 10, align: "center" as const, bold: true },
+            { key: "fecha", head: "Fecha", ancho: 14, align: "left" as const },
+            { key: "folio", head: "Folio", ancho: 15, align: "left" as const, mono: true },
+            { key: "tecnico", head: "Técnico", ancho: 22, align: "left" as const, multilinea: true },
+            { key: "jornada", head: "Jornada", ancho: 13, align: "center" as const },
+            { key: "paneles", head: "Paneles", ancho: 9, align: "center" as const },
+            { key: "agua", head: "Agua gal", ancho: 9, align: "center" as const },
+            { key: "horas", head: "Horas", ancho: 9, align: "center" as const },
+            { key: "avance", head: "Meta diaria", ancho: 9, align: "center" as const, bold: true },
           ];
           const valor = (d: (typeof filas)[number], key: string) => {
             switch (key) {
               case "fecha": return d.fecha ?? "—";
               case "folio": return d.folio ?? "—";
               case "tecnico": return d.tecnico ?? "—";
+              case "jornada":
+                return d.hora_inicio || d.hora_fin
+                  ? `${d.hora_inicio ?? "—"} a ${d.hora_fin ?? "—"}`
+                  : "—";
               case "paneles": return d.paneles_limpiados ?? "—";
               case "agua": return d.agua_galones ?? "—";
               case "horas": return d.horas_trabajadas ?? "—";
