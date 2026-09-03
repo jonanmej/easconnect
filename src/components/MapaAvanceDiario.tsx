@@ -22,10 +22,13 @@ export function MapaAvanceDiario({
   trabajoId,
   reporteDiarioId,
   readOnly = false,
+  estadosExternos,
 }: {
   trabajoId: string;
-  reporteDiarioId: string;
+  reporteDiarioId?: string;
   readOnly?: boolean;
+  /** Vista consolidada de la OT: estados ya calculados (solo lectura). */
+  estadosExternos?: Record<string, "en_proceso" | "completada" | null>;
 }) {
   const qc = useQueryClient();
   const fZonas = useServerFn(listZonasDeTrabajo);
@@ -36,23 +39,30 @@ export function MapaAvanceDiario({
     queryKey: ["zonas-trabajo", trabajoId],
     queryFn: () => fZonas({ data: { trabajo_id: trabajoId } }),
   });
+  const consolidado = !!estadosExternos;
   const marcasQ = useQuery({
     queryKey: ["zonas-diario", reporteDiarioId],
-    queryFn: () => fMarcas({ data: { reporte_diario_id: reporteDiarioId } }),
+    queryFn: () => fMarcas({ data: { reporte_diario_id: reporteDiarioId! } }),
+    enabled: !consolidado && !!reporteDiarioId,
   });
 
   const marcar = useMutation({
     mutationFn: (v: { zona_id: string; estado: Estado }) =>
-      fMarcar({ data: { reporte_diario_id: reporteDiarioId, trabajo_id: trabajoId, ...v } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["zonas-diario", reporteDiarioId] }),
+      fMarcar({ data: { reporte_diario_id: reporteDiarioId!, trabajo_id: trabajoId, ...v } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["zonas-diario", reporteDiarioId] });
+      // El avance de la OT se recalcula desde las zonas marcadas.
+      qc.invalidateQueries({ queryKey: ["avance-ot", trabajoId] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const mbRef = useRef<MapboxNS | null>(null);
-  const readOnlyRef = useRef(readOnly);
-  readOnlyRef.current = readOnly;
+  const soloLectura = readOnly || consolidado;
+  const readOnlyRef = useRef(soloLectura);
+  readOnlyRef.current = soloLectura;
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alterno, setAlterno] = useState(false);
@@ -78,7 +88,9 @@ export function MapaAvanceDiario({
 
   const zonas: any[] = (zonasQ.data as any)?.zonas ?? [];
   const marcas = new Map<string, Estado>(
-    ((marcasQ.data as any[] | undefined) ?? []).map((m) => [m.zona_id, m.estado as Estado]),
+    consolidado
+      ? Object.entries(estadosExternos!).map(([zonaId, est]) => [zonaId, est as Estado])
+      : ((marcasQ.data as any[] | undefined) ?? []).map((m) => [m.zona_id, m.estado as Estado]),
   );
   const marcasRef = useRef(marcas);
   marcasRef.current = marcas;
@@ -174,7 +186,7 @@ export function MapaAvanceDiario({
     });
     map.getSource(SRC)?.setData({ type: "FeatureCollection", features });
     ajustarA(mb, map, todos, 40);
-  }, [listo, zonas, marcasQ.data]);
+  }, [listo, zonas, marcasQ.data, estadosExternos]);
 
   function ciclar(zonaId: string, actual: Estado) {
     const siguiente: Estado = actual === null ? "en_proceso" : actual === "en_proceso" ? "completada" : null;
@@ -207,7 +219,7 @@ export function MapaAvanceDiario({
         >
           {sinMapa ? "Volver al mapa principal" : "Usar mapa por imágenes"}
         </button>
-        {!readOnly && (
+        {!soloLectura && (
           <span className="ml-auto">
             {sinMapa ? "Mapa alternativo activo: toca una zona o usa los botones" : "Toca una zona para cambiar su estado"}
           </span>
@@ -233,7 +245,7 @@ export function MapaAvanceDiario({
                 };
               })}
               onClickZona={
-                readOnly ? undefined : (id) => ciclar(id, marcas.get(id) ?? null)
+                soloLectura ? undefined : (id) => ciclar(id, marcas.get(id) ?? null)
               }
             />
           </div>
@@ -251,7 +263,7 @@ export function MapaAvanceDiario({
             <button
               key={z.id}
               type="button"
-              disabled={readOnly || marcar.isPending}
+              disabled={soloLectura || marcar.isPending}
               onClick={() => ciclar(z.id, est)}
               className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border text-[10px] font-medium disabled:opacity-70"
               style={{ borderColor: style.stroke, color: style.stroke, background: `${style.fill}20` }}
