@@ -21,6 +21,7 @@ import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { MapaAvanceDiario } from "@/components/MapaAvanceDiario";
 import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envolverExterno";
 import { consolidarDiarios } from "@/lib/consolidar-diarios";
+import { AvanceOTCard } from "@/components/AvanceOTCard";
 
 const BUCKET = "trabajos-evidencia";
 export const FASE_LABEL = {
@@ -124,6 +125,9 @@ export function ReportesDiariosSection({
       }
       toast.success("Reporte diario guardado. Adjunta las fotos del día en «Evidencias de este día» dentro del reporte recién creado.");
       await qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      // El avance de la OT y su mapa satelital se recalculan desde los diarios.
+      qc.invalidateQueries({ queryKey: ["avance-ot", trabajoId] });
+      qc.invalidateQueries({ queryKey: ["trabajos"] });
       // El consolidado y el ejecutivo se recalculan desde las filas vigentes.
       qc.invalidateQueries({ queryKey: ["reportes"] });
       qc.invalidateQueries({ queryKey: ["reporte"] });
@@ -135,6 +139,8 @@ export function ReportesDiariosSection({
     onSuccess: () => {
       toast.success("Reporte diario eliminado");
       qc.invalidateQueries({ queryKey: ["diarios", trabajoId] });
+      qc.invalidateQueries({ queryKey: ["avance-ot", trabajoId] });
+      qc.invalidateQueries({ queryKey: ["trabajos"] });
       qc.invalidateQueries({ queryKey: ["reportes"] });
       qc.invalidateQueries({ queryKey: ["reporte"] });
     },
@@ -199,6 +205,9 @@ export function ReportesDiariosSection({
           </button>
         )}
       </div>
+
+      {/* Avance de la OT calculado desde los reportes diarios */}
+      {!isStSolar && <AvanceOTCard trabajoId={trabajoId} />}
 
       {/* Reportes diarios */}
       {!isStSolar && (
