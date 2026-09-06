@@ -401,7 +401,7 @@ export function BuscadorProveedoresIA({
         )}
 
         {tab === "historial" && (
-          <div className="p-4 overflow-y-auto space-y-2">
+          <div className="p-4 flex-1 min-h-0 overflow-y-auto space-y-2">
             {historial.isLoading && <p className="text-xs text-muted-foreground">Cargando historial…</p>}
             {!historial.isLoading && ((historial.data as any[]) ?? []).length === 0 && (
               <p className="text-xs text-muted-foreground">Aún no hay búsquedas guardadas.</p>
