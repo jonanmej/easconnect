@@ -171,8 +171,8 @@ export function BuscadorProveedoresIA({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top))]" onClick={() => !busy && onClose()}>
-      <div className="bg-card border border-border rounded-lg w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-stretch md:items-center justify-center p-0 md:p-4 pt-[max(0.5rem,env(safe-area-inset-top))]" onClick={() => !busy && onClose()}>
+      <div className="bg-card border border-border rounded-none md:rounded-lg w-full max-w-none md:max-w-6xl h-full md:h-[94vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold inline-flex items-center gap-2">
