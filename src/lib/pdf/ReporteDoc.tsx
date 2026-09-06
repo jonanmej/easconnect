@@ -830,7 +830,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           </>
           );
         })()}
-        {data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
+        {!ejec && data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
           const filas = data.desglose_tecnico;
           const cols = [
             { key: "fecha", head: "Fecha", ancho: 14, align: "left" as const },
