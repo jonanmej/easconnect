@@ -317,7 +317,7 @@ export function BuscadorProveedoresIA({
           </div>
         </div>
 
-        <div className="p-4 overflow-y-auto">
+        <div className="p-4 flex-1 min-h-0 overflow-y-auto">
           {busy && <p className="text-xs text-muted-foreground">Consultando la web y comparando precios…</p>}
           {!busy && buscado && resultados.length === 0 && (
             <p className="text-xs text-muted-foreground">Sin ofertas claras para “{termino}”. Prueba con otro término o agrega marca/modelo.</p>
