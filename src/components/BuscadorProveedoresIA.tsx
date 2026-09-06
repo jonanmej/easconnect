@@ -171,8 +171,8 @@ export function BuscadorProveedoresIA({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top))]" onClick={() => !busy && onClose()}>
-      <div className="bg-card border border-border rounded-lg w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-stretch md:items-center justify-center p-0 md:p-4 pt-[max(0.5rem,env(safe-area-inset-top))]" onClick={() => !busy && onClose()}>
+      <div className="bg-card border border-border rounded-none md:rounded-lg w-full max-w-none md:max-w-6xl h-full md:h-[94vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold inline-flex items-center gap-2">
@@ -199,8 +199,8 @@ export function BuscadorProveedoresIA({
         </div>
 
         {tab === "buscar" && (
-        <>
-        <div className="p-4 space-y-3 border-b border-border">
+        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="p-4 space-y-3 border-b border-border shrink-0 max-h-[45vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
             <label className="text-[11px] md:col-span-12">
               <span className="block text-muted-foreground mb-1">Producto / descripción</span>
@@ -317,7 +317,7 @@ export function BuscadorProveedoresIA({
           </div>
         </div>
 
-        <div className="p-4 overflow-y-auto">
+        <div className="p-4 flex-1 min-h-0 overflow-y-auto">
           {busy && <p className="text-xs text-muted-foreground">Consultando la web y comparando precios…</p>}
           {!busy && buscado && resultados.length === 0 && (
             <p className="text-xs text-muted-foreground">Sin ofertas claras para “{termino}”. Prueba con otro término o agrega marca/modelo.</p>
@@ -397,11 +397,11 @@ export function BuscadorProveedoresIA({
             </>
           )}
         </div>
-        </>
+        </div>
         )}
 
         {tab === "historial" && (
-          <div className="p-4 overflow-y-auto space-y-2">
+          <div className="p-4 flex-1 min-h-0 overflow-y-auto space-y-2">
             {historial.isLoading && <p className="text-xs text-muted-foreground">Cargando historial…</p>}
             {!historial.isLoading && ((historial.data as any[]) ?? []).length === 0 && (
               <p className="text-xs text-muted-foreground">Aún no hay búsquedas guardadas.</p>
