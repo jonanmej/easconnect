@@ -728,7 +728,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         })()}
         {data.reportes_diarios && data.reportes_diarios.length > 0 && (() => {
           const filas = data.reportes_diarios;
-          const cols = [
+          const colsBase = [
             { key: "fecha", head: "Fecha", ancho: 10, align: "left" as const },
             { key: "folio", head: "Folio", ancho: 11, align: "left" as const, mono: true },
             { key: "tecnicos", head: "Técnicos", ancho: 14, align: "left" as const, multilinea: true },
@@ -742,6 +742,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             { key: "presion", head: "Pres. psi", ancho: 6, align: "center" as const },
             { key: "horas", head: "Horas", ancho: 6, align: "center" as const },
           ];
+          // En el reporte del cliente se omiten los datos internos de operación
+          // (dotación, jornada laboral y horas hombre): solo el estado de su planta.
+          const OMITIR_EJEC = new Set(["tecnicos", "jornada", "horas"]);
+          const visibles = ejec ? colsBase.filter((c) => !OMITIR_EJEC.has(c.key)) : colsBase;
+          const sumaAncho = visibles.reduce((a, c) => a + c.ancho, 0) || 100;
+          const cols = visibles.map((c) => ({ ...c, ancho: (c.ancho / sumaAncho) * 100 }));
+
           const valor = (d: (typeof filas)[number], key: string) => {
             switch (key) {
               case "fecha": return d.fecha ?? "—";
