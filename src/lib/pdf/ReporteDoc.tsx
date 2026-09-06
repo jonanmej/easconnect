@@ -644,21 +644,21 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <Text style={styles.pageTitle}>Detalle de Trabajos del Periodo</Text>
         <View style={styles.table}>
           <View style={styles.tr}>
-            <Text style={[styles.th, { width: "24%" }]}>Folio</Text>
-            <Text style={[styles.th, { width: "26%" }]}>Servicio</Text>
-            <Text style={[styles.th, { width: "14%" }]}>Fecha</Text>
-            <Text style={[styles.th, { width: "14%" }]}>Estado</Text>
-            <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>
+            <Text style={[styles.th, { width: ejec ? "30%" : "24%" }]}>Folio</Text>
+            <Text style={[styles.th, { width: ejec ? "34%" : "26%" }]}>Servicio</Text>
+            <Text style={[styles.th, { width: ejec ? "18%" : "14%" }]}>Fecha</Text>
+            <Text style={[styles.th, { width: ejec ? "18%" : "14%" }]}>Estado</Text>
+            {!ejec && <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>}
           </View>
           {data.trabajos.length === 0 ? (
             <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL }]}>Sin trabajos registrados en este periodo.</Text></View>
           ) : data.trabajos.map((t, i) => (
             <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-              <Text style={[styles.td, { width: "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
-              <Text style={[styles.td, { width: "26%" }]}>{t.servicio}</Text>
-              <Text style={[styles.td, { width: "14%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{estadoTexto(t.estado)}</Text>
-              <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
+              <Text style={[styles.td, { width: ejec ? "30%" : "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
+              <Text style={[styles.td, { width: ejec ? "34%" : "26%" }]}>{t.servicio}</Text>
+              <Text style={[styles.td, { width: ejec ? "18%" : "14%" }]}>{t.fecha}</Text>
+              <Text style={[styles.td, { width: ejec ? "18%" : "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{estadoTexto(t.estado)}</Text>
+              {!ejec && <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>}
             </View>
           ))}
         </View>
@@ -728,7 +728,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         })()}
         {data.reportes_diarios && data.reportes_diarios.length > 0 && (() => {
           const filas = data.reportes_diarios;
-          const cols = [
+          const colsBase = [
             { key: "fecha", head: "Fecha", ancho: 10, align: "left" as const },
             { key: "folio", head: "Folio", ancho: 11, align: "left" as const, mono: true },
             { key: "tecnicos", head: "Técnicos", ancho: 14, align: "left" as const, multilinea: true },
@@ -742,6 +742,13 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             { key: "presion", head: "Pres. psi", ancho: 6, align: "center" as const },
             { key: "horas", head: "Horas", ancho: 6, align: "center" as const },
           ];
+          // En el reporte del cliente se omiten los datos internos de operación
+          // (dotación, jornada laboral y horas hombre): solo el estado de su planta.
+          const OMITIR_EJEC = new Set(["tecnicos", "jornada", "horas"]);
+          const visibles = ejec ? colsBase.filter((c) => !OMITIR_EJEC.has(c.key)) : colsBase;
+          const sumaAncho = visibles.reduce((a, c) => a + c.ancho, 0) || 100;
+          const cols = visibles.map((c) => ({ ...c, ancho: (c.ancho / sumaAncho) * 100 }));
+
           const valor = (d: (typeof filas)[number], key: string) => {
             switch (key) {
               case "fecha": return d.fecha ?? "—";
@@ -778,9 +785,11 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           return (
           <>
             <View wrap={false}>
-              <Text style={styles.sectionTitle}>Detalle diario de campo</Text>
+              <Text style={styles.sectionTitle}>{ejec ? "Detalle diario del servicio en su planta" : "Detalle diario de campo"}</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
-                Registro operativo por día, con la jornada marcada por el equipo en campo (hora de inicio y de finalización). El avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea.
+                {ejec
+                  ? "Resultado por día del servicio realizado en la planta: paneles atendidos, potencia asociada y mediciones tomadas en sitio. El avance corresponde al cumplimiento de la meta diaria planificada del servicio."
+                  : "Registro operativo por día, con la jornada marcada por el equipo en campo (hora de inicio y de finalización). El avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea."}
               </Text>
               <View style={styles.table}>
                 <View style={styles.tr}>
@@ -830,7 +839,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           </>
           );
         })()}
-        {data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
+        {!ejec && data.desglose_tecnico && data.desglose_tecnico.length > 0 && (() => {
           const filas = data.desglose_tecnico;
           const cols = [
             { key: "fecha", head: "Fecha", ancho: 14, align: "left" as const },
@@ -1009,39 +1018,39 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       )}
 
       <Page size="A4" style={styles.page} wrap>
-        <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
-        <Text style={styles.pageTitle}>{ejec ? "Cierre, Política Documental y Cumplimiento" : "Política Documental y Cumplimiento"}</Text>
+        <PageHeader data={data} pageName={ejec ? "Cierre y Recepción" : "Cumplimiento Documental"} />
+        <Text style={styles.pageTitle}>{ejec ? "Cierre del Reporte y Recepción" : "Política Documental y Cumplimiento"}</Text>
 
         {ejec && (
           <Text style={styles.paragraph}>
-            El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles.
+            El presente reporte fue elaborado a partir de la información registrada en sitio durante el periodo indicado. Los indicadores, hallazgos y recomendaciones corresponden al estado y al servicio realizado en la planta del cliente.
           </Text>
         )}
 
-
-        
-
-        <View style={{ marginTop: 10, padding: 8, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel }}>
-          <Text style={{ fontSize: 8.5, fontFamily: FONT_BOLD, color: COL.bg, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Control del documento</Text>
-          <View style={{ flexDirection: "column" }}>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Identificador</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{(data.documento_id ?? "").toUpperCase() || "—"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Código</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Clasificación</Text>
-              <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>{data.documento_clasificacion ?? "Uso interno"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
+        {!ejec && (
+          <View style={{ marginTop: 10, padding: 8, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel }}>
+            <Text style={{ fontSize: 8.5, fontFamily: FONT_BOLD, color: COL.bg, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Control del documento</Text>
+            <View style={{ flexDirection: "column" }}>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Identificador</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{(data.documento_id ?? "").toUpperCase() || "—"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Código</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Clasificación</Text>
+                <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>{data.documento_clasificacion ?? "Uso interno"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
+
 
         {ejec && (
           <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
