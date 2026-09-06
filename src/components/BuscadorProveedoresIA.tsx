@@ -397,7 +397,7 @@ export function BuscadorProveedoresIA({
             </>
           )}
         </div>
-        </>
+        </div>
         )}
 
         {tab === "historial" && (
