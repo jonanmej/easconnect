@@ -199,8 +199,8 @@ export function BuscadorProveedoresIA({
         </div>
 
         {tab === "buscar" && (
-        <>
-        <div className="p-4 space-y-3 border-b border-border">
+        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="p-4 space-y-3 border-b border-border shrink-0 max-h-[45vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
             <label className="text-[11px] md:col-span-12">
               <span className="block text-muted-foreground mb-1">Producto / descripción</span>
