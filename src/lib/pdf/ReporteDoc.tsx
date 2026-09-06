@@ -644,21 +644,21 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <Text style={styles.pageTitle}>Detalle de Trabajos del Periodo</Text>
         <View style={styles.table}>
           <View style={styles.tr}>
-            <Text style={[styles.th, { width: "24%" }]}>Folio</Text>
-            <Text style={[styles.th, { width: "26%" }]}>Servicio</Text>
-            <Text style={[styles.th, { width: "14%" }]}>Fecha</Text>
-            <Text style={[styles.th, { width: "14%" }]}>Estado</Text>
-            <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>
+            <Text style={[styles.th, { width: ejec ? "30%" : "24%" }]}>Folio</Text>
+            <Text style={[styles.th, { width: ejec ? "34%" : "26%" }]}>Servicio</Text>
+            <Text style={[styles.th, { width: ejec ? "18%" : "14%" }]}>Fecha</Text>
+            <Text style={[styles.th, { width: ejec ? "18%" : "14%" }]}>Estado</Text>
+            {!ejec && <Text style={[styles.th, { width: "22%" }]}>Técnico</Text>}
           </View>
           {data.trabajos.length === 0 ? (
             <View style={styles.trLast}><Text style={[styles.td, { width: "100%", color: COL.muted, fontFamily: FONT_OBL }]}>Sin trabajos registrados en este periodo.</Text></View>
           ) : data.trabajos.map((t, i) => (
             <View key={i} style={i === data.trabajos.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-              <Text style={[styles.td, { width: "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
-              <Text style={[styles.td, { width: "26%" }]}>{t.servicio}</Text>
-              <Text style={[styles.td, { width: "14%" }]}>{t.fecha}</Text>
-              <Text style={[styles.td, { width: "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{estadoTexto(t.estado)}</Text>
-              <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>
+              <Text style={[styles.td, { width: ejec ? "30%" : "24%", fontFamily: "Courier", fontSize: 7.5 }]}>{t.folio}</Text>
+              <Text style={[styles.td, { width: ejec ? "34%" : "26%" }]}>{t.servicio}</Text>
+              <Text style={[styles.td, { width: ejec ? "18%" : "14%" }]}>{t.fecha}</Text>
+              <Text style={[styles.td, { width: ejec ? "18%" : "14%", color: estadoColor(t.estado), fontFamily: FONT_BOLD }]}>{estadoTexto(t.estado)}</Text>
+              {!ejec && <Text style={[styles.td, { width: "22%", color: COL.muted }]}>{t.tecnico ?? "—"}</Text>}
             </View>
           ))}
         </View>
