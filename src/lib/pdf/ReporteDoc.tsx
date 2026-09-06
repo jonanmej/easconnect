@@ -1009,39 +1009,39 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
       )}
 
       <Page size="A4" style={styles.page} wrap>
-        <PageHeader data={data} pageName={ejec ? "Cierre y Cumplimiento" : "Cumplimiento Documental"} />
-        <Text style={styles.pageTitle}>{ejec ? "Cierre, Política Documental y Cumplimiento" : "Política Documental y Cumplimiento"}</Text>
+        <PageHeader data={data} pageName={ejec ? "Cierre y Recepción" : "Cumplimiento Documental"} />
+        <Text style={styles.pageTitle}>{ejec ? "Cierre del Reporte y Recepción" : "Política Documental y Cumplimiento"}</Text>
 
         {ejec && (
           <Text style={styles.paragraph}>
-            El presente reporte fue elaborado a partir de información operativa real registrada en la plataforma EA SERVICE AND CONSULTING durante el periodo indicado. Los hallazgos, indicadores y recomendaciones se sustentan en los registros de trabajos, mantenimientos, evidencias y reportes técnicos disponibles.
+            El presente reporte fue elaborado a partir de la información registrada en sitio durante el periodo indicado. Los indicadores, hallazgos y recomendaciones corresponden al estado y al servicio realizado en la planta del cliente.
           </Text>
         )}
 
-
-        
-
-        <View style={{ marginTop: 10, padding: 8, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel }}>
-          <Text style={{ fontSize: 8.5, fontFamily: FONT_BOLD, color: COL.bg, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Control del documento</Text>
-          <View style={{ flexDirection: "column" }}>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Identificador</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{(data.documento_id ?? "").toUpperCase() || "—"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Código</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Clasificación</Text>
-              <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>{data.documento_clasificacion ?? "Uso interno"}</Text>
-            </View>
-            <View style={{ flexDirection: "row", marginBottom: 3 }}>
-              <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
-              <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
+        {!ejec && (
+          <View style={{ marginTop: 10, padding: 8, borderWidth: 0.5, borderColor: COL.border, borderRadius: 3, backgroundColor: COL.panel }}>
+            <Text style={{ fontSize: 8.5, fontFamily: FONT_BOLD, color: COL.bg, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Control del documento</Text>
+            <View style={{ flexDirection: "column" }}>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Identificador</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{(data.documento_id ?? "").toUpperCase() || "—"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Código</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>{data.documento_codigo ?? "REP"} v{data.documento_version ?? "1.0"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Clasificación</Text>
+                <Text style={{ fontSize: 7.5, color: COL.text, flex: 1 }}>{data.documento_clasificacion ?? "Uso interno"}</Text>
+              </View>
+              <View style={{ flexDirection: "row", marginBottom: 3 }}>
+                <Text style={{ fontSize: 7.5, color: COL.muted, width: 80 }}>Integridad</Text>
+                <Text style={{ fontSize: 7.5, fontFamily: "Courier", color: COL.text, flex: 1 }}>SHA-256 {data.documento_hash ? data.documento_hash.slice(0, 24) + "…" : "—"}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
+
 
         {ejec && (
           <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }} wrap={false}>
