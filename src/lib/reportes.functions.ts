@@ -1339,21 +1339,32 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     const nombrePorId = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "Técnico"]));
 
+    // Dataset depurado para el reporte EJECUTIVO DE CLIENTE: se excluye toda la
+    // información operativa interna (técnicos, horas, dotación, bloqueos,
+    // consumo de agua) y se conserva solo lo relevante para el cliente:
+    // avance, paneles, mediciones (PSI, TDS, ángulo, watts), hallazgos y
+    // observaciones técnicas de la planta.
+    const consolidados = (await import("@/lib/consolidar-diarios")).consolidarDiarios(
+      diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+      nombrePorId,
+    );
+    const depurarDia = (d: any) => {
+      const {
+        tecnico_id, tecnico, tecnicos, horas_trabajadas, agua_galones, bloqueos,
+        trabajo_id, id, created_at, updated_at, fase,
+        ...resto
+      } = d ?? {};
+      return resto;
+    };
     const dataset = {
       cliente: cliente?.nombre,
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
       nota_consolidacion:
-        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones promediadas. Úsalo como fuente principal de cifras.",
-      reportes_diarios_consolidados: (await import("@/lib/consolidar-diarios")).consolidarDiarios(
-        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
-        nombrePorId,
-      ),
-      reportes_diarios: diarios.map((d: any) => ({
-        ...d,
-        tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
-      })),
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones. Úsalo como fuente principal de cifras. El dataset ya excluye datos operativos internos de la empresa.",
+      reportes_diarios_consolidados: consolidados.map(depurarDia),
+      reportes_diarios: diarios.map(depurarDia),
     };
 
     // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
@@ -1422,8 +1433,10 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "Nunca menciones IA, modelos ni inteligencia artificial.",
       "Escribes en español, tono profesional, conciso y accionable.",
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "PORCENTAJES DE AVANCE: todo porcentaje de avance del dataset mide el cumplimiento de la meta diaria comprometida en cada trabajo, NO el porcentaje del parque total de paneles de la planta. Al citarlo en KPIs, resumen o hallazgos, redáctalo explícitamente como 'cumplimiento de la meta diaria' (por ejemplo, KPI: 'Cumplimiento de meta diaria': '92% respecto de la meta diaria comprometida') y nunca lo presentes como avance del parque instalado.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
-      "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026').",
+      "AUDIENCIA CLIENTE: este reporte se entrega directamente al cliente dueño de la planta. Enfócate exclusivamente en información de interés para él: avance del servicio, paneles intervenidos, mediciones de calidad (presión de agua PSI, sólidos disueltos TDS, ángulo de inclinación, potencia de paneles en watts), hallazgos sobre la condición de su planta y recomendaciones de cuidado o mantenimiento.",
+      "PROHIBIDO TEMAS INTERNOS: nunca menciones nombres de técnicos ni dotación, horas trabajadas u horas hombre, jornadas o cumplimiento de metas internas, consumo de agua del equipo, bloqueos o problemas de coordinación interna, ni costos. Todo eso es información operativa interna de la empresa y no debe aparecer en el reporte.",
+      "PORCENTAJES DE AVANCE: presenta los porcentajes de avance como 'avance del servicio' o 'avance de la intervención en su planta', redactados en lenguaje claro para el cliente (por ejemplo, KPI: 'Avance del servicio': '85%').", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
+      "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si el dataset incluye estas lecturas, deben aparecer sí o sí en los KPIs o en el resumen.",
     ].join(" ");
     const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
 
