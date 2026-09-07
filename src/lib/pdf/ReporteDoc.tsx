@@ -549,7 +549,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
         <View wrap={false}>
           <Text style={styles.sectionTitle}>Indicadores Clave</Text>
           <Text style={{ fontSize: 8, color: COL.muted, marginBottom: 6, lineHeight: 1.4 }}>
-            Nota: los porcentajes de avance corresponden al cumplimiento de la meta diaria comprometida para cada trabajo (paneles y actividades planificados por jornada), no al porcentaje del parque total de la planta.
+            {ejec
+              ? "Nota: los porcentajes indican el avance del servicio comprometido para su planta en el período informado."
+              : "Nota: los porcentajes de avance corresponden al cumplimiento de la meta diaria comprometida para cada trabajo (paneles y actividades planificados por jornada), no al porcentaje del parque total de la planta."}
           </Text>
           {data.kpis.length > 0 && (
             <View style={styles.kpiRow}>
@@ -582,7 +584,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             <View wrap={false}>
               <Text style={styles.sectionTitle}>Análisis Gráfico de Datos</Text>
               <Text style={{ fontSize: 8, color: COL.muted, marginBottom: 6, lineHeight: 1.4 }}>
-                Los porcentajes graficados miden el cumplimiento de la meta diaria planificada de cada trabajo; no representan el avance sobre el total del parque instalado.
+                {ejec
+                  ? "Los porcentajes graficados indican el avance del servicio realizado en su planta durante el período informado."
+                  : "Los porcentajes graficados miden el cumplimiento de la meta diaria planificada de cada trabajo; no representan el avance sobre el total del parque instalado."}
               </Text>
               <Grafica g={data.graficas[0]} />
             </View>
@@ -733,7 +737,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             { key: "folio", head: "Folio", ancho: 11, align: "left" as const, mono: true },
             { key: "tecnicos", head: "Técnicos", ancho: 14, align: "left" as const, multilinea: true },
             { key: "jornada", head: "Jornada", ancho: 10, align: "center" as const },
-            { key: "meta", head: "Meta diaria", ancho: 8, align: "center" as const, bold: true },
+            { key: "meta", head: ejec ? "Avance" : "Meta diaria", ancho: 8, align: "center" as const, bold: true },
             { key: "paneles", head: "Paneles", ancho: 8, align: "center" as const },
             { key: "wpanel", head: "W / panel", ancho: 7, align: "center" as const },
             { key: "wtot", head: "W totales", ancho: 8, align: "center" as const },
@@ -788,7 +792,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={styles.sectionTitle}>{ejec ? "Detalle diario del servicio en su planta" : "Detalle diario de campo"}</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
                 {ejec
-                  ? "Resultado por día del servicio realizado en la planta: paneles atendidos, potencia asociada y mediciones tomadas en sitio. El avance corresponde al cumplimiento de la meta diaria planificada del servicio."
+                  ? "Resultado por día del servicio realizado en la planta: paneles atendidos, potencia asociada y mediciones tomadas en sitio. El avance indica lo ejecutado del servicio comprometido para su planta."
                   : "Registro operativo por día, con la jornada marcada por el equipo en campo (hora de inicio y de finalización). El avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea."}
               </Text>
               <View style={styles.table}>

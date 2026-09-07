@@ -103,7 +103,26 @@ function limpiarValorPorcentajeMetaDiaria(value: string): string {
     .trim();
 }
 
-function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[]): ReporteKpi[] {
+/**
+ * Audiencia del reporte: el reporte del cliente habla de "avance del servicio"
+ * en su planta; el interno mantiene la referencia a la meta diaria de la OT.
+ */
+type Audiencia = "cliente" | "interno";
+
+function etiquetaAvance(audiencia: Audiencia, folio?: string | null): string {
+  if (audiencia === "cliente") {
+    return folio ? `Avance del servicio OT ${folio}` : "Avance del servicio en su planta";
+  }
+  return folio ? `Cumplimiento de meta diaria OT ${folio}` : "Cumplimiento de meta diaria del trabajo";
+}
+
+function aclaracionAvance(audiencia: Audiencia): string {
+  return audiencia === "cliente"
+    ? "del servicio comprometido para su planta en el período"
+    : "respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque";
+}
+
+function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[], audiencia: Audiencia = "interno"): ReporteKpi[] {
   return kpisInput.map((k) => {
     const labelRaw = String(k.label ?? "").trim();
     const valueRaw = String(k.value ?? "").trim();
@@ -112,14 +131,13 @@ function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[]): ReporteKpi[] {
     if (!contienePorcentaje && !hablaDeAvance) return k;
 
     const folioMatch = /\(([^)]+)\)/.exec(labelRaw)?.[1] ?? null;
-    const label = folioMatch
-      ? `Cumplimiento de meta diaria OT ${folioMatch}`
-      : "Cumplimiento de meta diaria del trabajo";
+    const label = etiquetaAvance(audiencia, folioMatch);
     const base = limpiarValorPorcentajeMetaDiaria(valueRaw) || valueRaw;
-    const aclaracion = "respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque";
-    const value = /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base)
-      ? base
-      : `${base} ${aclaracion}`.trim();
+    const aclaracion = aclaracionAvance(audiencia);
+    const yaAclarado = audiencia === "cliente"
+      ? /servicio/i.test(base)
+      : /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base);
+    const value = yaAclarado ? base : `${base} ${aclaracion}`.trim();
     return { label, value };
   });
 }
@@ -127,6 +145,7 @@ function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[]): ReporteKpi[] {
 function kpisMetaDiariaDesdeDiarios(
   diarios: Array<{ trabajo_id?: string | null; avance_pct?: number | string | null }>,
   folioPorId: Map<string, string>,
+  audiencia: Audiencia = "interno",
 ): ReporteKpi[] {
   const maxPorTrabajo = new Map<string, number>();
   for (const d of diarios) {
@@ -139,15 +158,19 @@ function kpisMetaDiariaDesdeDiarios(
   }
   return Array.from(maxPorTrabajo.entries())
     .map(([trabajoId, pct]) => ({
-      label: `Cumplimiento de meta diaria OT ${folioPorId.get(trabajoId) ?? "—"}`,
-      value: `${pct}% respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque`,
+      label: etiquetaAvance(audiencia, folioPorId.get(trabajoId) ?? null),
+      value: `${pct}% ${aclaracionAvance(audiencia)}`,
     }))
     .sort((a, b) => b.value.localeCompare(a.value))
     .slice(0, 2);
 }
 
-function combinarKpisConMetaDiaria(kpisInput: ReporteKpi[], kpisMeta: ReporteKpi[]): ReporteKpi[] {
-  const normalizados = normalizarKpisMetaDiaria(kpisInput);
+function combinarKpisConMetaDiaria(
+  kpisInput: ReporteKpi[],
+  kpisMeta: ReporteKpi[],
+  audiencia: Audiencia = "interno",
+): ReporteKpi[] {
+  const normalizados = normalizarKpisMetaDiaria(kpisInput, audiencia);
   if (!kpisMeta.length) return normalizados;
   const sinKpisAvance = normalizados.filter((k) => !/cumplimiento de meta diaria|avance|progreso/i.test(k.label));
   return [...kpisMeta, ...sinKpisAvance].slice(0, Math.max(5, kpisMeta.length));
@@ -747,9 +770,11 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const m = /\*\*(.+?):\*\*\s*(.+)/.exec(l) ?? /^([^:]+):\s*(.+)/.exec(l);
       return m ? { label: m[1], value: m[2] } : { label: l, value: "" };
     });
-    // Normalización determinista: cualquier KPI de avance debe leerse como
-    // cumplimiento de la META DIARIA del trabajo, nunca como avance del parque.
-    let kpis = normalizarKpisMetaDiaria(kpisParsed);
+    // Normalización determinista: en el reporte del cliente los porcentajes se
+    // leen como avance del servicio en su planta; en el interno, como
+    // cumplimiento de la meta diaria de la OT.
+    const audiencia: Audiencia = data.variante === "interno" ? "interno" : "cliente";
+    let kpis = normalizarKpisMetaDiaria(kpisParsed, audiencia);
     let hallazgos = parseBullets(section("Hallazgos"));
     let recomendaciones = parseBullets(section("Recomendaciones"));
     let resumen = section("Resumen ejecutivo");
@@ -818,7 +843,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     kpis = combinarKpisConMetaDiaria(
       kpis,
-      kpisMetaDiariaDesdeDiarios(diarios as any[], new Map(trabajos.map((t) => [t.id, t.folio]))),
+      kpisMetaDiariaDesdeDiarios(diarios as any[], new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
+      audiencia,
     );
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
 
@@ -1352,6 +1378,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       const {
         tecnico_id, tecnico, tecnicos, horas_trabajadas, agua_galones, bloqueos,
         trabajo_id, id, created_at, updated_at, fase,
+        por_tecnico, aportes, hora_inicio, hora_fin,
         ...resto
       } = d ?? {};
       return resto;
@@ -1362,7 +1389,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
       nota_consolidacion:
-        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones. Úsalo como fuente principal de cifras. El dataset ya excluye datos operativos internos de la empresa.",
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones. Úsalo como fuente principal de cifras. Este reporte es para el cliente: no menciones personas, dotación, horarios, horas trabajadas ni consumo de agua, aunque creas inferirlos.",
       reportes_diarios_consolidados: consolidados.map(depurarDia),
       reportes_diarios: diarios.map(depurarDia),
     };
@@ -1530,6 +1557,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       const metaDiariaKpis = kpisMetaDiariaDesdeDiarios(
         diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
         new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
+        "cliente",
       );
       const kpisHumanizados = aiResult.kpis.map((k) => ({
         label: humanizarTexto(fix(k.label)),
@@ -1539,7 +1567,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...aiResult,
         titulo: humanizarTexto(fix(aiResult.titulo)),
         resumen: humanizarTexto(fix(aiResult.resumen)),
-        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
+        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis, "cliente"),
         hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
         recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
