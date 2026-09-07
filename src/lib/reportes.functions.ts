@@ -548,8 +548,11 @@ export const generarReporte = createServerFn({ method: "POST" })
           .in("trabajo_id", tIdsArr)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
+    // Avance real por OT (mismo cálculo que la tarjeta de avance de la OT).
+    const avancesRealesCtx: Map<string, AvanceOT> = await avanceRealPorTrabajo(supabase, tIdsArr);
 
     const datasetCtxRaw = {
+
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
       periodo: data.periodo,
