@@ -142,27 +142,111 @@ function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[], audiencia: Audiencia 
   });
 }
 
-function kpisMetaDiariaDesdeDiarios(
-  diarios: Array<{ trabajo_id?: string | null; avance_pct?: number | string | null }>,
+type AvanceOT = {
+  pct: number;
+  fuente: "zonas" | "paneles" | "meta";
+  paneles: number;
+  parque: number | null;
+};
+
+/**
+ * Avance real de cada OT calculado igual que la tarjeta de avance de la OT
+ * (`getAvanceTrabajo`): zonas marcadas en el mapa → paneles limpiados sobre el
+ * parque de la planta → meta diaria máxima reportada. Así el porcentaje del
+ * reporte ejecutivo coincide siempre con el que ve el equipo en la OT.
+ */
+async function avanceRealPorTrabajo(
+  supabase: any,
+  trabajoIds: string[],
+): Promise<Map<string, AvanceOT>> {
+  const out = new Map<string, AvanceOT>();
+  if (!trabajoIds.length) return out;
+  const [{ data: trabs }, { data: diarios }, { data: marcas }] = await Promise.all([
+    supabase.from("trabajos").select("id, estado, planta_id, plantas(paneles)").in("id", trabajoIds),
+    supabase.from("trabajo_reportes_diarios")
+      .select("trabajo_id, paneles_limpiados, avance_pct").in("trabajo_id", trabajoIds),
+    supabase.from("reporte_diario_zonas")
+      .select("trabajo_id, zona_id, estado").in("trabajo_id", trabajoIds),
+  ]);
+  const plantaIds = Array.from(
+    new Set(((trabs ?? []) as any[]).map((t) => t.planta_id).filter(Boolean)),
+  ) as string[];
+  const zonasPorPlanta = new Map<string, number>();
+  if (plantaIds.length) {
+    const { data: zonas } = await supabase
+      .from("planta_zonas").select("id, planta_id").eq("activo", true).in("planta_id", plantaIds);
+    for (const z of ((zonas ?? []) as any[])) {
+      zonasPorPlanta.set(z.planta_id, (zonasPorPlanta.get(z.planta_id) ?? 0) + 1);
+    }
+  }
+  // Estado consolidado por (OT, zona): "completada" gana sobre "en_proceso".
+  const zonaEstado = new Map<string, string>();
+  for (const m of ((marcas ?? []) as any[])) {
+    const k = `${m.trabajo_id}|${m.zona_id}`;
+    if (zonaEstado.get(k) === "completada") continue;
+    zonaEstado.set(k, m.estado === "completada" ? "completada" : "en_proceso");
+  }
+  const panelesPorTrabajo = new Map<string, number>();
+  const metaPorTrabajo = new Map<string, number>();
+  for (const d of ((diarios ?? []) as any[])) {
+    const p = Number(d.paneles_limpiados);
+    if (Number.isFinite(p)) {
+      panelesPorTrabajo.set(d.trabajo_id, (panelesPorTrabajo.get(d.trabajo_id) ?? 0) + Math.max(0, p));
+    }
+    const a = Number(d.avance_pct);
+    if (Number.isFinite(a)) {
+      const pct = Math.max(0, Math.min(100, Math.round(a)));
+      if (pct > (metaPorTrabajo.get(d.trabajo_id) ?? -1)) metaPorTrabajo.set(d.trabajo_id, pct);
+    }
+  }
+  for (const t of ((trabs ?? []) as any[])) {
+    const zonasTotal = t.planta_id ? zonasPorPlanta.get(t.planta_id) ?? 0 : 0;
+    let completadas = 0;
+    if (zonasTotal > 0) {
+      for (const [k, v] of zonaEstado) {
+        if (k.startsWith(`${t.id}|`) && v === "completada") completadas++;
+      }
+    }
+    const paneles = panelesPorTrabajo.get(t.id) ?? 0;
+    const parqueRaw = Number(t.plantas?.paneles);
+    const parque = Number.isFinite(parqueRaw) && parqueRaw > 0 ? Math.floor(parqueRaw) : null;
+    const pctZonas = zonasTotal > 0 ? Math.round((completadas / zonasTotal) * 100) : null;
+    const pctPaneles = parque ? Math.min(100, Math.round((paneles / parque) * 100)) : null;
+    let pct: number | null = null;
+    let fuente: AvanceOT["fuente"] = "meta";
+    if (t.estado === "completado") {
+      // Una OT cerrada está 100% ejecutada, aunque falten zonas por marcar.
+      pct = 100;
+      fuente = pctZonas !== null && (pctPaneles === null || pctZonas >= pctPaneles) ? "zonas" : "paneles";
+    } else if (pctZonas !== null || pctPaneles !== null) {
+      // Se toma la evidencia más avanzada: zonas marcadas en el mapa o paneles
+      // intervenidos sobre el parque, para no subestimar lo ya ejecutado.
+      pct = Math.max(pctZonas ?? 0, pctPaneles ?? 0);
+      fuente = (pctZonas ?? 0) >= (pctPaneles ?? 0) ? "zonas" : "paneles";
+    } else {
+      pct = metaPorTrabajo.get(t.id) ?? null;
+      fuente = "meta";
+    }
+    if (pct === null) continue;
+    out.set(t.id, { pct, fuente, paneles, parque });
+  }
+  return out;
+}
+
+function kpisAvanceReal(
+  avances: Map<string, AvanceOT>,
   folioPorId: Map<string, string>,
   audiencia: Audiencia = "interno",
 ): ReporteKpi[] {
-  const maxPorTrabajo = new Map<string, number>();
-  for (const d of diarios) {
-    if (!d.trabajo_id) continue;
-    const n = Number(d.avance_pct);
-    if (!Number.isFinite(n)) continue;
-    const pct = Math.max(0, Math.min(100, Math.round(n)));
-    const cur = maxPorTrabajo.get(d.trabajo_id) ?? -1;
-    if (pct > cur) maxPorTrabajo.set(d.trabajo_id, pct);
-  }
-  return Array.from(maxPorTrabajo.entries())
-    .map(([trabajoId, pct]) => ({
+  return Array.from(avances.entries())
+    .map(([trabajoId, a]) => ({
+      pct: a.pct,
       label: etiquetaAvance(audiencia, folioPorId.get(trabajoId) ?? null),
-      value: `${pct}% ${aclaracionAvance(audiencia)}`,
+      value: `${a.pct}% ${aclaracionAvance(audiencia)}`,
     }))
-    .sort((a, b) => b.value.localeCompare(a.value))
-    .slice(0, 2);
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 2)
+    .map(({ label, value }) => ({ label, value }));
 }
 
 function combinarKpisConMetaDiaria(
@@ -692,7 +776,13 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 
     // Restaurar placeholders de nombres oficiales sin aplicar correcciones por similitud.
     const fix = (s: string) => protectorNombres.restaurarTexto(s);
-    const metaDiariaKpis = kpisMetaDiariaDesdeDiarios((reportesDiarios ?? []) as any[], folioPorId as Map<string, string>);
+    const metaDiariaKpis = kpisAvanceReal(
+      await avanceRealPorTrabajo(
+        supabase,
+        Array.from(new Set(((reportesDiarios ?? []) as any[]).map((d) => d.trabajo_id).filter(Boolean))) as string[],
+      ),
+      folioPorId as Map<string, string>,
+    );
     const kpisHumanizados = aiResult.kpis.map((k) => ({
       label: humanizarTexto(fix(k.label)),
       value: humanizarTexto(fix(k.value)),
@@ -841,9 +931,10 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       const { data: dd } = await diariosQb;
       diarios = dd ?? [];
     }
+    const avancesReales = await avanceRealPorTrabajo(supabase, trabajos.map((t) => t.id));
     kpis = combinarKpisConMetaDiaria(
       kpis,
-      kpisMetaDiariaDesdeDiarios(diarios as any[], new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
+      kpisAvanceReal(avancesReales, new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
       audiencia,
     );
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
@@ -1379,17 +1470,35 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         tecnico_id, tecnico, tecnicos, horas_trabajadas, agua_galones, bloqueos,
         trabajo_id, id, created_at, updated_at, fase,
         por_tecnico, aportes, hora_inicio, hora_fin,
+        // avance_pct es la meta diaria interna del equipo: no se envía para que
+        // el texto del cliente no confunda "meta del día" con avance del servicio.
+        avance_pct,
         ...resto
       } = d ?? {};
       return resto;
     };
+    // Avance real del servicio (zonas del mapa → paneles sobre el parque de la
+    // planta), el mismo número que muestra la tarjeta de avance de la OT.
+    const avanceOT = (await avanceRealPorTrabajo(supabase, [data.trabajo_id])).get(data.trabajo_id) ?? null;
     const dataset = {
       cliente: cliente?.nombre,
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
+      avance_servicio: avanceOT
+        ? {
+            porcentaje: avanceOT.pct,
+            paneles_intervenidos: avanceOT.paneles,
+            paneles_totales_planta: avanceOT.parque,
+            base_de_calculo: avanceOT.fuente === "zonas"
+              ? "zonas del layout de la planta completadas"
+              : avanceOT.fuente === "paneles"
+                ? "paneles intervenidos sobre el total de paneles de la planta"
+                : "avance reportado en campo",
+          }
+        : null,
       nota_consolidacion:
-        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones. Úsalo como fuente principal de cifras. Este reporte es para el cliente: no menciones personas, dotación, horarios, horas trabajadas ni consumo de agua, aunque creas inferirlos.",
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas y mediciones. Úsalo como fuente principal de cifras. El único porcentaje de avance válido es 'avance_servicio.porcentaje': no calcules ni inventes otros porcentajes de avance. Este reporte es para el cliente: no menciones personas, dotación, horarios, horas trabajadas ni consumo de agua, aunque creas inferirlos.",
       reportes_diarios_consolidados: consolidados.map(depurarDia),
       reportes_diarios: diarios.map(depurarDia),
     };
@@ -1462,7 +1571,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
       "AUDIENCIA CLIENTE: este reporte se entrega directamente al cliente dueño de la planta. Enfócate exclusivamente en información de interés para él: avance del servicio, paneles intervenidos, mediciones de calidad (presión de agua PSI, sólidos disueltos TDS, ángulo de inclinación, potencia de paneles en watts), hallazgos sobre la condición de su planta y recomendaciones de cuidado o mantenimiento.",
       "PROHIBIDO TEMAS INTERNOS: nunca menciones nombres de técnicos ni dotación, horas trabajadas u horas hombre, jornadas o cumplimiento de metas internas, consumo de agua del equipo, bloqueos o problemas de coordinación interna, ni costos. Todo eso es información operativa interna de la empresa y no debe aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: presenta los porcentajes de avance como 'avance del servicio' o 'avance de la intervención en su planta', redactados en lenguaje claro para el cliente (por ejemplo, KPI: 'Avance del servicio': '85%').", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
+      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_servicio.porcentaje' del dataset. Cítalo tal cual como 'avance del servicio en su planta' (por ejemplo, KPI: 'Avance del servicio': '85%'). No calcules porcentajes propios, no uses porcentajes de los días individuales y nunca hables de metas diarias ni de cumplimiento de metas.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
       "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si el dataset incluye estas lecturas, deben aparecer sí o sí en los KPIs o en el resumen.",
     ].join(" ");
     const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
@@ -1554,8 +1663,8 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
-      const metaDiariaKpis = kpisMetaDiariaDesdeDiarios(
-        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+      const metaDiariaKpis = kpisAvanceReal(
+        await avanceRealPorTrabajo(supabase, [data.trabajo_id]),
         new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
         "cliente",
       );

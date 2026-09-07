@@ -317,8 +317,15 @@ export const getAvanceTrabajo = createServerFn({ method: "GET" })
     const avancePaneles = panelesPlanta > 0
       ? Math.min(100, Math.round((paneles / panelesPlanta) * 100))
       : null;
-    // Prioridad: zonas marcadas en el mapa → paneles limpiados → meta diaria.
-    const avance = avanceZonas ?? avancePaneles ?? metaMax;
+    // Una OT cerrada está 100% ejecutada; si sigue abierta se toma la evidencia
+    // más avanzada (zonas marcadas en el mapa o paneles intervenidos) y, si no
+    // hay ninguna, la meta diaria reportada. Igual criterio que el reporte
+    // ejecutivo, para que ambos muestren el mismo porcentaje.
+    const avance = (trab as any).estado === "completado"
+      ? 100
+      : avanceZonas !== null || avancePaneles !== null
+        ? Math.max(avanceZonas ?? 0, avancePaneles ?? 0)
+        : metaMax;
 
     return {
       trabajo_id: (trab as any).id as string,
