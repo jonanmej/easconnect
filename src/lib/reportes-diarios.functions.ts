@@ -72,12 +72,31 @@ export const upsertReporteDiario = createServerFn({ method: "POST" })
         payload.tecnico_id = (prev as any).tecnico_id;
       }
     }
-    const { data: row, error } = await context.supabase
-      .from("trabajo_reportes_diarios")
-      .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id,fase" })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+    // Con id existente se hace UPDATE directo: el upsert dispararía la
+    // validación de inserción (que exige tecnico_id = usuario actual) y el
+    // staff sería rechazado al editar el reporte de otro técnico.
+    const q = payload.id
+      ? context.supabase
+          .from("trabajo_reportes_diarios")
+          .update(payload)
+          .eq("id", payload.id)
+          .select()
+          .single()
+      : context.supabase
+          .from("trabajo_reportes_diarios")
+          .upsert(payload, { onConflict: "trabajo_id,fecha,tecnico_id,fase" })
+          .select()
+          .single();
+    const { data: row, error } = await q;
+    if (error) {
+      if (/row-level security/i.test(error.message)) {
+        throw new Error(
+          "Tu cuenta no tiene permisos para registrar reportes diarios. Pide al administrador que te asigne el rol de técnico.",
+        );
+      }
+      throw new Error(error.message);
+    }
+
     try {
       const { data: trab } = await context.supabase
         .from("trabajos").select("folio, servicio").eq("id", data.trabajo_id).single();
