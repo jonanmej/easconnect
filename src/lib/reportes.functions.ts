@@ -162,7 +162,7 @@ async function avanceRealPorTrabajo(
   const out = new Map<string, AvanceOT>();
   if (!trabajoIds.length) return out;
   const [{ data: trabs }, { data: diarios }, { data: marcas }] = await Promise.all([
-    supabase.from("trabajos").select("id, planta_id, plantas(paneles)").in("id", trabajoIds),
+    supabase.from("trabajos").select("id, estado, planta_id, plantas(paneles)").in("id", trabajoIds),
     supabase.from("trabajo_reportes_diarios")
       .select("trabajo_id, paneles_limpiados, avance_pct").in("trabajo_id", trabajoIds),
     supabase.from("reporte_diario_zonas")
@@ -210,14 +210,19 @@ async function avanceRealPorTrabajo(
     const paneles = panelesPorTrabajo.get(t.id) ?? 0;
     const parqueRaw = Number(t.plantas?.paneles);
     const parque = Number.isFinite(parqueRaw) && parqueRaw > 0 ? Math.floor(parqueRaw) : null;
+    const pctZonas = zonasTotal > 0 ? Math.round((completadas / zonasTotal) * 100) : null;
+    const pctPaneles = parque ? Math.min(100, Math.round((paneles / parque) * 100)) : null;
     let pct: number | null = null;
     let fuente: AvanceOT["fuente"] = "meta";
-    if (zonasTotal > 0 && (completadas > 0 || paneles === 0)) {
-      pct = Math.round((completadas / zonasTotal) * 100);
-      fuente = "zonas";
-    } else if (parque) {
-      pct = Math.min(100, Math.round((paneles / parque) * 100));
-      fuente = "paneles";
+    if (t.estado === "completado") {
+      // Una OT cerrada está 100% ejecutada, aunque falten zonas por marcar.
+      pct = 100;
+      fuente = pctZonas !== null && (pctPaneles === null || pctZonas >= pctPaneles) ? "zonas" : "paneles";
+    } else if (pctZonas !== null || pctPaneles !== null) {
+      // Se toma la evidencia más avanzada: zonas marcadas en el mapa o paneles
+      // intervenidos sobre el parque, para no subestimar lo ya ejecutado.
+      pct = Math.max(pctZonas ?? 0, pctPaneles ?? 0);
+      fuente = (pctZonas ?? 0) >= (pctPaneles ?? 0) ? "zonas" : "paneles";
     } else {
       pct = metaPorTrabajo.get(t.id) ?? null;
       fuente = "meta";
