@@ -548,8 +548,11 @@ export const generarReporte = createServerFn({ method: "POST" })
           .in("trabajo_id", tIdsArr)
           .order("fecha", { ascending: true })
       : { data: [] as any[] };
+    // Avance real por OT (mismo cálculo que la tarjeta de avance de la OT).
+    const avancesRealesCtx: Map<string, AvanceOT> = await avanceRealPorTrabajo(supabase, tIdsArr);
 
     const datasetCtxRaw = {
+
       cliente: cliente?.nombre,
       planta: planta?.nombre ?? "Todas las plantas",
       periodo: data.periodo,
@@ -580,7 +583,14 @@ export const generarReporte = createServerFn({ method: "POST" })
         observaciones_cliente: r.cliente_observaciones,
       })),
       nota_consolidacion:
-        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas, el avance es el máximo reportado y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre.",
+        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre. Los porcentajes de avance NO están en los días: el único avance válido es 'avance_por_ot'.",
+      avance_por_ot: Array.from(avancesRealesCtx.entries()).map(([tid, a]) => ({
+        folio: folioPorId.get(tid) ?? null,
+        porcentaje: a.pct,
+        paneles_intervenidos: a.paneles,
+        paneles_totales_planta: a.parque,
+        base_de_calculo: a.fuente === "zonas" ? "áreas de la planta marcadas como terminadas" : a.fuente === "paneles" ? "paneles intervenidos sobre el parque de la planta" : "avance reportado por el equipo",
+      })),
       reportes_diarios: diariosConsolidados.slice(0, 60).map((r) => ({
         folio: r.trabajo_id ? folioPorId.get(r.trabajo_id) ?? null : null,
         fecha: r.fecha,
@@ -588,7 +598,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         aportes_tecnicos: r.aportes,
         hora_inicio: r.hora_inicio,
         hora_fin: r.hora_fin,
-        avance_pct: r.avance_pct,
+
         paneles_limpiados: r.paneles_limpiados,
         agua_galones: r.agua_galones,
         horas_trabajadas: r.horas_trabajadas,
@@ -684,7 +694,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
       "Si encuentras placeholders con formato @@NOMBRE_CANONICO_N@@, consérvalos exactamente; representan nombres oficiales que serán restaurados después.",
       "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS del agua utilizada (ppm), ángulo de inclinación de los paneles (°), presión de agua (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Para TDS, ángulo de inclinación y presión de agua NO calcules promedios: enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: todo porcentaje de avance del dataset mide el cumplimiento de la meta diaria comprometida en cada trabajo, NO el porcentaje del parque total de paneles de la planta. Al citarlo en KPIs, resumen o hallazgos, redáctalo explícitamente como 'cumplimiento de la meta diaria' (por ejemplo, KPI: 'Cumplimiento de meta diaria': '92% respecto de la meta diaria comprometida') y nunca lo presentes como avance del parque instalado.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
+      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_por_ot[].porcentaje'. Cítalo como 'avance del servicio' de esa OT (por ejemplo, KPI: 'Avance del servicio OT T-123': '100%'). Los reportes diarios NO contienen porcentajes: no calcules, estimes ni inventes porcentajes por día, y nunca hables de 'meta diaria' ni de 'cumplimiento de la meta'.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
     ].join(" ");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
@@ -1110,44 +1120,32 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     const graficas: { titulo: string; descripcion?: string; fuente: string; series: { label: string; value: number }[]; unidad?: string }[] = [];
 
-    // ---- Avance diario vs. objetivo por trabajo -----------------------------
-    // Fuente: trabajo_reportes_diarios.avance_pct (0–100) — el técnico marca
-    // el avance por día, comparado contra el 100% que debe finalizarse.
+    // ---- Avance real del servicio por trabajo -------------------------------
+    // Fuente: mismo cálculo que la tarjeta de avance de la OT (áreas marcadas
+    // en el mapa → paneles intervenidos sobre el parque → estado de la OT).
     if (diarios.length) {
       const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
-      // Estado real de cada trabajo (un trabajo "completado" cuenta 100%
-      // independientemente del avance_pct reportado en su último diario).
-      const estadoPorTrabajo = new Map<string, string>();
-      for (const t of trabajos) estadoPorTrabajo.set(t.id, String(t.estado ?? ""));
-      // Máximo avance_pct reportado por trabajo en sus reportes diarios.
-      const maxAvancePorTrabajo = new Map<string, number>();
-      for (const d of diarios) {
-        const v = Number(d.avance_pct ?? 0);
-        const cur = maxAvancePorTrabajo.get(d.trabajo_id) ?? 0;
-        if (v > cur) maxAvancePorTrabajo.set(d.trabajo_id, v);
-      }
       // Universo: todo trabajo con al menos un reporte diario en el periodo.
       const trabajosConDiario = new Set(diarios.map((d) => d.trabajo_id));
       const avanceSeries = Array.from(trabajosConDiario)
-        .map((tid) => {
-          const estado = estadoPorTrabajo.get(tid) ?? "";
-          const reportado = maxAvancePorTrabajo.get(tid) ?? 0;
-          const pct = estado === "completado"
-            ? 100
-            : Math.max(0, Math.min(100, Math.round(reportado)));
-          return { label: folioPorId.get(tid) ?? "—", value: pct };
-        })
+        .map((tid) => ({
+          label: folioPorId.get(tid) ?? "—",
+          value: Math.max(0, Math.min(100, Math.round(avancesReales.get(tid)?.pct ?? 0))),
+        }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
       if (avanceSeries.length) {
         graficas.push({
-          titulo: "Cumplimiento de la meta diaria por trabajo (%)",
-            descripcion: "Porcentaje de cumplimiento de la meta diaria comprometida en cada trabajo, según lo reportado por el equipo en campo. No corresponde al avance sobre el parque total de paneles de la planta.",
-            fuente: "Reportes diarios · cumplimiento de meta diaria · estado de la OT",
+          titulo: "Avance del servicio por trabajo (%)",
+          descripcion: audiencia === "cliente"
+            ? "Avance del servicio realizado en su planta, calculado sobre las áreas y los paneles ya intervenidos."
+            : "Avance real de cada OT calculado sobre las áreas marcadas en el mapa y los paneles intervenidos del parque de la planta (mismo valor que la tarjeta de avance de la OT).",
+          fuente: "Áreas marcadas en el mapa · paneles intervenidos · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
       }
+
 
       // Paneles limpiados acumulados por día — muestra ritmo de ejecución.
       const panelesPorDia = new Map<string, number>();
