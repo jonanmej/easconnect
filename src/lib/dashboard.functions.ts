@@ -237,6 +237,7 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       diaHabilAnteriorSV,
       siguienteDiaHabilSV,
       formatearDiaHabilSV,
+      diasHabilesEntreSV,
     } = await import("@/lib/dias-habiles");
     const { data: trabajos, error } = await supabase
       .from("trabajos")
@@ -328,8 +329,10 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
         ? new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime()
         : refStart;
       const finDia = inicioDia + (duracion - 1) * 86400000;
-      // Si la OT ya venció, se asume 1 día restante (no valores 0 ni negativos).
-      const diasCrudos = Math.round((finDia - refStart) / 86400000) + 1;
+      // Días hábiles que restan de la OT (sin fines de semana ni feriados),
+      // porque la programación tampoco ocupa esos días. Si la OT ya venció,
+      // se asume 1 día restante (no valores 0 ni negativos).
+      const diasCrudos = diasHabilesEntreSV(refStart, finDia);
       const diasRestantes = Math.max(1, Number.isFinite(diasCrudos) ? diasCrudos : 1);
       // Excedentes previos (>100%) reducen el pendiente, nunca lo vuelven negativo.
       const acumuladoPrevio = Math.min(parque, Math.max(0, acumulado - diaTrab));

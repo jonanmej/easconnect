@@ -550,7 +550,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           <Text style={styles.sectionTitle}>Indicadores Clave</Text>
           <Text style={{ fontSize: 8, color: COL.muted, marginBottom: 6, lineHeight: 1.4 }}>
             {ejec
-              ? "Nota: los porcentajes indican el avance del servicio comprometido para su planta en el período informado."
+              ? "Nota: el avance del servicio se calcula sobre las áreas y los paneles de su planta ya intervenidos."
               : "Nota: los porcentajes de avance corresponden al cumplimiento de la meta diaria comprometida para cada trabajo (paneles y actividades planificados por jornada), no al porcentaje del parque total de la planta."}
           </Text>
           {data.kpis.length > 0 && (
@@ -748,7 +748,9 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           ];
           // En el reporte del cliente se omiten los datos internos de operación
           // (dotación, jornada laboral y horas hombre): solo el estado de su planta.
-          const OMITIR_EJEC = new Set(["tecnicos", "jornada", "horas"]);
+          // También se omite la meta diaria del equipo: el avance del servicio se
+          // informa una sola vez en los indicadores, calculado sobre la planta.
+          const OMITIR_EJEC = new Set(["tecnicos", "jornada", "horas", "meta"]);
           const visibles = ejec ? colsBase.filter((c) => !OMITIR_EJEC.has(c.key)) : colsBase;
           const sumaAncho = visibles.reduce((a, c) => a + c.ancho, 0) || 100;
           const cols = visibles.map((c) => ({ ...c, ancho: (c.ancho / sumaAncho) * 100 }));
@@ -792,7 +794,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               <Text style={styles.sectionTitle}>{ejec ? "Detalle diario del servicio en su planta" : "Detalle diario de campo"}</Text>
               <Text style={{ fontSize: 8.5, color: COL.muted, marginBottom: 6, fontFamily: FONT_OBL }}>
                 {ejec
-                  ? "Resultado por día del servicio realizado en la planta: paneles atendidos, potencia asociada y mediciones tomadas en sitio. El avance indica lo ejecutado del servicio comprometido para su planta."
+                  ? "Resultado por día del servicio realizado en la planta: paneles atendidos, potencia asociada y mediciones tomadas en sitio. El avance total del servicio se informa en los indicadores clave."
                   : "Registro operativo por día, con la jornada marcada por el equipo en campo (hora de inicio y de finalización). El avance corresponde al cumplimiento de la meta diaria planificada de la OT, no al avance total del parque. Cuando más de un técnico reporta el mismo día, las cantidades se suman y las mediciones se promedian en una sola línea."}
               </Text>
               <View style={styles.table}>
