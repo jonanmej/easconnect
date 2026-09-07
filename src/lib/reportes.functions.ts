@@ -1339,21 +1339,32 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     const nombrePorId = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "Técnico"]));
 
+    // Dataset depurado para el reporte EJECUTIVO DE CLIENTE: se excluye toda la
+    // información operativa interna (técnicos, horas, dotación, bloqueos,
+    // consumo de agua) y se conserva solo lo relevante para el cliente:
+    // avance, paneles, mediciones (PSI, TDS, ángulo, watts), hallazgos y
+    // observaciones técnicas de la planta.
+    const consolidados = (await import("@/lib/consolidar-diarios")).consolidarDiarios(
+      diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
+      nombrePorId,
+    );
+    const depurarDia = (d: any) => {
+      const {
+        tecnico_id, tecnico, tecnicos, horas_trabajadas, agua_galones, bloqueos,
+        trabajo_id, id, created_at, updated_at, fase,
+        ...resto
+      } = d ?? {};
+      return resto;
+    };
     const dataset = {
       cliente: cliente?.nombre,
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
       total_dias_reportados: diarios.length,
       nota_consolidacion:
-        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones promediadas. Úsalo como fuente principal de cifras.",
-      reportes_diarios_consolidados: (await import("@/lib/consolidar-diarios")).consolidarDiarios(
-        diarios.map((d: any) => ({ ...d, trabajo_id: data.trabajo_id })),
-        nombrePorId,
-      ),
-      reportes_diarios: diarios.map((d: any) => ({
-        ...d,
-        tecnico: nombrePorId.get(d.tecnico_id) ?? "Técnico",
-      })),
+        "Varios técnicos pueden reportar el mismo día. En 'reportes_diarios_consolidados' cada día ya combina a todo el equipo: cantidades sumadas, avance máximo y mediciones. Úsalo como fuente principal de cifras. El dataset ya excluye datos operativos internos de la empresa.",
+      reportes_diarios_consolidados: consolidados.map(depurarDia),
+      reportes_diarios: diarios.map(depurarDia),
     };
 
     // Descargar y adjuntar los PDFs (hasta 6 y 20MB totales) para que el modelo
