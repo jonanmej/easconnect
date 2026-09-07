@@ -1120,44 +1120,32 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     const graficas: { titulo: string; descripcion?: string; fuente: string; series: { label: string; value: number }[]; unidad?: string }[] = [];
 
-    // ---- Avance diario vs. objetivo por trabajo -----------------------------
-    // Fuente: trabajo_reportes_diarios.avance_pct (0–100) — el técnico marca
-    // el avance por día, comparado contra el 100% que debe finalizarse.
+    // ---- Avance real del servicio por trabajo -------------------------------
+    // Fuente: mismo cálculo que la tarjeta de avance de la OT (áreas marcadas
+    // en el mapa → paneles intervenidos sobre el parque → estado de la OT).
     if (diarios.length) {
       const folioPorId = new Map(trabajos.map((t) => [t.id, t.folio]));
-      // Estado real de cada trabajo (un trabajo "completado" cuenta 100%
-      // independientemente del avance_pct reportado en su último diario).
-      const estadoPorTrabajo = new Map<string, string>();
-      for (const t of trabajos) estadoPorTrabajo.set(t.id, String(t.estado ?? ""));
-      // Máximo avance_pct reportado por trabajo en sus reportes diarios.
-      const maxAvancePorTrabajo = new Map<string, number>();
-      for (const d of diarios) {
-        const v = Number(d.avance_pct ?? 0);
-        const cur = maxAvancePorTrabajo.get(d.trabajo_id) ?? 0;
-        if (v > cur) maxAvancePorTrabajo.set(d.trabajo_id, v);
-      }
       // Universo: todo trabajo con al menos un reporte diario en el periodo.
       const trabajosConDiario = new Set(diarios.map((d) => d.trabajo_id));
       const avanceSeries = Array.from(trabajosConDiario)
-        .map((tid) => {
-          const estado = estadoPorTrabajo.get(tid) ?? "";
-          const reportado = maxAvancePorTrabajo.get(tid) ?? 0;
-          const pct = estado === "completado"
-            ? 100
-            : Math.max(0, Math.min(100, Math.round(reportado)));
-          return { label: folioPorId.get(tid) ?? "—", value: pct };
-        })
+        .map((tid) => ({
+          label: folioPorId.get(tid) ?? "—",
+          value: Math.max(0, Math.min(100, Math.round(avancesReales.get(tid)?.pct ?? 0))),
+        }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
       if (avanceSeries.length) {
         graficas.push({
-          titulo: "Cumplimiento de la meta diaria por trabajo (%)",
-            descripcion: "Porcentaje de cumplimiento de la meta diaria comprometida en cada trabajo, según lo reportado por el equipo en campo. No corresponde al avance sobre el parque total de paneles de la planta.",
-            fuente: "Reportes diarios · cumplimiento de meta diaria · estado de la OT",
+          titulo: "Avance del servicio por trabajo (%)",
+          descripcion: audiencia === "cliente"
+            ? "Avance del servicio realizado en su planta, calculado sobre las áreas y los paneles ya intervenidos."
+            : "Avance real de cada OT calculado sobre las áreas marcadas en el mapa y los paneles intervenidos del parque de la planta (mismo valor que la tarjeta de avance de la OT).",
+          fuente: "Áreas marcadas en el mapa · paneles intervenidos · estado de la OT",
           unidad: "%",
           series: avanceSeries,
         });
       }
+
 
       // Paneles limpiados acumulados por día — muestra ritmo de ejecución.
       const panelesPorDia = new Map<string, number>();
