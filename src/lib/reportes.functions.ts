@@ -580,7 +580,14 @@ export const generarReporte = createServerFn({ method: "POST" })
         observaciones_cliente: r.cliente_observaciones,
       })),
       nota_consolidacion:
-        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas, el avance es el máximo reportado y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre.",
+        "Cada fila de reportes_diarios ya consolida a TODOS los técnicos que reportaron esa OT en ese día: las cantidades (paneles, agua, horas) están sumadas y las mediciones son el promedio del equipo. Nunca atribuyas el día a un solo técnico si 'tecnicos' trae más de un nombre. Los porcentajes de avance NO están en los días: el único avance válido es 'avance_por_ot'.",
+      avance_por_ot: Array.from(avancesRealesCtx.entries()).map(([tid, a]) => ({
+        folio: folioPorId.get(tid) ?? null,
+        porcentaje: a.pct,
+        paneles_intervenidos: a.paneles,
+        paneles_totales_planta: a.parque,
+        base_de_calculo: a.fuente === "zonas" ? "áreas de la planta marcadas como terminadas" : a.fuente === "paneles" ? "paneles intervenidos sobre el parque de la planta" : "avance reportado por el equipo",
+      })),
       reportes_diarios: diariosConsolidados.slice(0, 60).map((r) => ({
         folio: r.trabajo_id ? folioPorId.get(r.trabajo_id) ?? null : null,
         fecha: r.fecha,
@@ -588,7 +595,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         aportes_tecnicos: r.aportes,
         hora_inicio: r.hora_inicio,
         hora_fin: r.hora_fin,
-        avance_pct: r.avance_pct,
+
         paneles_limpiados: r.paneles_limpiados,
         agua_galones: r.agua_galones,
         horas_trabajadas: r.horas_trabajadas,
