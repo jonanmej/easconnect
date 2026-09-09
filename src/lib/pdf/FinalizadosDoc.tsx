@@ -18,47 +18,205 @@ const FONT_BOLD = "Helvetica-Bold";
 const COL = {
   bg: "#2E4A87",
   primary: "#5B7FBF",
-  primarySoft: "#DDE6F4",
+  primarySoft: "#E8EEF8",
   text: "#1f2937",
   muted: "#64748b",
-  border: "#e2e8f0",
+  border: "#cbd5e1",
   panel: "#f8fafc",
-  ok: "#10b981",
+  ok: "#059669",
 };
 
 const s = StyleSheet.create({
-  page: { paddingTop: 90, paddingBottom: 78, paddingLeft: 40, paddingRight: 36, fontSize: 8.5, color: COL.text, fontFamily: FONT_REG },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: COL.primary },
-  headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 10 },
-  headerLeftText: { flex: 1 },
-  headerRight: { width: 165, alignItems: "flex-end" },
-  headerTitle: { fontSize: 7, color: COL.bg, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_BOLD },
-  headerSub: { fontSize: 6.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 },
-  headerRightTop: { fontSize: 7.5, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
-  headerRightBot: { fontSize: 7, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.5 },
-  logoEa: { height: 30, objectFit: "contain", marginRight: 8 },
-  footerLogoPv: { height: 14, objectFit: "contain" },
-  footerLogoCh: { height: 11, objectFit: "contain" },
-  pageFooter: { position: "absolute", bottom: 22, left: 40, right: 36, flexDirection: "row", justifyContent: "space-between", alignItems: "center", fontSize: 7, color: COL.muted, borderTopWidth: 0.75, borderTopColor: COL.primary, paddingTop: 5 },
+  page: {
+    paddingTop: 96,
+    paddingBottom: 78,
+    paddingLeft: 48,
+    paddingRight: 48,
+    fontSize: 10,
+    color: COL.text,
+    fontFamily: FONT_REG,
+    lineHeight: 1.35,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+    paddingBottom: 8,
+    borderBottomWidth: 1.5,
+    borderBottomColor: COL.bg,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerText: {
+    flexDirection: "column",
+  },
+  headerTitle: {
+    fontSize: 9,
+    color: COL.bg,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    fontFamily: FONT_BOLD,
+  },
+  headerSub: {
+    fontSize: 8,
+    color: COL.muted,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerPeriod: {
+    fontSize: 10,
+    fontFamily: FONT_BOLD,
+    color: COL.text,
+    textAlign: "right",
+  },
+  headerMeta: {
+    fontSize: 7.5,
+    color: COL.muted,
+    textAlign: "right",
+    marginTop: 2,
+  },
+  logoEa: { height: 28, objectFit: "contain" },
+  footerLogoPv: { height: 12, objectFit: "contain" },
+  footerLogoCh: { height: 10, objectFit: "contain" },
+  pageFooter: {
+    position: "absolute",
+    bottom: 26,
+    left: 48,
+    right: 48,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: 7.5,
+    color: COL.muted,
+    borderTopWidth: 0.75,
+    borderTopColor: COL.primary,
+    paddingTop: 6,
+  },
   pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { fontSize: 14, fontFamily: FONT_BOLD, marginBottom: 3, color: COL.bg },
-  subtitle: { fontSize: 8, color: COL.muted, marginBottom: 8 },
-  titleRule: { width: 36, height: 2, backgroundColor: COL.primary, marginBottom: 10 },
-  filtros: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10, padding: 6, backgroundColor: COL.panel, borderWidth: 0.75, borderColor: COL.border, borderRadius: 3 },
-  filtro: { fontSize: 7, color: COL.muted },
-  summaryRow: { flexDirection: "row", gap: 6, marginBottom: 12 },
-  summaryCard: { flex: 1, padding: 8, borderWidth: 0.75, borderColor: COL.border, borderLeftWidth: 3, borderLeftColor: COL.primary, borderRadius: 3, backgroundColor: COL.panel },
-  summaryLabel: { fontSize: 6.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3, fontFamily: FONT_BOLD },
-  summaryValue: { fontSize: 12, fontFamily: FONT_BOLD, color: COL.bg },
-  clienteBlock: { marginBottom: 14 },
-  clienteHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COL.primarySoft, paddingVertical: 4, paddingHorizontal: 6, borderRadius: 3, marginBottom: 4 },
-  clienteName: { fontSize: 9, fontFamily: FONT_BOLD, color: COL.bg },
-  clienteMeta: { fontSize: 7, color: COL.muted },
-  plantaName: { fontSize: 7.5, fontFamily: FONT_BOLD, color: COL.text, marginTop: 5, marginBottom: 2 },
-  table: { borderWidth: 1, borderColor: COL.border, borderRadius: 3 },
-  tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COL.border },
-  th: { padding: 4, fontSize: 6.5, fontFamily: FONT_BOLD, color: "#fff", backgroundColor: COL.bg, textTransform: "uppercase" },
-  td: { padding: 4, fontSize: 7, lineHeight: 1.3 },
+  title: {
+    fontSize: 18,
+    fontFamily: FONT_BOLD,
+    marginBottom: 4,
+    color: COL.bg,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 9.5,
+    color: COL.muted,
+    marginBottom: 14,
+  },
+  titleRule: {
+    width: 40,
+    height: 2.5,
+    backgroundColor: COL.primary,
+    marginBottom: 16,
+  },
+  filtros: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 18,
+    padding: 8,
+    backgroundColor: COL.panel,
+    borderWidth: 0.75,
+    borderColor: COL.border,
+    borderRadius: 4,
+  },
+  filtro: { fontSize: 8, color: COL.muted },
+  summaryRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  summaryCard: {
+    flex: 1,
+    padding: 10,
+    borderWidth: 0.75,
+    borderColor: COL.border,
+    borderLeftWidth: 3,
+    borderLeftColor: COL.bg,
+    borderRadius: 4,
+    backgroundColor: COL.panel,
+  },
+  summaryLabel: {
+    fontSize: 7.5,
+    color: COL.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 3,
+    fontFamily: FONT_BOLD,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontFamily: FONT_BOLD,
+    color: COL.bg,
+  },
+  clienteBlock: {
+    marginBottom: 18,
+  },
+  clienteHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: COL.bg,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  clienteName: {
+    fontSize: 11,
+    fontFamily: FONT_BOLD,
+    color: "#fff",
+  },
+  clienteMeta: {
+    fontSize: 8,
+    color: "#e2e8f0",
+  },
+  plantaBlock: {
+    marginBottom: 10,
+    paddingLeft: 8,
+  },
+  plantaName: {
+    fontSize: 10,
+    fontFamily: FONT_BOLD,
+    color: COL.text,
+    marginBottom: 4,
+    paddingBottom: 3,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COL.border,
+  },
+  fechasRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  fechaPill: {
+    fontSize: 9,
+    color: COL.text,
+    backgroundColor: COL.primarySoft,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  empty: {
+    fontSize: 9.5,
+    color: COL.muted,
+    textAlign: "center",
+    marginTop: 30,
+  },
+  note: {
+    fontSize: 8,
+    color: COL.muted,
+    marginTop: 18,
+    textAlign: "center",
+  },
 });
 
 export type FinalizadoFila = {
@@ -93,9 +251,9 @@ function fechaLarga(iso: string) {
   try {
     return new Date(iso).toLocaleDateString("es-SV", {
       timeZone: TZ,
-      weekday: "short",
+      weekday: "long",
       day: "2-digit",
-      month: "short",
+      month: "long",
       year: "numeric",
     });
   } catch {
@@ -103,31 +261,22 @@ function fechaLarga(iso: string) {
   }
 }
 
-function hora(iso: string) {
-  try {
-    return new Date(iso).toLocaleTimeString("es-SV", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "—";
-  }
-}
-
 function PageHeaderView({ data }: { data: FinalizadosData }) {
   const codigo = `${data.documento_codigo ?? "EA-FIN"} · v${data.documento_version ?? "1.0"}`;
   return (
-    <View fixed style={{ position: "absolute", top: 22, left: 40, right: 36 }}>
+    <View fixed style={{ position: "absolute", top: 28, left: 48, right: 48 }}>
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Image src={LOGO_EA()} style={s.logoEa} />
-          <View style={s.headerLeftText}>
+          <View style={s.headerText}>
             <Text style={s.headerTitle}>EA SERVICE AND CONSULTING</Text>
             <Text style={s.headerSub}>Trabajos finalizados por cliente</Text>
           </View>
         </View>
         <View style={s.headerRight}>
-          <Text style={s.headerRightTop}>{data.periodo}</Text>
-          <Text style={s.headerRightBot}>Emitido: {data.emitido_at}</Text>
-          <Text style={s.headerRightBot}>{codigo}</Text>
-          <Text style={s.headerRightBot}>{data.documento_clasificacion ?? "Uso interno"}</Text>
+          <Text style={s.headerPeriod}>{data.periodo}</Text>
+          <Text style={s.headerMeta}>Emitido: {data.emitido_at}</Text>
+          <Text style={s.headerMeta}>{codigo}</Text>
         </View>
       </View>
     </View>
@@ -136,7 +285,6 @@ function PageHeaderView({ data }: { data: FinalizadosData }) {
 
 function PageFooterView({ data }: { data: FinalizadosData }) {
   const docId = data.documento_id ? data.documento_id.slice(0, 8).toUpperCase() : "—";
-  const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
   return (
     <View style={s.pageFooter} fixed>
       <View style={s.pageFooterLogos}>
@@ -144,7 +292,7 @@ function PageFooterView({ data }: { data: FinalizadosData }) {
         <Image src={LOGO_CHEMITEK()} style={s.footerLogoCh} />
       </View>
       <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
-        <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
+        <Text>ID Doc: {docId}</Text>
         <Text>Retención documental: 5 años · ISO 9001:2015 §7.5</Text>
       </View>
       <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
@@ -170,9 +318,9 @@ function agrupar(filas: FinalizadoFila[]) {
         .sort((a, b) => a[0].localeCompare(b[0], "es"))
         .map(([planta, trabajos]) => ({
           planta,
-          trabajos: [...trabajos].sort(
-            (a, b) => new Date(b.fecha_completado).getTime() - new Date(a.fecha_completado).getTime(),
-          ),
+          fechas: [...trabajos]
+            .sort((a, b) => new Date(b.fecha_completado).getTime() - new Date(a.fecha_completado).getTime())
+            .map((t) => fechaLarga(t.fecha_completado)),
         })),
     }));
 }
@@ -186,10 +334,10 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
       author="EA Service and Consulting"
       subject={`Trabajos finalizados · ${data.periodo}`}
     >
-      <Page size="A4" orientation="landscape" style={s.page}>
+      <Page size="A4" orientation="portrait" style={s.page}>
         <PageHeaderView data={data} />
         <Text style={s.title}>Trabajos finalizados por cliente</Text>
-        <Text style={s.subtitle}>Fecha y hora exacta de finalización de los servicios ejecutados · {data.periodo}</Text>
+        <Text style={s.subtitle}>Planta y fecha de finalización de los servicios ejecutados · {data.periodo}</Text>
         <View style={s.titleRule} />
 
         {data.filtros.length > 0 && (
@@ -222,36 +370,17 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
             <View style={s.clienteHead}>
               <Text style={s.clienteName}>{g.cliente}</Text>
               <Text style={s.clienteMeta}>
-                {g.plantas.length} planta(s) · {g.total} trabajo(s) finalizado(s)
+                {g.plantas.length} planta(s) · {g.total} servicio(s)
               </Text>
             </View>
             {g.plantas.map((p) => (
-              <View key={p.planta}>
-                <Text style={s.plantaName}>Planta: {p.planta}</Text>
-                <View style={s.table}>
-                  <View style={s.tr}>
-                    <Text style={[s.th, { flex: 1 }]}>OT</Text>
-                    <Text style={[s.th, { flex: 1.6 }]}>Servicio</Text>
-                    <Text style={[s.th, { flex: 1.8 }]}>Día de finalización</Text>
-                    <Text style={[s.th, { flex: 0.8, textAlign: "right" }]}>Hora</Text>
-                    <Text style={[s.th, { flex: 1.4 }]}>Programado</Text>
-                    <Text style={[s.th, { flex: 0.7, textAlign: "right" }]}>Días</Text>
-                    <Text style={[s.th, { flex: 1.5 }]}>Responsable</Text>
-                    <Text style={[s.th, { flex: 1.5 }]}>Recibido / firmado</Text>
-                  </View>
-                  {p.trabajos.map((t, i) => (
-                    <View key={t.id} style={[s.tr, i === p.trabajos.length - 1 ? { borderBottomWidth: 0 } : {}]}>
-                      <Text style={[s.td, { flex: 1, fontFamily: "Courier" }]}>{t.folio}</Text>
-                      <Text style={[s.td, { flex: 1.6 }]}>{t.servicio}</Text>
-                      <Text style={[s.td, { flex: 1.8, fontFamily: FONT_BOLD }]}>{fechaLarga(t.fecha_completado)}</Text>
-                      <Text style={[s.td, { flex: 0.8, textAlign: "right", fontFamily: "Courier" }]}>{hora(t.fecha_completado)}</Text>
-                      <Text style={[s.td, { flex: 1.4, color: COL.muted }]}>{fechaLarga(t.fecha_programada)}</Text>
-                      <Text style={[s.td, { flex: 0.7, textAlign: "right", fontFamily: "Courier" }]}>{t.duracion_dias}</Text>
-                      <Text style={[s.td, { flex: 1.5 }]}>{t.tecnico ?? "—"}</Text>
-                      <Text style={[s.td, { flex: 1.5 }]}>
-                        {t.firmado_at ? `${t.firmado_por ?? "Cliente"} · ${fechaLarga(t.firmado_at)}` : "Sin firma registrada"}
-                      </Text>
-                    </View>
+              <View key={p.planta} style={s.plantaBlock}>
+                <Text style={s.plantaName}>{p.planta}</Text>
+                <View style={s.fechasRow}>
+                  {p.fechas.map((f, i) => (
+                    <Text key={i} style={s.fechaPill}>
+                      {f}
+                    </Text>
                   ))}
                 </View>
               </View>
@@ -260,8 +389,14 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
         ))}
 
         {data.filas.length === 0 && (
-          <Text style={{ fontSize: 8, color: COL.muted }}>
+          <Text style={s.empty}>
             No hay trabajos finalizados que coincidan con los filtros seleccionados.
+          </Text>
+        )}
+
+        {data.filas.length > 0 && (
+          <Text style={s.note}>
+            Este documento muestra únicamente la planta y la fecha de finalización de cada servicio.
           </Text>
         )}
 
