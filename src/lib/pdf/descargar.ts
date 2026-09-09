@@ -348,6 +348,41 @@ export async function generarYDescargarCumplimientoPdf(data: CumplimientoData, f
   return { documento_id, hash };
 }
 
+/** PDF de trabajos finalizados por cliente (día y hora de finalización). */
+export async function generarYDescargarFinalizadosPdf(
+  data: import("./FinalizadosDoc").FinalizadosData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { FinalizadosDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./FinalizadosDoc"),
+  ]);
+  type D = import("./FinalizadosDoc").FinalizadosData;
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: D = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-FIN-01",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(FinalizadosDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: D = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(FinalizadosDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
 /** Genera y descarga el PDF de Orden de Compra por bajo stock. */
 export async function generarYDescargarOrdenCompraPdf(data: OrdenCompraData, filename: string) {
   ensurePdfBrowserPolyfills();

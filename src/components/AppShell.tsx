@@ -36,7 +36,7 @@ import {
   PanelLeftOpen,
   MoreVertical,
 } from "lucide-react";
-import { RotateCcw, Clock } from "lucide-react";
+import { RotateCcw, Clock, CheckCircle2 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -106,6 +106,7 @@ const allGroups: NavGroup[] = [
     items: [
       { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
       { to: "/reportes", label: "Reportes", icon: Sparkles },
+      { to: "/finalizados", label: "Trabajos finalizados", icon: CheckCircle2 },
       { to: "/notificaciones", label: "Notificaciones", icon: Mail },
       { to: "/contratos", label: "Contratos", icon: FileSignature },
     ],

@@ -31,6 +31,7 @@ import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/m
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedJornadaRouteImport } from './routes/_authenticated/jornada'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
+import { Route as AuthenticatedFinalizadosRouteImport } from './routes/_authenticated/finalizados'
 import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticated/equipos'
 import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
 import { Route as AuthenticatedConfiguracionRouteImport } from './routes/_authenticated/configuracion'
@@ -161,6 +162,12 @@ const AuthenticatedInventarioRoute = AuthenticatedInventarioRouteImport.update({
   path: '/inventario',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFinalizadosRoute =
+  AuthenticatedFinalizadosRouteImport.update({
+    id: '/finalizados',
+    path: '/finalizados',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEquiposRoute = AuthenticatedEquiposRouteImport.update({
   id: '/equipos',
   path: '/equipos',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/configuracion': typeof AuthenticatedConfiguracionRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
+  '/finalizados': typeof AuthenticatedFinalizadosRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/jornada': typeof AuthenticatedJornadaRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -283,6 +291,7 @@ export interface FileRoutesByTo {
   '/configuracion': typeof AuthenticatedConfiguracionRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipos': typeof AuthenticatedEquiposRoute
+  '/finalizados': typeof AuthenticatedFinalizadosRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/jornada': typeof AuthenticatedJornadaRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -321,6 +330,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracion': typeof AuthenticatedConfiguracionRoute
   '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/equipos': typeof AuthenticatedEquiposRoute
+  '/_authenticated/finalizados': typeof AuthenticatedFinalizadosRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/jornada': typeof AuthenticatedJornadaRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/contratos'
     | '/equipos'
+    | '/finalizados'
     | '/inventario'
     | '/jornada'
     | '/mantenimientos'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/contratos'
     | '/equipos'
+    | '/finalizados'
     | '/inventario'
     | '/jornada'
     | '/mantenimientos'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracion'
     | '/_authenticated/contratos'
     | '/_authenticated/equipos'
+    | '/_authenticated/finalizados'
     | '/_authenticated/inventario'
     | '/_authenticated/jornada'
     | '/_authenticated/mantenimientos'
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInventarioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/finalizados': {
+      id: '/_authenticated/finalizados'
+      path: '/finalizados'
+      fullPath: '/finalizados'
+      preLoaderRoute: typeof AuthenticatedFinalizadosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/equipos': {
       id: '/_authenticated/equipos'
       path: '/equipos'
@@ -729,6 +749,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracionRoute: typeof AuthenticatedConfiguracionRoute
   AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedEquiposRoute: typeof AuthenticatedEquiposRoute
+  AuthenticatedFinalizadosRoute: typeof AuthenticatedFinalizadosRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedJornadaRoute: typeof AuthenticatedJornadaRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
@@ -755,6 +776,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracionRoute: AuthenticatedConfiguracionRoute,
   AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedEquiposRoute: AuthenticatedEquiposRoute,
+  AuthenticatedFinalizadosRoute: AuthenticatedFinalizadosRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedJornadaRoute: AuthenticatedJornadaRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
