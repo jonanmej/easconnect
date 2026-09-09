@@ -106,6 +106,7 @@ const allGroups: NavGroup[] = [
     items: [
       { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
       { to: "/reportes", label: "Reportes", icon: Sparkles },
+      { to: "/finalizados", label: "Trabajos finalizados", icon: CheckCircle2 },
       { to: "/notificaciones", label: "Notificaciones", icon: Mail },
       { to: "/contratos", label: "Contratos", icon: FileSignature },
     ],
