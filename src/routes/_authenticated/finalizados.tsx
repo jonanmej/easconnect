@@ -103,21 +103,11 @@ function FinalizadosPage() {
   const columns: ResponsiveColumn<(typeof rows)[number]>[] = [
     { key: "cliente", header: "Cliente", primary: true, cell: (r) => r.cliente_nombre },
     { key: "planta", header: "Planta", secondary: true, cell: (r) => r.planta_nombre },
-    { key: "folio", header: "OT", cell: (r) => <span className="font-mono text-xs">{r.folio}</span> },
-    { key: "servicio", header: "Servicio", cell: (r) => r.servicio },
     {
       key: "finalizado",
-      header: "Día de finalización",
+      header: "Fecha de finalización",
       cell: (r) => <span className="font-medium">{fmtFecha(r.fecha_completado)}</span>,
     },
-    { key: "hora", header: "Hora", align: "right", cell: (r) => <span className="font-mono">{fmtHora(r.fecha_completado)}</span> },
-    {
-      key: "programado",
-      header: "Programado",
-      hideOnMobile: true,
-      cell: (r) => <span className="text-muted-foreground">{fmtFecha(r.fecha_programada)}</span>,
-    },
-    { key: "tecnico", header: "Responsable", hideOnMobile: true, cell: (r) => r.tecnico ?? "—" },
   ];
 
   async function descargarPdf() {
