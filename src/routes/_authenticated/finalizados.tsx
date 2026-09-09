@@ -219,22 +219,28 @@ function FinalizadosPage() {
           </select>
         </label>
         <label className="block text-sm">
-          <span className="text-xs text-muted-foreground">Desde</span>
-          <input
-            type="date"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
+          <span className="text-xs text-muted-foreground">Trimestre</span>
+          <select
+            value={trimestre}
+            onChange={(e) => setTrimestre(Number(e.target.value))}
             className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-base sm:text-sm"
-          />
+          >
+            {TRIMESTRES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </label>
         <label className="block text-sm">
-          <span className="text-xs text-muted-foreground">Hasta</span>
-          <input
-            type="date"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
+          <span className="text-xs text-muted-foreground">Año</span>
+          <select
+            value={anio}
+            onChange={(e) => setAnio(Number(e.target.value))}
             className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-base sm:text-sm"
-          />
+          >
+            {aniosDisponibles.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
         </label>
       </div>
 
