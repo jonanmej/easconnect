@@ -55,11 +55,21 @@ function fmtHora(iso: string) {
   }
 }
 
-function inicioDeAnio() {
-  return `${new Date().getFullYear()}-01-01`;
+const TRIMESTRES = [
+  { value: 1, label: "T1 · Ene – Mar", nombre: "1er trimestre" },
+  { value: 2, label: "T2 · Abr – Jun", nombre: "2do trimestre" },
+  { value: 3, label: "T3 · Jul – Sep", nombre: "3er trimestre" },
+  { value: 4, label: "T4 · Oct – Dic", nombre: "4to trimestre" },
+] as const;
+
+function trimestreActual() {
+  return (Math.floor(new Date().getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
 }
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
+function rangoTrimestre(t: number, anio: number) {
+  const mesInicio = (t - 1) * 3;
+  const desde = new Date(Date.UTC(anio, mesInicio, 1)).toISOString().slice(0, 10);
+  const hasta = new Date(Date.UTC(anio, mesInicio + 3, 0)).toISOString().slice(0, 10);
+  return { desde, hasta };
 }
 
 function FinalizadosPage() {
@@ -70,26 +80,30 @@ function FinalizadosPage() {
   const [clienteId, setClienteId] = useState("");
   const [plantaId, setPlantaId] = useState("");
   const [servicio, setServicio] = useState("");
-  const [desde, setDesde] = useState(inicioDeAnio);
-  const [hasta, setHasta] = useState(hoyISO);
+  const [trimestre, setTrimestre] = useState<number>(trimestreActual());
+  const [anio, setAnio] = useState<number>(new Date().getFullYear());
   const [descargando, setDescargando] = useState(false);
 
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fClientes() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
 
   const finalizados = useQuery({
-    queryKey: ["trabajos-finalizados", clienteId, plantaId, servicio, desde, hasta],
+    queryKey: ["trabajos-finalizados", clienteId, plantaId, servicio, trimestre, anio],
     queryFn: () =>
       fFinalizados({
         data: {
           ...(clienteId ? { cliente_id: clienteId } : {}),
           ...(plantaId ? { planta_id: plantaId } : {}),
           ...(servicio ? { servicio } : {}),
-          ...(desde ? { desde } : {}),
-          ...(hasta ? { hasta } : {}),
+          trimestre,
+          anio,
         },
       }),
   });
+
+  const { desde, hasta } = rangoTrimestre(trimestre, anio);
+  const nombreTrimestre = `${TRIMESTRES.find((t) => t.value === trimestre)?.nombre ?? `T${trimestre}`} ${anio}`;
+  const aniosDisponibles = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
 
   const rows = (finalizados.data as any[] | undefined) ?? [];
   const listaPlantas = ((plantas.data as any[] | undefined) ?? []).filter(
@@ -121,7 +135,7 @@ function FinalizadosPage() {
         (clienteId && ((clientes.data as any[] | undefined) ?? []).find((c) => c.id === clienteId)?.nombre) || "Todos los clientes";
       const nombrePlanta =
         (plantaId && listaPlantas.find((p) => p.id === plantaId)?.nombre) || "Todas las plantas";
-      const periodo = `${fmtFecha(`${desde}T12:00:00Z`)} — ${fmtFecha(`${hasta}T12:00:00Z`)}`;
+      const periodo = nombreTrimestre.charAt(0).toUpperCase() + nombreTrimestre.slice(1);
       await generarYDescargarFinalizadosPdf(
         {
           filas: rows as any,
@@ -135,7 +149,7 @@ function FinalizadosPage() {
           emitido_at: new Date().toLocaleString("es-SV", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }),
           documento_clasificacion: clienteId ? "Confidencial · Cliente" : "Uso interno",
         },
-        `Trabajos-finalizados_${(clienteId ? nombreCliente : "Todos").replace(/[^\p{L}\p{N}]+/gu, "-")}_${desde}_${hasta}.pdf`,
+        `Trabajos-finalizados_${(clienteId ? nombreCliente : "Todos").replace(/[^\p{L}\p{N}]+/gu, "-")}_T${trimestre}-${anio}.pdf`,
       );
       toast.success("PDF generado");
     } catch (e: any) {
@@ -205,22 +219,28 @@ function FinalizadosPage() {
           </select>
         </label>
         <label className="block text-sm">
-          <span className="text-xs text-muted-foreground">Desde</span>
-          <input
-            type="date"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
+          <span className="text-xs text-muted-foreground">Trimestre</span>
+          <select
+            value={trimestre}
+            onChange={(e) => setTrimestre(Number(e.target.value))}
             className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-base sm:text-sm"
-          />
+          >
+            {TRIMESTRES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </label>
         <label className="block text-sm">
-          <span className="text-xs text-muted-foreground">Hasta</span>
-          <input
-            type="date"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
+          <span className="text-xs text-muted-foreground">Año</span>
+          <select
+            value={anio}
+            onChange={(e) => setAnio(Number(e.target.value))}
             className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-base sm:text-sm"
-          />
+          >
+            {aniosDisponibles.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
         </label>
       </div>
 

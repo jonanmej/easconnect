@@ -16,6 +16,8 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
         servicio: z.string().optional(),
         desde: z.string().optional(),
         hasta: z.string().optional(),
+        trimestre: z.number().int().min(1).max(4).optional(),
+        anio: z.number().int().optional(),
       })
       .parse(d ?? {}),
   )
@@ -31,8 +33,18 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
 
     if (data.planta_id) q = q.eq("planta_id", data.planta_id);
     if (data.servicio) q = q.eq("servicio", data.servicio);
-    if (data.desde) q = q.gte("fecha_completado", `${data.desde.slice(0, 10)}T00:00:00Z`);
-    if (data.hasta) q = q.lte("fecha_completado", `${data.hasta.slice(0, 10)}T23:59:59Z`);
+
+    let desde = data.desde;
+    let hasta = data.hasta;
+    if (data.trimestre && data.anio) {
+      const mesInicio = (data.trimestre - 1) * 3;
+      const primer = new Date(Date.UTC(data.anio, mesInicio, 1));
+      const ultimo = new Date(Date.UTC(data.anio, mesInicio + 3, 0));
+      desde = primer.toISOString().slice(0, 10);
+      hasta = ultimo.toISOString().slice(0, 10);
+    }
+    if (desde) q = q.gte("fecha_completado", `${desde.slice(0, 10)}T00:00:00Z`);
+    if (hasta) q = q.lte("fecha_completado", `${hasta.slice(0, 10)}T23:59:59Z`);
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
