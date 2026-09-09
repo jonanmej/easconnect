@@ -80,26 +80,30 @@ function FinalizadosPage() {
   const [clienteId, setClienteId] = useState("");
   const [plantaId, setPlantaId] = useState("");
   const [servicio, setServicio] = useState("");
-  const [desde, setDesde] = useState(inicioDeAnio);
-  const [hasta, setHasta] = useState(hoyISO);
+  const [trimestre, setTrimestre] = useState<number>(trimestreActual());
+  const [anio, setAnio] = useState<number>(new Date().getFullYear());
   const [descargando, setDescargando] = useState(false);
 
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fClientes() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
 
   const finalizados = useQuery({
-    queryKey: ["trabajos-finalizados", clienteId, plantaId, servicio, desde, hasta],
+    queryKey: ["trabajos-finalizados", clienteId, plantaId, servicio, trimestre, anio],
     queryFn: () =>
       fFinalizados({
         data: {
           ...(clienteId ? { cliente_id: clienteId } : {}),
           ...(plantaId ? { planta_id: plantaId } : {}),
           ...(servicio ? { servicio } : {}),
-          ...(desde ? { desde } : {}),
-          ...(hasta ? { hasta } : {}),
+          trimestre,
+          anio,
         },
       }),
   });
+
+  const { desde, hasta } = rangoTrimestre(trimestre, anio);
+  const nombreTrimestre = `${TRIMESTRES.find((t) => t.value === trimestre)?.nombre ?? `T${trimestre}`} ${anio}`;
+  const aniosDisponibles = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
 
   const rows = (finalizados.data as any[] | undefined) ?? [];
   const listaPlantas = ((plantas.data as any[] | undefined) ?? []).filter(
