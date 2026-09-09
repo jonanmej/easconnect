@@ -16,6 +16,8 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
         servicio: z.string().optional(),
         desde: z.string().optional(),
         hasta: z.string().optional(),
+        trimestre: z.number().int().min(1).max(4).optional(),
+        anio: z.number().int().optional(),
       })
       .parse(d ?? {}),
   )
