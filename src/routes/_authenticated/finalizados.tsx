@@ -135,7 +135,7 @@ function FinalizadosPage() {
         (clienteId && ((clientes.data as any[] | undefined) ?? []).find((c) => c.id === clienteId)?.nombre) || "Todos los clientes";
       const nombrePlanta =
         (plantaId && listaPlantas.find((p) => p.id === plantaId)?.nombre) || "Todas las plantas";
-      const periodo = `${fmtFecha(`${desde}T12:00:00Z`)} — ${fmtFecha(`${hasta}T12:00:00Z`)}`;
+      const periodo = nombreTrimestre.charAt(0).toUpperCase() + nombreTrimestre.slice(1);
       await generarYDescargarFinalizadosPdf(
         {
           filas: rows as any,
@@ -149,7 +149,7 @@ function FinalizadosPage() {
           emitido_at: new Date().toLocaleString("es-SV", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }),
           documento_clasificacion: clienteId ? "Confidencial · Cliente" : "Uso interno",
         },
-        `Trabajos-finalizados_${(clienteId ? nombreCliente : "Todos").replace(/[^\p{L}\p{N}]+/gu, "-")}_${desde}_${hasta}.pdf`,
+        `Trabajos-finalizados_${(clienteId ? nombreCliente : "Todos").replace(/[^\p{L}\p{N}]+/gu, "-")}_T${trimestre}-${anio}.pdf`,
       );
       toast.success("PDF generado");
     } catch (e: any) {
