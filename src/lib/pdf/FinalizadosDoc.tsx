@@ -327,7 +327,6 @@ function agrupar(filas: FinalizadoFila[]) {
 
 export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
   const grupos = agrupar(data.filas);
-  const plantasTotal = grupos.reduce((n, g) => n + g.plantas.length, 0);
   return (
     <Document
       title="Trabajos finalizados por cliente"
@@ -339,31 +338,6 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
         <Text style={s.title}>Trabajos finalizados por cliente</Text>
         <Text style={s.subtitle}>Planta y fecha de finalización de los servicios ejecutados · {data.periodo}</Text>
         <View style={s.titleRule} />
-
-        {data.filtros.length > 0 && (
-          <View style={s.filtros}>
-            {data.filtros.map((f, i) => (
-              <Text key={i} style={s.filtro}>
-                {f.label}: {f.value}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <View style={s.summaryRow}>
-          <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Clientes</Text>
-            <Text style={s.summaryValue}>{grupos.length}</Text>
-          </View>
-          <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Plantas</Text>
-            <Text style={s.summaryValue}>{plantasTotal}</Text>
-          </View>
-          <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Trabajos finalizados</Text>
-            <Text style={[s.summaryValue, { color: COL.ok }]}>{data.filas.length}</Text>
-          </View>
-        </View>
 
         {grupos.map((g) => (
           <View key={g.cliente} style={s.clienteBlock} wrap={false}>
