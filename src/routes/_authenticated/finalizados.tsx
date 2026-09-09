@@ -55,11 +55,21 @@ function fmtHora(iso: string) {
   }
 }
 
-function inicioDeAnio() {
-  return `${new Date().getFullYear()}-01-01`;
+const TRIMESTRES = [
+  { value: 1, label: "T1 · Ene – Mar", nombre: "1er trimestre" },
+  { value: 2, label: "T2 · Abr – Jun", nombre: "2do trimestre" },
+  { value: 3, label: "T3 · Jul – Sep", nombre: "3er trimestre" },
+  { value: 4, label: "T4 · Oct – Dic", nombre: "4to trimestre" },
+] as const;
+
+function trimestreActual() {
+  return (Math.floor(new Date().getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
 }
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
+function rangoTrimestre(t: number, anio: number) {
+  const mesInicio = (t - 1) * 3;
+  const desde = new Date(Date.UTC(anio, mesInicio, 1)).toISOString().slice(0, 10);
+  const hasta = new Date(Date.UTC(anio, mesInicio + 3, 0)).toISOString().slice(0, 10);
+  return { desde, hasta };
 }
 
 function FinalizadosPage() {
