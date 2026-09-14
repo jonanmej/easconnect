@@ -105,13 +105,32 @@ function FinalizadosPage() {
   const nombreTrimestre = `${TRIMESTRES.find((t) => t.value === trimestre)?.nombre ?? `T${trimestre}`} ${anio}`;
   const aniosDisponibles = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
 
+  // Opciones de servicio calculadas SIN el filtro de servicio, para que la lista
+  // no se reduzca a la opción ya elegida.
+  const opcionesServicio = useQuery({
+    queryKey: ["trabajos-finalizados-servicios", clienteId, plantaId, trimestre, anio],
+    queryFn: () =>
+      fFinalizados({
+        data: {
+          ...(clienteId ? { cliente_id: clienteId } : {}),
+          ...(plantaId ? { planta_id: plantaId } : {}),
+          trimestre,
+          anio,
+        },
+      }),
+  });
+
   const rows = (finalizados.data as any[] | undefined) ?? [];
   const listaPlantas = ((plantas.data as any[] | undefined) ?? []).filter(
     (p) => !clienteId || p.cliente_id === clienteId,
   );
+  const serviciosBase = (opcionesServicio.data as any[] | undefined) ?? [];
   const servicios = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.servicio))).sort((a, b) => a.localeCompare(b, "es")),
-    [rows],
+    () =>
+      Array.from(new Set(serviciosBase.map((r) => r.servicio).filter(Boolean))).sort((a, b) =>
+        String(a).localeCompare(String(b), "es"),
+      ),
+    [serviciosBase],
   );
 
   const columns: ResponsiveColumn<(typeof rows)[number]>[] = [

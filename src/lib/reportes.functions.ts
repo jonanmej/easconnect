@@ -113,13 +113,13 @@ function etiquetaAvance(audiencia: Audiencia, folio?: string | null): string {
   if (audiencia === "cliente") {
     return folio ? `Avance del servicio OT ${folio}` : "Avance del servicio en su planta";
   }
-  return folio ? `Cumplimiento de meta diaria OT ${folio}` : "Cumplimiento de meta diaria del trabajo";
+  return folio ? `Avance real del servicio OT ${folio}` : "Avance real del servicio del trabajo";
 }
 
 function aclaracionAvance(audiencia: Audiencia): string {
   return audiencia === "cliente"
     ? "del servicio comprometido para su planta en el período"
-    : "respecto a la meta diaria planificada de la OT; no corresponde al avance total del parque";
+    : "de avance real sobre la planta (zonas marcadas y paneles intervenidos); no es el cumplimiento de la meta diaria";
 }
 
 function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[], audiencia: Audiencia = "interno"): ReporteKpi[] {
@@ -136,7 +136,7 @@ function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[], audiencia: Audiencia 
     const aclaracion = aclaracionAvance(audiencia);
     const yaAclarado = audiencia === "cliente"
       ? /servicio/i.test(base)
-      : /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base);
+      : /avance real/i.test(base) && /no corresponde|no es|no representa/i.test(base);
     const value = yaAclarado ? base : `${base} ${aclaracion}`.trim();
     return { label, value };
   });
