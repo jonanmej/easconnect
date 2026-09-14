@@ -121,6 +121,13 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       firmado_por: (t.firmado_por as string) ?? null,
       tecnico: t.tecnico_id ? nombres.get(t.tecnico_id) ?? "—" : "—",
     }));
+
+    const desdeKey = desde ? desde.slice(0, 10) : null;
+    const hastaKey = hasta ? hasta.slice(0, 10) : null;
+    return salida
+      .filter((t) => (!desdeKey || t.fecha_finalizacion >= desdeKey) &&
+        (!hastaKey || t.fecha_finalizacion <= hastaKey))
+      .sort((a, b) => b.fecha_finalizacion.localeCompare(a.fecha_finalizacion));
   });
 
 
