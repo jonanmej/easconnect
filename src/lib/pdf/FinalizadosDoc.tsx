@@ -135,6 +135,8 @@ export type FinalizadoFila = {
   cliente_nombre: string;
   fecha_programada: string;
   fecha_completado: string;
+  /** YYYY-MM-DD del día en que realmente se terminó el trabajo. */
+  fecha_finalizacion?: string | null;
   duracion_dias: number;
   firmado_at?: string | null;
   firmado_por?: string | null;
@@ -155,16 +157,27 @@ export type FinalizadosData = {
 
 const TZ = "America/El_Salvador";
 
-function fechaLarga(iso: string) {
+/** Día efectivo de finalización, sin corrimiento de zona horaria. */
+function diaFinal(f: FinalizadoFila) {
+  const solo = (f.fecha_finalizacion ?? "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(solo)) return solo;
   try {
-    return new Date(iso).toLocaleDateString("es-SV", {
-      timeZone: TZ,
+    const d = new Date(f.fecha_completado);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
+  } catch {
+    return String(f.fecha_completado).slice(0, 10);
+  }
+}
+
+function fechaLarga(dia: string) {
+  try {
+    return new Date(`${dia}T12:00:00`).toLocaleDateString("es-SV", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   } catch {
-    return iso.slice(0, 10);
+    return dia;
   }
 }
 
@@ -186,10 +199,52 @@ function agrupar(filas: FinalizadoFila[]) {
         .map(([planta, trabajos]) => ({
           planta,
           fechas: [...trabajos]
-            .sort((a, b) => new Date(b.fecha_completado).getTime() - new Date(a.fecha_completado).getTime())
-            .map((t) => fechaLarga(t.fecha_completado)),
+            .map(diaFinal)
+            .sort((a, b) => b.localeCompare(a))
+            .map(fechaLarga),
         })),
     }));
+}
+
+function PageHeader({ data }: { data: FinalizadosData }) {
+  const codigo = `${data.documento_codigo ?? "EA-FIN"} · v${data.documento_version ?? "1.0"}`;
+  const clasif = data.documento_clasificacion ?? "Uso interno";
+  return (
+    <View fixed style={{ position: "absolute", top: 24, left: 46, right: 42 }}>
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Image src={LOGO_EA()} style={s.logoEa} />
+          <View style={s.headerLeftText}>
+            <Text style={s.headerTitle}>EA SERVICE AND CONSULTING</Text>
+            <Text style={s.headerSub}>Registro de trabajos finalizados</Text>
+          </View>
+        </View>
+        <View style={s.headerRight}>
+          <Text style={s.headerRightTop}>{data.periodo}</Text>
+          <Text style={s.headerRightBot}>Emitido: {data.emitido_at}</Text>
+          <Text style={s.headerRightBot}>{codigo} · {clasif}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PageFooter({ data }: { data: FinalizadosData }) {
+  const docId = data.documento_id ? data.documento_id.slice(0, 8).toUpperCase() : "—";
+  const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
+  return (
+    <View style={s.pageFooter} fixed>
+      <View style={s.pageFooterLogos}>
+        <Image src={LOGO_PVSTOP()} style={s.footerLogoPv} />
+        <Image src={LOGO_CHEMITEK()} style={s.footerLogoCh} />
+      </View>
+      <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
+        <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
+        <Text>Registro de servicios ejecutados · ISO 9001:2015</Text>
+      </View>
+      <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
+    </View>
+  );
 }
 
 export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
@@ -197,6 +252,9 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
   return (
     <Document title="Trabajos finalizados" author="EA Service and Consulting" subject={`Trabajos finalizados · ${data.periodo}`}>
       <Page size="A4" orientation="portrait" style={s.page}>
+        <PageHeader data={data} />
+        <PageFooter data={data} />
+
         <Text style={s.title}>Trabajos finalizados por cliente</Text>
         <Text style={s.subtitle}>{data.periodo}</Text>
 
@@ -226,4 +284,5 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
       </Page>
     </Document>
   );
+
 }
