@@ -1,4 +1,15 @@
-import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+function absUrl(path: string) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${path}`;
+}
+const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
+
 
 Font.registerHyphenationCallback((word) => [word]);
 
