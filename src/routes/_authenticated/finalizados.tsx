@@ -105,6 +105,21 @@ function FinalizadosPage() {
   const nombreTrimestre = `${TRIMESTRES.find((t) => t.value === trimestre)?.nombre ?? `T${trimestre}`} ${anio}`;
   const aniosDisponibles = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
 
+  // Opciones de servicio calculadas SIN el filtro de servicio, para que la lista
+  // no se reduzca a la opción ya elegida.
+  const opcionesServicio = useQuery({
+    queryKey: ["trabajos-finalizados-servicios", clienteId, plantaId, trimestre, anio],
+    queryFn: () =>
+      fFinalizados({
+        data: {
+          ...(clienteId ? { cliente_id: clienteId } : {}),
+          ...(plantaId ? { planta_id: plantaId } : {}),
+          trimestre,
+          anio,
+        },
+      }),
+  });
+
   const rows = (finalizados.data as any[] | undefined) ?? [];
   const listaPlantas = ((plantas.data as any[] | undefined) ?? []).filter(
     (p) => !clienteId || p.cliente_id === clienteId,
