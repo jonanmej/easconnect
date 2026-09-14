@@ -43,8 +43,19 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       desde = primer.toISOString().slice(0, 10);
       hasta = ultimo.toISOString().slice(0, 10);
     }
-    if (desde) q = q.gte("fecha_completado", `${desde.slice(0, 10)}T00:00:00Z`);
-    if (hasta) q = q.lte("fecha_completado", `${hasta.slice(0, 10)}T23:59:59Z`);
+    // El período se filtra por la fecha REAL de finalización (último día
+    // reportado por el técnico), que puede caer días antes del instante en que
+    // alguien marcó la OT como completada. Por eso la consulta usa un margen
+    // amplio sobre `fecha_completado` y el recorte exacto se hace más abajo,
+    // ya con `fecha_finalizacion` calculada.
+    const MARGEN_DIAS = 60;
+    function correrDias(fecha: string, dias: number) {
+      const d = new Date(`${fecha.slice(0, 10)}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + dias);
+      return d.toISOString().slice(0, 10);
+    }
+    if (desde) q = q.gte("fecha_completado", `${correrDias(desde, -MARGEN_DIAS)}T00:00:00Z`);
+    if (hasta) q = q.lte("fecha_completado", `${correrDias(hasta, MARGEN_DIAS)}T23:59:59Z`);
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -92,7 +103,7 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       return d.toISOString().slice(0, 10);
     }
 
-    return lista.map((t) => ({
+    const salida = lista.map((t) => ({
       id: t.id as string,
       folio: t.folio as string,
       servicio: t.servicio as string,
@@ -110,6 +121,13 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       firmado_por: (t.firmado_por as string) ?? null,
       tecnico: t.tecnico_id ? nombres.get(t.tecnico_id) ?? "—" : "—",
     }));
+
+    const desdeKey = desde ? desde.slice(0, 10) : null;
+    const hastaKey = hasta ? hasta.slice(0, 10) : null;
+    return salida
+      .filter((t) => (!desdeKey || t.fecha_finalizacion >= desdeKey) &&
+        (!hastaKey || t.fecha_finalizacion <= hastaKey))
+      .sort((a, b) => b.fecha_finalizacion.localeCompare(a.fecha_finalizacion));
   });
 
 
