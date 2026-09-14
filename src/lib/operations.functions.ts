@@ -1,7 +1,36 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling";
+import { findRecursoConflicts, formatRecursoConflict } from "@/lib/scheduling";
+
+/**
+ * Verifica que los equipos seleccionados no estén comprometidos en otro
+ * trabajo que se solape en fechas. Se permite programar varios clientes el
+ * mismo día siempre que no se repitan equipos ni técnicos.
+ */
+async function validarEquiposDisponibles(
+  supabase: any,
+  args: {
+    equipoIds: (string | null | undefined)[];
+    fechaProgramada: string;
+    duracionDias?: number | null;
+    excluirTrabajoId?: string | null;
+  },
+) {
+  const conflictos = await findRecursoConflicts(supabase, {
+    equipoIds: args.equipoIds,
+    fechaProgramada: args.fechaProgramada,
+    duracionDias: args.duracionDias,
+    excluirTrabajoId: args.excluirTrabajoId ?? null,
+  });
+  if (conflictos.length === 0) return;
+  const ids = Array.from(new Set(conflictos.flatMap((c) => c.equipos)));
+  const { data: equipos } = await supabase.from("equipos").select("id, nombre, codigo").in("id", ids);
+  const nombreById = new Map<string, string>(
+    (equipos ?? []).map((e: any) => [e.id as string, `${e.nombre}${e.codigo ? ` (${e.codigo})` : ""}`]),
+  );
+  throw new Error(formatRecursoConflict(conflictos, (id) => nombreById.get(id) ?? id));
+}
 
 /**
  * Precarga los feriados personalizados del año correspondiente a `fechaISO`
