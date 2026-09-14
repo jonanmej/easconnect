@@ -14,6 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
+      actividad_interna_adjuntos: {
+        Row: {
+          actividad_id: string
+          created_at: string
+          id: string
+          nombre_original: string | null
+          storage_path: string
+          subido_por: string | null
+        }
+        Insert: {
+          actividad_id: string
+          created_at?: string
+          id?: string
+          nombre_original?: string | null
+          storage_path: string
+          subido_por?: string | null
+        }
+        Update: {
+          actividad_id?: string
+          created_at?: string
+          id?: string
+          nombre_original?: string | null
+          storage_path?: string
+          subido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actividad_interna_adjuntos_actividad_id_fkey"
+            columns: ["actividad_id"]
+            isOneToOne: false
+            referencedRelation: "actividades_internas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      actividades_internas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          duracion_dias: number
+          estado: Database["public"]["Enums"]["actividad_interna_estado"]
+          fecha: string
+          hora_fin: string | null
+          id: string
+          lugar: string | null
+          notas: string | null
+          prioridad: Database["public"]["Enums"]["actividad_interna_prioridad"]
+          responsables: string[]
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duracion_dias?: number
+          estado?: Database["public"]["Enums"]["actividad_interna_estado"]
+          fecha: string
+          hora_fin?: string | null
+          id?: string
+          lugar?: string | null
+          notas?: string | null
+          prioridad?: Database["public"]["Enums"]["actividad_interna_prioridad"]
+          responsables?: string[]
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duracion_dias?: number
+          estado?: Database["public"]["Enums"]["actividad_interna_estado"]
+          fecha?: string
+          hora_fin?: string | null
+          id?: string
+          lugar?: string | null
+          notas?: string | null
+          prioridad?: Database["public"]["Enums"]["actividad_interna_prioridad"]
+          responsables?: string[]
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actividades_internas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria_log: {
         Row: {
           accion: string
@@ -2435,6 +2532,8 @@ export type Database = {
       }
     }
     Enums: {
+      actividad_interna_estado: "pendiente" | "en_curso" | "hecha" | "cancelada"
+      actividad_interna_prioridad: "baja" | "media" | "alta"
       app_role: "admin" | "supervisor" | "tecnico" | "cliente"
       cliente_estado: "activo" | "revision" | "pausado"
       equipo_estado:
@@ -2587,6 +2686,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      actividad_interna_estado: ["pendiente", "en_curso", "hecha", "cancelada"],
+      actividad_interna_prioridad: ["baja", "media", "alta"],
       app_role: ["admin", "supervisor", "tecnico", "cliente"],
       cliente_estado: ["activo", "revision", "pausado"],
       equipo_estado: [

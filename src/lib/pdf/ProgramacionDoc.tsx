@@ -78,6 +78,14 @@ export type ProgramacionData = {
   documento_codigo?: string;
   documento_version?: string;
   documento_clasificacion?: string;
+  /** Título del documento (por defecto "Programación de trabajos"). */
+  doc_titulo?: string;
+  /** Etiqueta del encabezado (por defecto "EA Service Connect · Programación"). */
+  doc_header?: string;
+  /** Palabra usada en el total ("trabajo"/"actividad"). */
+  doc_unidad?: string;
+  /** Etiquetas de columnas de las tablas. */
+  labels?: { ot?: string; cliente?: string; planta?: string; servicio?: string };
 };
 
 const s = StyleSheet.create({
@@ -212,7 +220,7 @@ function PageChrome({ data }: { data: ProgramacionData }) {
         <View style={s.headerLeft}>
           <Image src={LOGO_EA()} style={s.logoEa} />
           <View style={s.headerLeftText}>
-            <Text style={s.headerTitle}>EA Service Connect · Programación</Text>
+            <Text style={s.headerTitle}>{data.doc_header ?? "EA Service Connect · Programación"}</Text>
             <Text style={s.headerSub}>{data.documento_codigo ?? "EA-PRG"} · v{data.documento_version ?? "1.0"} · {data.documento_clasificacion ?? "Uso interno"}</Text>
           </View>
         </View>
@@ -239,7 +247,7 @@ export function ProgramacionDoc({ data }: { data: ProgramacionData }) {
     <Document title={`Programación · ${data.headerTitle}`} author="EA Service Connect">
       <Page size={size} orientation={orientation} style={s.page}>
         <PageChrome data={data} />
-        <Text style={s.title}>Programación de trabajos</Text>
+        <Text style={s.title}>{data.doc_titulo ?? "Programación de trabajos"}</Text>
         <View style={s.titleRule} />
         <Text style={s.subtitle}>
           {data.vista === "semana" ? "Vista semanal" : data.vista === "mes" ? "Vista mensual" : "Vista anual"} · {data.headerTitle}
@@ -251,9 +259,9 @@ export function ProgramacionDoc({ data }: { data: ProgramacionData }) {
             ))}
           </View>
         )}
-        <Text style={s.totalLine}>{data.trabajos.length} trabajo{data.trabajos.length === 1 ? "" : "s"} en el rango seleccionado.</Text>
+        <Text style={s.totalLine}>{data.trabajos.length} {data.doc_unidad ?? "trabajo"}{data.trabajos.length === 1 ? "" : "s"} en el rango seleccionado.</Text>
 
-        {data.trabajos.length === 0 && <Text style={s.empty}>Sin trabajos programados.</Text>}
+        {data.trabajos.length === 0 && <Text style={s.empty}>Sin registros programados.</Text>}
 
         {data.vista === "semana" && data.semana_dias
           ? <SemanaGrid dias={data.semana_dias} />
@@ -261,7 +269,7 @@ export function ProgramacionDoc({ data }: { data: ProgramacionData }) {
           ? <MesGrid semanas={data.mes_semanas} columnas={data.mes_columnas ?? ["Lun","Mar","Mié","Jue","Vie"]} />
           : data.vista === "anio"
           ? <AnioSecciones data={data} />
-          : <DiaSecciones items={data.trabajos} />
+          : <DiaSecciones items={data.trabajos} labels={data.labels} />
         }
       </Page>
     </Document>
@@ -354,7 +362,7 @@ function EventoCard({ it, mode }: { it: CalendarItem; mode: "semana" | "mes" }) 
   );
 }
 
-function DiaSecciones({ items }: { items: ProgramacionTrabajo[] }) {
+function DiaSecciones({ items, labels }: { items: ProgramacionTrabajo[]; labels?: ProgramacionData["labels"] }) {
   const grupos = agruparPorFecha(items);
   return (
     <>
@@ -364,10 +372,10 @@ function DiaSecciones({ items }: { items: ProgramacionTrabajo[] }) {
           <View style={s.table}>
             <View style={s.tr}>
               <Text style={[s.th, { width: "9%" }]}>Hora</Text>
-              <Text style={[s.th, { width: "14%" }]}>OT</Text>
-              <Text style={[s.th, { width: "24%" }]}>Cliente</Text>
-              <Text style={[s.th, { width: "23%" }]}>Planta</Text>
-              <Text style={[s.th, { width: "20%" }]}>Servicio</Text>
+              <Text style={[s.th, { width: "14%" }]}>{labels?.ot ?? "OT"}</Text>
+              <Text style={[s.th, { width: "24%" }]}>{labels?.cliente ?? "Cliente"}</Text>
+              <Text style={[s.th, { width: "23%" }]}>{labels?.planta ?? "Planta"}</Text>
+              <Text style={[s.th, { width: "20%" }]}>{labels?.servicio ?? "Servicio"}</Text>
               <Text style={[s.th, { width: "10%" }]}>Estado</Text>
             </View>
             {g.items.map((t) => (
@@ -397,10 +405,10 @@ function AnioSecciones({ data }: { data: ProgramacionData }) {
           <View style={s.table}>
             <View style={s.tr}>
               <Text style={[s.th, { width: "10%" }]}>Fecha</Text>
-              <Text style={[s.th, { width: "14%" }]}>OT</Text>
-              <Text style={[s.th, { width: "24%" }]}>Cliente</Text>
-              <Text style={[s.th, { width: "22%" }]}>Planta</Text>
-              <Text style={[s.th, { width: "20%" }]}>Servicio</Text>
+              <Text style={[s.th, { width: "14%" }]}>{data.labels?.ot ?? "OT"}</Text>
+              <Text style={[s.th, { width: "24%" }]}>{data.labels?.cliente ?? "Cliente"}</Text>
+              <Text style={[s.th, { width: "22%" }]}>{data.labels?.planta ?? "Planta"}</Text>
+              <Text style={[s.th, { width: "20%" }]}>{data.labels?.servicio ?? "Servicio"}</Text>
               <Text style={[s.th, { width: "10%" }]}>Estado</Text>
             </View>
             {m.items.map((t) => {
