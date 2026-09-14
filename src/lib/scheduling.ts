@@ -37,6 +37,16 @@ export async function findServiceClientConflicts(
   return [];
 }
 
+/** Devuelve los equipos asignados a una OT (principal + adicionales). */
+export async function equiposDeTrabajo(supabase: any, trabajoId: string): Promise<string[]> {
+  const { data: t } = await supabase.from("trabajos").select("equipo_id").eq("id", trabajoId).maybeSingle();
+  const { data: extra } = await supabase.from("trabajo_equipos").select("equipo_id").eq("trabajo_id", trabajoId);
+  const ids = new Set<string>();
+  if ((t as any)?.equipo_id) ids.add((t as any).equipo_id);
+  (extra ?? []).forEach((r: any) => r?.equipo_id && ids.add(r.equipo_id));
+  return Array.from(ids);
+}
+
 /** Alias retrocompatible. */
 export const findCleaningClientConflicts = findServiceClientConflicts;
 
