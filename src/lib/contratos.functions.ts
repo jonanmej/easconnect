@@ -439,13 +439,16 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
 
     // Verificar disponibilidad global
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-    const ocupados = await diasOcupadosGlobales(supabase, addDaysDate(nueva, -1), addDaysDate(nueva, dur + 1), t.id);
+    const recursos = await recursosDeTrabajo(supabase, t.id);
+    const ocupados = await diasOcupadosGlobales(
+      supabase, addDaysDate(nueva, -1), addDaysDate(nueva, dur + 1), t.id, recursos,
+    );
     for (let i = 0; i < dur; i++) {
       const d = new Date(nueva);
       d.setUTCHours(0, 0, 0, 0);
       d.setUTCDate(d.getUTCDate() + i);
       if (ocupados.has(d.toISOString().slice(0, 10))) {
-        throw new Error("La fecha seleccionada ya está ocupada por otro trabajo. Elige un día libre.");
+        throw new Error("El equipo o los técnicos asignados ya están comprometidos en esa fecha. Elige otro día.");
       }
     }
     const conflictosLimpieza = await findCleaningClientConflicts(supabase, {
@@ -620,7 +623,10 @@ export const disponibilidadGlobal = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const desde = new Date(data.desde + "T00:00:00Z");
     const hasta = new Date(data.hasta + "T00:00:00Z");
-    const ocupados = await diasOcupadosGlobales(context.supabase, desde, hasta, data.excluir_trabajo_id);
+    const recursos = await recursosDeTrabajo(context.supabase, data.excluir_trabajo_id ?? null);
+    const ocupados = await diasOcupadosGlobales(
+      context.supabase, desde, hasta, data.excluir_trabajo_id, recursos,
+    );
     return Array.from(ocupados.values());
   });
 
