@@ -34,19 +34,22 @@ export const Route = createFileRoute("/_authenticated/finalizados")({
 
 const TZ = "America/El_Salvador";
 
-function fmtFecha(iso: string) {
+function fmtFecha(dia: string) {
   try {
-    return new Date(iso).toLocaleDateString("es-SV", {
-      timeZone: TZ,
+    const base = /^\d{4}-\d{2}-\d{2}$/.test(String(dia).slice(0, 10))
+      ? new Date(`${String(dia).slice(0, 10)}T12:00:00`)
+      : new Date(dia);
+    return base.toLocaleDateString("es-SV", {
       weekday: "short",
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   } catch {
-    return iso.slice(0, 10);
+    return String(dia).slice(0, 10);
   }
 }
+
 function fmtHora(iso: string) {
   try {
     return new Date(iso).toLocaleTimeString("es-SV", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
