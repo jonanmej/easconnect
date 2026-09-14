@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trabajos_limpieza_un_cliente_por_dia ON public.trabajos;

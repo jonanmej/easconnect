@@ -1,7 +1,36 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling";
+import { findRecursoConflicts, formatRecursoConflict, equiposDeTrabajo } from "@/lib/scheduling";
+
+/**
+ * Verifica que los equipos seleccionados no estén comprometidos en otro
+ * trabajo que se solape en fechas. Se permite programar varios clientes el
+ * mismo día siempre que no se repitan equipos ni técnicos.
+ */
+async function validarEquiposDisponibles(
+  supabase: any,
+  args: {
+    equipoIds: (string | null | undefined)[];
+    fechaProgramada: string;
+    duracionDias?: number | null;
+    excluirTrabajoId?: string | null;
+  },
+) {
+  const conflictos = await findRecursoConflicts(supabase, {
+    equipoIds: args.equipoIds,
+    fechaProgramada: args.fechaProgramada,
+    duracionDias: args.duracionDias,
+    excluirTrabajoId: args.excluirTrabajoId ?? null,
+  });
+  if (conflictos.length === 0) return;
+  const ids = Array.from(new Set(conflictos.flatMap((c) => c.equipos)));
+  const { data: equipos } = await supabase.from("equipos").select("id, nombre, codigo").in("id", ids);
+  const nombreById = new Map<string, string>(
+    (equipos ?? []).map((e: any) => [e.id as string, `${e.nombre}${e.codigo ? ` (${e.codigo})` : ""}`]),
+  );
+  throw new Error(formatRecursoConflict(conflictos, (id) => nombreById.get(id) ?? id));
+}
 
 /**
  * Precarga los feriados personalizados del año correspondiente a `fechaISO`
@@ -484,16 +513,14 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       const nota = notaExcepcion(excepcion, payload.fecha_programada);
       payload.notas = [payload.notas?.trim(), nota].filter(Boolean).join("\n");
     }
-    const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
-      plantaId: rest.planta_id,
-      servicio: rest.servicio,
+    // Varios clientes pueden programarse el mismo día o semana; solo se valida
+    // que no se repitan los equipos seleccionados.
+    await validarEquiposDisponibles(context.supabase, {
+      equipoIds: [payload.equipo_id, ...(equipo_ids ?? [])],
       fechaProgramada: payload.fecha_programada,
       duracionDias: rest.duracion_dias ?? 1,
       excluirTrabajoId: id ?? null,
     });
-    if (conflictosLimpieza.length > 0) {
-      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
-    }
     // Validar conflicto de técnico (no permitir solapamientos con otros trabajos del mismo técnico)
     if (payload.tecnico_id) {
       const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
@@ -862,16 +889,12 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       const nota = notaExcepcion(excepcion, patch.fecha_programada);
       patch.notas = [String((trabajoActual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n");
     }
-    const conflictosLimpieza = await findCleaningClientConflicts(context.supabase, {
-      plantaId: (trabajoActual as any)?.planta_id,
-      servicio: (trabajoActual as any)?.servicio,
+    await validarEquiposDisponibles(context.supabase, {
+      equipoIds: await equiposDeTrabajo(context.supabase, data.id),
       fechaProgramada: patch.fecha_programada,
       duracionDias: (trabajoActual as any)?.duracion_dias ?? 1,
       excluirTrabajoId: data.id,
     });
-    if (conflictosLimpieza.length > 0) {
-      throw new Error(formatCleaningClientConflict(conflictosLimpieza));
-    }
     const tecnicoFinal = data.tecnico_id !== undefined
       ? (data.tecnico_id || null)
       : ((trabajoActual as any)?.tecnico_id ?? null);
@@ -957,10 +980,9 @@ export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
     for (let i = 0; i < limite; i++) {
       const fechaISO = cursor.toISOString();
       if (!motivoNoLaborableSV(fechaISO)) {
-        // 1) Conflictos por cliente/servicio (limpieza mismo día, otro cliente)
-        const cf = await findCleaningClientConflicts(context.supabase, {
-          plantaId: (trabajo as any)?.planta_id,
-          servicio: (trabajo as any)?.servicio,
+        // 1) Conflictos por equipos asignados
+        const cf = await findRecursoConflicts(context.supabase, {
+          equipoIds: await equiposDeTrabajo(context.supabase, data.id),
           fechaProgramada: fechaISO,
           duracionDias: dur,
           excluirTrabajoId: data.id,
@@ -1039,22 +1061,13 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
       return { trabajo_id, fecha_original, fecha_movida: null };
     }
 
-    // Validar conflicto de cliente/servicio de limpieza en el día destino.
-    const { data: trabajo } = await context.supabase
-      .from("trabajos")
-      .select("planta_id, servicio")
-      .eq("id", trabajo_id)
-      .single();
-    const conflictos = await findCleaningClientConflicts(context.supabase, {
-      plantaId: (trabajo as any)?.planta_id,
-      servicio: (trabajo as any)?.servicio,
+    // Validar que los equipos de la OT estén libres en el día destino.
+    await validarEquiposDisponibles(context.supabase, {
+      equipoIds: await equiposDeTrabajo(context.supabase, trabajo_id),
       fechaProgramada: destinoISO,
       duracionDias: 1,
       excluirTrabajoId: trabajo_id,
     });
-    if (conflictos.length > 0) {
-      throw new Error(formatCleaningClientConflict(conflictos));
-    }
 
     if (excepcion) {
       const { data: actual } = await context.supabase

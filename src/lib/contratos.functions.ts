@@ -179,16 +179,29 @@ export const eliminarContrato = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Devuelve los días ocupados globalmente (todas las plantas) en un rango. */
+/**
+ * Días ocupados en un rango. Ya no se bloquea el día completo por otro
+ * cliente: solo se consideran ocupados los días de trabajos que comparten
+ * técnicos o equipos con los recursos indicados. Sin recursos, no hay días
+ * ocupados (varios clientes pueden coincidir en la misma semana o día).
+ */
 async function diasOcupadosGlobales(
   supabase: any,
   desde: Date,
   hasta: Date,
   excluirTrabajoId?: string | string[],
+  recursos?: { tecnicoIds?: string[]; equipoIds?: string[] },
 ) {
+  const ocupados = new Set<string>();
+  const tecnicos = new Set((recursos?.tecnicoIds ?? []).filter(Boolean));
+  const equipos = new Set((recursos?.equipoIds ?? []).filter(Boolean));
+  if (tecnicos.size === 0 && equipos.size === 0) return ocupados;
+
   const { data, error } = await supabase
     .from("trabajos")
-    .select("id, fecha_programada, duracion_dias")
+    .select(
+      "id, fecha_programada, duracion_dias, tecnico_id, equipo_id, trabajo_tecnicos(tecnico_id), trabajo_equipos(equipo_id)",
+    )
     .gte("fecha_programada", desde.toISOString())
     .lte("fecha_programada", addDaysDate(hasta, 1).toISOString())
     .neq("estado", "cancelado");
@@ -200,9 +213,13 @@ async function diasOcupadosGlobales(
         ? [excluirTrabajoId]
         : [],
   );
-  const ocupados = new Set<string>();
   (data ?? []).forEach((t: any) => {
     if (excludeSet.has(t.id)) return;
+    const tOtros = [t.tecnico_id, ...((t.trabajo_tecnicos ?? []).map((x: any) => x.tecnico_id))].filter(Boolean);
+    const eOtros = [t.equipo_id, ...((t.trabajo_equipos ?? []).map((x: any) => x.equipo_id))].filter(Boolean);
+    const comparte =
+      tOtros.some((x: string) => tecnicos.has(x)) || eOtros.some((x: string) => equipos.has(x));
+    if (!comparte) return;
     const start = new Date(t.fecha_programada);
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
     for (let i = 0; i < dur; i++) {
@@ -213,6 +230,24 @@ async function diasOcupadosGlobales(
     }
   });
   return ocupados;
+}
+
+/** Técnicos y equipos asignados a una OT (principal + adicionales). */
+async function recursosDeTrabajo(supabase: any, trabajoId?: string | null) {
+  if (!trabajoId) return { tecnicoIds: [], equipoIds: [] };
+  const { data: t } = await supabase
+    .from("trabajos").select("tecnico_id, equipo_id").eq("id", trabajoId).maybeSingle();
+  const { data: tt } = await supabase
+    .from("trabajo_tecnicos").select("tecnico_id").eq("trabajo_id", trabajoId);
+  const { data: te } = await supabase
+    .from("trabajo_equipos").select("equipo_id").eq("trabajo_id", trabajoId);
+  const tecnicoIds = new Set<string>();
+  const equipoIds = new Set<string>();
+  if ((t as any)?.tecnico_id) tecnicoIds.add((t as any).tecnico_id);
+  if ((t as any)?.equipo_id) equipoIds.add((t as any).equipo_id);
+  (tt ?? []).forEach((r: any) => r?.tecnico_id && tecnicoIds.add(r.tecnico_id));
+  (te ?? []).forEach((r: any) => r?.equipo_id && equipoIds.add(r.equipo_id));
+  return { tecnicoIds: Array.from(tecnicoIds), equipoIds: Array.from(equipoIds) };
 }
 
 function siguienteLibre(fechaIso: string, durDias: number, ocupados: Set<string>, limiteDias = 365): string {
@@ -404,13 +439,16 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
 
     // Verificar disponibilidad global
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-    const ocupados = await diasOcupadosGlobales(supabase, addDaysDate(nueva, -1), addDaysDate(nueva, dur + 1), t.id);
+    const recursos = await recursosDeTrabajo(supabase, t.id);
+    const ocupados = await diasOcupadosGlobales(
+      supabase, addDaysDate(nueva, -1), addDaysDate(nueva, dur + 1), t.id, recursos,
+    );
     for (let i = 0; i < dur; i++) {
       const d = new Date(nueva);
       d.setUTCHours(0, 0, 0, 0);
       d.setUTCDate(d.getUTCDate() + i);
       if (ocupados.has(d.toISOString().slice(0, 10))) {
-        throw new Error("La fecha seleccionada ya está ocupada por otro trabajo. Elige un día libre.");
+        throw new Error("El equipo o los técnicos asignados ya están comprometidos en esa fecha. Elige otro día.");
       }
     }
     const conflictosLimpieza = await findCleaningClientConflicts(supabase, {
@@ -585,7 +623,10 @@ export const disponibilidadGlobal = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const desde = new Date(data.desde + "T00:00:00Z");
     const hasta = new Date(data.hasta + "T00:00:00Z");
-    const ocupados = await diasOcupadosGlobales(context.supabase, desde, hasta, data.excluir_trabajo_id);
+    const recursos = await recursosDeTrabajo(context.supabase, data.excluir_trabajo_id ?? null);
+    const ocupados = await diasOcupadosGlobales(
+      context.supabase, desde, hasta, data.excluir_trabajo_id, recursos,
+    );
     return Array.from(ocupados.values());
   });
 

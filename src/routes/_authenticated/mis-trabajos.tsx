@@ -216,10 +216,10 @@ function ReprogramarDialog({
               className="mt-1 w-full h-9 px-3 rounded-md border border-input bg-background" />
           </label>
           {elegidoOcupado && (
-            <p className="text-xs text-destructive">⚠ Esa fecha ya está ocupada por otro trabajo. Elige otra.</p>
+            <p className="text-xs text-destructive">⚠ En esa fecha el equipo o los técnicos ya están comprometidos. Elige otra.</p>
           )}
           <p className="text-[11px] text-muted-foreground">
-            Solo puedes elegir días dentro de tu ciclo y que no estén ocupados por otros clientes.
+            Puedes elegir cualquier día dentro de tu ciclo en el que el equipo y los técnicos estén disponibles.
           </p>
           {!ocupados.isLoading && ocupadosSet.size > 0 && (
             <details className="text-[11px] text-muted-foreground">
