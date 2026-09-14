@@ -136,7 +136,7 @@ function normalizarKpisMetaDiaria(kpisInput: ReporteKpi[], audiencia: Audiencia 
     const aclaracion = aclaracionAvance(audiencia);
     const yaAclarado = audiencia === "cliente"
       ? /servicio/i.test(base)
-      : /meta diaria/i.test(base) && /no corresponde|no es|no representa/i.test(base);
+      : /avance real/i.test(base) && /no corresponde|no es|no representa/i.test(base);
     const value = yaAclarado ? base : `${base} ${aclaracion}`.trim();
     return { label, value };
   });
