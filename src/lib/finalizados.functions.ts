@@ -69,6 +69,29 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       });
     }
 
+    // Fecha real de ejecución: último día reportado por el técnico en el
+    // reporte diario. `fecha_completado` guarda el instante en que se marcó
+    // como completado (puede ser otro día), por lo que solo sirve de respaldo.
+    const ultimoDia = new Map<string, string>();
+    const ids = lista.map((t) => t.id as string);
+    if (ids.length > 0) {
+      const { data: diarios } = await context.supabase
+        .from("trabajo_reportes_diarios")
+        .select("trabajo_id, fecha")
+        .in("trabajo_id", ids);
+      (diarios ?? []).forEach((r: any) => {
+        const f = String(r.fecha).slice(0, 10);
+        const prev = ultimoDia.get(r.trabajo_id);
+        if (!prev || f > prev) ultimoDia.set(r.trabajo_id, f);
+      });
+    }
+
+    function diaLocal(iso: string) {
+      // Día calendario en El Salvador (UTC-6) del timestamp de cierre.
+      const d = new Date(new Date(iso).getTime() - 6 * 3600000);
+      return d.toISOString().slice(0, 10);
+    }
+
     return lista.map((t) => ({
       id: t.id as string,
       folio: t.folio as string,
@@ -80,11 +103,14 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       cliente_nombre: (t.plantas?.clientes?.nombre as string) ?? "—",
       fecha_programada: t.fecha_programada as string,
       fecha_completado: t.fecha_completado as string,
+      // YYYY-MM-DD del día en que realmente se terminó el trabajo.
+      fecha_finalizacion: ultimoDia.get(t.id as string) ?? diaLocal(t.fecha_completado as string),
       duracion_dias: (t.duracion_dias as number) ?? 1,
       firmado_at: (t.firmado_at as string) ?? null,
       firmado_por: (t.firmado_por as string) ?? null,
       tecnico: t.tecnico_id ? nombres.get(t.tecnico_id) ?? "—" : "—",
     }));
   });
+
 
 export type TrabajoFinalizado = Awaited<ReturnType<typeof listTrabajosFinalizados>>[number];
