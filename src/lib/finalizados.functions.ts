@@ -103,7 +103,7 @@ export const listTrabajosFinalizados = createServerFn({ method: "GET" })
       return d.toISOString().slice(0, 10);
     }
 
-    return lista.map((t) => ({
+    const salida = lista.map((t) => ({
       id: t.id as string,
       folio: t.folio as string,
       servicio: t.servicio as string,
