@@ -3,6 +3,7 @@ import { motion, LayoutGroup } from "framer-motion";
 import {
   LayoutDashboard,
   CalendarRange,
+  CalendarCheck,
   ClipboardList,
   Building2,
   Sun,
@@ -88,6 +89,7 @@ const allGroups: NavGroup[] = [
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
       { to: "/rutas", label: "Rutas", icon: MapIcon },
       { to: "/jornada", label: "Jornada laboral", icon: Clock },
+      { to: "/agenda-interna", label: "Agenda interna", icon: CalendarCheck },
     ],
   },
   {
