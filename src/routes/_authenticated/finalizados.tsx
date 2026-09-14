@@ -142,9 +142,10 @@ function FinalizadosPage() {
     {
       key: "finalizado",
       header: "Fecha de finalización",
-      cell: (r) => <span className="font-medium">{fmtFecha(r.fecha_completado)}</span>,
+      cell: (r) => <span className="font-medium">{fmtFecha(r.fecha_finalizacion ?? r.fecha_completado)}</span>,
     },
   ];
+
 
   async function descargarPdf() {
     if (rows.length === 0) {
