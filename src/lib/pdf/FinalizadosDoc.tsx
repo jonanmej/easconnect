@@ -1,4 +1,15 @@
-import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
+import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
+
+function absUrl(path: string) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://easconnect.lovable.app";
+  return `${origin}${path}`;
+}
+const LOGO_EA = () => absUrl(BRAND_LOGO_URLS["ea-main"].light);
+const LOGO_PVSTOP = () => absUrl(BRAND_LOGO_URLS.pvstop.light);
+const LOGO_CHEMITEK = () => absUrl(BRAND_LOGO_URLS.chemitek.light);
+
 
 Font.registerHyphenationCallback((word) => [word]);
 
@@ -15,15 +26,49 @@ const COL = {
 
 const s = StyleSheet.create({
   page: {
-    paddingTop: 48,
-    paddingBottom: 48,
-    paddingLeft: 48,
-    paddingRight: 48,
+    paddingTop: 92,
+    paddingBottom: 74,
+    paddingLeft: 46,
+    paddingRight: 42,
     fontSize: 10,
     color: COL.text,
     fontFamily: FONT_REG,
     lineHeight: 1.35,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: COL.primary,
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 10 },
+  headerLeftText: { flex: 1 },
+  headerRight: { width: 175, alignItems: "flex-end" },
+  headerTitle: { fontSize: 7, color: COL.primary, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_BOLD },
+  headerSub: { fontSize: 6.5, color: COL.muted, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 },
+  headerRightTop: { fontSize: 7.5, color: COL.text, fontFamily: FONT_BOLD, textAlign: "right" },
+  headerRightBot: { fontSize: 7, color: COL.muted, textAlign: "right", marginTop: 2, letterSpacing: 0.4 },
+  logoEa: { height: 30, objectFit: "contain", marginRight: 8 },
+  footerLogoPv: { height: 14, objectFit: "contain" },
+  footerLogoCh: { height: 11, objectFit: "contain" },
+  pageFooter: {
+    position: "absolute",
+    bottom: 22,
+    left: 46,
+    right: 42,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: 7,
+    color: COL.muted,
+    borderTopWidth: 0.75,
+    borderTopColor: COL.primary,
+    paddingTop: 5,
+  },
+  pageFooterLogos: { flexDirection: "row", alignItems: "center", gap: 10 },
+
   title: {
     fontSize: 16,
     fontFamily: FONT_BOLD,
@@ -90,6 +135,8 @@ export type FinalizadoFila = {
   cliente_nombre: string;
   fecha_programada: string;
   fecha_completado: string;
+  /** YYYY-MM-DD del día en que realmente se terminó el trabajo. */
+  fecha_finalizacion?: string | null;
   duracion_dias: number;
   firmado_at?: string | null;
   firmado_por?: string | null;
@@ -110,16 +157,27 @@ export type FinalizadosData = {
 
 const TZ = "America/El_Salvador";
 
-function fechaLarga(iso: string) {
+/** Día efectivo de finalización, sin corrimiento de zona horaria. */
+function diaFinal(f: FinalizadoFila) {
+  const solo = (f.fecha_finalizacion ?? "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(solo)) return solo;
   try {
-    return new Date(iso).toLocaleDateString("es-SV", {
-      timeZone: TZ,
+    const d = new Date(f.fecha_completado);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
+  } catch {
+    return String(f.fecha_completado).slice(0, 10);
+  }
+}
+
+function fechaLarga(dia: string) {
+  try {
+    return new Date(`${dia}T12:00:00`).toLocaleDateString("es-SV", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   } catch {
-    return iso.slice(0, 10);
+    return dia;
   }
 }
 
@@ -141,10 +199,52 @@ function agrupar(filas: FinalizadoFila[]) {
         .map(([planta, trabajos]) => ({
           planta,
           fechas: [...trabajos]
-            .sort((a, b) => new Date(b.fecha_completado).getTime() - new Date(a.fecha_completado).getTime())
-            .map((t) => fechaLarga(t.fecha_completado)),
+            .map(diaFinal)
+            .sort((a, b) => b.localeCompare(a))
+            .map(fechaLarga),
         })),
     }));
+}
+
+function PageHeader({ data }: { data: FinalizadosData }) {
+  const codigo = `${data.documento_codigo ?? "EA-FIN"} · v${data.documento_version ?? "1.0"}`;
+  const clasif = data.documento_clasificacion ?? "Uso interno";
+  return (
+    <View fixed style={{ position: "absolute", top: 24, left: 46, right: 42 }}>
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Image src={LOGO_EA()} style={s.logoEa} />
+          <View style={s.headerLeftText}>
+            <Text style={s.headerTitle}>EA SERVICE AND CONSULTING</Text>
+            <Text style={s.headerSub}>Registro de trabajos finalizados</Text>
+          </View>
+        </View>
+        <View style={s.headerRight}>
+          <Text style={s.headerRightTop}>{data.periodo}</Text>
+          <Text style={s.headerRightBot}>Emitido: {data.emitido_at}</Text>
+          <Text style={s.headerRightBot}>{codigo} · {clasif}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PageFooter({ data }: { data: FinalizadosData }) {
+  const docId = data.documento_id ? data.documento_id.slice(0, 8).toUpperCase() : "—";
+  const hash = data.documento_hash ? data.documento_hash.slice(0, 12) : null;
+  return (
+    <View style={s.pageFooter} fixed>
+      <View style={s.pageFooterLogos}>
+        <Image src={LOGO_PVSTOP()} style={s.footerLogoPv} />
+        <Image src={LOGO_CHEMITEK()} style={s.footerLogoCh} />
+      </View>
+      <View style={{ flexDirection: "column", flex: 1, paddingLeft: 12 }}>
+        <Text>ID Doc: {docId}{hash ? ` · SHA-256 ${hash}…` : ""}</Text>
+        <Text>Registro de servicios ejecutados · ISO 9001:2015</Text>
+      </View>
+      <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} / ${totalPages}`} />
+    </View>
+  );
 }
 
 export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
@@ -152,6 +252,9 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
   return (
     <Document title="Trabajos finalizados" author="EA Service and Consulting" subject={`Trabajos finalizados · ${data.periodo}`}>
       <Page size="A4" orientation="portrait" style={s.page}>
+        <PageHeader data={data} />
+        <PageFooter data={data} />
+
         <Text style={s.title}>Trabajos finalizados por cliente</Text>
         <Text style={s.subtitle}>{data.periodo}</Text>
 
@@ -181,4 +284,5 @@ export function FinalizadosDoc({ data }: { data: FinalizadosData }) {
       </Page>
     </Document>
   );
+
 }
