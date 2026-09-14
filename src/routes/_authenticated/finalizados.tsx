@@ -124,9 +124,13 @@ function FinalizadosPage() {
   const listaPlantas = ((plantas.data as any[] | undefined) ?? []).filter(
     (p) => !clienteId || p.cliente_id === clienteId,
   );
+  const serviciosBase = (opcionesServicio.data as any[] | undefined) ?? [];
   const servicios = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.servicio))).sort((a, b) => a.localeCompare(b, "es")),
-    [rows],
+    () =>
+      Array.from(new Set(serviciosBase.map((r) => r.servicio).filter(Boolean))).sort((a, b) =>
+        String(a).localeCompare(String(b), "es"),
+      ),
+    [serviciosBase],
   );
 
   const columns: ResponsiveColumn<(typeof rows)[number]>[] = [
