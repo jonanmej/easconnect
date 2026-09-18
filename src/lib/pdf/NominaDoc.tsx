@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { NOTA_LEGAL_NOMINA, fmtUSD } from "@/lib/nomina";
+import { NOTA_LEGAL_DESCUENTOS } from "@/lib/nomina-descuentos";
 
 function absUrl(path: string) {
   const origin =
