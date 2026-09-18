@@ -463,3 +463,40 @@ export async function generarYDescargarJornadasPdf(
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   return { documento_id, hash };
 }
+
+/**
+ * Genera y descarga el PDF de horas extras por colaborador (nómina).
+ */
+export async function generarYDescargarHorasExtrasPdf(
+  data: import("./HorasExtrasDoc").HorasExtrasData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { HorasExtrasDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./HorasExtrasDoc"),
+  ]);
+  type D = import("./HorasExtrasDoc").HorasExtrasData;
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: D = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-NOM-01",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Uso interno · RRHH",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(HorasExtrasDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: D = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(HorasExtrasDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}

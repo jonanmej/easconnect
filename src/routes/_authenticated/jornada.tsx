@@ -18,7 +18,25 @@ import {
   ajustarJornada,
   eliminarJornada,
   crearJornadaManual,
+  resumenHorasExtras,
 } from "@/lib/jornadas.functions";
+
+type ExtrasResumen = {
+  limite_diario: number;
+  desde: string;
+  hasta: string;
+  dias: {
+    id: string; fecha: string; tecnico_id: string; colaborador: string;
+    horas_efectivas: number; horas_ordinarias: number; horas_extras: number;
+    horas_descanso: number; es_descanso: boolean; motivo_descanso: string | null; abierta: boolean;
+  }[];
+  personal: {
+    tecnico_id: string; colaborador: string; dias: number;
+    horas_efectivas: number; horas_ordinarias: number; horas_extras: number;
+    horas_descanso: number; dias_con_extras: number; dias_descanso: number;
+  }[];
+  totales: { horas_efectivas: number; horas_ordinarias: number; horas_extras: number; horas_descanso: number };
+};
 
 export const Route = createFileRoute("/_authenticated/jornada")({
   head: () => ({
@@ -107,6 +125,7 @@ function JornadaPage() {
   const [editando, setEditando] = useState<Fila | null>(null);
   const [creando, setCreando] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [extrasPdfBusy, setExtrasPdfBusy] = useState(false);
 
   const fList = useServerFn(listJornadas);
   const fPersonal = useServerFn(listPersonalJornadas);
@@ -129,6 +148,12 @@ function JornadaPage() {
     queryFn: () => fColaboradores(),
     enabled: isStaff && creando,
   });
+  const fExtras = useServerFn(resumenHorasExtras);
+  const extras = useQuery({
+    queryKey: ["jornadas-extras", desde, hasta, tecnico],
+    queryFn: () => fExtras({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+  });
+  const extrasData = extras.data as ExtrasResumen | undefined;
 
   const filas = (jornadas.data as Fila[] | undefined) ?? [];
   const totales = useMemo(() => {
@@ -232,6 +257,72 @@ function JornadaPage() {
       setPdfBusy(false);
     }
   }
+
+  async function exportarExtrasXls() {
+    if (!extrasData) return;
+    await exportarExcel<any>({
+      filename: `horas-extras-${desde}_a_${hasta}.xlsx`,
+      hojas: [
+        {
+          nombre: "Resumen por colaborador",
+          columnas: [
+            { header: "Colaborador", key: "colaborador", width: 30 },
+            { header: "Días marcados", key: "dias", width: 14 },
+            { header: "Horas efectivas", key: "horas_efectivas", width: 16 },
+            { header: "Horas ordinarias", key: "horas_ordinarias", width: 16 },
+            { header: "Horas extras", key: "horas_extras", width: 14 },
+            { header: "Días con extras", key: "dias_con_extras", width: 15 },
+            { header: "Horas descanso/feriado", key: "horas_descanso", width: 22 },
+            { header: "Días de descanso", key: "dias_descanso", width: 16 },
+          ],
+          filas: extrasData.personal as any[],
+          total: ["horas_efectivas", "horas_ordinarias", "horas_extras", "horas_descanso"],
+        },
+        {
+          nombre: "Detalle diario",
+          columnas: [
+            { header: "Fecha", key: "fecha", width: 14 },
+            { header: "Colaborador", key: "colaborador", width: 30 },
+            { header: "Horas efectivas", key: "horas_efectivas", width: 16 },
+            { header: "Horas ordinarias", key: "horas_ordinarias", width: 16 },
+            { header: "Horas extras", key: "horas_extras", width: 14 },
+            { header: "Horas descanso/feriado", key: "horas_descanso", width: 22 },
+            { header: "Observación", key: "motivo_descanso", width: 26, fn: (r: any) => r.motivo_descanso ?? "—" },
+          ],
+          filas: extrasData.dias as any[],
+          total: ["horas_efectivas", "horas_ordinarias", "horas_extras", "horas_descanso"],
+        },
+      ],
+    });
+  }
+
+  async function exportarExtrasPdf() {
+    if (!extrasData) return;
+    setExtrasPdfBusy(true);
+    try {
+      const { generarYDescargarHorasExtrasPdf } = await import("@/lib/pdf/descargar");
+      await generarYDescargarHorasExtrasPdf(
+        {
+          desde,
+          hasta,
+          alcance,
+          limite_diario: extrasData.limite_diario,
+          personal: extrasData.personal,
+          dias: extrasData.dias,
+          totales: extrasData.totales,
+          emitido_at: new Date().toLocaleString("es-SV", { timeZone: TZ }),
+        },
+        `Horas-extras-${alcance.replace(/\s+/g, "-")}-${desde}_a_${hasta}.pdf`,
+      );
+      toast.success("PDF de horas extras generado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF");
+    } finally {
+      setExtrasPdfBusy(false);
+    }
+  }
+
+
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -355,6 +446,80 @@ function JornadaPage() {
           </div>
         )}
       </div>
+
+      <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
+          <Clock className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Horas extras por colaborador (nómina)</h2>
+          <span className="text-[10px] uppercase text-muted-foreground">
+            Jornada ordinaria {extrasData?.limite_diario ?? 8} h/día
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <ExportButton onExport={exportarExtrasXls} />
+            <button
+              type="button"
+              onClick={exportarExtrasPdf}
+              disabled={extrasPdfBusy || !extrasData}
+              className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+            >
+              {extrasPdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
+            </button>
+          </div>
+        </div>
+
+        {extras.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando…</p>}
+        {!extras.isLoading && (extrasData?.personal.length ?? 0) === 0 && (
+          <p className="p-4 text-xs text-muted-foreground">Sin horas registradas en el período seleccionado.</p>
+        )}
+
+        {(extrasData?.personal.length ?? 0) > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[760px]">
+              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-right px-3 py-2">Días</th>
+                  <th className="text-right px-3 py-2">Horas efect.</th>
+                  <th className="text-right px-3 py-2">Ordinarias</th>
+                  <th className="text-right px-3 py-2">Extras</th>
+                  <th className="text-right px-3 py-2">Días c/extra</th>
+                  <th className="text-right px-3 py-2">Descanso/feriado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {extrasData!.personal.map((p) => (
+                  <tr key={p.tecnico_id} className="border-t border-border/60">
+                    <td className="px-3 py-2 font-medium">{p.colaborador}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.dias}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_efectivas.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_ordinarias.toFixed(2)}</td>
+                    <td className={"px-3 py-2 text-right font-mono font-bold " + (p.horas_extras > 0 ? "text-primary" : "")}>
+                      {p.horas_extras.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{p.dias_con_extras}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_descanso.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t border-border bg-secondary/40 font-semibold">
+                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_efectivas.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_ordinarias.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_extras.toFixed(2)}</td>
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_descanso.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+          Se cuentan como extras las horas que pasan de {extrasData?.limite_diario ?? 8} h efectivas en un día hábil.
+          Las horas de domingo o feriado se muestran aparte para pagarlas según corresponda.
+        </p>
+      </div>
+
+
 
       {editando && (
         <EditarJornadaDialog
