@@ -12,7 +12,7 @@ import { inputCls } from "@/components/RecordDialog";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { exportarExcel } from "@/lib/excel";
-import { fmtUSD, NOTA_LEGAL_NOMINA } from "@/lib/nomina";
+import { fmtUSD, NOTA_LEGAL_NOMINA, ETIQUETAS_MODALIDAD, type ModalidadPago } from "@/lib/nomina";
 import { NOTA_LEGAL_DESCUENTOS } from "@/lib/nomina-descuentos";
 import { listSalarios, upsertSalario } from "@/lib/jornadas.functions";
 import { listPersonalInterno } from "@/lib/actividades-internas.functions";
