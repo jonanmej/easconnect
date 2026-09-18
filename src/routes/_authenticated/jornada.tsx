@@ -257,6 +257,72 @@ function JornadaPage() {
     }
   }
 
+  async function exportarExtrasXls() {
+    if (!extrasData) return;
+    await exportarExcel<any>({
+      filename: `horas-extras-${desde}_a_${hasta}.xlsx`,
+      hojas: [
+        {
+          nombre: "Resumen por colaborador",
+          columnas: [
+            { header: "Colaborador", key: "colaborador", width: 30 },
+            { header: "Días marcados", key: "dias", width: 14 },
+            { header: "Horas efectivas", key: "horas_efectivas", width: 16 },
+            { header: "Horas ordinarias", key: "horas_ordinarias", width: 16 },
+            { header: "Horas extras", key: "horas_extras", width: 14 },
+            { header: "Días con extras", key: "dias_con_extras", width: 15 },
+            { header: "Horas descanso/feriado", key: "horas_descanso", width: 22 },
+            { header: "Días de descanso", key: "dias_descanso", width: 16 },
+          ],
+          filas: extrasData.personal as any[],
+          total: ["horas_efectivas", "horas_ordinarias", "horas_extras", "horas_descanso"],
+        },
+        {
+          nombre: "Detalle diario",
+          columnas: [
+            { header: "Fecha", key: "fecha", width: 14 },
+            { header: "Colaborador", key: "colaborador", width: 30 },
+            { header: "Horas efectivas", key: "horas_efectivas", width: 16 },
+            { header: "Horas ordinarias", key: "horas_ordinarias", width: 16 },
+            { header: "Horas extras", key: "horas_extras", width: 14 },
+            { header: "Horas descanso/feriado", key: "horas_descanso", width: 22 },
+            { header: "Observación", key: "motivo_descanso", width: 26, fn: (r: any) => r.motivo_descanso ?? "—" },
+          ],
+          filas: extrasData.dias as any[],
+          total: ["horas_efectivas", "horas_ordinarias", "horas_extras", "horas_descanso"],
+        },
+      ],
+    });
+  }
+
+  async function exportarExtrasPdf() {
+    if (!extrasData) return;
+    setExtrasPdfBusy(true);
+    try {
+      const { generarYDescargarHorasExtrasPdf } = await import("@/lib/pdf/descargar");
+      await generarYDescargarHorasExtrasPdf(
+        {
+          desde,
+          hasta,
+          alcance,
+          limite_diario: extrasData.limite_diario,
+          personal: extrasData.personal,
+          dias: extrasData.dias,
+          totales: extrasData.totales,
+          emitido_at: new Date().toLocaleString("es-SV", { timeZone: TZ }),
+        },
+        `Horas-extras-${alcance.replace(/\s+/g, "-")}-${desde}_a_${hasta}.pdf`,
+      );
+      toast.success("PDF de horas extras generado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF");
+    } finally {
+      setExtrasPdfBusy(false);
+    }
+  }
+
+
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
