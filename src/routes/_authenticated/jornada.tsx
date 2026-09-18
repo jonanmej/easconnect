@@ -105,12 +105,15 @@ function JornadaPage() {
   const [hasta, setHasta] = useState(hoyISO());
   const [tecnico, setTecnico] = useState("");
   const [editando, setEditando] = useState<Fila | null>(null);
+  const [creando, setCreando] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
   const fList = useServerFn(listJornadas);
   const fPersonal = useServerFn(listPersonalJornadas);
   const fAjustar = useServerFn(ajustarJornada);
   const fEliminar = useServerFn(eliminarJornada);
+  const fCrear = useServerFn(crearJornadaManual);
+  const fColaboradores = useServerFn(listPersonalInterno);
 
   const jornadas = useQuery({
     queryKey: ["jornadas", desde, hasta, tecnico],
@@ -120,6 +123,11 @@ function JornadaPage() {
     queryKey: ["jornadas-personal"],
     queryFn: () => fPersonal(),
     enabled: isStaff,
+  });
+  const colaboradores = useQuery({
+    queryKey: ["jornadas-colaboradores"],
+    queryFn: () => fColaboradores(),
+    enabled: isStaff && creando,
   });
 
   const filas = (jornadas.data as Fila[] | undefined) ?? [];
