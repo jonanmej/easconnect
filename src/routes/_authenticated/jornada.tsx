@@ -170,7 +170,7 @@ function JornadaPage() {
   const colaboradores = useQuery({
     queryKey: ["jornadas-colaboradores"],
     queryFn: () => fColaboradores(),
-    enabled: isStaff && creando,
+    enabled: isStaff && (creando || salariosOpen),
   });
   const fExtras = useServerFn(resumenHorasExtras);
   const extras = useQuery({
