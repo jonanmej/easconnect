@@ -28,6 +28,7 @@ export default defineConfig({
         workbox: {
           skipWaiting: false,
           clientsClaim: true,
+          cleanupOutdatedCaches: true,
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/\.mcp/, /^\/lovable\//],
           globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
@@ -36,15 +37,25 @@ export default defineConfig({
             {
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
-              options: { cacheName: "easc-html", networkTimeoutSeconds: 5 },
+              options: { cacheName: "easc-html-v2", networkTimeoutSeconds: 5 },
+            },
+            {
+              // CSS y JS siempre se revalidan contra el servidor: así una versión
+              // nueva nunca queda mezclada con estilos de un build anterior
+              // (causa de vistas "desconfiguradas" en la app instalada).
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                ["style", "script", "worker"].includes(request.destination),
+              handler: "StaleWhileRevalidate",
+              options: { cacheName: "easc-code-v2" },
             },
             {
               urlPattern: ({ url, request }) =>
                 url.origin === self.location.origin &&
-                ["style", "script", "worker", "font", "image"].includes(request.destination),
+                ["font", "image"].includes(request.destination),
               handler: "CacheFirst",
               options: {
-                cacheName: "easc-assets",
+                cacheName: "easc-media-v2",
                 expiration: { maxEntries: 300, maxAgeSeconds: 30 * 24 * 60 * 60 },
               },
             },
