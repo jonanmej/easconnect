@@ -18,7 +18,25 @@ import {
   ajustarJornada,
   eliminarJornada,
   crearJornadaManual,
+  resumenHorasExtras,
 } from "@/lib/jornadas.functions";
+
+type ExtrasResumen = {
+  limite_diario: number;
+  desde: string;
+  hasta: string;
+  dias: {
+    id: string; fecha: string; tecnico_id: string; colaborador: string;
+    horas_efectivas: number; horas_ordinarias: number; horas_extras: number;
+    horas_descanso: number; es_descanso: boolean; motivo_descanso: string | null; abierta: boolean;
+  }[];
+  personal: {
+    tecnico_id: string; colaborador: string; dias: number;
+    horas_efectivas: number; horas_ordinarias: number; horas_extras: number;
+    horas_descanso: number; dias_con_extras: number; dias_descanso: number;
+  }[];
+  totales: { horas_efectivas: number; horas_ordinarias: number; horas_extras: number; horas_descanso: number };
+};
 
 export const Route = createFileRoute("/_authenticated/jornada")({
   head: () => ({
