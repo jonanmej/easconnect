@@ -141,6 +141,8 @@ function JornadaPage() {
   const { roles } = useAuth();
   const role = highestRole(roles);
   const isStaff = role === "admin" || role === "supervisor";
+  // Información de pagos, salarios y nómina: exclusiva de administradores.
+  const isAdmin = role === "admin";
 
   const [desde, setDesde] = useState(primerDiaMesISO());
   const [hasta, setHasta] = useState(hoyISO());
@@ -171,12 +173,13 @@ function JornadaPage() {
   const colaboradores = useQuery({
     queryKey: ["jornadas-colaboradores"],
     queryFn: () => fColaboradores(),
-    enabled: isStaff && (creando || salariosOpen),
+    enabled: (isStaff && creando) || (isAdmin && salariosOpen),
   });
   const fExtras = useServerFn(resumenHorasExtras);
   const extras = useQuery({
     queryKey: ["jornadas-extras", desde, hasta, tecnico],
     queryFn: () => fExtras({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+    enabled: isAdmin,
   });
   const extrasData = extras.data as ExtrasResumen | undefined;
 
@@ -186,12 +189,13 @@ function JornadaPage() {
   const nomina = useQuery({
     queryKey: ["nomina-calculo", desde, hasta, tecnico],
     queryFn: () => fNomina({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+    enabled: isAdmin,
   });
   const nominaData = nomina.data as NominaResumen | undefined;
   const salarios = useQuery({
     queryKey: ["nomina-salarios"],
     queryFn: () => fSalarios(),
-    enabled: isStaff,
+    enabled: isAdmin,
   });
   const guardarSalario = useMutation({
     mutationFn: (v: { user_id: string; salario_mensual: number; modalidad?: ModalidadPago; pago_diario?: number }) =>
@@ -549,6 +553,7 @@ function JornadaPage() {
         )}
       </div>
 
+      {isAdmin && (<>
       <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
           <Clock className="size-4 text-primary" />
@@ -627,7 +632,7 @@ function JornadaPage() {
           <h2 className="text-sm font-semibold">Cálculo de pago (El Salvador)</h2>
           <span className="text-[10px] uppercase text-muted-foreground">Pago bruto del período</span>
           <div className="ml-auto flex items-center gap-2">
-            {isStaff && (
+            {isAdmin && (
               <button
                 type="button"
                 onClick={() => setSalariosOpen(true)}
@@ -733,6 +738,8 @@ function JornadaPage() {
           {NOTA_LEGAL_NOMINA} Los montos son brutos, antes de descuentos de ley (ISSS, AFP, renta).
         </p>
       </div>
+      </>
+      )}
 
       {salariosOpen && (
         <SalariosDialog

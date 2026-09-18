@@ -257,6 +257,13 @@ async function requireStaff(context: any) {
   if (!esAdmin && !esSup) throw new Error("Solo administradores y supervisores pueden hacer este ajuste.");
 }
 
+async function requireAdmin(context: any) {
+  const { data: esAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId, _role: "admin",
+  });
+  if (!esAdmin) throw new Error("Solo los administradores pueden ver o modificar la información de pagos y salarios.");
+}
+
 /** Corrección manual de una marcación (solo admin/supervisor). */
 export const ajustarJornada = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -472,6 +479,7 @@ export const resumenHorasExtras = createServerFn({ method: "GET" })
 export const listSalarios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("nomina_salarios")
       .select("id, user_id, salario_mensual, modalidad, pago_diario, moneda, notas, updated_at");
@@ -507,7 +515,7 @@ export const upsertSalario = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    await requireStaff(context);
+    await requireAdmin(context);
     const modalidad = data.modalidad ?? "mensual";
     const { data: row, error } = await context.supabase
       .from("nomina_salarios")
@@ -533,7 +541,7 @@ export const eliminarSalario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ user_id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    await requireStaff(context);
+    await requireAdmin(context);
     const { error } = await context.supabase
       .from("nomina_salarios").delete().eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
@@ -548,6 +556,7 @@ export const calculoNomina = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ZRango.parse(d))
   .handler(async ({ context, data }) => {
+    await requireAdmin(context);
     const { calcularNominaRango } = await import("@/lib/nomina.server");
     return calcularNominaRango(context.supabase, data);
   });
