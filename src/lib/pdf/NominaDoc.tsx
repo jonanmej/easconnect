@@ -76,6 +76,11 @@ export type NominaPersona = {
   pago_descanso: number;
   pago_feriado: number;
   total_a_pagar: number;
+  isss?: number;
+  afp?: number;
+  renta?: number;
+  otros_descuentos?: number;
+  total_neto?: number;
 };
 
 export type NominaData = {
@@ -94,6 +99,11 @@ export type NominaData = {
     pago_descanso: number;
     pago_feriado: number;
     total_a_pagar: number;
+    isss?: number;
+    afp?: number;
+    renta?: number;
+    otros_descuentos?: number;
+    total_neto?: number;
   };
   emitido_at: string;
   documento_id?: string;
@@ -102,6 +112,8 @@ export type NominaData = {
   documento_clasificacion?: string;
   documento_hash?: string;
 };
+
+const n0 = (v?: number) => (Number.isFinite(v as number) ? (v as number) : 0);
 
 function DocHeader({ data }: { data: NominaData }) {
   const codigo = `${data.documento_codigo ?? "EA-NOM-02"} · v${data.documento_version ?? "1.0"}`;
