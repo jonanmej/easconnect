@@ -173,12 +173,13 @@ function JornadaPage() {
   const colaboradores = useQuery({
     queryKey: ["jornadas-colaboradores"],
     queryFn: () => fColaboradores(),
-    enabled: isStaff && (creando || salariosOpen),
+    enabled: (isStaff && creando) || (isAdmin && salariosOpen),
   });
   const fExtras = useServerFn(resumenHorasExtras);
   const extras = useQuery({
     queryKey: ["jornadas-extras", desde, hasta, tecnico],
     queryFn: () => fExtras({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+    enabled: isAdmin,
   });
   const extrasData = extras.data as ExtrasResumen | undefined;
 
@@ -188,12 +189,13 @@ function JornadaPage() {
   const nomina = useQuery({
     queryKey: ["nomina-calculo", desde, hasta, tecnico],
     queryFn: () => fNomina({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+    enabled: isAdmin,
   });
   const nominaData = nomina.data as NominaResumen | undefined;
   const salarios = useQuery({
     queryKey: ["nomina-salarios"],
     queryFn: () => fSalarios(),
-    enabled: isStaff,
+    enabled: isAdmin,
   });
   const guardarSalario = useMutation({
     mutationFn: (v: { user_id: string; salario_mensual: number; modalidad?: ModalidadPago; pago_diario?: number }) =>
@@ -630,7 +632,7 @@ function JornadaPage() {
           <h2 className="text-sm font-semibold">Cálculo de pago (El Salvador)</h2>
           <span className="text-[10px] uppercase text-muted-foreground">Pago bruto del período</span>
           <div className="ml-auto flex items-center gap-2">
-            {isStaff && (
+            {isAdmin && (
               <button
                 type="button"
                 onClick={() => setSalariosOpen(true)}

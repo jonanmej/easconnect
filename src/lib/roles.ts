@@ -22,7 +22,7 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes",
     "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
-    "/search-console", "/jornada", "/nomina", "/finalizados", "/agenda-interna",
+    "/search-console", "/jornada", "/finalizados", "/agenda-interna",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",

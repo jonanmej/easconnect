@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 async function requireStaff(context: any) {
   const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
     context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
   ]);
   if (!esAdmin && !esSup) throw new Error("Solo administradores y supervisores pueden usar el módulo de nómina.");
 }
