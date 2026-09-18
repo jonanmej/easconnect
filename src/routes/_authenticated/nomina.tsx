@@ -782,26 +782,30 @@ function SalariosDialog({
   cargando: boolean;
   saving: boolean;
   onCancel: () => void;
-  onSave: (v: { user_id: string; salario_mensual: number }) => void;
+  onSave: (v: { user_id: string; salario_mensual: number; modalidad: ModalidadPago; pago_diario: number }) => void;
 }) {
   const [userId, setUserId] = useState("");
+  const [modalidad, setModalidad] = useState<ModalidadPago>("mensual");
   const [monto, setMonto] = useState("");
   const lista = colaboradores.length
     ? colaboradores
     : salarios.map((s) => ({ id: s.user_id, nombre: s.colaborador }));
 
+  const esDiario = modalidad === "diario";
+
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-4 space-y-3">
+      <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-4 space-y-3">
         <div>
-          <h3 className="text-sm font-semibold">Salarios del personal</h3>
+          <h3 className="text-sm font-semibold">Remuneración del personal</h3>
           <p className="text-xs text-muted-foreground">
-            Ingrese el salario mensual de cada colaborador. Con este dato se calcula la hora ordinaria
-            (salario ÷ 30 días ÷ 8 horas), el pago de horas extras, domingos y feriados, y los descuentos de ley.
+            Personal fijo: ingrese el salario mensual (la hora ordinaria es salario ÷ 30 días ÷ 8 horas).
+            Contratados por proyecto: elija «Pago por día» e ingrese el jornal; por cada día con marcación se paga
+            el jornal completo, con recargo del 50 % en domingo y doble en feriado, más las horas extras.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_150px_auto] gap-2 items-end">
           <label className="text-xs">
             <span className="block mb-1 text-muted-foreground">Colaborador</span>
             <select
@@ -809,7 +813,9 @@ function SalariosDialog({
               onChange={(e) => {
                 setUserId(e.target.value);
                 const actual = salarios.find((s) => s.user_id === e.target.value);
-                setMonto(actual ? String(actual.salario_mensual) : "");
+                const m = (actual?.modalidad ?? "mensual") as ModalidadPago;
+                setModalidad(m);
+                setMonto(actual ? String(m === "diario" ? actual.pago_diario : actual.salario_mensual) : "");
               }}
               className={inputCls}
             >
@@ -820,7 +826,20 @@ function SalariosDialog({
             </select>
           </label>
           <label className="text-xs">
-            <span className="block mb-1 text-muted-foreground">Salario mensual (USD)</span>
+            <span className="block mb-1 text-muted-foreground">Modalidad</span>
+            <select
+              value={modalidad}
+              onChange={(e) => setModalidad(e.target.value as ModalidadPago)}
+              className={inputCls}
+            >
+              <option value="mensual">Salario mensual</option>
+              <option value="diario">Pago por día (proyecto)</option>
+            </select>
+          </label>
+          <label className="text-xs">
+            <span className="block mb-1 text-muted-foreground">
+              {esDiario ? "Pago por día (USD)" : "Salario mensual (USD)"}
+            </span>
             <input
               type="number" min={0} step="0.01" value={monto}
               onChange={(e) => setMonto(e.target.value)} placeholder="0.00" className={inputCls}
@@ -829,33 +848,49 @@ function SalariosDialog({
           <button
             type="button"
             disabled={saving || !userId || monto === "" || Number(monto) < 0}
-            onClick={() => onSave({ user_id: userId, salario_mensual: Number(monto) })}
+            onClick={() =>
+              onSave({
+                user_id: userId,
+                modalidad,
+                salario_mensual: esDiario ? 0 : Number(monto),
+                pago_diario: esDiario ? Number(monto) : 0,
+              })
+            }
             className="h-9 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
           >
             {saving && <Loader2 className="size-3.5 animate-spin" />} Guardar
           </button>
         </div>
 
-        <div className="rounded-md border border-border overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full text-xs min-w-[520px]">
             <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2">Colaborador</th>
-                <th className="text-right px-3 py-2">Salario mensual</th>
+                <th className="text-left px-3 py-2">Modalidad</th>
+                <th className="text-right px-3 py-2">Base</th>
                 <th className="text-right px-3 py-2">Hora ordinaria</th>
               </tr>
             </thead>
             <tbody>
               {salarios.length === 0 && (
-                <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">Aún no hay salarios registrados.</td></tr>
+                <tr><td colSpan={4} className="px-3 py-3 text-center text-muted-foreground">Aún no hay remuneraciones registradas.</td></tr>
               )}
-              {salarios.map((s) => (
-                <tr key={s.user_id} className="border-t border-border/60">
-                  <td className="px-3 py-2 font-medium">{s.colaborador}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtUSD(s.salario_mensual)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtUSD(s.salario_mensual / 30 / 8)}</td>
-                </tr>
-              ))}
+              {salarios.map((s) => {
+                const diario = (s.modalidad ?? "mensual") === "diario";
+                const base = diario ? s.pago_diario : s.salario_mensual;
+                const hora = diario ? base / 8 : base / 30 / 8;
+                return (
+                  <tr key={s.user_id} className="border-t border-border/60">
+                    <td className="px-3 py-2 font-medium">{s.colaborador}</td>
+                    <td className="px-3 py-2">{ETIQUETAS_MODALIDAD[(s.modalidad ?? "mensual") as ModalidadPago]}</td>
+                    <td className="px-3 py-2 text-right font-mono">
+                      {fmtUSD(base)}{diario ? " / día" : " / mes"}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{fmtUSD(hora)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
