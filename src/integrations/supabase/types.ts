@@ -629,6 +629,167 @@ export type Database = {
           },
         ]
       }
+      nomina_periodo_detalle: {
+        Row: {
+          afp: number
+          colaborador: string
+          created_at: string
+          dias: number
+          horas_descanso: number
+          horas_extra_diurnas: number
+          horas_extra_nocturnas: number
+          horas_feriado: number
+          horas_ord_diurnas: number
+          horas_ord_nocturnas: number
+          horas_totales: number
+          id: string
+          isss: number
+          notas: string | null
+          otros_descuentos: number
+          pago_descanso: number
+          pago_extras: number
+          pago_feriado: number
+          pago_ordinario: number
+          periodo_id: string
+          renta: number
+          salario_mensual: number
+          total_bruto: number
+          total_neto: number
+          updated_at: string
+          user_id: string
+          valor_hora: number
+        }
+        Insert: {
+          afp?: number
+          colaborador: string
+          created_at?: string
+          dias?: number
+          horas_descanso?: number
+          horas_extra_diurnas?: number
+          horas_extra_nocturnas?: number
+          horas_feriado?: number
+          horas_ord_diurnas?: number
+          horas_ord_nocturnas?: number
+          horas_totales?: number
+          id?: string
+          isss?: number
+          notas?: string | null
+          otros_descuentos?: number
+          pago_descanso?: number
+          pago_extras?: number
+          pago_feriado?: number
+          pago_ordinario?: number
+          periodo_id: string
+          renta?: number
+          salario_mensual?: number
+          total_bruto?: number
+          total_neto?: number
+          updated_at?: string
+          user_id: string
+          valor_hora?: number
+        }
+        Update: {
+          afp?: number
+          colaborador?: string
+          created_at?: string
+          dias?: number
+          horas_descanso?: number
+          horas_extra_diurnas?: number
+          horas_extra_nocturnas?: number
+          horas_feriado?: number
+          horas_ord_diurnas?: number
+          horas_ord_nocturnas?: number
+          horas_totales?: number
+          id?: string
+          isss?: number
+          notas?: string | null
+          otros_descuentos?: number
+          pago_descanso?: number
+          pago_extras?: number
+          pago_feriado?: number
+          pago_ordinario?: number
+          periodo_id?: string
+          renta?: number
+          salario_mensual?: number
+          total_bruto?: number
+          total_neto?: number
+          updated_at?: string
+          user_id?: string
+          valor_hora?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_periodo_detalle_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomina_periodos: {
+        Row: {
+          anio: number
+          cerrado_at: string | null
+          cerrado_por: string | null
+          created_at: string
+          created_by: string | null
+          desde: string
+          estado: string
+          hasta: string
+          id: string
+          mes: number
+          notas: string | null
+          total_afp: number
+          total_bruto: number
+          total_isss: number
+          total_neto: number
+          total_otros: number
+          total_renta: number
+          updated_at: string
+        }
+        Insert: {
+          anio: number
+          cerrado_at?: string | null
+          cerrado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          desde: string
+          estado?: string
+          hasta: string
+          id?: string
+          mes: number
+          notas?: string | null
+          total_afp?: number
+          total_bruto?: number
+          total_isss?: number
+          total_neto?: number
+          total_otros?: number
+          total_renta?: number
+          updated_at?: string
+        }
+        Update: {
+          anio?: number
+          cerrado_at?: string | null
+          cerrado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          desde?: string
+          estado?: string
+          hasta?: string
+          id?: string
+          mes?: number
+          notas?: string | null
+          total_afp?: number
+          total_bruto?: number
+          total_isss?: number
+          total_neto?: number
+          total_otros?: number
+          total_renta?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nomina_salarios: {
         Row: {
           created_at: string
