@@ -563,7 +563,7 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
               cascada.omitidos.push({ folio: f.folio, motivo: uCascErr.message });
               continue;
             }
-            dias.forEach((k) => ocupadosPropios.add(k));
+            dias.forEach((k) => recursosF.forEach((r) => ocupadosPropios.add(`${r}|${k}`)));
             cascada.movidos += 1;
           }
         }
