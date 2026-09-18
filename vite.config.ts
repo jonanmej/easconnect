@@ -29,15 +29,16 @@ export default defineConfig({
           skipWaiting: false,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
-          navigateFallback: "/",
+          // Nunca se precachea HTML: una página guardada de un build anterior
+          // apunta a CSS/JS que ya no existen y la app se ve "desconfigurada".
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/\.mcp/, /^\/lovable\//],
-          globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+          globPatterns: ["**/*.{js,css,svg,png,woff2}"],
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
-              options: { cacheName: "easc-html-v2", networkTimeoutSeconds: 5 },
+              options: { cacheName: "easc-html-v3", networkTimeoutSeconds: 5 },
             },
             {
               // CSS y JS siempre se revalidan contra el servidor: así una versión
@@ -46,8 +47,8 @@ export default defineConfig({
               urlPattern: ({ url, request }) =>
                 url.origin === self.location.origin &&
                 ["style", "script", "worker"].includes(request.destination),
-              handler: "StaleWhileRevalidate",
-              options: { cacheName: "easc-code-v2" },
+              handler: "NetworkFirst",
+              options: { cacheName: "easc-code-v3", networkTimeoutSeconds: 5 },
             },
             {
               urlPattern: ({ url, request }) =>
@@ -55,7 +56,7 @@ export default defineConfig({
                 ["font", "image"].includes(request.destination),
               handler: "CacheFirst",
               options: {
-                cacheName: "easc-media-v2",
+                cacheName: "easc-media-v3",
                 expiration: { maxEntries: 300, maxAgeSeconds: 30 * 24 * 60 * 60 },
               },
             },
