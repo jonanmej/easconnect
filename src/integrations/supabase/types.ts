@@ -629,6 +629,39 @@ export type Database = {
           },
         ]
       }
+      nomina_salarios: {
+        Row: {
+          created_at: string
+          id: string
+          moneda: string
+          notas: string | null
+          salario_mensual: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          moneda?: string
+          notas?: string | null
+          salario_mensual?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          moneda?: string
+          notas?: string | null
+          salario_mensual?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notificaciones_log: {
         Row: {
           asunto: string
