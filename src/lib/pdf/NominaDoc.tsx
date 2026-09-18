@@ -62,6 +62,8 @@ export type NominaPersona = {
   tecnico_id: string;
   colaborador: string;
   salario_mensual: number;
+  modalidad?: "mensual" | "diario";
+  pago_diario?: number;
   valor_hora: number;
   dias: number;
   sin_salario: boolean;
@@ -206,7 +208,7 @@ export function NominaDoc({ data }: { data: NominaData }) {
         <View style={s.table}>
           <View style={s.tr} fixed>
             <Text style={[s.th, { flex: 2.2 }]}>Colaborador</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Salario mens.</Text>
+            <Text style={[s.th, { flex: 1.1, textAlign: "right" }]}>Base</Text>
             <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Hora ord.</Text>
             <Text style={[s.th, { flex: 0.7, textAlign: "right" }]}>Días</Text>
             <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>H. ord.</Text>
@@ -227,7 +229,9 @@ export function NominaDoc({ data }: { data: NominaData }) {
               <Text style={[s.td, { flex: 2.2 }]}>
                 {p.colaborador}{p.sin_salario ? " (sin salario registrado)" : ""}
               </Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.salario_mensual)}</Text>
+              <Text style={[s.td, { flex: 1.1, textAlign: "right", fontFamily: "Courier" }]}>
+                {p.modalidad === "diario" ? `${fmtUSD(p.pago_diario ?? 0)}/día` : `${fmtUSD(p.salario_mensual)}/mes`}
+              </Text>
               <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.valor_hora)}</Text>
               <Text style={[s.td, { flex: 0.7, textAlign: "right", fontFamily: "Courier" }]}>{p.dias}</Text>
               <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>
