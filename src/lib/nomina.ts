@@ -145,9 +145,60 @@ export function pagoDesglose(
   };
 }
 
+/* ─────────── Modalidad de contratación ─────────── */
+
+export type ModalidadPago = "mensual" | "diario";
+
+export const ETIQUETAS_MODALIDAD: Record<ModalidadPago, string> = {
+  mensual: "Salario mensual",
+  diario: "Pago por día (proyecto)",
+};
+
+/** Valor de la hora ordinaria de quien se paga por día trabajado. */
+export function valorHoraJornal(pagoDiario: number): number {
+  if (!pagoDiario || pagoDiario <= 0) return 0;
+  return pagoDiario / HORAS_JORNADA_ORDINARIA;
+}
+
+/**
+ * Pago de un día para quien se contrata por proyecto y se paga por día
+ * trabajado: si asistió, se paga el jornal completo (con el recargo del día
+ * de descanso o de asueto cuando aplique), más el recargo nocturno de las
+ * horas ordinarias en franja nocturna y las horas extras al valor legal.
+ */
+export function pagoDiaJornal(
+  desglose: DesgloseHoras,
+  tipoDia: TipoDiaNomina,
+  pagoDiario: number,
+): Record<CategoriaHora, number> & { total: number } {
+  const f = FACTORES_NOMINA[tipoDia];
+  const valorHora = valorHoraJornal(pagoDiario);
+  const trabajo =
+    desglose.ord_diurna + desglose.ord_nocturna + desglose.extra_diurna + desglose.extra_nocturna;
+  if (trabajo <= 0 || valorHora <= 0) {
+    return { ...desgloseVacio(), total: 0 };
+  }
+  const jornal = pagoDiario * f.ord_diurna;
+  const recargoNocturno = desglose.ord_nocturna * valorHora * (f.ord_nocturna - f.ord_diurna);
+  const extraDiurna = desglose.extra_diurna * f.extra_diurna * valorHora;
+  const extraNocturna = desglose.extra_nocturna * f.extra_nocturna * valorHora;
+  return {
+    ord_diurna: r2(jornal),
+    ord_nocturna: r2(recargoNocturno),
+    extra_diurna: r2(extraDiurna),
+    extra_nocturna: r2(extraNocturna),
+    total: r2(jornal + recargoNocturno + extraDiurna + extraNocturna),
+  };
+}
+
 export function fmtUSD(n: number): string {
   return `$${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
 }
+
+export const NOTA_LEGAL_JORNAL =
+  "Colaboradores contratados por proyecto (pago por día trabajado): por cada día con marcación se paga el " +
+  "jornal completo; en día de descanso semanal se paga con recargo del 50 % y en día de asueto al doble. " +
+  "La hora ordinaria equivale al jornal / 8 horas y con ella se pagan el recargo nocturno y las horas extras.";
 
 export const NOTA_LEGAL_NOMINA =
   "Cálculo conforme al Código de Trabajo de El Salvador: hora ordinaria = salario mensual / 30 días / 8 horas; " +
