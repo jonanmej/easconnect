@@ -250,6 +250,15 @@ function JornadaPage() {
                 ))}
               </select>
             )}
+            {isStaff && (
+              <button
+                type="button"
+                onClick={() => setCreando(true)}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="size-3.5" /> Registrar marcación
+              </button>
+            )}
             <ExportButton onExport={exportarXls} />
             <button
               type="button"
