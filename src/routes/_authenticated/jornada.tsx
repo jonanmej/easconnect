@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle, Plus } from "lucide-react";
+import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle, Plus, DollarSign, Settings2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButton } from "@/components/ExportButton";
 import { inputCls } from "@/components/RecordDialog";
@@ -19,7 +19,12 @@ import {
   eliminarJornada,
   crearJornadaManual,
   resumenHorasExtras,
+  calculoNomina,
+  listSalarios,
+  upsertSalario,
 } from "@/lib/jornadas.functions";
+import { fmtUSD, NOTA_LEGAL_NOMINA } from "@/lib/nomina";
+import type { NominaPersona } from "@/lib/pdf/NominaDoc";
 
 type ExtrasResumen = {
   limite_diario: number;
@@ -36,6 +41,23 @@ type ExtrasResumen = {
     horas_descanso: number; dias_con_extras: number; dias_descanso: number;
   }[];
   totales: { horas_efectivas: number; horas_ordinarias: number; horas_extras: number; horas_descanso: number };
+};
+
+type NominaResumen = {
+  desde: string;
+  hasta: string;
+  personal: NominaPersona[];
+  totales: {
+    horas_totales: number; horas_extra_diurnas: number; horas_extra_nocturnas: number;
+    horas_descanso: number; horas_feriado: number;
+    pago_ordinario: number; pago_extras: number; pago_descanso: number; pago_feriado: number;
+    total_a_pagar: number;
+  };
+  sin_salario: string[];
+};
+
+type SalarioFila = {
+  user_id: string; colaborador: string; salario_mensual: number; notas: string | null;
 };
 
 export const Route = createFileRoute("/_authenticated/jornada")({
@@ -126,6 +148,8 @@ function JornadaPage() {
   const [creando, setCreando] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [extrasPdfBusy, setExtrasPdfBusy] = useState(false);
+  const [nominaPdfBusy, setNominaPdfBusy] = useState(false);
+  const [salariosOpen, setSalariosOpen] = useState(false);
 
   const fList = useServerFn(listJornadas);
   const fPersonal = useServerFn(listPersonalJornadas);
@@ -154,6 +178,29 @@ function JornadaPage() {
     queryFn: () => fExtras({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
   });
   const extrasData = extras.data as ExtrasResumen | undefined;
+
+  const fNomina = useServerFn(calculoNomina);
+  const fSalarios = useServerFn(listSalarios);
+  const fGuardarSalario = useServerFn(upsertSalario);
+  const nomina = useQuery({
+    queryKey: ["nomina-calculo", desde, hasta, tecnico],
+    queryFn: () => fNomina({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+  });
+  const nominaData = nomina.data as NominaResumen | undefined;
+  const salarios = useQuery({
+    queryKey: ["nomina-salarios"],
+    queryFn: () => fSalarios(),
+    enabled: isStaff,
+  });
+  const guardarSalario = useMutation({
+    mutationFn: (v: { user_id: string; salario_mensual: number }) => fGuardarSalario({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["nomina-salarios"] });
+      qc.invalidateQueries({ queryKey: ["nomina-calculo"] });
+      toast.success("Salario guardado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const filas = (jornadas.data as Fila[] | undefined) ?? [];
   const totales = useMemo(() => {
@@ -322,6 +369,58 @@ function JornadaPage() {
     }
   }
 
+  async function exportarNominaXls() {
+    if (!nominaData) return;
+    await exportarExcel<any>({
+      filename: `nomina-${desde}_a_${hasta}.xlsx`,
+      hojas: [{
+        nombre: "Pago por colaborador",
+        columnas: [
+          { header: "Colaborador", key: "colaborador", width: 30 },
+          { header: "Salario mensual", key: "salario_mensual", width: 16 },
+          { header: "Valor hora ordinaria", key: "valor_hora", width: 18 },
+          { header: "Días marcados", key: "dias", width: 14 },
+          { header: "Horas ordinarias diurnas", key: "horas_ord_diurnas", width: 22 },
+          { header: "Horas ordinarias nocturnas", key: "horas_ord_nocturnas", width: 24 },
+          { header: "Horas extras diurnas", key: "horas_extra_diurnas", width: 20 },
+          { header: "Horas extras nocturnas", key: "horas_extra_nocturnas", width: 22 },
+          { header: "Horas domingo", key: "horas_descanso", width: 15 },
+          { header: "Horas feriado", key: "horas_feriado", width: 15 },
+          { header: "Pago ordinario", key: "pago_ordinario", width: 16 },
+          { header: "Pago extras", key: "pago_extras", width: 14 },
+          { header: "Pago domingos", key: "pago_descanso", width: 15 },
+          { header: "Pago feriados", key: "pago_feriado", width: 15 },
+          { header: "Total a pagar", key: "total_a_pagar", width: 16 },
+        ],
+        filas: nominaData.personal as any[],
+        total: ["pago_ordinario", "pago_extras", "pago_descanso", "pago_feriado", "total_a_pagar"],
+      }],
+    });
+  }
+
+  async function exportarNominaPdf() {
+    if (!nominaData) return;
+    setNominaPdfBusy(true);
+    try {
+      const { generarYDescargarNominaPdf } = await import("@/lib/pdf/descargar");
+      await generarYDescargarNominaPdf(
+        {
+          desde,
+          hasta,
+          alcance,
+          personal: nominaData.personal,
+          totales: nominaData.totales,
+          emitido_at: new Date().toLocaleString("es-SV", { timeZone: TZ }),
+        },
+        `Planilla-pago-${alcance.replace(/\s+/g, "-")}-${desde}_a_${hasta}.pdf`,
+      );
+      toast.success("Planilla de pago generada");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF");
+    } finally {
+      setNominaPdfBusy(false);
+    }
+  }
 
 
   return (
@@ -519,6 +618,123 @@ function JornadaPage() {
         </p>
       </div>
 
+      <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
+          <DollarSign className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Cálculo de pago (El Salvador)</h2>
+          <span className="text-[10px] uppercase text-muted-foreground">Pago bruto del período</span>
+          <div className="ml-auto flex items-center gap-2">
+            {isStaff && (
+              <button
+                type="button"
+                onClick={() => setSalariosOpen(true)}
+                className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+              >
+                <Settings2 className="size-3.5" /> Salarios
+              </button>
+            )}
+            <ExportButton onExport={exportarNominaXls} />
+            <button
+              type="button"
+              onClick={exportarNominaPdf}
+              disabled={nominaPdfBusy || !nominaData}
+              className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+            >
+              {nominaPdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
+            </button>
+          </div>
+        </div>
+
+        {nomina.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando pago…</p>}
+        {!nomina.isLoading && (nominaData?.personal.length ?? 0) === 0 && (
+          <p className="p-4 text-xs text-muted-foreground">Sin horas registradas en el período seleccionado.</p>
+        )}
+
+        {(nominaData?.personal.length ?? 0) > 0 && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-3">
+              <KPI label="Pago ordinario" value={fmtUSD(nominaData!.totales.pago_ordinario)} />
+              <KPI label="Horas extras" value={fmtUSD(nominaData!.totales.pago_extras)} />
+              <KPI label="Domingos" value={fmtUSD(nominaData!.totales.pago_descanso)} />
+              <KPI label="Feriados" value={fmtUSD(nominaData!.totales.pago_feriado)} />
+              <KPI label="Total a pagar" value={fmtUSD(nominaData!.totales.total_a_pagar)} tone="ok" />
+            </div>
+            {nominaData!.sin_salario.length > 0 && (
+              <p className="mx-3 mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+                Falta registrar el salario de: {nominaData!.sin_salario.join(", ")}. Su pago aparece en $0.00 hasta
+                que se ingrese el salario mensual.
+              </p>
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[960px]">
+                <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2">Colaborador</th>
+                    <th className="text-right px-3 py-2">Salario mens.</th>
+                    <th className="text-right px-3 py-2">Hora ord.</th>
+                    <th className="text-right px-3 py-2">H. ord.</th>
+                    <th className="text-right px-3 py-2">Extra diurna</th>
+                    <th className="text-right px-3 py-2">Extra nocturna</th>
+                    <th className="text-right px-3 py-2">H. domingo</th>
+                    <th className="text-right px-3 py-2">H. feriado</th>
+                    <th className="text-right px-3 py-2">Pago ord.</th>
+                    <th className="text-right px-3 py-2">Pago extras</th>
+                    <th className="text-right px-3 py-2">Dom./Fer.</th>
+                    <th className="text-right px-3 py-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nominaData!.personal.map((p) => (
+                    <tr key={p.tecnico_id} className="border-t border-border/60">
+                      <td className="px-3 py-2 font-medium">
+                        {p.colaborador}
+                        {p.sin_salario && <span className="ml-1 text-[10px] text-destructive">(sin salario)</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.salario_mensual)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.valor_hora)}</td>
+                      <td className="px-3 py-2 text-right font-mono">
+                        {(p.horas_ord_diurnas + p.horas_ord_nocturnas).toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono">{p.horas_extra_diurnas.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{p.horas_extra_nocturnas.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{p.horas_descanso.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{p.horas_feriado.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.pago_ordinario)}</td>
+                      <td className="px-3 py-2 text-right font-mono text-primary">{fmtUSD(p.pago_extras)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.pago_descanso + p.pago_feriado)}</td>
+                      <td className="px-3 py-2 text-right font-mono font-bold">{fmtUSD(p.total_a_pagar)}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t border-border bg-secondary/40 font-semibold">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2" colSpan={7} />
+                    <td className="px-3 py-2 text-right font-mono">{fmtUSD(nominaData!.totales.pago_ordinario)}</td>
+                    <td className="px-3 py-2 text-right font-mono">{fmtUSD(nominaData!.totales.pago_extras)}</td>
+                    <td className="px-3 py-2 text-right font-mono">
+                      {fmtUSD(nominaData!.totales.pago_descanso + nominaData!.totales.pago_feriado)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{fmtUSD(nominaData!.totales.total_a_pagar)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+          {NOTA_LEGAL_NOMINA} Los montos son brutos, antes de descuentos de ley (ISSS, AFP, renta).
+        </p>
+      </div>
+
+      {salariosOpen && (
+        <SalariosDialog
+          salarios={(salarios.data as SalarioFila[] | undefined) ?? []}
+          colaboradores={(colaboradores.data as { id: string; nombre: string }[] | undefined) ?? []}
+          cargando={salarios.isLoading}
+          saving={guardarSalario.isPending}
+          onCancel={() => setSalariosOpen(false)}
+          onSave={(v) => guardarSalario.mutate(v)}
+        />
+      )}
 
 
       {editando && (
