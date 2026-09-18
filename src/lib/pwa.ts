@@ -39,6 +39,18 @@ async function unregisterAppSw() {
 const CACHES_VIGENTES = ["easc-html-v3", "easc-code-v3", "easc-media-v3"];
 
 /**
+ * Workbox crea además una caché de precarga con un nombre propio. Versiones
+ * anteriores guardaron allí HTML, CSS y JS; esa caché no comenzaba con
+ * "easc-" y por eso sobrevivía a la limpieza normal.
+ */
+function esCachePreviaDeApp(nombre: string) {
+  return (
+    (nombre.startsWith("easc-") && !CACHES_VIGENTES.includes(nombre)) ||
+    /workbox-precache|precache-/i.test(nombre)
+  );
+}
+
+/**
  * Borra cachés de versiones anteriores (por ejemplo "easc-assets", que guardaba
  * CSS y JS de forma permanente y podía mezclar estilos viejos con código nuevo).
  */
@@ -48,7 +60,7 @@ async function limpiarCachesObsoletas() {
     const nombres = await caches.keys();
     await Promise.allSettled(
       nombres
-        .filter((n) => n.startsWith("easc-") && !CACHES_VIGENTES.includes(n))
+        .filter(esCachePreviaDeApp)
         .map((n) => caches.delete(n)),
     );
   } catch {

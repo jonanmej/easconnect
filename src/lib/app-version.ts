@@ -5,7 +5,7 @@
  * IMPORTANTE: al publicar cambios relevantes, incrementa APP_VERSION y agrega
  * una entrada nueva al inicio de CHANGELOG.
  */
-export const APP_VERSION = "1.5.2";
+export const APP_VERSION = "1.5.3";
 
 export type CambioVersion = {
   version: string;
@@ -17,6 +17,16 @@ export type CambioVersion = {
 };
 
 export const CHANGELOG: CambioVersion[] = [
+  {
+    version: "1.5.3",
+    fecha: "2026-09-18",
+    titulo: "Limpieza definitiva de versiones anteriores",
+    resumen: "La app elimina también la copia secundaria que podía conservar estilos antiguos en algunos equipos.",
+    cambios: [
+      "El código y los estilos dejan de guardarse en la caché de precarga.",
+      "Al abrir la app se eliminan automáticamente las precargas de publicaciones anteriores.",
+    ],
+  },
   {
     version: "1.5.2",
     fecha: "2026-09-18",
