@@ -9,11 +9,14 @@ import {
   sumarDesglose,
   pagoDesglose,
   valorHoraOrdinaria,
+  valorHoraJornal,
+  pagoDiaJornal,
   FACTORES_NOMINA,
   HORAS_JORNADA_ORDINARIA,
   DIAS_MES_NOMINA,
   r2,
   type TipoDiaNomina,
+  type ModalidadPago,
 } from "@/lib/nomina";
 import { calcularDescuentos } from "@/lib/nomina-descuentos";
 
@@ -36,16 +39,30 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
   const [{ data: rows, error }, { data: feriados }, { data: salarios }] = await Promise.all([
     q,
     supabase.from("feriados").select("fecha, nombre, activo").gte("fecha", rango.desde).lte("fecha", rango.hasta),
-    supabase.from("nomina_salarios").select("user_id, salario_mensual"),
+    supabase.from("nomina_salarios").select("user_id, salario_mensual, modalidad, pago_diario"),
   ]);
   if (error) throw new Error(error.message);
 
   const mapaFeriados = new Map<string, string>(
     (feriados ?? []).filter((f: any) => f.activo).map((f: any) => [f.fecha as string, f.nombre as string]),
   );
-  const mapaSalarios = new Map<string, number>(
-    (salarios ?? []).map((s: any) => [s.user_id as string, Number(s.salario_mensual ?? 0)]),
+  type Remuneracion = { modalidad: ModalidadPago; salario_mensual: number; pago_diario: number };
+  const mapaSalarios = new Map<string, Remuneracion>(
+    (salarios ?? []).map((s: any) => [
+      s.user_id as string,
+      {
+        modalidad: (s.modalidad ?? "mensual") as ModalidadPago,
+        salario_mensual: Number(s.salario_mensual ?? 0),
+        pago_diario: Number(s.pago_diario ?? 0),
+      },
+    ]),
   );
+  const SIN_REMUNERACION: Remuneracion = { modalidad: "mensual", salario_mensual: 0, pago_diario: 0 };
+  const remuneracionDe = (id: string) => mapaSalarios.get(id) ?? SIN_REMUNERACION;
+  const valorHoraDe = (rem: Remuneracion) =>
+    rem.modalidad === "diario" ? valorHoraJornal(rem.pago_diario) : valorHoraOrdinaria(rem.salario_mensual);
+  const montoBaseDe = (rem: Remuneracion) =>
+    rem.modalidad === "diario" ? rem.pago_diario : rem.salario_mensual;
 
   const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
   let perfiles = new Map<string, string>();
@@ -58,9 +75,12 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
     const feriado = mapaFeriados.get(r.fecha) ?? null;
     const tipo_dia: TipoDiaNomina = feriado ? "feriado" : esDomingo(r.fecha) ? "descanso" : "habil";
     const desglose = desglosarJornada(r);
-    const salario = mapaSalarios.get(r.tecnico_id) ?? 0;
-    const valorHora = valorHoraOrdinaria(salario);
-    const pago = pagoDesglose(desglose, tipo_dia, valorHora);
+    const rem = remuneracionDe(r.tecnico_id);
+    const valorHora = valorHoraDe(rem);
+    const pago =
+      rem.modalidad === "diario"
+        ? pagoDiaJornal(desglose, tipo_dia, rem.pago_diario)
+        : pagoDesglose(desglose, tipo_dia, valorHora);
     const horas = r2(
       desglose.ord_diurna + desglose.ord_nocturna + desglose.extra_diurna + desglose.extra_nocturna,
     );
@@ -70,6 +90,7 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
       tecnico_id: r.tecnico_id as string,
       colaborador: perfiles.get(r.tecnico_id) ?? "Colaborador",
       tipo_dia,
+      modalidad: rem.modalidad,
       motivo: feriado ? `Feriado: ${feriado}` : tipo_dia === "descanso" ? "Domingo" : null,
       horas_totales: horas,
       horas: desglose,
@@ -81,6 +102,7 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
 
   type Acc = {
     tecnico_id: string; colaborador: string; salario_mensual: number;
+    modalidad: ModalidadPago; pago_diario: number;
     valor_hora: number; dias: number;
     habil: ReturnType<typeof desgloseVacio>;
     descanso: ReturnType<typeof desgloseVacio>;
@@ -90,13 +112,14 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
   };
   const acc = new Map<string, Acc>();
   for (const d of dias) {
-    const salario = mapaSalarios.get(d.tecnico_id) ?? 0;
+    const rem = remuneracionDe(d.tecnico_id);
     const a = acc.get(d.tecnico_id) ?? {
       tecnico_id: d.tecnico_id, colaborador: d.colaborador,
-      salario_mensual: salario, valor_hora: r2(valorHoraOrdinaria(salario)), dias: 0,
+      salario_mensual: rem.salario_mensual, modalidad: rem.modalidad, pago_diario: rem.pago_diario,
+      valor_hora: r2(valorHoraDe(rem)), dias: 0,
       habil: desgloseVacio(), descanso: desgloseVacio(), feriado: desgloseVacio(),
       pago_ordinario: 0, pago_extras: 0, pago_descanso: 0, pago_feriado: 0,
-      horas_totales: 0, sin_salario: salario <= 0,
+      horas_totales: 0, sin_salario: montoBaseDe(rem) <= 0,
     };
     const tipo: TipoDiaNomina = d.tipo_dia;
     a.dias += 1;
@@ -123,6 +146,8 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
         tecnico_id: a.tecnico_id,
         colaborador: a.colaborador,
         salario_mensual: r2(a.salario_mensual),
+        modalidad: a.modalidad,
+        pago_diario: r2(a.pago_diario),
         valor_hora: a.valor_hora,
         dias: a.dias,
         sin_salario: a.sin_salario,
