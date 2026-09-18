@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButton } from "@/components/ExportButton";
 import { inputCls } from "@/components/RecordDialog";
@@ -11,11 +11,13 @@ import { JornadaControl } from "@/components/JornadaControl";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { exportarExcel } from "@/lib/excel";
+import { listPersonalInterno } from "@/lib/actividades-internas.functions";
 import {
   listJornadas,
   listPersonalJornadas,
   ajustarJornada,
   eliminarJornada,
+  crearJornadaManual,
 } from "@/lib/jornadas.functions";
 
 export const Route = createFileRoute("/_authenticated/jornada")({
