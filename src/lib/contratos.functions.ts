@@ -514,14 +514,11 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
             (acc, p) => (p.despues > acc ? p.despues : acc),
             propuestas[0].despues,
           );
-          const ocupadosGlobal = await diasOcupadosGlobales(
-            supabase,
-            addDaysDate(minDate, -1),
-            addDaysDate(maxDate, 30),
-            excluirIds,
-          );
-          // Ocupación acumulada por los propios movimientos (para evitar
-          // que dos ciclos futuros aterricen en el mismo día).
+          void minDate;
+          void maxDate;
+          // Ocupación acumulada por los propios movimientos, por recurso
+          // (técnico/equipo) y día, para que dos ciclos futuros no compartan
+          // técnicos o equipos en la misma fecha.
           const ocupadosPropios = new Set<string>();
 
           for (const { f, despues } of propuestas) {
@@ -531,32 +528,39 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
               cascada.omitidos.push({ folio: f.folio, motivo: "queda fuera del año del contrato" });
               continue;
             }
-            let conflicto: string | null = null;
             const dias: string[] = [];
             for (let i = 0; i < durF; i++) {
-              const d = addDaysDate(despues, i);
-              const key = d.toISOString().slice(0, 10);
-              dias.push(key);
-              if (ocupadosGlobal.has(key) || ocupadosPropios.has(key)) {
-                conflicto = key;
-                break;
+              dias.push(addDaysDate(despues, i).toISOString().slice(0, 10));
+            }
+            // Recursos ya asignados a este ciclo: técnicos y equipos.
+            const recF = await recursosDeTrabajo(supabase, f.id);
+            const recursosF = [...recF.tecnicoIds, ...recF.equipoIds];
+            // 1) Choque con otros ciclos ya movidos en esta misma cascada.
+            const choquePropio = dias.find((k) => recursosF.some((r) => ocupadosPropios.has(`${r}|${k}`)));
+            if (choquePropio) {
+              cascada.omitidos.push({
+                folio: f.folio,
+                motivo: `día ${choquePropio}: técnicos o equipo ya comprometidos en otro ciclo`,
+              });
+              continue;
+            }
+            // 2) Choque con cualquier otro trabajo que use los mismos recursos.
+            if (recursosF.length > 0) {
+              const ocupadosF = await diasOcupadosGlobales(
+                supabase,
+                addDaysDate(despues, -durF - 1),
+                addDaysDate(despues, durF + 1),
+                excluirIds,
+                recF,
+              );
+              const choque = dias.find((k) => ocupadosF.has(k));
+              if (choque) {
+                cascada.omitidos.push({
+                  folio: f.folio,
+                  motivo: `día ${choque}: técnicos o equipo ya comprometidos en otro trabajo`,
+                });
+                continue;
               }
-            }
-            if (conflicto) {
-              cascada.omitidos.push({ folio: f.folio, motivo: `día ${conflicto} ya ocupado` });
-              continue;
-            }
-            // Chequeo de conflicto de servicio con otro cliente.
-            const conflictosSvc = await findCleaningClientConflicts(supabase, {
-              plantaId: f.planta_id,
-              servicio: f.servicio,
-              fechaProgramada: despues.toISOString(),
-              duracionDias: durF,
-              excluirTrabajoId: f.id,
-            });
-            if (conflictosSvc.length > 0) {
-              cascada.omitidos.push({ folio: f.folio, motivo: "conflicto con otro cliente" });
-              continue;
             }
             const nuevaIso = new Date(
               Date.UTC(despues.getUTCFullYear(), despues.getUTCMonth(), despues.getUTCDate(), 8, 0, 0),
