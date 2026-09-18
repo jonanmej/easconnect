@@ -35,13 +35,36 @@ async function unregisterAppSw() {
   );
 }
 
+/** Cachés en uso por la versión actual; cualquier otra se elimina al abrir la app. */
+const CACHES_VIGENTES = ["easc-html-v2", "easc-code-v2", "easc-media-v2"];
+
+/**
+ * Borra cachés de versiones anteriores (por ejemplo "easc-assets", que guardaba
+ * CSS y JS de forma permanente y podía mezclar estilos viejos con código nuevo).
+ */
+async function limpiarCachesObsoletas() {
+  if (typeof caches === "undefined") return;
+  try {
+    const nombres = await caches.keys();
+    await Promise.allSettled(
+      nombres
+        .filter((n) => n.startsWith("easc-") && !CACHES_VIGENTES.includes(n))
+        .map((n) => caches.delete(n)),
+    );
+  } catch {
+    /* ignorado */
+  }
+}
+
 export async function registerServiceWorker() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
   if (isBlockedContext()) {
     void unregisterAppSw();
+    void limpiarCachesObsoletas();
     return;
   }
   try {
+    await limpiarCachesObsoletas();
     const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
     const { observarActualizaciones } = await import("@/lib/app-update");
     observarActualizaciones(reg);
