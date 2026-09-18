@@ -191,6 +191,11 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='easc-cache-repair',v='2026-09-18-v2';if(localStorage.getItem(k)!==v&&'caches'in window){localStorage.setItem(k,v);Promise.all([caches.keys().then(function(ns){return Promise.all(ns.filter(function(n){return /^easc-|workbox-precache|precache-/i.test(n)}).map(function(n){return caches.delete(n)}))}),('serviceWorker'in navigator?navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}):Promise.resolve())]).finally(function(){var u=new URL(location.href);u.searchParams.set('_clean',Date.now().toString(36));location.replace(u.toString())})}}catch(e){}})();`,
+          }}
+        />
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{

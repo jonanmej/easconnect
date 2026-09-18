@@ -32,7 +32,10 @@ export default defineConfig({
           // Nunca se precachea HTML: una página guardada de un build anterior
           // apunta a CSS/JS que ya no existen y la app se ve "desconfigurada".
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/\.mcp/, /^\/lovable\//],
-          globPatterns: ["**/*.{js,css,svg,png,woff2}"],
+          // El código y los estilos nunca se precachean. Mantenerlos aquí podía
+          // conservar una página nueva junto a CSS/JS de una publicación vieja.
+          // Los recursos visuales sí son seguros porque no controlan el layout.
+          globPatterns: ["**/*.{svg,png,woff2}"],
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           runtimeCaching: [
             {
