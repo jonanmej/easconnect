@@ -125,6 +125,7 @@ function JornadaPage() {
   const [editando, setEditando] = useState<Fila | null>(null);
   const [creando, setCreando] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [extrasPdfBusy, setExtrasPdfBusy] = useState(false);
 
   const fList = useServerFn(listJornadas);
   const fPersonal = useServerFn(listPersonalJornadas);
