@@ -194,7 +194,8 @@ function JornadaPage() {
     enabled: isStaff,
   });
   const guardarSalario = useMutation({
-    mutationFn: (v: { user_id: string; salario_mensual: number }) => fGuardarSalario({ data: v }),
+    mutationFn: (v: { user_id: string; salario_mensual: number; modalidad?: ModalidadPago; pago_diario?: number }) =>
+      fGuardarSalario({ data: v }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["nomina-salarios"] });
       qc.invalidateQueries({ queryKey: ["nomina-calculo"] });
