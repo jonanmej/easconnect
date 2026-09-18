@@ -301,3 +301,50 @@ export const eliminarJornada = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Crea una marcación manualmente a nombre de un colaborador (solo admin/supervisor).
+ * Sirve para los casos en que alguien olvidó marcar su entrada o salida.
+ */
+export const crearJornadaManual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      tecnico_id: z.string().uuid(),
+      fecha: z.string().min(8),
+      hora_inicio: z.string().min(4),
+      hora_fin: z.string().min(4).nullable().optional(),
+      almuerzo_inicio: z.string().min(4).nullable().optional(),
+      almuerzo_fin: z.string().min(4).nullable().optional(),
+      notas: z.string().max(2000).nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await requireStaff(context);
+    const { data: existente } = await context.supabase
+      .from("jornadas_laborales")
+      .select("id")
+      .eq("tecnico_id", data.tecnico_id)
+      .eq("fecha", data.fecha)
+      .maybeSingle();
+    if (existente?.id) {
+      throw new Error("Ese colaborador ya tiene una marcación registrada en esa fecha. Corrígela en lugar de crear otra.");
+    }
+    const resumen = calcularResumen(data);
+    const { data: row, error } = await context.supabase
+      .from("jornadas_laborales")
+      .insert({
+        tecnico_id: data.tecnico_id,
+        fecha: data.fecha,
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin ?? null,
+        almuerzo_inicio: data.almuerzo_inicio ?? null,
+        almuerzo_fin: data.almuerzo_fin ?? null,
+        almuerzo_excedido: resumen.almuerzoExcedido,
+        notas: data.notas ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
