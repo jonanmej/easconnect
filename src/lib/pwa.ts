@@ -36,7 +36,7 @@ async function unregisterAppSw() {
 }
 
 /** Cachés en uso por la versión actual; cualquier otra se elimina al abrir la app. */
-const CACHES_VIGENTES = ["easc-html-v2", "easc-code-v2", "easc-media-v2"];
+const CACHES_VIGENTES = ["easc-html-v3", "easc-code-v3", "easc-media-v3"];
 
 /**
  * Borra cachés de versiones anteriores (por ejemplo "easc-assets", que guardaba
