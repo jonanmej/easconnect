@@ -58,6 +58,7 @@ type NominaResumen = {
 
 type SalarioFila = {
   user_id: string; colaborador: string; salario_mensual: number; notas: string | null;
+  modalidad?: ModalidadPago; pago_diario: number;
 };
 
 export const Route = createFileRoute("/_authenticated/jornada")({
