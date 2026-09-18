@@ -98,15 +98,16 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
       pago_ordinario: 0, pago_extras: 0, pago_descanso: 0, pago_feriado: 0,
       horas_totales: 0, sin_salario: salario <= 0,
     };
+    const tipo: TipoDiaNomina = d.tipo_dia;
     a.dias += 1;
     a.horas_totales += d.horas_totales;
-    a[d.tipo_dia] = sumarDesglose(a[d.tipo_dia], d.horas);
+    a[tipo] = sumarDesglose(a[tipo], d.horas);
     const extras = d.pago.extra_diurna + d.pago.extra_nocturna;
     const ordinarias = d.pago.ord_diurna + d.pago.ord_nocturna;
-    if (d.tipo_dia === "habil") {
+    if (tipo === "habil") {
       a.pago_ordinario += ordinarias;
       a.pago_extras += extras;
-    } else if (d.tipo_dia === "descanso") {
+    } else if (tipo === "descanso") {
       a.pago_descanso += ordinarias + extras;
     } else {
       a.pago_feriado += ordinarias + extras;
