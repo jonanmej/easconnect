@@ -364,6 +364,16 @@ function JornadaPage() {
           onSave={(v) => guardar.mutate(v)}
         />
       )}
+
+      {creando && (
+        <CrearJornadaDialog
+          colaboradores={(colaboradores.data as { id: string; nombre: string; cargo?: string | null }[] | undefined) ?? []}
+          cargando={colaboradores.isLoading}
+          saving={crear.isPending}
+          onCancel={() => setCreando(false)}
+          onSave={(v) => crear.mutate(v)}
+        />
+      )}
     </div>
   );
 }
