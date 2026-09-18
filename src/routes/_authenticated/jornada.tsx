@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButton } from "@/components/ExportButton";
 import { inputCls } from "@/components/RecordDialog";
@@ -11,11 +11,13 @@ import { JornadaControl } from "@/components/JornadaControl";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { exportarExcel } from "@/lib/excel";
+import { listPersonalInterno } from "@/lib/actividades-internas.functions";
 import {
   listJornadas,
   listPersonalJornadas,
   ajustarJornada,
   eliminarJornada,
+  crearJornadaManual,
 } from "@/lib/jornadas.functions";
 
 export const Route = createFileRoute("/_authenticated/jornada")({
@@ -103,12 +105,15 @@ function JornadaPage() {
   const [hasta, setHasta] = useState(hoyISO());
   const [tecnico, setTecnico] = useState("");
   const [editando, setEditando] = useState<Fila | null>(null);
+  const [creando, setCreando] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
   const fList = useServerFn(listJornadas);
   const fPersonal = useServerFn(listPersonalJornadas);
   const fAjustar = useServerFn(ajustarJornada);
   const fEliminar = useServerFn(eliminarJornada);
+  const fCrear = useServerFn(crearJornadaManual);
+  const fColaboradores = useServerFn(listPersonalInterno);
 
   const jornadas = useQuery({
     queryKey: ["jornadas", desde, hasta, tecnico],
@@ -118,6 +123,11 @@ function JornadaPage() {
     queryKey: ["jornadas-personal"],
     queryFn: () => fPersonal(),
     enabled: isStaff,
+  });
+  const colaboradores = useQuery({
+    queryKey: ["jornadas-colaboradores"],
+    queryFn: () => fColaboradores(),
+    enabled: isStaff && creando,
   });
 
   const filas = (jornadas.data as Fila[] | undefined) ?? [];
@@ -144,6 +154,19 @@ function JornadaPage() {
   const borrar = useMutation({
     mutationFn: (id: string) => fEliminar({ data: { id } }),
     onSuccess: () => { invalidate(); toast.success("Marcación eliminada"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const crear = useMutation({
+    mutationFn: (v: {
+      tecnico_id: string; fecha: string; hora_inicio: string; hora_fin: string | null;
+      almuerzo_inicio: string | null; almuerzo_fin: string | null; notas: string | null;
+    }) => fCrear({ data: v }),
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["jornadas-personal"] });
+      setCreando(false);
+      toast.success("Marcación registrada");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -226,6 +249,15 @@ function JornadaPage() {
                   <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
+            )}
+            {isStaff && (
+              <button
+                type="button"
+                onClick={() => setCreando(true)}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="size-3.5" /> Registrar marcación
+              </button>
             )}
             <ExportButton onExport={exportarXls} />
             <button
@@ -332,6 +364,16 @@ function JornadaPage() {
           onSave={(v) => guardar.mutate(v)}
         />
       )}
+
+      {creando && (
+        <CrearJornadaDialog
+          colaboradores={(colaboradores.data as { id: string; nombre: string; cargo?: string | null }[] | undefined) ?? []}
+          cargando={colaboradores.isLoading}
+          saving={crear.isPending}
+          onCancel={() => setCreando(false)}
+          onSave={(v) => crear.mutate(v)}
+        />
+      )}
     </div>
   );
 }
@@ -421,5 +463,110 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-[10px] uppercase font-bold text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+type NuevaMarcacion = {
+  tecnico_id: string; fecha: string; hora_inicio: string; hora_fin: string | null;
+  almuerzo_inicio: string | null; almuerzo_fin: string | null; notas: string | null;
+};
+
+function CrearJornadaDialog({
+  colaboradores, cargando, onCancel, onSave, saving,
+}: {
+  colaboradores: { id: string; nombre: string; cargo?: string | null }[];
+  cargando: boolean;
+  onCancel: () => void;
+  saving: boolean;
+  onSave: (v: NuevaMarcacion) => void;
+}) {
+  const hoy = hoyISO();
+  const [tecnicoId, setTecnicoId] = useState("");
+  const [fecha, setFecha] = useState(hoy);
+  const [ini, setIni] = useState(`${hoy}T07:00`);
+  const [fin, setFin] = useState(`${hoy}T16:00`);
+  const [almIni, setAlmIni] = useState(`${hoy}T12:00`);
+  const [almFin, setAlmFin] = useState(`${hoy}T13:00`);
+  const [notas, setNotas] = useState("");
+
+  function cambiarFecha(nueva: string) {
+    setFecha(nueva);
+    const mover = (v: string) => (v ? `${nueva}T${v.slice(11)}` : v);
+    setIni(mover(ini));
+    setFin(mover(fin));
+    setAlmIni(mover(almIni));
+    setAlmFin(mover(almFin));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Registrar marcación</h3>
+          <p className="text-xs text-muted-foreground">
+            Para cuando un colaborador olvidó marcar su entrada o salida. Indique la justificación en las notas.
+          </p>
+        </div>
+        <Campo label="Colaborador">
+          <select value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)} className={inputCls}>
+            <option value="">{cargando ? "Cargando…" : "Seleccione un colaborador"}</option>
+            {colaboradores.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}{p.cargo ? ` · ${p.cargo}` : ""}
+              </option>
+            ))}
+          </select>
+        </Campo>
+        <Campo label="Fecha">
+          <input type="date" value={fecha} max={hoy} onChange={(e) => cambiarFecha(e.target.value)} className={inputCls} />
+        </Campo>
+        <div className="grid grid-cols-2 gap-2">
+          <Campo label="Entrada">
+            <input type="datetime-local" value={ini} onChange={(e) => setIni(e.target.value)} className={inputCls} />
+          </Campo>
+          <Campo label="Salida">
+            <input type="datetime-local" value={fin} onChange={(e) => setFin(e.target.value)} className={inputCls} />
+          </Campo>
+          <Campo label="Almuerzo inicio">
+            <input type="datetime-local" value={almIni} onChange={(e) => setAlmIni(e.target.value)} className={inputCls} />
+          </Campo>
+          <Campo label="Almuerzo fin">
+            <input type="datetime-local" value={almFin} onChange={(e) => setAlmFin(e.target.value)} className={inputCls} />
+          </Campo>
+        </div>
+        <Campo label="Notas / justificación">
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            placeholder="Ej.: olvidó marcar la salida, confirmado por el supervisor."
+            className={inputCls}
+          />
+        </Campo>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onCancel} className="h-9 px-3 text-xs border border-border rounded-md hover:bg-secondary">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={saving || !tecnicoId || !fecha || !ini}
+            onClick={() =>
+              onSave({
+                tecnico_id: tecnicoId,
+                fecha,
+                hora_inicio: localAIso(ini)!,
+                hora_fin: localAIso(fin),
+                almuerzo_inicio: localAIso(almIni),
+                almuerzo_fin: localAIso(almFin),
+                notas: notas.trim() || null,
+              })
+            }
+            className="h-9 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {saving && <Loader2 className="size-3.5 animate-spin" />} Registrar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
