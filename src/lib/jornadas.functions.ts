@@ -348,3 +348,120 @@ export const crearJornadaManual = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+/* ─────────── Horas extras para nómina ─────────── */
+
+/** Jornada ordinaria diaria (horas). Todo lo que exceda cuenta como extra. */
+export const LIMITE_DIARIO_HORAS = 8;
+
+function esDomingo(fechaISO: string): boolean {
+  // fechaISO = YYYY-MM-DD; mediodía para evitar desfases de zona.
+  return new Date(`${fechaISO}T12:00:00`).getDay() === 0;
+}
+
+/**
+ * Resumen de horas extras por colaborador en un rango de fechas.
+ * - Ordinarias: hasta 8 h efectivas por día hábil.
+ * - Extras: lo que exceda 8 h efectivas en un día hábil.
+ * - Descanso/feriado: las horas de domingo o feriado se reportan aparte.
+ */
+export const resumenHorasExtras = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ZRango.parse(d))
+  .handler(async ({ context, data }) => {
+    let q = context.supabase
+      .from("jornadas_laborales")
+      .select("*")
+      .gte("fecha", data.desde)
+      .lte("fecha", data.hasta)
+      .order("fecha", { ascending: true });
+    if (data.tecnico_id) q = q.eq("tecnico_id", data.tecnico_id);
+    const [{ data: rows, error }, { data: feriados }] = await Promise.all([
+      q,
+      context.supabase
+        .from("feriados")
+        .select("fecha, nombre, activo")
+        .gte("fecha", data.desde)
+        .lte("fecha", data.hasta),
+    ]);
+    if (error) throw new Error(error.message);
+
+    const mapaFeriados = new Map<string, string>(
+      (feriados ?? []).filter((f: any) => f.activo).map((f: any) => [f.fecha as string, f.nombre as string]),
+    );
+
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
+    let perfiles = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles").select("id, display_name").in("id", ids);
+      perfiles = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "Colaborador"]));
+    }
+
+    const dias = (rows ?? []).map((r: any) => {
+      const resumen = calcularResumen(r);
+      const horas = resumen.horasEfectivas;
+      const feriado = mapaFeriados.get(r.fecha) ?? null;
+      const descanso = !!feriado || esDomingo(r.fecha);
+      const ordinarias = descanso ? 0 : Math.min(horas, LIMITE_DIARIO_HORAS);
+      const extras = descanso ? 0 : Math.max(0, Math.round((horas - LIMITE_DIARIO_HORAS) * 100) / 100);
+      return {
+        id: r.id as string,
+        fecha: r.fecha as string,
+        tecnico_id: r.tecnico_id as string,
+        colaborador: perfiles.get(r.tecnico_id) ?? "Colaborador",
+        horas_efectivas: horas,
+        horas_ordinarias: Math.round(ordinarias * 100) / 100,
+        horas_extras: extras,
+        horas_descanso: descanso ? horas : 0,
+        es_descanso: descanso,
+        motivo_descanso: feriado ? `Feriado: ${feriado}` : descanso ? "Domingo" : null,
+        abierta: !r.hora_fin,
+      };
+    });
+
+    const porColaborador = new Map<string, {
+      tecnico_id: string; colaborador: string; dias: number;
+      horas_efectivas: number; horas_ordinarias: number; horas_extras: number;
+      horas_descanso: number; dias_con_extras: number; dias_descanso: number;
+    }>();
+    for (const d of dias) {
+      const acc = porColaborador.get(d.tecnico_id) ?? {
+        tecnico_id: d.tecnico_id, colaborador: d.colaborador, dias: 0,
+        horas_efectivas: 0, horas_ordinarias: 0, horas_extras: 0,
+        horas_descanso: 0, dias_con_extras: 0, dias_descanso: 0,
+      };
+      acc.dias += 1;
+      acc.horas_efectivas += d.horas_efectivas;
+      acc.horas_ordinarias += d.horas_ordinarias;
+      acc.horas_extras += d.horas_extras;
+      acc.horas_descanso += d.horas_descanso;
+      if (d.horas_extras > 0) acc.dias_con_extras += 1;
+      if (d.es_descanso) acc.dias_descanso += 1;
+      porColaborador.set(d.tecnico_id, acc);
+    }
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const resumenPersonal = Array.from(porColaborador.values())
+      .map((a) => ({
+        ...a,
+        horas_efectivas: r2(a.horas_efectivas),
+        horas_ordinarias: r2(a.horas_ordinarias),
+        horas_extras: r2(a.horas_extras),
+        horas_descanso: r2(a.horas_descanso),
+      }))
+      .sort((a, b) => b.horas_extras - a.horas_extras || a.colaborador.localeCompare(b.colaborador, "es"));
+
+    return {
+      limite_diario: LIMITE_DIARIO_HORAS,
+      desde: data.desde,
+      hasta: data.hasta,
+      dias,
+      personal: resumenPersonal,
+      totales: {
+        horas_efectivas: r2(resumenPersonal.reduce((s, a) => s + a.horas_efectivas, 0)),
+        horas_ordinarias: r2(resumenPersonal.reduce((s, a) => s + a.horas_ordinarias, 0)),
+        horas_extras: r2(resumenPersonal.reduce((s, a) => s + a.horas_extras, 0)),
+        horas_descanso: r2(resumenPersonal.reduce((s, a) => s + a.horas_descanso, 0)),
+      },
+    };
+  });
