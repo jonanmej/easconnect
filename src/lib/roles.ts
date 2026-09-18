@@ -15,14 +15,14 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes", "/usuarios",
     "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
-    "/search-console", "/jornada", "/finalizados", "/agenda-interna",
+    "/search-console", "/jornada", "/nomina", "/finalizados", "/agenda-interna",
   ],
   // "/search-console": panel interno de métricas SEO (solo admin y supervisor).
   supervisor: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes",
     "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
-    "/search-console", "/jornada", "/finalizados", "/agenda-interna",
+    "/search-console", "/jornada", "/nomina", "/finalizados", "/agenda-interna",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",

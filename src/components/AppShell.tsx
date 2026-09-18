@@ -37,7 +37,7 @@ import {
   PanelLeftOpen,
   MoreVertical,
 } from "lucide-react";
-import { RotateCcw, Clock, CheckCircle2 } from "lucide-react";
+import { RotateCcw, Clock, CheckCircle2, DollarSign } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -89,6 +89,7 @@ const allGroups: NavGroup[] = [
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
       { to: "/rutas", label: "Rutas", icon: MapIcon },
       { to: "/jornada", label: "Jornada laboral", icon: Clock },
+      { to: "/nomina", label: "Nómina", icon: DollarSign },
       { to: "/agenda-interna", label: "Agenda interna", icon: CalendarCheck },
     ],
   },
