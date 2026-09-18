@@ -37,7 +37,7 @@ import {
   PanelLeftOpen,
   MoreVertical,
 } from "lucide-react";
-import { RotateCcw, Clock, CheckCircle2 } from "lucide-react";
+import { RotateCcw, Clock, CheckCircle2, DollarSign } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
