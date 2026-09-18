@@ -673,7 +673,8 @@ function JornadaPage() {
                 <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                   <tr>
                     <th className="text-left px-3 py-2">Colaborador</th>
-                    <th className="text-right px-3 py-2">Salario mens.</th>
+                    <th className="text-left px-3 py-2">Modalidad</th>
+                    <th className="text-right px-3 py-2">Base</th>
                     <th className="text-right px-3 py-2">Hora ord.</th>
                     <th className="text-right px-3 py-2">H. ord.</th>
                     <th className="text-right px-3 py-2">Extra diurna</th>
@@ -693,6 +694,7 @@ function JornadaPage() {
                         {p.colaborador}
                         {p.sin_salario && <span className="ml-1 text-[10px] text-destructive">(sin salario)</span>}
                       </td>
+                      <td className="px-3 py-2">{ETIQUETAS_MODALIDAD[(p.modalidad ?? "mensual") as ModalidadPago]}</td>
                       <td className="px-3 py-2 text-right font-mono">
                         {p.modalidad === "diario"
                           ? `${fmtUSD(p.pago_diario ?? 0)} / día`
