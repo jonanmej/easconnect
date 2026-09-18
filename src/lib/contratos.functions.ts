@@ -506,16 +506,6 @@ export const reprogramarTrabajoCliente = createServerFn({ method: "POST" })
             const despues = addDaysDate(antes, deltaDias);
             return { f, despues };
           });
-          const minDate = propuestas.reduce(
-            (acc, p) => (p.despues < acc ? p.despues : acc),
-            propuestas[0].despues,
-          );
-          const maxDate = propuestas.reduce(
-            (acc, p) => (p.despues > acc ? p.despues : acc),
-            propuestas[0].despues,
-          );
-          void minDate;
-          void maxDate;
           // Ocupación acumulada por los propios movimientos, por recurso
           // (técnico/equipo) y día, para que dos ciclos futuros no compartan
           // técnicos o equipos en la misma fecha.
