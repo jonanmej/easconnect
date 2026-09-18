@@ -5,7 +5,7 @@
  * IMPORTANTE: al publicar cambios relevantes, incrementa APP_VERSION y agrega
  * una entrada nueva al inicio de CHANGELOG.
  */
-export const APP_VERSION = "1.5.1";
+export const APP_VERSION = "1.5.2";
 
 export type CambioVersion = {
   version: string;
