@@ -81,7 +81,10 @@ type CalcMes = {
   guardado: { user_id: string; otros_descuentos: number | string; notas: string | null }[];
 };
 
-type SalarioFila = { user_id: string; colaborador: string; salario_mensual: number; notas: string | null };
+type SalarioFila = {
+  user_id: string; colaborador: string; salario_mensual: number; notas: string | null;
+  modalidad?: ModalidadPago; pago_diario: number;
+};
 
 function NominaPage() {
   const qc = useQueryClient();
