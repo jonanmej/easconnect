@@ -141,6 +141,8 @@ function JornadaPage() {
   const { roles } = useAuth();
   const role = highestRole(roles);
   const isStaff = role === "admin" || role === "supervisor";
+  // Información de pagos, salarios y nómina: exclusiva de administradores.
+  const isAdmin = role === "admin";
 
   const [desde, setDesde] = useState(primerDiaMesISO());
   const [hasta, setHasta] = useState(hoyISO());
@@ -549,6 +551,7 @@ function JornadaPage() {
         )}
       </div>
 
+      {isAdmin && (<>
       <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
           <Clock className="size-4 text-primary" />
@@ -733,6 +736,8 @@ function JornadaPage() {
           {NOTA_LEGAL_NOMINA} Los montos son brutos, antes de descuentos de ley (ISSS, AFP, renta).
         </p>
       </div>
+      </>
+      )}
 
       {salariosOpen && (
         <SalariosDialog
