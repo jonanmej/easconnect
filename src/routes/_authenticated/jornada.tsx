@@ -156,6 +156,19 @@ function JornadaPage() {
     onSuccess: () => { invalidate(); toast.success("Marcación eliminada"); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const crear = useMutation({
+    mutationFn: (v: {
+      tecnico_id: string; fecha: string; hora_inicio: string; hora_fin: string | null;
+      almuerzo_inicio: string | null; almuerzo_fin: string | null; notas: string | null;
+    }) => fCrear({ data: v }),
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["jornadas-personal"] });
+      setCreando(false);
+      toast.success("Marcación registrada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const alcance = tecnico
     ? (personal.data as { id: string; nombre: string }[] | undefined)?.find((p) => p.id === tecnico)?.nombre ?? "Colaborador"
