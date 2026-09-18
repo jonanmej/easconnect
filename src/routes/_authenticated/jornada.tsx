@@ -430,7 +430,6 @@ function JornadaPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Jornada laboral"
-        description="Marcación diaria de entrada, almuerzo y salida. Las horas efectivas descuentan el tiempo de almuerzo."
         actions={
           <>
             <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className={inputCls + " w-full sm:w-40"} aria-label="Desde" />
