@@ -147,6 +147,12 @@ function JornadaPage() {
     queryFn: () => fColaboradores(),
     enabled: isStaff && creando,
   });
+  const fExtras = useServerFn(resumenHorasExtras);
+  const extras = useQuery({
+    queryKey: ["jornadas-extras", desde, hasta, tecnico],
+    queryFn: () => fExtras({ data: { desde, hasta, tecnico_id: tecnico || undefined } }),
+  });
+  const extrasData = extras.data as ExtrasResumen | undefined;
 
   const filas = (jornadas.data as Fila[] | undefined) ?? [];
   const totales = useMemo(() => {
