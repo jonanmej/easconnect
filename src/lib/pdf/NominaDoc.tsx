@@ -259,9 +259,10 @@ export function NominaDoc({ data }: { data: NominaData }) {
         </View>
 
         <Text style={s.nota}>{NOTA_LEGAL_NOMINA}</Text>
+        <Text style={s.nota}>{NOTA_LEGAL_DESCUENTOS}</Text>
         <Text style={s.nota}>
-          Los montos corresponden al pago bruto del período, antes de descuentos de ley (ISSS, AFP, renta) y de
-          cualquier otra deducción o bonificación. El salario mensual es el registrado manualmente para cada colaborador.
+          El total neto es el pago después de ISSS, AFP, renta y otros descuentos registrados. El salario mensual es
+          el registrado manualmente para cada colaborador.
         </Text>
 
         <DocFooter data={data} />
