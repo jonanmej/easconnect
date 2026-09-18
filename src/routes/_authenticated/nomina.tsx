@@ -57,6 +57,7 @@ function hoySV() {
 
 type PersonaCalc = {
   tecnico_id: string; colaborador: string; salario_mensual: number; valor_hora: number;
+  modalidad?: ModalidadPago; pago_diario?: number;
   dias: number; sin_salario: boolean; horas_totales: number;
   horas_ord_diurnas: number; horas_ord_nocturnas: number;
   horas_extra_diurnas: number; horas_extra_nocturnas: number;
@@ -220,7 +221,8 @@ function NominaPage() {
         nombre: "Planilla de pago",
         columnas: [
           { header: "Colaborador", key: "colaborador", width: 30 },
-          { header: "Salario mensual", key: "salario_mensual", width: 16 },
+          { header: "Modalidad", key: "modalidad", width: 20, fn: (r: any) => ETIQUETAS_MODALIDAD[(r.modalidad ?? "mensual") as ModalidadPago] },
+          { header: "Base (mensual o jornal)", key: "base", width: 22, fn: (r: any) => (r.modalidad === "diario" ? Number(r.pago_diario ?? 0) : Number(r.salario_mensual ?? 0)) },
           { header: "Valor hora ordinaria", key: "valor_hora", width: 18 },
           { header: "Días marcados", key: "dias", width: 14 },
           { header: "Horas ordinarias", key: "horas_ordinarias", width: 16, fn: (r: any) => r.horas_ord_diurnas + r.horas_ord_nocturnas },

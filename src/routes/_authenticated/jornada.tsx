@@ -379,7 +379,8 @@ function JornadaPage() {
         nombre: "Pago por colaborador",
         columnas: [
           { header: "Colaborador", key: "colaborador", width: 30 },
-          { header: "Salario mensual", key: "salario_mensual", width: 16 },
+          { header: "Modalidad", key: "modalidad", width: 20, fn: (r: any) => ETIQUETAS_MODALIDAD[(r.modalidad ?? "mensual") as ModalidadPago] },
+          { header: "Base (mensual o jornal)", key: "base", width: 22, fn: (r: any) => (r.modalidad === "diario" ? Number(r.pago_diario ?? 0) : Number(r.salario_mensual ?? 0)) },
           { header: "Valor hora ordinaria", key: "valor_hora", width: 18 },
           { header: "Días marcados", key: "dias", width: 14 },
           { header: "Horas ordinarias diurnas", key: "horas_ord_diurnas", width: 22 },
@@ -692,7 +693,11 @@ function JornadaPage() {
                         {p.colaborador}
                         {p.sin_salario && <span className="ml-1 text-[10px] text-destructive">(sin salario)</span>}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.salario_mensual)}</td>
+                      <td className="px-3 py-2 text-right font-mono">
+                        {p.modalidad === "diario"
+                          ? `${fmtUSD(p.pago_diario ?? 0)} / día`
+                          : `${fmtUSD(p.salario_mensual)} / mes`}
+                      </td>
                       <td className="px-3 py-2 text-right font-mono">{fmtUSD(p.valor_hora)}</td>
                       <td className="px-3 py-2 text-right font-mono">
                         {(p.horas_ord_diurnas + p.horas_ord_nocturnas).toFixed(2)}
