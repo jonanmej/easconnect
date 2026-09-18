@@ -951,3 +951,95 @@ function CrearJornadaDialog({
     </div>
   );
 }
+
+function SalariosDialog({
+  salarios, colaboradores, cargando, saving, onCancel, onSave,
+}: {
+  salarios: SalarioFila[];
+  colaboradores: { id: string; nombre: string }[];
+  cargando: boolean;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: (v: { user_id: string; salario_mensual: number }) => void;
+}) {
+  const [userId, setUserId] = useState("");
+  const [monto, setMonto] = useState("");
+
+  const lista = colaboradores.length
+    ? colaboradores
+    : salarios.map((s) => ({ id: s.user_id, nombre: s.colaborador }));
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Salarios del personal</h3>
+          <p className="text-xs text-muted-foreground">
+            Ingrese el salario mensual de cada colaborador. Con este dato se calcula la hora ordinaria
+            (salario ÷ 30 días ÷ 8 horas) y el pago de horas extras, domingos y feriados.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-2 items-end">
+          <Campo label="Colaborador">
+            <select value={userId} onChange={(e) => {
+              setUserId(e.target.value);
+              const actual = salarios.find((s) => s.user_id === e.target.value);
+              setMonto(actual ? String(actual.salario_mensual) : "");
+            }} className={inputCls}>
+              <option value="">{cargando ? "Cargando…" : "Seleccione un colaborador"}</option>
+              {lista.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Salario mensual (USD)">
+            <input
+              type="number" min={0} step="0.01" value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              placeholder="0.00" className={inputCls}
+            />
+          </Campo>
+          <button
+            type="button"
+            disabled={saving || !userId || monto === "" || Number(monto) < 0}
+            onClick={() => onSave({ user_id: userId, salario_mensual: Number(monto) })}
+            className="h-9 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {saving && <Loader2 className="size-3.5 animate-spin" />} Guardar
+          </button>
+        </div>
+
+        <div className="rounded-md border border-border overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+              <tr>
+                <th className="text-left px-3 py-2">Colaborador</th>
+                <th className="text-right px-3 py-2">Salario mensual</th>
+                <th className="text-right px-3 py-2">Hora ordinaria</th>
+              </tr>
+            </thead>
+            <tbody>
+              {salarios.length === 0 && (
+                <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">Aún no hay salarios registrados.</td></tr>
+              )}
+              {salarios.map((s) => (
+                <tr key={s.user_id} className="border-t border-border/60">
+                  <td className="px-3 py-2 font-medium">{s.colaborador}</td>
+                  <td className="px-3 py-2 text-right font-mono">{fmtUSD(s.salario_mensual)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{fmtUSD(s.salario_mensual / 30 / 8)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end pt-1">
+          <button type="button" onClick={onCancel} className="h-9 px-3 text-xs border border-border rounded-md hover:bg-secondary">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
