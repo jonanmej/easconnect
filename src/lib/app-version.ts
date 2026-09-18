@@ -18,6 +18,16 @@ export type CambioVersion = {
 
 export const CHANGELOG: CambioVersion[] = [
   {
+    version: "1.5.1",
+    fecha: "2026-09-18",
+    titulo: "Vistas siempre actualizadas",
+    resumen: "Se corrigió la app instalada que mostraba pantallas descuadradas por archivos guardados de versiones anteriores.",
+    cambios: [
+      "La app deja de mezclar el diseño de una versión anterior con la versión nueva.",
+      "Al abrir la app se eliminan automáticamente los archivos guardados obsoletos.",
+    ],
+  },
+  {
     version: "1.5.0",
     fecha: "2026-08-09",
     titulo: "Actualizaciones más claras",
