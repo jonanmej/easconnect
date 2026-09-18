@@ -23,7 +23,7 @@ import {
   listSalarios,
   upsertSalario,
 } from "@/lib/jornadas.functions";
-import { fmtUSD, NOTA_LEGAL_NOMINA } from "@/lib/nomina";
+import { fmtUSD, NOTA_LEGAL_NOMINA, ETIQUETAS_MODALIDAD, type ModalidadPago } from "@/lib/nomina";
 import type { NominaPersona } from "@/lib/pdf/NominaDoc";
 
 type ExtrasResumen = {
