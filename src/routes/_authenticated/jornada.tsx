@@ -430,39 +430,40 @@ function JornadaPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <PageHeader
         title="Jornada laboral"
-        actions={
-          <>
-            <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className={inputCls + " w-full sm:w-40"} aria-label="Desde" />
-            <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className={inputCls + " w-full sm:w-40"} aria-label="Hasta" />
-            {isStaff && (
-              <select value={tecnico} onChange={(e) => setTecnico(e.target.value)} className={inputCls + " w-full sm:w-52"} aria-label="Colaborador">
-                <option value="">Todo el personal</option>
-                {((personal.data as { id: string; nombre: string }[] | undefined) ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                ))}
-              </select>
-            )}
-            {isStaff && (
-              <button
-                type="button"
-                onClick={() => setCreando(true)}
-                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
-              >
-                <Plus className="size-3.5" /> Registrar marcación
-              </button>
-            )}
-            <ExportButton onExport={exportarXls} />
-            <button
-              type="button"
-              onClick={exportarPdf}
-              disabled={pdfBusy}
-              className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
-            >
-              {pdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} Descargar PDF
-            </button>
-          </>
-        }
       />
+
+      <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[10rem_10rem_13rem_auto_auto_auto] xl:items-center">
+        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className={inputCls + " w-full min-w-0"} aria-label="Desde" />
+        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className={inputCls + " w-full min-w-0"} aria-label="Hasta" />
+        {isStaff && (
+          <select value={tecnico} onChange={(e) => setTecnico(e.target.value)} className={inputCls + " w-full min-w-0"} aria-label="Colaborador">
+            <option value="">Todo el personal</option>
+            {((personal.data as { id: string; nombre: string }[] | undefined) ?? []).map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+        )}
+        {isStaff && (
+          <button
+            type="button"
+            onClick={() => setCreando(true)}
+            className="h-9 w-full px-3 inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="size-3.5 shrink-0" /> Registrar marcación
+          </button>
+        )}
+        <div className="w-full [&>*]:w-full">
+          <ExportButton onExport={exportarXls} />
+        </div>
+        <button
+          type="button"
+          onClick={exportarPdf}
+          disabled={pdfBusy}
+          className="h-9 w-full px-3 inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+        >
+          {pdfBusy ? <Loader2 className="size-3.5 shrink-0 animate-spin" /> : <FileDown className="size-3.5 shrink-0" />} Descargar PDF
+        </button>
+      </div>
 
       <div className="mt-4">
         <JornadaControl />
