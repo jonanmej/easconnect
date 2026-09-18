@@ -465,3 +465,225 @@ export const resumenHorasExtras = createServerFn({ method: "GET" })
       },
     };
   });
+
+/* ─────────── Salarios y cálculo de pago (nómina El Salvador) ─────────── */
+
+/** Salarios registrados manualmente (RLS: staff ve todos, cada quien ve el suyo). */
+export const listSalarios = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("nomina_salarios")
+      .select("id, user_id, salario_mensual, moneda, notas, updated_at");
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? []).map((r: any) => r.user_id);
+    let perfiles = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles").select("id, display_name").in("id", ids);
+      perfiles = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "Colaborador"]));
+    }
+    return (rows ?? [])
+      .map((r: any) => ({
+        ...r,
+        salario_mensual: Number(r.salario_mensual ?? 0),
+        colaborador: perfiles.get(r.user_id) ?? "Colaborador",
+      }))
+      .sort((a: any, b: any) => a.colaborador.localeCompare(b.colaborador, "es"));
+  });
+
+/** Crea o actualiza el salario mensual de un colaborador (solo admin/supervisor). */
+export const upsertSalario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      user_id: z.string().uuid(),
+      salario_mensual: z.number().min(0).max(1000000),
+      notas: z.string().max(500).nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await requireStaff(context);
+    const { data: row, error } = await context.supabase
+      .from("nomina_salarios")
+      .upsert(
+        {
+          user_id: data.user_id,
+          salario_mensual: data.salario_mensual,
+          notas: data.notas ?? null,
+          updated_by: context.userId,
+        },
+        { onConflict: "user_id" },
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+/** Elimina el salario registrado de un colaborador (solo admin/supervisor). */
+export const eliminarSalario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ user_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await requireStaff(context);
+    const { error } = await context.supabase
+      .from("nomina_salarios").delete().eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Cálculo de pago del período por colaborador, con horas ordinarias y extras
+ * diurnas/nocturnas, días de descanso y feriados, según la normativa salvadoreña.
+ */
+export const calculoNomina = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ZRango.parse(d))
+  .handler(async ({ context, data }) => {
+    const {
+      desglosarJornada, desgloseVacio, sumarDesglose, pagoDesglose,
+      valorHoraOrdinaria, FACTORES_NOMINA, HORAS_JORNADA_ORDINARIA, DIAS_MES_NOMINA, r2,
+    } = await import("@/lib/nomina");
+    type TipoDia = import("@/lib/nomina").TipoDiaNomina;
+
+    let q = context.supabase
+      .from("jornadas_laborales")
+      .select("*")
+      .gte("fecha", data.desde)
+      .lte("fecha", data.hasta)
+      .order("fecha", { ascending: true });
+    if (data.tecnico_id) q = q.eq("tecnico_id", data.tecnico_id);
+
+    const [{ data: rows, error }, { data: feriados }, { data: salarios }] = await Promise.all([
+      q,
+      context.supabase.from("feriados").select("fecha, nombre, activo")
+        .gte("fecha", data.desde).lte("fecha", data.hasta),
+      context.supabase.from("nomina_salarios").select("user_id, salario_mensual"),
+    ]);
+    if (error) throw new Error(error.message);
+
+    const mapaFeriados = new Map<string, string>(
+      (feriados ?? []).filter((f: any) => f.activo).map((f: any) => [f.fecha as string, f.nombre as string]),
+    );
+    const mapaSalarios = new Map<string, number>(
+      (salarios ?? []).map((s: any) => [s.user_id as string, Number(s.salario_mensual ?? 0)]),
+    );
+
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
+    let perfiles = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles").select("id, display_name").in("id", ids);
+      perfiles = new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? "Colaborador"]));
+    }
+
+    const dias = (rows ?? []).map((r: any) => {
+      const feriado = mapaFeriados.get(r.fecha) ?? null;
+      const tipo_dia: TipoDia = feriado ? "feriado" : esDomingo(r.fecha) ? "descanso" : "habil";
+      const desglose = desglosarJornada(r);
+      const salario = mapaSalarios.get(r.tecnico_id) ?? 0;
+      const valorHora = valorHoraOrdinaria(salario);
+      const pago = pagoDesglose(desglose, tipo_dia, valorHora);
+      const horas = r2(
+        desglose.ord_diurna + desglose.ord_nocturna + desglose.extra_diurna + desglose.extra_nocturna,
+      );
+      return {
+        id: r.id as string,
+        fecha: r.fecha as string,
+        tecnico_id: r.tecnico_id as string,
+        colaborador: perfiles.get(r.tecnico_id) ?? "Colaborador",
+        tipo_dia,
+        motivo: feriado ? `Feriado: ${feriado}` : tipo_dia === "descanso" ? "Domingo" : null,
+        horas_totales: horas,
+        horas: desglose,
+        pago,
+        valor_hora: r2(valorHora),
+        abierta: !r.hora_fin,
+      };
+    });
+
+    type Acc = {
+      tecnico_id: string; colaborador: string; salario_mensual: number;
+      valor_hora: number; dias: number;
+      habil: ReturnType<typeof desgloseVacio>;
+      descanso: ReturnType<typeof desgloseVacio>;
+      feriado: ReturnType<typeof desgloseVacio>;
+      pago_ordinario: number; pago_extras: number; pago_descanso: number; pago_feriado: number;
+      horas_totales: number; sin_salario: boolean;
+    };
+    const acc = new Map<string, Acc>();
+    for (const d of dias) {
+      const salario = mapaSalarios.get(d.tecnico_id) ?? 0;
+      const a = acc.get(d.tecnico_id) ?? {
+        tecnico_id: d.tecnico_id, colaborador: d.colaborador,
+        salario_mensual: salario, valor_hora: r2(valorHoraOrdinaria(salario)), dias: 0,
+        habil: desgloseVacio(), descanso: desgloseVacio(), feriado: desgloseVacio(),
+        pago_ordinario: 0, pago_extras: 0, pago_descanso: 0, pago_feriado: 0,
+        horas_totales: 0, sin_salario: salario <= 0,
+      };
+      a.dias += 1;
+      a.horas_totales += d.horas_totales;
+      a[d.tipo_dia] = sumarDesglose(a[d.tipo_dia], d.horas);
+      const extras = d.pago.extra_diurna + d.pago.extra_nocturna;
+      const ordinarias = d.pago.ord_diurna + d.pago.ord_nocturna;
+      if (d.tipo_dia === "habil") {
+        a.pago_ordinario += ordinarias;
+        a.pago_extras += extras;
+      } else if (d.tipo_dia === "descanso") {
+        a.pago_descanso += ordinarias + extras;
+      } else {
+        a.pago_feriado += ordinarias + extras;
+      }
+      acc.set(d.tecnico_id, a);
+    }
+
+    const personal = Array.from(acc.values())
+      .map((a) => {
+        const total = a.pago_ordinario + a.pago_extras + a.pago_descanso + a.pago_feriado;
+        return {
+          tecnico_id: a.tecnico_id,
+          colaborador: a.colaborador,
+          salario_mensual: r2(a.salario_mensual),
+          valor_hora: a.valor_hora,
+          dias: a.dias,
+          sin_salario: a.sin_salario,
+          horas_totales: r2(a.horas_totales),
+          horas_ord_diurnas: r2(a.habil.ord_diurna),
+          horas_ord_nocturnas: r2(a.habil.ord_nocturna),
+          horas_extra_diurnas: r2(a.habil.extra_diurna + a.descanso.extra_diurna + a.feriado.extra_diurna),
+          horas_extra_nocturnas: r2(a.habil.extra_nocturna + a.descanso.extra_nocturna + a.feriado.extra_nocturna),
+          horas_descanso: r2(a.descanso.ord_diurna + a.descanso.ord_nocturna + a.descanso.extra_diurna + a.descanso.extra_nocturna),
+          horas_feriado: r2(a.feriado.ord_diurna + a.feriado.ord_nocturna + a.feriado.extra_diurna + a.feriado.extra_nocturna),
+          pago_ordinario: r2(a.pago_ordinario),
+          pago_extras: r2(a.pago_extras),
+          pago_descanso: r2(a.pago_descanso),
+          pago_feriado: r2(a.pago_feriado),
+          total_a_pagar: r2(total),
+        };
+      })
+      .sort((a, b) => b.total_a_pagar - a.total_a_pagar || a.colaborador.localeCompare(b.colaborador, "es"));
+
+    return {
+      desde: data.desde,
+      hasta: data.hasta,
+      limite_diario: HORAS_JORNADA_ORDINARIA,
+      dias_mes: DIAS_MES_NOMINA,
+      factores: FACTORES_NOMINA,
+      dias,
+      personal,
+      totales: {
+        horas_totales: r2(personal.reduce((s, p) => s + p.horas_totales, 0)),
+        horas_extra_diurnas: r2(personal.reduce((s, p) => s + p.horas_extra_diurnas, 0)),
+        horas_extra_nocturnas: r2(personal.reduce((s, p) => s + p.horas_extra_nocturnas, 0)),
+        horas_descanso: r2(personal.reduce((s, p) => s + p.horas_descanso, 0)),
+        horas_feriado: r2(personal.reduce((s, p) => s + p.horas_feriado, 0)),
+        pago_ordinario: r2(personal.reduce((s, p) => s + p.pago_ordinario, 0)),
+        pago_extras: r2(personal.reduce((s, p) => s + p.pago_extras, 0)),
+        pago_descanso: r2(personal.reduce((s, p) => s + p.pago_descanso, 0)),
+        pago_feriado: r2(personal.reduce((s, p) => s + p.pago_feriado, 0)),
+        total_a_pagar: r2(personal.reduce((s, p) => s + p.total_a_pagar, 0)),
+      },
+      sin_salario: personal.filter((p) => p.sin_salario).map((p) => p.colaborador),
+    };
+  });

@@ -500,3 +500,40 @@ export async function generarYDescargarHorasExtrasPdf(
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   return { documento_id, hash };
 }
+
+/**
+ * Genera y descarga la planilla de pago (cálculo de nómina El Salvador).
+ */
+export async function generarYDescargarNominaPdf(
+  data: import("./NominaDoc").NominaData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { NominaDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./NominaDoc"),
+  ]);
+  type D = import("./NominaDoc").NominaData;
+  const documento_id = data.documento_id ?? uuidV4();
+  const base: D = {
+    ...data,
+    documento_id,
+    documento_codigo: data.documento_codigo ?? "EA-NOM-02",
+    documento_version: data.documento_version ?? "1.0",
+    documento_clasificacion: data.documento_clasificacion ?? "Confidencial · RRHH",
+    documento_hash: undefined,
+  };
+  const initialBlob = await pdf(createElement(NominaDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const finalData: D = { ...base, documento_hash: hash };
+  const blob = await pdf(createElement(NominaDoc, { data: finalData }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
