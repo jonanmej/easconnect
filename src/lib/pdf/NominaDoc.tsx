@@ -178,57 +178,75 @@ export function NominaDoc({ data }: { data: NominaData }) {
             <Text style={[s.summaryValue, { color: COL.warn }]}>{fmtUSD(data.totales.pago_extras)}</Text>
           </View>
           <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Domingos</Text>
-            <Text style={s.summaryValue}>{fmtUSD(data.totales.pago_descanso)}</Text>
+            <Text style={s.summaryLabel}>Dom./Feriados</Text>
+            <Text style={s.summaryValue}>
+              {fmtUSD(data.totales.pago_descanso + data.totales.pago_feriado)}
+            </Text>
           </View>
           <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Feriados</Text>
-            <Text style={s.summaryValue}>{fmtUSD(data.totales.pago_feriado)}</Text>
+            <Text style={s.summaryLabel}>Total bruto</Text>
+            <Text style={s.summaryValue}>{fmtUSD(data.totales.total_a_pagar)}</Text>
           </View>
           <View style={s.summaryCard}>
-            <Text style={s.summaryLabel}>Total a pagar</Text>
-            <Text style={[s.summaryValue, { color: COL.ok }]}>{fmtUSD(data.totales.total_a_pagar)}</Text>
+            <Text style={s.summaryLabel}>Descuentos de ley</Text>
+            <Text style={[s.summaryValue, { color: COL.warn }]}>
+              {fmtUSD(n0(data.totales.isss) + n0(data.totales.afp) + n0(data.totales.renta) + n0(data.totales.otros_descuentos))}
+            </Text>
+          </View>
+          <View style={s.summaryCard}>
+            <Text style={s.summaryLabel}>Total neto</Text>
+            <Text style={[s.summaryValue, { color: COL.ok }]}>
+              {fmtUSD(n0(data.totales.total_neto) || data.totales.total_a_pagar)}
+            </Text>
           </View>
         </View>
 
         <Text style={s.section}>Detalle por colaborador</Text>
         <View style={s.table}>
           <View style={s.tr} fixed>
-            <Text style={[s.th, { flex: 2.4 }]}>Colaborador</Text>
-            <Text style={[s.th, { flex: 1.1, textAlign: "right" }]}>Salario mens.</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Hora ord.</Text>
-            <Text style={[s.th, { flex: 0.8, textAlign: "right" }]}>Días</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>H. ord.</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Extra diu.</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Extra noc.</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>H. dom.</Text>
-            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>H. fer.</Text>
-            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Pago ord.</Text>
-            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Pago extras</Text>
-            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Dom./Fer.</Text>
-            <Text style={[s.th, { flex: 1.4, textAlign: "right" }]}>Total</Text>
+            <Text style={[s.th, { flex: 2.2 }]}>Colaborador</Text>
+            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Salario mens.</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Hora ord.</Text>
+            <Text style={[s.th, { flex: 0.7, textAlign: "right" }]}>Días</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>H. ord.</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Extra diu.</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Extra noc.</Text>
+            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Pago ord.</Text>
+            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Extras</Text>
+            <Text style={[s.th, { flex: 1, textAlign: "right" }]}>Dom./Fer.</Text>
+            <Text style={[s.th, { flex: 1.1, textAlign: "right" }]}>Bruto</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>ISSS</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>AFP</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Renta</Text>
+            <Text style={[s.th, { flex: 0.9, textAlign: "right" }]}>Otros</Text>
+            <Text style={[s.th, { flex: 1.2, textAlign: "right" }]}>Neto</Text>
           </View>
           {data.personal.map((p, i) => (
             <View key={p.tecnico_id} wrap={false} style={[s.tr, i === data.personal.length - 1 ? { borderBottomWidth: 0 } : {}]}>
-              <Text style={[s.td, { flex: 2.4 }]}>
+              <Text style={[s.td, { flex: 2.2 }]}>
                 {p.colaborador}{p.sin_salario ? " (sin salario registrado)" : ""}
               </Text>
-              <Text style={[s.td, { flex: 1.1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.salario_mensual)}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.valor_hora)}</Text>
-              <Text style={[s.td, { flex: 0.8, textAlign: "right", fontFamily: "Courier" }]}>{p.dias}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>
+              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.salario_mensual)}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.valor_hora)}</Text>
+              <Text style={[s.td, { flex: 0.7, textAlign: "right", fontFamily: "Courier" }]}>{p.dias}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>
                 {(p.horas_ord_diurnas + p.horas_ord_nocturnas).toFixed(2)}
               </Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_extra_diurnas.toFixed(2)}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_extra_nocturnas.toFixed(2)}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_descanso.toFixed(2)}</Text>
-              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_feriado.toFixed(2)}</Text>
-              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.pago_ordinario)}</Text>
-              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier", color: COL.warn }]}>{fmtUSD(p.pago_extras)}</Text>
-              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: "Courier" }]}>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_extra_diurnas.toFixed(2)}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{p.horas_extra_nocturnas.toFixed(2)}</Text>
+              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.pago_ordinario)}</Text>
+              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier", color: COL.warn }]}>{fmtUSD(p.pago_extras)}</Text>
+              <Text style={[s.td, { flex: 1, textAlign: "right", fontFamily: "Courier" }]}>
                 {fmtUSD(p.pago_descanso + p.pago_feriado)}
               </Text>
-              <Text style={[s.td, { flex: 1.4, textAlign: "right", fontFamily: FONT_BOLD }]}>{fmtUSD(p.total_a_pagar)}</Text>
+              <Text style={[s.td, { flex: 1.1, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(p.total_a_pagar)}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(n0(p.isss))}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(n0(p.afp))}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(n0(p.renta))}</Text>
+              <Text style={[s.td, { flex: 0.9, textAlign: "right", fontFamily: "Courier" }]}>{fmtUSD(n0(p.otros_descuentos))}</Text>
+              <Text style={[s.td, { flex: 1.2, textAlign: "right", fontFamily: FONT_BOLD, color: COL.ok }]}>
+                {fmtUSD(n0(p.total_neto) || p.total_a_pagar)}
+              </Text>
             </View>
           ))}
           {data.personal.length === 0 && (
