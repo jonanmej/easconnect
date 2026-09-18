@@ -447,6 +447,80 @@ function JornadaPage() {
         )}
       </div>
 
+      <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
+          <Clock className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Horas extras por colaborador (nómina)</h2>
+          <span className="text-[10px] uppercase text-muted-foreground">
+            Jornada ordinaria {extrasData?.limite_diario ?? 8} h/día
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <ExportButton onExport={exportarExtrasXls} />
+            <button
+              type="button"
+              onClick={exportarExtrasPdf}
+              disabled={extrasPdfBusy || !extrasData}
+              className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+            >
+              {extrasPdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
+            </button>
+          </div>
+        </div>
+
+        {extras.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando…</p>}
+        {!extras.isLoading && (extrasData?.personal.length ?? 0) === 0 && (
+          <p className="p-4 text-xs text-muted-foreground">Sin horas registradas en el período seleccionado.</p>
+        )}
+
+        {(extrasData?.personal.length ?? 0) > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[760px]">
+              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-right px-3 py-2">Días</th>
+                  <th className="text-right px-3 py-2">Horas efect.</th>
+                  <th className="text-right px-3 py-2">Ordinarias</th>
+                  <th className="text-right px-3 py-2">Extras</th>
+                  <th className="text-right px-3 py-2">Días c/extra</th>
+                  <th className="text-right px-3 py-2">Descanso/feriado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {extrasData!.personal.map((p) => (
+                  <tr key={p.tecnico_id} className="border-t border-border/60">
+                    <td className="px-3 py-2 font-medium">{p.colaborador}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.dias}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_efectivas.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_ordinarias.toFixed(2)}</td>
+                    <td className={"px-3 py-2 text-right font-mono font-bold " + (p.horas_extras > 0 ? "text-primary" : "")}>
+                      {p.horas_extras.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{p.dias_con_extras}</td>
+                    <td className="px-3 py-2 text-right font-mono">{p.horas_descanso.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t border-border bg-secondary/40 font-semibold">
+                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_efectivas.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_ordinarias.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_extras.toFixed(2)}</td>
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_descanso.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+          Se cuentan como extras las horas que pasan de {extrasData?.limite_diario ?? 8} h efectivas en un día hábil.
+          Las horas de domingo o feriado se muestran aparte para pagarlas según corresponda.
+        </p>
+      </div>
+
+
+
       {editando && (
         <EditarJornadaDialog
           fila={editando}
