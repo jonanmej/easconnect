@@ -474,7 +474,7 @@ export const listSalarios = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: rows, error } = await context.supabase
       .from("nomina_salarios")
-      .select("id, user_id, salario_mensual, moneda, notas, updated_at");
+      .select("id, user_id, salario_mensual, modalidad, pago_diario, moneda, notas, updated_at");
     if (error) throw new Error(error.message);
     const ids = (rows ?? []).map((r: any) => r.user_id);
     let perfiles = new Map<string, string>();
@@ -487,29 +487,36 @@ export const listSalarios = createServerFn({ method: "GET" })
       .map((r: any) => ({
         ...r,
         salario_mensual: Number(r.salario_mensual ?? 0),
+        pago_diario: Number(r.pago_diario ?? 0),
+        modalidad: (r.modalidad ?? "mensual") as "mensual" | "diario",
         colaborador: perfiles.get(r.user_id) ?? "Colaborador",
       }))
       .sort((a: any, b: any) => a.colaborador.localeCompare(b.colaborador, "es"));
   });
 
-/** Crea o actualiza el salario mensual de un colaborador (solo admin/supervisor). */
+/** Crea o actualiza el salario de un colaborador (solo admin/supervisor). */
 export const upsertSalario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({
       user_id: z.string().uuid(),
       salario_mensual: z.number().min(0).max(1000000),
+      modalidad: z.enum(["mensual", "diario"]).optional(),
+      pago_diario: z.number().min(0).max(100000).optional(),
       notas: z.string().max(500).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
     await requireStaff(context);
+    const modalidad = data.modalidad ?? "mensual";
     const { data: row, error } = await context.supabase
       .from("nomina_salarios")
       .upsert(
         {
           user_id: data.user_id,
-          salario_mensual: data.salario_mensual,
+          salario_mensual: modalidad === "diario" ? 0 : data.salario_mensual,
+          modalidad,
+          pago_diario: modalidad === "diario" ? (data.pago_diario ?? 0) : 0,
           notas: data.notas ?? null,
           updated_by: context.userId,
         },
