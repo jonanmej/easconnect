@@ -78,7 +78,9 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
   });
 
 /**
- * Guarda (o vuelve a calcular) la planilla del mes. Recalcula siempre en el
+ * Guarda (o vuelve a calcular) la planilla de un corte de pago del mes:
+ * mes completo, quincena (personal con salario mensual) o semana de pago
+ * (personal con pago por día, lunes a viernes). Recalcula siempre en el
  * servidor a partir de las marcaciones; solo los "otros descuentos" vienen del
  * formulario. Si `cerrar` es verdadero, el período queda cerrado.
  */
@@ -88,6 +90,7 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     z.object({
       anio: z.number().int().min(2020).max(2100),
       mes: z.number().int().min(1).max(12),
+      corte_clave: z.string().min(1).max(40).optional(),
       notas: z.string().max(2000).nullable().optional(),
       cerrar: z.boolean().optional(),
       ajustes: z
@@ -105,15 +108,24 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     await requireStaff(context);
     const { calcularNominaRango } = await import("@/lib/nomina.server");
     const { calcularDescuentos } = await import("@/lib/nomina-descuentos");
-    const { desde, hasta } = rangoMes(data.anio, data.mes);
+    const { resolverCorte } = await import("@/lib/nomina-cortes");
+    const corte = resolverCorte(data.anio, data.mes, data.corte_clave ?? "mes");
+    const { desde, hasta } = corte;
 
     const { data: existente } = await context.supabase
-      .from("nomina_periodos").select("id, estado").eq("anio", data.anio).eq("mes", data.mes).maybeSingle();
+      .from("nomina_periodos").select("id, estado")
+      .eq("anio", data.anio).eq("mes", data.mes).eq("corte_clave", corte.clave).maybeSingle();
     if (existente?.estado === "cerrado") {
       throw new Error("El período ya está cerrado. Reábralo antes de volver a calcularlo.");
     }
 
-    const calc = await calcularNominaRango(context.supabase, { desde, hasta });
+    const bruta = await calcularNominaRango(context.supabase, { desde, hasta });
+    const calc = {
+      ...bruta,
+      personal: bruta.personal.filter((p) =>
+        corte.modalidades.includes((p.modalidad ?? "mensual") as any),
+      ),
+    };
     const ajustes = new Map(
       (data.ajustes ?? []).map((a) => [a.user_id, a]),
     );
