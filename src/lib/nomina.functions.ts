@@ -22,6 +22,8 @@ export function rangoMes(anio: number, mes: number) {
   return { desde: `${anio}-${mm}-01`, hasta: `${anio}-${mm}-${String(ultimo).padStart(2, "0")}` };
 }
 
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 /** Cálculo del mes con horas, pagos y descuentos de ley (no lo guarda). */
 export const calcularNominaMes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -29,16 +31,41 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     await requireStaff(context);
     const { calcularNominaRango } = await import("@/lib/nomina.server");
+    const { cortesDelMes } = await import("@/lib/nomina-cortes");
     const { desde, hasta } = rangoMes(data.anio, data.mes);
-    const calc = await calcularNominaRango(context.supabase, {
-      desde, hasta, tecnico_id: data.tecnico_id,
+
+    const definiciones = cortesDelMes(data.anio, data.mes);
+    const [calc, { data: periodos }, ...porCorte] = await Promise.all([
+      calcularNominaRango(context.supabase, { desde, hasta, tecnico_id: data.tecnico_id }),
+      context.supabase.from("nomina_periodos").select("*").eq("anio", data.anio).eq("mes", data.mes),
+      ...definiciones.map((c) =>
+        calcularNominaRango(context.supabase, { desde: c.desde, hasta: c.hasta }),
+      ),
+    ]);
+
+    const mapaPeriodos = new Map<string, any>(
+      (periodos ?? []).map((p: any) => [p.corte_clave ?? "mes", p]),
+    );
+
+    const cortes = definiciones.map((c, i) => {
+      const personal = (porCorte[i]?.personal ?? []).filter((p: any) =>
+        c.modalidades.includes((p.modalidad ?? "mensual") as any),
+      );
+      const suma = (fn: (p: any) => number) => r2(personal.reduce((s: number, p: any) => s + fn(p), 0));
+      const p = mapaPeriodos.get(c.clave);
+      return {
+        ...c,
+        colaboradores: personal.length,
+        dias: personal.reduce((s: number, x: any) => s + x.dias, 0),
+        total_bruto: suma((x) => x.total_bruto),
+        total_descuentos: suma((x) => x.isss + x.afp + x.renta),
+        total_neto: suma((x) => x.total_neto),
+        personal,
+        periodo: p ? { id: p.id as string, estado: p.estado as string } : null,
+      };
     });
-    const { data: periodo } = await context.supabase
-      .from("nomina_periodos")
-      .select("*")
-      .eq("anio", data.anio)
-      .eq("mes", data.mes)
-      .maybeSingle();
+
+    const periodo = mapaPeriodos.get("mes") ?? null;
     let guardado: any[] = [];
     if (periodo?.id) {
       const { data: det } = await context.supabase
@@ -47,11 +74,13 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
         .eq("periodo_id", periodo.id);
       guardado = det ?? [];
     }
-    return { ...calc, anio: data.anio, mes: data.mes, periodo: periodo ?? null, guardado };
+    return { ...calc, anio: data.anio, mes: data.mes, periodo, guardado, cortes };
   });
 
 /**
- * Guarda (o vuelve a calcular) la planilla del mes. Recalcula siempre en el
+ * Guarda (o vuelve a calcular) la planilla de un corte de pago del mes:
+ * mes completo, quincena (personal con salario mensual) o semana de pago
+ * (personal con pago por día, lunes a viernes). Recalcula siempre en el
  * servidor a partir de las marcaciones; solo los "otros descuentos" vienen del
  * formulario. Si `cerrar` es verdadero, el período queda cerrado.
  */
@@ -61,6 +90,7 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     z.object({
       anio: z.number().int().min(2020).max(2100),
       mes: z.number().int().min(1).max(12),
+      corte_clave: z.string().min(1).max(40).optional(),
       notas: z.string().max(2000).nullable().optional(),
       cerrar: z.boolean().optional(),
       ajustes: z
@@ -78,15 +108,24 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     await requireStaff(context);
     const { calcularNominaRango } = await import("@/lib/nomina.server");
     const { calcularDescuentos } = await import("@/lib/nomina-descuentos");
-    const { desde, hasta } = rangoMes(data.anio, data.mes);
+    const { resolverCorte } = await import("@/lib/nomina-cortes");
+    const corte = resolverCorte(data.anio, data.mes, data.corte_clave ?? "mes");
+    const { desde, hasta } = corte;
 
     const { data: existente } = await context.supabase
-      .from("nomina_periodos").select("id, estado").eq("anio", data.anio).eq("mes", data.mes).maybeSingle();
+      .from("nomina_periodos").select("id, estado")
+      .eq("anio", data.anio).eq("mes", data.mes).eq("corte_clave", corte.clave).maybeSingle();
     if (existente?.estado === "cerrado") {
       throw new Error("El período ya está cerrado. Reábralo antes de volver a calcularlo.");
     }
 
-    const calc = await calcularNominaRango(context.supabase, { desde, hasta });
+    const bruta = await calcularNominaRango(context.supabase, { desde, hasta });
+    const calc = {
+      ...bruta,
+      personal: bruta.personal.filter((p) =>
+        corte.modalidades.includes((p.modalidad ?? "mensual") as any),
+      ),
+    };
     const ajustes = new Map(
       (data.ajustes ?? []).map((a) => [a.user_id, a]),
     );
@@ -127,6 +166,9 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     const payloadPeriodo = {
       anio: data.anio,
       mes: data.mes,
+      tipo: corte.tipo,
+      corte_clave: corte.clave,
+      corte_label: corte.label,
       desde,
       hasta,
       notas: data.notas ?? null,
@@ -144,7 +186,7 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
 
     const { data: periodo, error: errP } = await context.supabase
       .from("nomina_periodos")
-      .upsert(payloadPeriodo, { onConflict: "anio,mes" })
+      .upsert(payloadPeriodo, { onConflict: "anio,mes,corte_clave" })
       .select()
       .single();
     if (errP) throw new Error(errP.message);
@@ -247,14 +289,17 @@ export const historialColaborador = createServerFn({ method: "GET" })
     await requireStaff(context);
     const { data: lineas, error } = await context.supabase
       .from("nomina_periodo_detalle")
-      .select("*, nomina_periodos!inner(anio, mes, desde, hasta, estado)")
+      .select("*, nomina_periodos!inner(anio, mes, desde, hasta, estado, tipo, corte_label)")
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
     return (lineas ?? [])
       .map((l: any) => {
         const p = l.nomina_periodos ?? {};
         const { nomina_periodos: _omit, ...resto } = l;
-        return { ...numerizar(resto), anio: p.anio, mes: p.mes, desde: p.desde, hasta: p.hasta, estado: p.estado };
+        return {
+          ...numerizar(resto), anio: p.anio, mes: p.mes, desde: p.desde, hasta: p.hasta,
+          estado: p.estado, tipo: p.tipo ?? "mes", corte_label: p.corte_label ?? "Mes completo",
+        };
       })
       .sort((a: any, b: any) => b.anio - a.anio || b.mes - a.mes);
   });

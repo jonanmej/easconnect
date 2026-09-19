@@ -732,6 +732,8 @@ export type Database = {
           anio: number
           cerrado_at: string | null
           cerrado_por: string | null
+          corte_clave: string
+          corte_label: string | null
           created_at: string
           created_by: string | null
           desde: string
@@ -740,6 +742,7 @@ export type Database = {
           id: string
           mes: number
           notas: string | null
+          tipo: string
           total_afp: number
           total_bruto: number
           total_isss: number
@@ -752,6 +755,8 @@ export type Database = {
           anio: number
           cerrado_at?: string | null
           cerrado_por?: string | null
+          corte_clave?: string
+          corte_label?: string | null
           created_at?: string
           created_by?: string | null
           desde: string
@@ -760,6 +765,7 @@ export type Database = {
           id?: string
           mes: number
           notas?: string | null
+          tipo?: string
           total_afp?: number
           total_bruto?: number
           total_isss?: number
@@ -772,6 +778,8 @@ export type Database = {
           anio?: number
           cerrado_at?: string | null
           cerrado_por?: string | null
+          corte_clave?: string
+          corte_label?: string | null
           created_at?: string
           created_by?: string | null
           desde?: string
@@ -780,6 +788,7 @@ export type Database = {
           id?: string
           mes?: number
           notas?: string | null
+          tipo?: string
           total_afp?: number
           total_bruto?: number
           total_isss?: number
