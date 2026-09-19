@@ -14,11 +14,11 @@ import {
 } from "@/lib/rutas.functions";
 import { cargarMapbox, ESTILO_CALLES, type MapboxNS } from "@/lib/mapbox-loader";
 
-function RutasErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function RutasErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   const router = useRouter();
   return (
     <div className="p-8">
-      <p className="text-sm text-destructive mb-3">{error.message}</p>
+      <p className="text-sm text-destructive mb-3">{(error as Error)?.message}</p>
       <button
         className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-secondary"
         onClick={() => {

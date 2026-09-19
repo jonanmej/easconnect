@@ -80,7 +80,7 @@ export const Route = createFileRoute("/_authenticated/jornada")({
     ],
   }),
   component: JornadaPage,
-  errorComponent: ({ error }) => <div className="p-8 text-sm text-destructive">Error: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-8 text-sm text-destructive">Error: {(error as Error)?.message}</div>,
   notFoundComponent: () => <div className="p-8 text-sm text-muted-foreground">No encontrado.</div>,
 });
 

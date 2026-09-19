@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/inventario")({
   }),
   component: Inventario,
   errorComponent: ({ error }) => (
-    <div className="p-8 text-sm text-destructive">Error: {error.message}</div>
+    <div className="p-8 text-sm text-destructive">Error: {(error as Error)?.message}</div>
   ),
 });
 
