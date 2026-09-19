@@ -289,14 +289,17 @@ export const historialColaborador = createServerFn({ method: "GET" })
     await requireStaff(context);
     const { data: lineas, error } = await context.supabase
       .from("nomina_periodo_detalle")
-      .select("*, nomina_periodos!inner(anio, mes, desde, hasta, estado)")
+      .select("*, nomina_periodos!inner(anio, mes, desde, hasta, estado, tipo, corte_label)")
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
     return (lineas ?? [])
       .map((l: any) => {
         const p = l.nomina_periodos ?? {};
         const { nomina_periodos: _omit, ...resto } = l;
-        return { ...numerizar(resto), anio: p.anio, mes: p.mes, desde: p.desde, hasta: p.hasta, estado: p.estado };
+        return {
+          ...numerizar(resto), anio: p.anio, mes: p.mes, desde: p.desde, hasta: p.hasta,
+          estado: p.estado, tipo: p.tipo ?? "mes", corte_label: p.corte_label ?? "Mes completo",
+        };
       })
       .sort((a: any, b: any) => b.anio - a.anio || b.mes - a.mes);
   });
