@@ -186,7 +186,7 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
 
     const { data: periodo, error: errP } = await context.supabase
       .from("nomina_periodos")
-      .upsert(payloadPeriodo, { onConflict: "anio,mes" })
+      .upsert(payloadPeriodo, { onConflict: "anio,mes,corte_clave" })
       .select()
       .single();
     if (errP) throw new Error(errP.message);
