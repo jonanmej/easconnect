@@ -166,6 +166,9 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
     const payloadPeriodo = {
       anio: data.anio,
       mes: data.mes,
+      tipo: corte.tipo,
+      corte_clave: corte.clave,
+      corte_label: corte.label,
       desde,
       hasta,
       notas: data.notas ?? null,
