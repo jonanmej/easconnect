@@ -34,7 +34,7 @@ export const listAuditoria = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const actores = Array.from(new Set((rows ?? []).map((r: any) => r.actor).filter(Boolean)));
-    let actorMap = new Map<string, string>();
+    const actorMap = new Map<string, string>();
     if (actores.length) {
       const { data: profs } = await context.supabase
         .from("profiles").select("id, display_name").in("id", actores);

@@ -79,7 +79,7 @@ function Inventario() {
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    let rows = items.filter((i) => {
+    const rows = items.filter((i) => {
       if (catFilter !== "todas" && i.categoria !== catFilter) return false;
       const low = isLow(i);
       if (estadoFilter === "bajo" && !low) return false;

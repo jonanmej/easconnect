@@ -46,7 +46,7 @@ export function useRealtimeSync() {
 
   useEffect(() => {
     const tables = Object.keys(TABLE_TO_KEYS);
-    let debounce: Record<string, ReturnType<typeof setTimeout> | null> = {};
+    const debounce: Record<string, ReturnType<typeof setTimeout> | null> = {};
 
     const channel = supabase.channel("app-sync");
     for (const table of tables) {

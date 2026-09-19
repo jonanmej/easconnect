@@ -4,9 +4,9 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "bun run check:redeclare && vite build",
-    "build:dev": "bun run check:redeclare && vite build --mode development",
+    "dev": "vite dev --host 0.0.0.0 --port 3000",
+    "build": "npm run check:redeclare && vite build",
+    "build:dev": "npm run check:redeclare && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "check:redeclare": "eslint . --config eslint.check.config.js",
@@ -115,11 +115,6 @@
     "vite": "^8.0.16"
   },
   "overrides": {
-    "tar": "^7.5.16",
-    "seroval": "^1.6.0",
-    "seroval-plugins": "^1.6.0"
-  },
-  "resolutions": {
     "tar": "^7.5.16",
     "seroval": "^1.6.0",
     "seroval-plugins": "^1.6.0",

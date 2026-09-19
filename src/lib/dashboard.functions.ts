@@ -91,7 +91,7 @@ export const listTrabajosSla = createServerFn({ method: "GET" })
       .limit(200);
     if (error) throw new Error(error.message);
     const ids = Array.from(new Set((data ?? []).map((r: any) => r.planta_id)));
-    let nombres = new Map<string, { planta: string; cliente: string }>();
+    const nombres = new Map<string, { planta: string; cliente: string }>();
     if (ids.length) {
       const { data: plantas } = await context.supabase
         .from("plantas").select("id, nombre, clientes(nombre)").in("id", ids);

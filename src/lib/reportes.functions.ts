@@ -715,7 +715,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 
     const parseJson = (raw: string): unknown => {
       let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const start = s.search(/[\{\[]/);
+      const start = s.search(/[{[]/);
       const end = s.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
       s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
@@ -1580,7 +1580,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
 
     const parseJson = (raw: string): unknown => {
       let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const start = s.search(/[\{\[]/);
+      const start = s.search(/[{[]/);
       const end = s.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
       s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");

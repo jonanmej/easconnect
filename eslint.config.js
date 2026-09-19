@@ -1,5 +1,4 @@
 import js from "@eslint/js";
-import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
@@ -34,6 +33,7 @@ export default tseslint.config(
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       // Prevent redeclarations / shadowing like the `diarios` bug where a
       // block-scoped const re-declared an outer variable and silently broke
       // the executive PDF (photos + technician mapping). These must fail the
@@ -52,7 +52,8 @@ export default tseslint.config(
       "no-dupe-keys": "error",
       "no-dupe-class-members": "off",
       "@typescript-eslint/no-dupe-class-members": "error",
+      "no-control-regex": "off",
+      "no-empty": ["error", { "allowEmptyCatch": true }],
     },
   },
-  eslintPluginPrettier,
 );

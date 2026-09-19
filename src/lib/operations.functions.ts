@@ -417,7 +417,7 @@ export const listTrabajos = createServerFn({ method: "GET" })
       .order("fecha_programada", { ascending: false });
     if (error) throw new Error(error.message);
     const ids = (data ?? []).map((t: any) => t.id);
-    let excepcionesPorTrabajo: Record<string, Array<{ fecha_original: string; fecha_movida: string }>> = {};
+    const excepcionesPorTrabajo: Record<string, Array<{ fecha_original: string; fecha_movida: string }>> = {};
     const tecnicosPorTrabajo: Record<string, string[]> = {};
     if (ids.length > 0) {
       const { data: excs } = await context.supabase
@@ -842,7 +842,7 @@ export const listAsignacionesLog = createServerFn({ method: "POST" })
       if (r.tecnico_nuevo) ids.add(r.tecnico_nuevo);
       if (r.asignado_por) ids.add(r.asignado_por);
     });
-    let nameMap: Record<string, string> = {};
+    const nameMap: Record<string, string> = {};
     if (ids.size) {
       const { data: profs } = await context.supabase
         .from("profiles")

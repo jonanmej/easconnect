@@ -1,0 +1,11 @@
+{
+  "name": "EA Service Connect",
+  "description": "Plataforma de gestión operativa de EA Service & Consulting: administración de servicios de mantenimiento, limpieza robotizada, inventario, equipos y reportes.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
