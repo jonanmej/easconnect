@@ -18,7 +18,7 @@ export const Route = createFileRoute("/aprobar/$token")({
   component: AprobarPage,
   errorComponent: ({ error }) => (
     <Shell>
-      <ErrorCard message={error.message} />
+      <ErrorCard message={(error as Error)?.message} />
     </Shell>
   ),
   notFoundComponent: () => (
