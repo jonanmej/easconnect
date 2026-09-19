@@ -22,6 +22,8 @@ export function rangoMes(anio: number, mes: number) {
   return { desde: `${anio}-${mm}-01`, hasta: `${anio}-${mm}-${String(ultimo).padStart(2, "0")}` };
 }
 
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 /** Cálculo del mes con horas, pagos y descuentos de ley (no lo guarda). */
 export const calcularNominaMes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -29,16 +31,41 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     await requireStaff(context);
     const { calcularNominaRango } = await import("@/lib/nomina.server");
+    const { cortesDelMes } = await import("@/lib/nomina-cortes");
     const { desde, hasta } = rangoMes(data.anio, data.mes);
-    const calc = await calcularNominaRango(context.supabase, {
-      desde, hasta, tecnico_id: data.tecnico_id,
+
+    const definiciones = cortesDelMes(data.anio, data.mes);
+    const [calc, { data: periodos }, ...porCorte] = await Promise.all([
+      calcularNominaRango(context.supabase, { desde, hasta, tecnico_id: data.tecnico_id }),
+      context.supabase.from("nomina_periodos").select("*").eq("anio", data.anio).eq("mes", data.mes),
+      ...definiciones.map((c) =>
+        calcularNominaRango(context.supabase, { desde: c.desde, hasta: c.hasta }),
+      ),
+    ]);
+
+    const mapaPeriodos = new Map<string, any>(
+      (periodos ?? []).map((p: any) => [p.corte_clave ?? "mes", p]),
+    );
+
+    const cortes = definiciones.map((c, i) => {
+      const personal = (porCorte[i]?.personal ?? []).filter((p: any) =>
+        c.modalidades.includes((p.modalidad ?? "mensual") as any),
+      );
+      const suma = (fn: (p: any) => number) => r2(personal.reduce((s: number, p: any) => s + fn(p), 0));
+      const p = mapaPeriodos.get(c.clave);
+      return {
+        ...c,
+        colaboradores: personal.length,
+        dias: personal.reduce((s: number, x: any) => s + x.dias, 0),
+        total_bruto: suma((x) => x.total_bruto),
+        total_descuentos: suma((x) => x.isss + x.afp + x.renta),
+        total_neto: suma((x) => x.total_neto),
+        personal,
+        periodo: p ? { id: p.id as string, estado: p.estado as string } : null,
+      };
     });
-    const { data: periodo } = await context.supabase
-      .from("nomina_periodos")
-      .select("*")
-      .eq("anio", data.anio)
-      .eq("mes", data.mes)
-      .maybeSingle();
+
+    const periodo = mapaPeriodos.get("mes") ?? null;
     let guardado: any[] = [];
     if (periodo?.id) {
       const { data: det } = await context.supabase
@@ -47,7 +74,7 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
         .eq("periodo_id", periodo.id);
       guardado = det ?? [];
     }
-    return { ...calc, anio: data.anio, mes: data.mes, periodo: periodo ?? null, guardado };
+    return { ...calc, anio: data.anio, mes: data.mes, periodo, guardado, cortes };
   });
 
 /**
