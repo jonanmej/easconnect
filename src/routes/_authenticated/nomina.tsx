@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  DollarSign, FileDown, History, Loader2, Lock, LockOpen, Save, Settings2, Trash2, Users,
+  CalendarClock, DollarSign, FileDown, History, Loader2, Lock, LockOpen, Save, Settings2, Trash2, Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ExportButton } from "@/components/ExportButton";
@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { exportarExcel } from "@/lib/excel";
 import { fmtUSD, NOTA_LEGAL_NOMINA, ETIQUETAS_MODALIDAD, type ModalidadPago } from "@/lib/nomina";
+import { NOTA_LEGAL_CORTES, diaMesCorto, type TipoCorte } from "@/lib/nomina-cortes";
 import { NOTA_LEGAL_DESCUENTOS } from "@/lib/nomina-descuentos";
 import { listSalarios, upsertSalario } from "@/lib/jornadas.functions";
 import { listPersonalInterno } from "@/lib/actividades-internas.functions";
