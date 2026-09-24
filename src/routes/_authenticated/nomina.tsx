@@ -81,6 +81,15 @@ type CalcMes = {
   sin_salario: string[];
   periodo: { id: string; estado: string; notas: string | null; cerrado_at: string | null } | null;
   guardado: { user_id: string; otros_descuentos: number | string; notas: string | null }[];
+  cortes: CorteCalc[];
+};
+
+type CorteCalc = {
+  clave: string; tipo: TipoCorte; label: string; desde: string; hasta: string; pago: string;
+  modalidades: ModalidadPago[];
+  colaboradores: number; dias: number;
+  total_bruto: number; total_descuentos: number; total_neto: number;
+  periodo: { id: string; estado: string } | null;
 };
 
 type SalarioFila = {
