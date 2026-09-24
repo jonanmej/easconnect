@@ -814,6 +814,9 @@ function HistorialColaboradorDialog({
                     <td className="px-3 py-2 font-medium">
                       {MESES[(l.mes ?? 1) - 1]} {l.anio}
                       {l.estado === "cerrado" && <span className="ml-1 text-[10px] text-emerald-600">(cerrada)</span>}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {l.corte_label ?? "Mes completo"}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{l.dias}</td>
                     <td className="px-3 py-2 text-right font-mono">{Number(l.horas_extra_diurnas).toFixed(2)}</td>
