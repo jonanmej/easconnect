@@ -662,7 +662,12 @@ function NominaPage() {
                 <tbody>
                   {(periodos.data as any[]).map((p) => (
                     <tr key={p.id} className="border-t border-border/60">
-                      <td className="px-3 py-2 font-medium">{MESES[p.mes - 1]} {p.anio}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {MESES[p.mes - 1]} {p.anio}
+                        <span className="block text-[10px] text-muted-foreground">
+                          {p.corte_label ?? "Mes completo"}
+                        </span>
+                      </td>
                       <td className="px-3 py-2">
                         <span className={p.estado === "cerrado" ? "text-emerald-600" : "text-muted-foreground"}>
                           {p.estado === "cerrado" ? "Cerrada" : "Borrador"}
