@@ -168,12 +168,20 @@ function NominaPage() {
   );
 
   const guardar = useMutation({
-    mutationFn: (cerrar: boolean) =>
-      fGuardar({ data: { anio, mes, notas: notas.trim() || null, cerrar, ajustes } }),
-    onSuccess: (_r, cerrar) => {
+    mutationFn: (v: { cerrar: boolean; corte_clave?: string }) =>
+      fGuardar({
+        data: {
+          anio, mes,
+          corte_clave: v.corte_clave ?? "mes",
+          notas: notas.trim() || null,
+          cerrar: v.cerrar,
+          ajustes: (v.corte_clave ?? "mes") === "mes" ? ajustes : undefined,
+        },
+      }),
+    onSuccess: (_r, v) => {
       qc.invalidateQueries({ queryKey: ["nomina-mes"] });
       qc.invalidateQueries({ queryKey: ["nomina-periodos"] });
-      toast.success(cerrar ? "Planilla del mes cerrada" : "Planilla guardada");
+      toast.success(v.cerrar ? "Planilla cerrada" : "Planilla guardada");
     },
     onError: (e: Error) => toast.error(e.message),
   });
