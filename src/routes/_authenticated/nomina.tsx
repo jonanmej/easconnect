@@ -374,7 +374,7 @@ function NominaPage() {
               ) : (
                 <>
                   <button
-                    type="button" onClick={() => guardar.mutate(false)} disabled={guardar.isPending || !filas.length}
+                    type="button" onClick={() => guardar.mutate({ cerrar: false })} disabled={guardar.isPending || !filas.length}
                     className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
                   >
                     {guardar.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Guardar
