@@ -81,6 +81,15 @@ type CalcMes = {
   sin_salario: string[];
   periodo: { id: string; estado: string; notas: string | null; cerrado_at: string | null } | null;
   guardado: { user_id: string; otros_descuentos: number | string; notas: string | null }[];
+  cortes: CorteCalc[];
+};
+
+type CorteCalc = {
+  clave: string; tipo: TipoCorte; label: string; desde: string; hasta: string; pago: string;
+  modalidades: ModalidadPago[];
+  colaboradores: number; dias: number;
+  total_bruto: number; total_descuentos: number; total_neto: number;
+  periodo: { id: string; estado: string } | null;
 };
 
 type SalarioFila = {
@@ -159,12 +168,20 @@ function NominaPage() {
   );
 
   const guardar = useMutation({
-    mutationFn: (cerrar: boolean) =>
-      fGuardar({ data: { anio, mes, notas: notas.trim() || null, cerrar, ajustes } }),
-    onSuccess: (_r, cerrar) => {
+    mutationFn: (v: { cerrar: boolean; corte_clave?: string }) =>
+      fGuardar({
+        data: {
+          anio, mes,
+          corte_clave: v.corte_clave ?? "mes",
+          notas: notas.trim() || null,
+          cerrar: v.cerrar,
+          ajustes: (v.corte_clave ?? "mes") === "mes" ? ajustes : undefined,
+        },
+      }),
+    onSuccess: (_r, v) => {
       qc.invalidateQueries({ queryKey: ["nomina-mes"] });
       qc.invalidateQueries({ queryKey: ["nomina-periodos"] });
-      toast.success(cerrar ? "Planilla del mes cerrada" : "Planilla guardada");
+      toast.success(v.cerrar ? "Planilla cerrada" : "Planilla guardada");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -357,13 +374,13 @@ function NominaPage() {
               ) : (
                 <>
                   <button
-                    type="button" onClick={() => guardar.mutate(false)} disabled={guardar.isPending || !filas.length}
+                    type="button" onClick={() => guardar.mutate({ cerrar: false })} disabled={guardar.isPending || !filas.length}
                     className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
                   >
                     {guardar.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Guardar
                   </button>
                   <button
-                    type="button" onClick={() => guardar.mutate(true)} disabled={guardar.isPending || !filas.length}
+                    type="button" onClick={() => guardar.mutate({ cerrar: true })} disabled={guardar.isPending || !filas.length}
                     className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
                   >
                     <Lock className="size-3.5" /> Cerrar mes
@@ -509,6 +526,110 @@ function NominaPage() {
               {NOTA_LEGAL_NOMINA} {NOTA_LEGAL_DESCUENTOS}
             </p>
           </div>
+
+          <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
+              <CalendarClock className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold">Cortes de pago de {etiquetaMes}</h2>
+              <span className="text-[10px] text-muted-foreground">
+                Quincenas para salario mensual · viernes para pago por día
+              </span>
+            </div>
+
+            {calc.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando cortes…</p>}
+
+            {!calc.isLoading && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[900px]">
+                  <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-3 py-2">Corte</th>
+                      <th className="text-left px-3 py-2">Período</th>
+                      <th className="text-left px-3 py-2">Se paga</th>
+                      <th className="text-left px-3 py-2">Aplica a</th>
+                      <th className="text-right px-3 py-2">Colab.</th>
+                      <th className="text-right px-3 py-2">Días</th>
+                      <th className="text-right px-3 py-2">Bruto</th>
+                      <th className="text-right px-3 py-2">Descuentos</th>
+                      <th className="text-right px-3 py-2">Neto</th>
+                      <th className="text-left px-3 py-2">Estado</th>
+                      <th className="px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data?.cortes ?? []).map((c) => {
+                      const cerradoCorte = c.periodo?.estado === "cerrado";
+                      return (
+                        <tr key={c.clave} className="border-t border-border/60">
+                          <td className="px-3 py-2 font-medium">{c.label}</td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {diaMesCorto(c.desde)} – {diaMesCorto(c.hasta)}
+                          </td>
+                          <td className="px-3 py-2">{diaMesCorto(c.pago)}</td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {c.modalidades.map((m) => ETIQUETAS_MODALIDAD[m]).join(" · ")}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono">{c.colaboradores}</td>
+                          <td className="px-3 py-2 text-right font-mono">{c.dias}</td>
+                          <td className="px-3 py-2 text-right font-mono">{fmtUSD(c.total_bruto)}</td>
+                          <td className="px-3 py-2 text-right font-mono">{fmtUSD(c.total_descuentos)}</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600">
+                            {fmtUSD(c.total_neto)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={cerradoCorte ? "text-emerald-600" : "text-muted-foreground"}>
+                              {cerradoCorte ? "Cerrado" : c.periodo ? "Borrador" : "Sin guardar"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right whitespace-nowrap">
+                            {cerradoCorte ? (
+                              <button
+                                type="button"
+                                onClick={() => c.periodo && reabrir.mutate(c.periodo.id)}
+                                className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                              >
+                                <LockOpen className="size-3" /> Reabrir
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={guardar.isPending || c.colaboradores === 0}
+                                  onClick={() => guardar.mutate({ cerrar: false, corte_clave: c.clave })}
+                                  className="text-[11px] text-primary hover:underline disabled:opacity-40"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={guardar.isPending || c.colaboradores === 0}
+                                  onClick={() => guardar.mutate({ cerrar: true, corte_clave: c.clave })}
+                                  className="ml-3 text-[11px] text-primary hover:underline disabled:opacity-40 inline-flex items-center gap-1"
+                                >
+                                  <Lock className="size-3" /> Cerrar
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {(data?.cortes ?? []).every((c) => c.colaboradores === 0) && (
+                      <tr className="border-t border-border/60">
+                        <td className="px-3 py-3 text-muted-foreground" colSpan={11}>
+                          No hay marcaciones registradas en los cortes de {etiquetaMes}.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+              {NOTA_LEGAL_CORTES}
+            </p>
+          </div>
         </>
       )}
 
@@ -541,7 +662,12 @@ function NominaPage() {
                 <tbody>
                   {(periodos.data as any[]).map((p) => (
                     <tr key={p.id} className="border-t border-border/60">
-                      <td className="px-3 py-2 font-medium">{MESES[p.mes - 1]} {p.anio}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {MESES[p.mes - 1]} {p.anio}
+                        <span className="block text-[10px] text-muted-foreground">
+                          {p.corte_label ?? "Mes completo"}
+                        </span>
+                      </td>
                       <td className="px-3 py-2">
                         <span className={p.estado === "cerrado" ? "text-emerald-600" : "text-muted-foreground"}>
                           {p.estado === "cerrado" ? "Cerrada" : "Borrador"}
@@ -688,6 +814,9 @@ function HistorialColaboradorDialog({
                     <td className="px-3 py-2 font-medium">
                       {MESES[(l.mes ?? 1) - 1]} {l.anio}
                       {l.estado === "cerrado" && <span className="ml-1 text-[10px] text-emerald-600">(cerrada)</span>}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {l.corte_label ?? "Mes completo"}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{l.dias}</td>
                     <td className="px-3 py-2 text-right font-mono">{Number(l.horas_extra_diurnas).toFixed(2)}</td>
