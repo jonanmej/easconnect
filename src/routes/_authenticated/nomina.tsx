@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarClock, DollarSign, FileDown, History, Loader2, Lock, LockOpen, Save, Settings2, Trash2, Users,
@@ -90,6 +90,7 @@ type CorteCalc = {
   colaboradores: number; dias: number;
   total_bruto: number; total_descuentos: number; total_neto: number;
   periodo: { id: string; estado: string } | null;
+  personal?: Array<{ tecnico_id: string; colaborador: string; dias: number; total_bruto: number; total_neto: number }>;
 };
 
 type SalarioFila = {
@@ -560,7 +561,8 @@ function NominaPage() {
                     {(data?.cortes ?? []).map((c) => {
                       const cerradoCorte = c.periodo?.estado === "cerrado";
                       return (
-                        <tr key={c.clave} className="border-t border-border/60">
+                        <Fragment key={c.clave}>
+                        <tr className="border-t border-border/60">
                           <td className="px-3 py-2 font-medium">{c.label}</td>
                           <td className="px-3 py-2 text-muted-foreground">
                             {diaMesCorto(c.desde)} – {diaMesCorto(c.hasta)}
@@ -612,6 +614,17 @@ function NominaPage() {
                             )}
                           </td>
                         </tr>
+                        {(c.personal ?? []).map((p) => (
+                          <tr key={`${c.clave}-${p.tecnico_id}`} className="bg-secondary/20 text-[11px]">
+                            <td className="pl-8 pr-3 py-1.5" colSpan={5}>{p.colaborador}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{p.dias}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{fmtUSD(p.total_bruto)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{fmtUSD(p.total_bruto - p.total_neto)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono">{fmtUSD(p.total_neto)}</td>
+                            <td colSpan={2} />
+                          </tr>
+                        ))}
+                        </Fragment>
                       );
                     })}
                     {(data?.cortes ?? []).every((c) => c.colaboradores === 0) && (
