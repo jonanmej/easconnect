@@ -34,14 +34,17 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
     .gte("fecha", rango.desde)
     .lte("fecha", rango.hasta)
     .order("fecha", { ascending: true });
-  if (rango.tecnico_id) q = q.eq("tecnico_id", rango.tecnico_id);
+  const { colaboradorPrincipal, cuentasDe } = await import("@/lib/nomina-unificaciones");
+  if (rango.tecnico_id) q = q.in("tecnico_id", cuentasDe(colaboradorPrincipal(rango.tecnico_id)));
 
-  const [{ data: rows, error }, { data: feriados }, { data: salarios }] = await Promise.all([
+  const [{ data: rowsRaw, error }, { data: feriados }, { data: salarios }] = await Promise.all([
     q,
     supabase.from("feriados").select("fecha, nombre, activo").gte("fecha", rango.desde).lte("fecha", rango.hasta),
     supabase.from("nomina_salarios").select("user_id, salario_mensual, modalidad, pago_diario"),
   ]);
   if (error) throw new Error(error.message);
+  // Unifica cuentas de una misma persona en su cuenta principal
+  const rows = (rowsRaw ?? []).map((r: any) => ({ ...r, tecnico_id: colaboradorPrincipal(r.tecnico_id) }));
 
   const mapaFeriados = new Map<string, string>(
     (feriados ?? []).filter((f: any) => f.activo).map((f: any) => [f.fecha as string, f.nombre as string]),
