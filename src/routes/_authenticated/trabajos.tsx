@@ -756,8 +756,9 @@ function Trabajos() {
                       checked={checked}
                       disabled={isPrincipal}
                       onChange={(ev) => {
+                        const marcado = ev.currentTarget.checked;
                         setTecExtraIds((prev) =>
-                          ev.currentTarget.checked
+                          marcado
                             ? [...prev, t.id]
                             : prev.filter((x) => x !== t.id),
                         );
@@ -787,8 +788,9 @@ function Trabajos() {
                       type="checkbox"
                       checked={checked}
                       onChange={(ev) => {
+                        const marcado = ev.currentTarget.checked;
                         setEquipoIds((prev) =>
-                          ev.currentTarget.checked
+                          marcado
                             ? [...prev, e.id]
                             : prev.filter((x) => x !== e.id),
                         );
