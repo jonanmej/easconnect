@@ -576,6 +576,57 @@ export type Database = {
         }
         Relationships: []
       }
+      listados_personal: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notas: string | null
+          personal: Json
+          proyecto: string
+          trabajo_id: string
+          updated_at: string
+          vehiculo_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          personal?: Json
+          proyecto: string
+          trabajo_id: string
+          updated_at?: string
+          vehiculo_ids?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          personal?: Json
+          proyecto?: string
+          trabajo_id?: string
+          updated_at?: string
+          vehiculo_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listados_personal_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listados_personal_trabajo_id_fkey"
+            columns: ["trabajo_id"]
+            isOneToOne: false
+            referencedRelation: "trabajos_sla"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mantenimientos: {
         Row: {
           created_at: string
@@ -1443,6 +1494,7 @@ export type Database = {
           created_at: string
           debe_cambiar_password: boolean
           display_name: string | null
+          dui: string | null
           id: string
           nombres: string | null
           perfil_completado: boolean
@@ -1458,6 +1510,7 @@ export type Database = {
           created_at?: string
           debe_cambiar_password?: boolean
           display_name?: string | null
+          dui?: string | null
           id: string
           nombres?: string | null
           perfil_completado?: boolean
@@ -1473,6 +1526,7 @@ export type Database = {
           created_at?: string
           debe_cambiar_password?: boolean
           display_name?: string | null
+          dui?: string | null
           id?: string
           nombres?: string | null
           perfil_completado?: boolean
@@ -2601,6 +2655,33 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vehiculos: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          modelo: string
+          placa: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          modelo: string
+          placa: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          modelo?: string
+          placa?: string
+          updated_at?: string
         }
         Relationships: []
       }
