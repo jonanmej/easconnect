@@ -383,6 +383,32 @@ export async function generarYDescargarFinalizadosPdf(
   return { documento_id, hash };
 }
 
+/** PDF de listado de personal para presentar al cliente. */
+export async function generarYDescargarListadoPersonalPdf(
+  data: import("./ListadoPersonalDoc").ListadoPersonalData,
+  filename: string,
+) {
+  ensurePdfBrowserPolyfills();
+  const [{ pdf }, { ListadoPersonalDoc }] = await Promise.all([
+    import("@react-pdf/renderer"),
+    import("./ListadoPersonalDoc"),
+  ]);
+  const documento_id = data.documento_id ?? uuidV4();
+  const base = { ...data, documento_id, documento_hash: undefined };
+  const initialBlob = await pdf(createElement(ListadoPersonalDoc, { data: base }) as any).toBlob();
+  const hash = await sha256Hex(initialBlob);
+  const blob = await pdf(createElement(ListadoPersonalDoc, { data: { ...base, documento_hash: hash } }) as any).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return { documento_id, hash };
+}
+
 /** Genera y descarga el PDF de Orden de Compra por bajo stock. */
 export async function generarYDescargarOrdenCompraPdf(data: OrdenCompraData, filename: string) {
   ensurePdfBrowserPolyfills();

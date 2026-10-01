@@ -26,6 +26,7 @@ import { Route as AuthenticatedEquiposRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFinalizadosRouteImport } from './routes/_authenticated/finalizados'
 import { Route as AuthenticatedInventarioRouteImport } from './routes/_authenticated/inventario'
 import { Route as AuthenticatedJornadaRouteImport } from './routes/_authenticated/jornada'
+import { Route as AuthenticatedListadosPersonalRouteImport } from './routes/_authenticated/listados-personal'
 import { Route as AuthenticatedMantenimientosRouteImport } from './routes/_authenticated/mantenimientos'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
 import { Route as AuthenticatedMisTrabajosRouteImport } from './routes/_authenticated/mis-trabajos'
@@ -138,6 +139,12 @@ const AuthenticatedJornadaRoute = AuthenticatedJornadaRouteImport.update({
   path: '/jornada',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedListadosPersonalRoute =
+  AuthenticatedListadosPersonalRouteImport.update({
+    id: '/listados-personal',
+    path: '/listados-personal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMantenimientosRoute =
   AuthenticatedMantenimientosRouteImport.update({
     id: '/mantenimientos',
@@ -272,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/finalizados': typeof AuthenticatedFinalizadosRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/jornada': typeof AuthenticatedJornadaRoute
+  '/listados-personal': typeof AuthenticatedListadosPersonalRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -310,6 +318,7 @@ export interface FileRoutesByTo {
   '/finalizados': typeof AuthenticatedFinalizadosRoute
   '/inventario': typeof AuthenticatedInventarioRoute
   '/jornada': typeof AuthenticatedJornadaRoute
+  '/listados-personal': typeof AuthenticatedListadosPersonalRoute
   '/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -351,6 +360,7 @@ export interface FileRoutesById {
   '/_authenticated/finalizados': typeof AuthenticatedFinalizadosRoute
   '/_authenticated/inventario': typeof AuthenticatedInventarioRoute
   '/_authenticated/jornada': typeof AuthenticatedJornadaRoute
+  '/_authenticated/listados-personal': typeof AuthenticatedListadosPersonalRoute
   '/_authenticated/mantenimientos': typeof AuthenticatedMantenimientosRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/mis-trabajos': typeof AuthenticatedMisTrabajosRoute
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/finalizados'
     | '/inventario'
     | '/jornada'
+    | '/listados-personal'
     | '/mantenimientos'
     | '/mapa'
     | '/mis-trabajos'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/finalizados'
     | '/inventario'
     | '/jornada'
+    | '/listados-personal'
     | '/mantenimientos'
     | '/mapa'
     | '/mis-trabajos'
@@ -471,6 +483,7 @@ export interface FileRouteTypes {
     | '/_authenticated/finalizados'
     | '/_authenticated/inventario'
     | '/_authenticated/jornada'
+    | '/_authenticated/listados-personal'
     | '/_authenticated/mantenimientos'
     | '/_authenticated/mapa'
     | '/_authenticated/mis-trabajos'
@@ -629,6 +642,13 @@ declare module '@tanstack/react-router' {
       path: '/jornada'
       fullPath: '/jornada'
       preLoaderRoute: typeof AuthenticatedJornadaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/listados-personal': {
+      id: '/_authenticated/listados-personal'
+      path: '/listados-personal'
+      fullPath: '/listados-personal'
+      preLoaderRoute: typeof AuthenticatedListadosPersonalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mantenimientos': {
@@ -792,6 +812,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinalizadosRoute: typeof AuthenticatedFinalizadosRoute
   AuthenticatedInventarioRoute: typeof AuthenticatedInventarioRoute
   AuthenticatedJornadaRoute: typeof AuthenticatedJornadaRoute
+  AuthenticatedListadosPersonalRoute: typeof AuthenticatedListadosPersonalRoute
   AuthenticatedMantenimientosRoute: typeof AuthenticatedMantenimientosRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedMisTrabajosRoute: typeof AuthenticatedMisTrabajosRoute
@@ -821,6 +842,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinalizadosRoute: AuthenticatedFinalizadosRoute,
   AuthenticatedInventarioRoute: AuthenticatedInventarioRoute,
   AuthenticatedJornadaRoute: AuthenticatedJornadaRoute,
+  AuthenticatedListadosPersonalRoute: AuthenticatedListadosPersonalRoute,
   AuthenticatedMantenimientosRoute: AuthenticatedMantenimientosRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedMisTrabajosRoute: AuthenticatedMisTrabajosRoute,
