@@ -15,18 +15,18 @@ export const ROLE_ACCESS: Record<AppRole, string[]> = {
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes", "/usuarios",
     "/solicitudes", "/notificaciones", "/auditoria", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
-    "/search-console", "/jornada", "/nomina", "/finalizados", "/agenda-interna",
+    "/search-console", "/jornada", "/nomina", "/finalizados", "/agenda-interna", "/listados-personal",
   ],
   // "/search-console": panel interno de métricas SEO (solo admin y supervisor).
   supervisor: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/clientes", "/plantas",
     "/equipos", "/inventario", "/ordenes-compra", "/mantenimientos", "/reportes",
     "/solicitudes", "/notificaciones", "/configuracion", "/terreno", "/rutas", "/contratos", "/mapa",
-    "/search-console", "/jornada", "/finalizados", "/agenda-interna",
+    "/search-console", "/jornada", "/finalizados", "/agenda-interna", "/listados-personal",
   ],
   tecnico: [
     "/", "/completar-perfil", "/programacion", "/trabajos", "/equipos",
-    "/inventario", "/ordenes-compra", "/mantenimientos", "/configuracion", "/terreno", "/rutas", "/mapa", "/jornada", "/agenda-interna",
+    "/inventario", "/ordenes-compra", "/mantenimientos", "/configuracion", "/terreno", "/rutas", "/mapa", "/jornada", "/agenda-interna", "/listados-personal",
   ],
   cliente: [
     "/", "/completar-perfil", "/plantas", "/trabajos", "/reportes", "/programacion",
