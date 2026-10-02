@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/lib/auth-context";
 import {
   deleteListado,
   deleteVehiculo,
@@ -53,8 +53,8 @@ function fmt(d?: string | null) {
 type Listado = Awaited<ReturnType<typeof listListados>>[number];
 
 function ListadosPage() {
-  const { role } = useAuth() as any;
-  const puedeEditar = role === "admin" || role === "supervisor";
+  const { roles } = useAuth() as any;
+  const puedeEditar = (roles ?? []).some((r: string) => r === "admin" || r === "supervisor");
   const qc = useQueryClient();
   const fList = useServerFn(listListados);
   const fVeh = useServerFn(listVehiculos);
