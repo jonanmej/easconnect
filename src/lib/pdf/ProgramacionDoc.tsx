@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { isoWeek, isoWeekFromISODate } from "@/lib/semana-iso";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 
 function absUrl(path: string) {
@@ -368,7 +369,7 @@ function DiaSecciones({ items, labels }: { items: ProgramacionTrabajo[]; labels?
     <>
       {grupos.map((g) => (
         <View key={g.fecha} style={s.dayBlock} wrap={false}>
-          <Text style={s.dayTitle}>{fmtDate(g.fecha)}</Text>
+          <Text style={s.dayTitle}>{fmtDate(g.fecha)} · Semana ISO {isoWeekFromISODate(g.fecha)}</Text>
           <View style={s.table}>
             <View style={s.tr}>
               <Text style={[s.th, { width: "9%" }]}>Hora</Text>
@@ -416,7 +417,7 @@ function AnioSecciones({ data }: { data: ProgramacionData }) {
               const fecha = d.toLocaleDateString("es-SV", { day: "2-digit", month: "short", weekday: "short" });
               return (
                 <View key={t.id + "-" + t.fecha_programada} style={s.tr}>
-                  <Text style={[s.td, { width: "10%" }]}>{fecha}</Text>
+                  <Text style={[s.td, { width: "10%" }]}>{fecha} · S{isoWeek(d)}</Text>
                   <Text style={[s.td, { width: "14%" }]}>{t.folio}</Text>
                   <Text style={[s.td, { width: "24%" }]}>{t.cliente_nombre ?? "—"}</Text>
                   <Text style={[s.td, { width: "22%" }]}>{t.planta_nombre ?? "—"}</Text>

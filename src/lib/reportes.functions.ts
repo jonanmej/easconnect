@@ -326,8 +326,16 @@ export const eliminarReporte = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     const { data: isSup } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
     if (!isAdmin && !isSup) throw new Error("Solo administradores o supervisores pueden eliminar reportes");
+    const { data: rep } = await context.supabase.from("reportes").select("estado").eq("id", data.id).maybeSingle();
+    if (rep && ["enviado", "aprobado"].includes(String((rep as any).estado))) {
+      throw new Error(`Este reporte ya fue emitido (${(rep as any).estado}) y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo crea una nueva versión.`);
+    }
     const { error } = await context.supabase.from("reportes").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("REPORTE_EMITIDO_NO_ELIMINABLE"))
+        throw new Error("Este reporte ya fue emitido y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo crea una nueva versión.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 

@@ -108,37 +108,24 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    const desdeExt = addDaysStr(data.desde, -30);
-    const hastaPlus = addDaysStr(data.hasta, 1);
-
-    // Determinar si el usuario es cliente para saber si "propio" aplica.
-    const { data: prof } = await context.supabase
-      .from("profiles").select("cliente_id").eq("id", context.userId).maybeSingle();
-    const clienteId = (prof as any)?.cliente_id ?? null;
-
-    // Para que el calendario del cliente refleje TODA la ocupación (no solo
-    // sus propios trabajos) usamos el cliente admin: los clientes solo verán
-    // que el día está reservado, sin datos de otros clientes.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const dataClient = clienteId ? supabaseAdmin : context.supabase;
-    const { data: trabajos, error } = await dataClient
-      .from("trabajos")
-      .select("id, fecha_programada, duracion_dias, estado, folio, servicio, planta_id, plantas(nombre, cliente_id)")
-      .gte("fecha_programada", desdeExt + "T00:00:00Z")
-      .lt("fecha_programada", hastaPlus + "T00:00:00Z")
-      .neq("estado", "cancelado");
+    // Filtrado en la base de datos: la función devuelve detalle solo de las OT
+    // propias; las de otros clientes llegan como "Ocupado/Reservado".
+    const { data: trabajos, error } = await context.supabase.rpc("disponibilidad_calendario", {
+      _desde: data.desde,
+      _hasta: data.hasta,
+    });
     if (error) throw new Error(error.message);
 
     const ocupados = new Set<string>();
-    const asignacionesPorDia = new Map<string, Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean }>>();
+    const asignacionesPorDia = new Map<string, Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean; estado: string | null }>>();
     (trabajos ?? []).forEach((t: any) => {
-      const start = new Date(t.fecha_programada);
+      const start = new Date(t.fecha_inicio);
       const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      const trabajoClienteId = t.plantas?.cliente_id ?? null;
-      const propio = clienteId ? trabajoClienteId === clienteId : true;
-      const plantaNombre = propio ? (t.plantas?.nombre ?? "—") : "Reservado";
-      const folio = propio ? (t.folio ?? "") : "";
-      const servicio = propio ? (t.servicio ?? "") : "";
+      const propio = !!t.propio;
+      const plantaNombre = t.planta_nombre ?? "Ocupado/Reservado";
+      const folio = t.folio ?? "";
+      const servicio = t.servicio ?? "";
+      const estado = t.estado ?? null;
       for (let i = 0; i < dur; i++) {
         const day = new Date(start);
         day.setUTCHours(0, 0, 0, 0);
@@ -146,11 +133,11 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
         const key = toISODate(day);
         ocupados.add(key);
         if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
-        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio, propio });
+        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio, propio, estado });
       }
     });
 
-    const result: { fecha: string; ocupada: boolean; asignaciones: Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean }> }[] = [];
+    const result: { fecha: string; ocupada: boolean; asignaciones: Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean; estado: string | null }> }[] = [];
     let cur = data.desde;
     while (cur <= data.hasta) {
       result.push({
