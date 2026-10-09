@@ -27,6 +27,8 @@ export const Route = createFileRoute("/auth")({
           "Ingreso al sistema de gestión operativa de EA Service & Consulting: plantas, órdenes de trabajo y reportes.",
       },
       { property: "og:url", content: "https://easconnect.lovable.app/auth" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [{ rel: "canonical", href: "https://easconnect.lovable.app/auth" }],
   }),
@@ -121,13 +123,13 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid place-items-center bg-background px-4">
+    <div className="min-h-dvh grid place-items-center bg-background px-4 py-6 safe-top safe-bottom safe-x">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center mb-8">
           <BrandLogo variant="ea-connect" className="h-32 w-auto object-contain" />
         </div>
 
-        <div className="border border-border rounded-lg p-6 bg-card">
+        <div className="border border-border rounded-lg p-4 sm:p-6 bg-card">
           <h1 className="text-lg font-semibold">Iniciar sesión</h1>
           <p className="text-xs text-muted-foreground mt-1">
             Acceso restringido. Las cuentas se crean por invitación del administrador.

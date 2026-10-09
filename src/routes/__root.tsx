@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AppUpdateGate } from "@/components/AppUpdateGate";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 
 function NotFoundComponent() {
   return (
@@ -80,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
       { title: "EA Service Connect" },
       { name: "description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
       { name: "author", content: "Lovable" },
@@ -92,8 +93,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "EA Service Connect" },
       { name: "twitter:description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
       // Color de barra del navegador: variante clara y oscura para integración consistente.
       { name: "theme-color", content: "#fcfcfc", media: "(prefers-color-scheme: light)" },
       { name: "theme-color", content: "#0f172a", media: "(prefers-color-scheme: dark)" },
@@ -212,6 +211,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
+  useVisualViewport();
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
