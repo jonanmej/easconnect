@@ -663,7 +663,13 @@ function Reportes() {
                 </button>
               )}
               {canEdit && (
-                <button onClick={() => { if (confirm(`¿Eliminar el reporte "${r.titulo}"? Esta acción no se puede deshacer.`)) del.mutate(r.id); }}
+                <button onClick={() => {
+                  if (r.estado === "enviado" || r.estado === "aprobado") {
+                    toast.error("Este reporte ya fue emitido y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo usa «Nueva versión».");
+                    return;
+                  }
+                  if (confirm(`¿Eliminar el reporte "${r.titulo}"? Esta acción no se puede deshacer.`)) del.mutate(r.id);
+                }}
                   disabled={del.isPending}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   title="Eliminar reporte">
