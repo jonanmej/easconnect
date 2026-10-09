@@ -713,14 +713,7 @@ ${JSON.stringify(datasetCtx, null, 2)}
 ${contenidoPdfsBloque}
 ${FORMATO_RESPUESTA_IA}`;
 
-    const parseJson = (raw: string): unknown => {
-      let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const start = s.search(/[{[]/);
-      const end = s.lastIndexOf("}");
-      if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
-      s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
-      return JSON.parse(s);
-    };
+    const parseJson = parseJsonIA;
 
     const proveedor: Proveedor = (data as any).proveedor ?? "auto";
     const attempts = buildAttempts(proveedor);
@@ -786,25 +779,17 @@ ${FORMATO_RESPUESTA_IA}`;
 
     // Restaurar placeholders de nombres oficiales sin aplicar correcciones por similitud.
     const fix = (s: string) => protectorNombres.restaurarTexto(s);
-    const metaDiariaKpis = kpisAvanceReal(
-      await avanceRealPorTrabajo(
-        supabase,
-        Array.from(new Set(((reportesDiarios ?? []) as any[]).map((d) => d.trabajo_id).filter(Boolean))) as string[],
-      ),
-      folioPorId as Map<string, string>,
-    );
-    const kpisHumanizados = aiResult.kpis.map((k) => ({
-      label: humanizarTexto(fix(k.label)),
-      value: humanizarTexto(fix(k.value)),
-    }));
     aiResult = {
-      ...aiResult,
       titulo: humanizarTexto(fix(aiResult.titulo)),
       resumen: humanizarTexto(fix(aiResult.resumen)),
-      kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
       hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
       recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
     };
+    // Verificación de cifras: todo número del texto debe existir en los datos.
+    const cifrasSinRespaldo = verificarCifras(
+      aiResult,
+      cifrasPermitidas(datasetCtxRaw, indicadoresSistema, pdfTextos, data.desde, data.hasta),
+    );
 
     const markdown = [
       `# ${aiResult.titulo}`,
@@ -815,7 +800,7 @@ ${FORMATO_RESPUESTA_IA}`;
       aiResult.resumen,
       ``,
       `## KPIs`,
-      ...aiResult.kpis.map((k) => `- **${k.label}:** ${k.value}`),
+      ...indicadoresMarkdown(indicadoresSistema),
       ``,
       `## Hallazgos`,
       ...aiResult.hallazgos.map((h) => `- ${h}`),
@@ -836,6 +821,9 @@ ${FORMATO_RESPUESTA_IA}`;
       model_used: modelUsed,
       desde: desdeTs,
       hasta: hastaTs,
+      indicadores: indicadoresSistema,
+      revision_ia_pendiente: cifrasSinRespaldo.length > 0,
+      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
