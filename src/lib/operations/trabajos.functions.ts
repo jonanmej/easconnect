@@ -361,7 +361,7 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
             .from("trabajos")
             .update({ contrato_id: (contrato as any).id, ciclo_numero: ciclo })
             .eq("id", (row as any).id);
-          const { recalcularFechaInicioContrato } = await import("./contratos.functions");
+          const { recalcularFechaInicioContrato } = await import("@/lib/contratos.functions");
           await recalcularFechaInicioContrato(context.supabase, (contrato as any).id);
         }
       }
