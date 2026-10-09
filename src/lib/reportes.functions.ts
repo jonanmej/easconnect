@@ -1555,14 +1555,6 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     }
 
     const parseJson = parseJsonIA;
-    const _unusedParse = (raw: string): unknown => {
-      let s = raw.trim();
-      const start = s.search(/[{[]/);
-      const end = s.lastIndexOf("}");
-      if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
-      s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
-      return JSON.parse(s);
-    };
 
     // Si hay PDFs adjuntos, llamamos al gateway directamente (chat completions
     // multimodal). Si no, mantenemos el camino con AI SDK (generateText).
