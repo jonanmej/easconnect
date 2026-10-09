@@ -1303,7 +1303,14 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
       periodo: (rep as any).periodo,
       modelo: (rep as any).model_used,
-      emitido_at: new Date((rep as any).created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" }),
+      // A3: fecha de emisión real guardada por la base de datos (borrador = sin emitir).
+      emitido_at: (rep as any).fecha_emision
+        ? new Date((rep as any).fecha_emision).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" })
+        : "Borrador — sin emitir",
+      documento_codigo: (rep as any).codigo_documento ?? "BORRADOR",
+      documento_version: String((rep as any).version_label ?? `v${(rep as any).version ?? 1}.0`).replace(/^v/i, ""),
+      folio_ot: folioReporte ?? (trabajos.length === 1 ? trabajos[0].folio : null),
+      revision_ia_pendiente: !!(rep as any).revision_ia_pendiente,
       resumen,
       kpis,
       hallazgos,
