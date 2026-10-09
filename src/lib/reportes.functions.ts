@@ -930,11 +930,22 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       diarios = dd ?? [];
     }
     const avancesReales = await avanceRealPorTrabajo(supabase, trabajos.map((t) => t.id));
-    kpis = combinarKpisConMetaDiaria(
-      kpis,
-      kpisAvanceReal(avancesReales, new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
-      audiencia,
-    );
+    // A2: los indicadores salen de los datos, no del texto de la IA.
+    const guardados = Array.isArray((rep as any).indicadores) ? ((rep as any).indicadores as ReporteKpi[]) : null;
+    if (guardados && guardados.length) {
+      const internos = /^(Horas trabajadas|Agua utilizada)$/i;
+      kpis = normalizarKpisMetaDiaria(
+        audiencia === "cliente" ? guardados.filter((k) => !internos.test(k.label)) : guardados,
+        audiencia,
+      );
+    } else {
+      const { consolidarDiarios: cd } = await import("@/lib/consolidar-diarios");
+      kpis = construirIndicadores(
+        cd(diarios as any[], new Map()) as any[],
+        kpisAvanceReal(avancesReales, new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
+        audiencia,
+      );
+    }
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
 
     // Snapshots del layout satelital con las zonas marcadas por día.
