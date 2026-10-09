@@ -369,7 +369,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     .slice(0, 4);
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+    <div className="app-viewport flex w-full overflow-hidden bg-background text-foreground">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -378,7 +378,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <aside
         className={
-          "hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-bottom transition-[width,opacity] duration-200 overflow-hidden " +
+          "hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-top safe-bottom safe-x transition-[width,opacity] duration-200 overflow-hidden " +
           (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-64 opacity-100")
         }
       >
@@ -387,7 +387,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="flex-1 overflow-hidden flex flex-col min-w-0 min-h-0">
         <header className="shrink-0 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 safe-top safe-x">
-          <div className="min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
+          <div className="min-h-16 grid grid-cols-[minmax(0,1fr)_auto] sm:flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
@@ -504,7 +504,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div
           id="main-content"
           tabIndex={-1}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain focus:outline-none safe-x pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0 md:safe-bottom"
+          className="app-content flex-1 min-h-0 overflow-y-auto overscroll-contain focus:outline-none safe-x pb-[calc(4.25rem+var(--safe-bottom))] md:pb-0 md:safe-bottom"
         >
           {children}
         </div>
