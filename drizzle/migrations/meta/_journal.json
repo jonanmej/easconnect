@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791514785364,
+      "tag": "0000_bloquear_cambio_cliente_perfil",
+      "breakpoints": true
+    }
+  ]
+}
