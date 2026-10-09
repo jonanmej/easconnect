@@ -186,6 +186,7 @@ export type Database = {
       clientes: {
         Row: {
           capacidad: string | null
+          capacidad_kwp: number | null
           color_acento: string | null
           contacto: string | null
           contrato_om: boolean
@@ -207,6 +208,7 @@ export type Database = {
         }
         Insert: {
           capacidad?: string | null
+          capacidad_kwp?: number | null
           color_acento?: string | null
           contacto?: string | null
           contrato_om?: boolean
@@ -228,6 +230,7 @@ export type Database = {
         }
         Update: {
           capacidad?: string | null
+          capacidad_kwp?: number | null
           color_acento?: string | null
           contacto?: string | null
           contrato_om?: boolean
@@ -1448,6 +1451,7 @@ export type Database = {
       plantas: {
         Row: {
           capacidad: string | null
+          capacidad_kwp: number | null
           cliente_id: string
           created_at: string
           eficiencia: number | null
@@ -1466,6 +1470,7 @@ export type Database = {
         }
         Insert: {
           capacidad?: string | null
+          capacidad_kwp?: number | null
           cliente_id: string
           created_at?: string
           eficiencia?: number | null
@@ -1484,6 +1489,7 @@ export type Database = {
         }
         Update: {
           capacidad?: string | null
+          capacidad_kwp?: number | null
           cliente_id?: string
           created_at?: string
           eficiencia?: number | null
@@ -1680,6 +1686,7 @@ export type Database = {
           aprobado_at: string | null
           aprobado_por: string | null
           cliente_id: string
+          codigo_documento: string | null
           contenido_markdown: string
           created_at: string
           desde: string | null
@@ -1687,9 +1694,11 @@ export type Database = {
           enviado_at: string | null
           enviado_por: string | null
           estado: Database["public"]["Enums"]["reporte_estado"]
+          fecha_emision: string | null
           generado_por: string | null
           hasta: string | null
           id: string
+          indicadores: Json | null
           insight_resumen: string | null
           model_used: string | null
           motivo_rechazo: string | null
@@ -1698,14 +1707,18 @@ export type Database = {
           rechazado_at: string | null
           rechazado_por: string | null
           reporte_padre_id: string | null
+          revision_ia_detalle: Json | null
+          revision_ia_pendiente: boolean
           titulo: string
           updated_at: string
           version: number
+          version_label: string | null
         }
         Insert: {
           aprobado_at?: string | null
           aprobado_por?: string | null
           cliente_id: string
+          codigo_documento?: string | null
           contenido_markdown: string
           created_at?: string
           desde?: string | null
@@ -1713,9 +1726,11 @@ export type Database = {
           enviado_at?: string | null
           enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
+          fecha_emision?: string | null
           generado_por?: string | null
           hasta?: string | null
           id?: string
+          indicadores?: Json | null
           insight_resumen?: string | null
           model_used?: string | null
           motivo_rechazo?: string | null
@@ -1724,14 +1739,18 @@ export type Database = {
           rechazado_at?: string | null
           rechazado_por?: string | null
           reporte_padre_id?: string | null
+          revision_ia_detalle?: Json | null
+          revision_ia_pendiente?: boolean
           titulo: string
           updated_at?: string
           version?: number
+          version_label?: string | null
         }
         Update: {
           aprobado_at?: string | null
           aprobado_por?: string | null
           cliente_id?: string
+          codigo_documento?: string | null
           contenido_markdown?: string
           created_at?: string
           desde?: string | null
@@ -1739,9 +1758,11 @@ export type Database = {
           enviado_at?: string | null
           enviado_por?: string | null
           estado?: Database["public"]["Enums"]["reporte_estado"]
+          fecha_emision?: string | null
           generado_por?: string | null
           hasta?: string | null
           id?: string
+          indicadores?: Json | null
           insight_resumen?: string | null
           model_used?: string | null
           motivo_rechazo?: string | null
@@ -1750,9 +1771,12 @@ export type Database = {
           rechazado_at?: string | null
           rechazado_por?: string | null
           reporte_padre_id?: string | null
+          revision_ia_detalle?: Json | null
+          revision_ia_pendiente?: boolean
           titulo?: string
           updated_at?: string
           version?: number
+          version_label?: string | null
         }
         Relationships: [
           {
@@ -2753,6 +2777,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      codigo_reporte_ejecutivo: { Args: { _ts: string }; Returns: string }
       contrato_cumplimiento: {
         Args: { _anio: number }
         Returns: {

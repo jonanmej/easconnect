@@ -15,6 +15,13 @@
       "when": 1791515113407,
       "tag": "0001_fase1_seguridad_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791515890645,
+      "tag": "0002_fase2_reportes_emision_bloqueo_kwp",
+      "breakpoints": true
     }
   ]
 }
