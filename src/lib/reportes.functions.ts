@@ -3,6 +3,18 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
+import { formatCapacidadKwp } from "@/lib/potencia";
+import {
+  construirIndicadores,
+  construirSystemPrompt,
+  FORMATO_RESPUESTA_IA,
+  parseJsonIA,
+  ZTextoReporte,
+  type TextoReporte,
+  cifrasPermitidas,
+  verificarCifras,
+  indicadoresMarkdown,
+} from "@/lib/reporte-ia";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -371,7 +383,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const { data: cliente } = await supabase.from("clientes").select("nombre").eq("id", data.cliente_id).single();
     const plantaId = data.planta_id ?? null;
     const { data: planta } = plantaId
-      ? await supabase.from("plantas").select("nombre, ubicacion, paneles, capacidad, eficiencia").eq("id", plantaId).single()
+      ? await supabase.from("plantas").select("nombre, ubicacion, paneles, capacidad_kwp, eficiencia").eq("id", plantaId).single()
       : { data: null };
 
     const [{ data: plantasCliente }, { data: clientesTodos }] = await Promise.all([
@@ -550,6 +562,12 @@ export const generarReporte = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     // Avance real por OT (mismo cálculo que la tarjeta de avance de la OT).
     const avancesRealesCtx: Map<string, AvanceOT> = await avanceRealPorTrabajo(supabase, tIdsArr);
+    // A2: los indicadores los arma el sistema; la IA solo los lee.
+    const indicadoresSistema = construirIndicadores(
+      diariosConsolidados as any[],
+      kpisAvanceReal(avancesRealesCtx, folioPorId as Map<string, string>),
+      "interno",
+    );
 
     const datasetCtxRaw = {
 
@@ -558,7 +576,16 @@ export const generarReporte = createServerFn({ method: "POST" })
       periodo: data.periodo,
       servicio: data.servicio ?? "Todos los servicios",
       ventana: { desde: data.desde, hasta: data.hasta },
-      planta_meta: planta ?? null,
+      planta_meta: planta
+        ? {
+            nombre: (planta as any).nombre,
+            ubicacion: (planta as any).ubicacion,
+            paneles: (planta as any).paneles,
+            capacidad_instalada: (planta as any).capacidad_kwp != null ? formatCapacidadKwp((planta as any).capacidad_kwp) : null,
+            eficiencia: (planta as any).eficiencia,
+          }
+        : null,
+      indicadores_calculados: indicadoresSistema,
       kpis: {
         trabajos_total: trabajos.length,
         trabajos_completados: trabajos.filter((t: any) => t.estado === "completado").length,
