@@ -286,3 +286,4 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
+  });
