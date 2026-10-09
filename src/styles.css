@@ -386,6 +386,13 @@
 }
 
 @media screen {
+  /* Only the authenticated shell owns the viewport; its content keeps scrolling. */
+  html:has(.app-shell),
+  body:has(.app-shell) {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   .app-content > * { min-width: 0; max-width: min(100%, 100rem); margin-inline: auto; }
   .table-scroll { max-width: 100%; scrollbar-width: auto; scrollbar-color: var(--muted-foreground) var(--secondary); }
   .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
