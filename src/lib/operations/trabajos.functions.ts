@@ -88,9 +88,9 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     if (id) {
       const { data: prev } = await context.supabase
         .from("trabajos").select("estado, tecnico_id, fecha_programada").eq("id", id).single();
-      estadoPrevio = (prev as any)?.estado ?? null;
-      tecnicoPrevio = (prev as any)?.tecnico_id ?? null;
-      fechaPrevia = (prev as any)?.fecha_programada ?? null;
+      estadoPrevio = (prev)?.estado ?? null;
+      tecnicoPrevio = (prev)?.tecnico_id ?? null;
+      fechaPrevia = (prev)?.fecha_programada ?? null;
     }
     // Solo se exige la autorización de día no laborable cuando la fecha cambia
     // (o al crear la OT). Si la OT ya estaba autorizada en ese día, cualquier
@@ -142,7 +142,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     // Sincronizar asignaciones múltiples (trabajo_equipos)
     if (equipo_ids) {
-      const trabajoId = (row as any).id;
+      const trabajoId = (row).id;
       await context.supabase.from("trabajo_equipos").delete().eq("trabajo_id", trabajoId);
       if (equipo_ids.length > 0) {
         const rows = equipo_ids.map((eid) => ({ trabajo_id: trabajoId, equipo_id: eid }));
@@ -152,12 +152,12 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     }
     // Sincronizar técnicos adicionales (trabajo_tecnicos)
     if (tecnicos_extra_ids) {
-      const trabajoId = (row as any).id;
+      const trabajoId = (row).id;
       // Validar conflictos de cada técnico extra
       const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
       for (const tid of tecnicos_extra_ids) {
         if (!tid || tid === payload.tecnico_id) continue;
-        const { data: cfx, error: cfxErr } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+        const { data: cfx, error: cfxErr } = await context.supabase.rpc("verificar_conflicto_tecnico", {
           _tecnico_id: tid,
           _fecha: payload.fecha_programada,
           _duracion_dias: dur,
@@ -193,7 +193,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       try {
         const { notificarExcepcionNoLaborable } = await import("@/lib/emergencias.server");
         await notificarExcepcionNoLaborable({
-          trabajoId: (row as any).id,
+          trabajoId: (row).id,
           accion: id ? "reprogramar" : "programar",
           motivo: excepcion.motivo,
           justificacion: excepcion.justificacion,
@@ -206,7 +206,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     if (id && rest.estado === "en_progreso" && estadoPrevio !== "en_progreso") {
       try {
         const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
-        const folio = (row as any)?.folio ?? id.slice(0, 8);
+        const folio = (row)?.folio ?? id.slice(0, 8);
         await notificarStaff({
           tipo: "trabajo_iniciado",
           titulo: `Trabajo ${folio} iniciado`,
@@ -222,15 +222,15 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         const { data: planta } = await context.supabase
           .from("plantas").select("notificaciones_completado, email_notificaciones")
           .eq("id", rest.planta_id).single();
-        if ((planta as any)?.notificaciones_completado && (planta as any)?.email_notificaciones) {
+        if ((planta)?.notificaciones_completado && (planta)?.email_notificaciones) {
           const { enviarNotificacionTrabajo } = await import("@/lib/notificaciones.functions");
-          await enviarNotificacionTrabajo({ data: { trabajo_id: id } } as any).catch(() => {});
+          await enviarNotificacionTrabajo({ data: { trabajo_id: id } }).catch(() => {});
         }
       } catch {/* silenciar errores de notificación para no bloquear el guardado */}
       // Notificar a admins/supervisores que el trabajo fue completado
       try {
         const { notificarStaff } = await import("@/lib/notificaciones-staff.server");
-        const folio = (row as any)?.folio ?? id.slice(0, 8);
+        const folio = (row)?.folio ?? id.slice(0, 8);
         await notificarStaff({
           tipo: "trabajo_completado",
           titulo: `Trabajo ${folio} completado`,
@@ -246,7 +246,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
         const { notificarAsignacionTecnico } = await import("@/lib/notificaciones-tecnico.server");
         await notificarAsignacionTecnico({
           tecnicoId: payload.tecnico_id,
-          trabajoId: (row as any).id,
+          trabajoId: (row).id,
           reasignacion: !!tecnicoPrevio,
           asignadoPor: context.userId,
         }).catch(() => {});
@@ -267,7 +267,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     if (evento) {
       try {
         const { notificarEventoTrabajo } = await import("@/lib/notificaciones-eventos.server");
-        await notificarEventoTrabajo({ evento, trabajoId: (row as any).id as string, actorId: context.userId }).catch(() => {});
+        await notificarEventoTrabajo({ evento, trabajoId: (row).id as string, actorId: context.userId }).catch(() => {});
       } catch { /* silenciar */ }
     }
     return row;
@@ -302,8 +302,8 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     // Autorizar: admin o supervisor
     const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
-      context.supabase.rpc("has_role" as any, { _user_id: context.userId, _role: "admin" }),
-      context.supabase.rpc("has_role" as any, { _user_id: context.userId, _role: "supervisor" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
     ]);
     if (!isAdmin && !isSup) throw new Error("No autorizado");
 
@@ -350,19 +350,19 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
         const { data: vinculados } = await context.supabase
           .from("trabajos")
           .select("ciclo_numero")
-          .eq("contrato_id", (contrato as any).id);
+          .eq("contrato_id", (contrato).id);
         const ocupados = new Set<number>(
           (vinculados ?? []).map((r: any) => r.ciclo_numero).filter((n: any) => n != null),
         );
         let ciclo = 1;
-        while (ocupados.has(ciclo) && ciclo <= (contrato as any).cantidad_anual) ciclo++;
-        if (ciclo <= (contrato as any).cantidad_anual) {
+        while (ocupados.has(ciclo) && ciclo <= (contrato).cantidad_anual) ciclo++;
+        if (ciclo <= (contrato).cantidad_anual) {
           await context.supabase
             .from("trabajos")
-            .update({ contrato_id: (contrato as any).id, ciclo_numero: ciclo })
-            .eq("id", (row as any).id);
+            .update({ contrato_id: (contrato).id, ciclo_numero: ciclo })
+            .eq("id", (row).id);
           const { recalcularFechaInicioContrato } = await import("@/lib/contratos.functions");
-          await recalcularFechaInicioContrato(context.supabase, (contrato as any).id);
+          await recalcularFechaInicioContrato(context.supabase, (contrato).id);
         }
       }
     } catch (e) {

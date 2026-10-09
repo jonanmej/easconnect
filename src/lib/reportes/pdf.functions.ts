@@ -21,7 +21,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // Parse KPIs/hallazgos del markdown
-    const md = (rep as any).contenido_markdown ?? "";
+    const md = (rep).contenido_markdown ?? "";
     const section = (name: string) => {
       const re = new RegExp(`## ${name}\\n([\\s\\S]*?)(\\n## |$)`);
       return re.exec(md)?.[1]?.trim() ?? "";
@@ -41,23 +41,23 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     let recomendaciones = parseBullets(section("Recomendaciones"));
     let resumen = section("Resumen ejecutivo");
     const folioReporte = (() => {
-      const markdown = String((rep as any).contenido_markdown ?? "");
+      const markdown = String((rep).contenido_markdown ?? "");
       const m = markdown.match(/\*\*OT:\*\*\s*([^·\n]+)/i) || markdown.match(/\bOT\s*[:#-]?\s*([A-Z0-9-]{6,})/i);
       return m?.[1]?.trim() ?? null;
     })();
 
     // Trabajos del periodo
-    const inferredRange = !(rep as any).desde || !(rep as any).hasta
-      ? parseLegacySingleDayPeriod((rep as any).periodo)
+    const inferredRange = !(rep).desde || !(rep).hasta
+      ? parseLegacySingleDayPeriod((rep).periodo)
       : null;
-    const desde = (rep as any).desde ?? inferredRange?.desde ?? null;
-    const hasta = (rep as any).hasta ?? inferredRange?.hasta ?? null;
+    const desde = (rep).desde ?? inferredRange?.desde ?? null;
+    const hasta = (rep).hasta ?? inferredRange?.hasta ?? null;
     const desdeMs = desde ? new Date(desde).getTime() : null;
     const hastaMs = hasta ? new Date(hasta).getTime() : null;
     let plantasIds: string[] = [];
-    if ((rep as any).planta_id) plantasIds = [(rep as any).planta_id];
+    if ((rep).planta_id) plantasIds = [(rep).planta_id];
     else {
-      const { data: ps } = await supabase.from("plantas").select("id").eq("cliente_id", (rep as any).cliente_id);
+      const { data: ps } = await supabase.from("plantas").select("id").eq("cliente_id", (rep).cliente_id);
       plantasIds = (ps ?? []).map((p) => p.id);
     }
     let qb = supabase.from("trabajos")
@@ -105,7 +105,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     }
     const avancesReales = await avanceRealPorTrabajo(supabase, trabajos.map((t) => t.id));
     // A2: los indicadores salen de los datos, no del texto de la IA.
-    const guardados = Array.isArray((rep as any).indicadores) ? ((rep as any).indicadores as ReporteKpi[]) : null;
+    const guardados = Array.isArray((rep).indicadores) ? ((rep).indicadores as ReporteKpi[]) : null;
     if (guardados && guardados.length) {
       const internos = /^(Horas trabajadas|Agua utilizada)$/i;
       kpis = normalizarKpisMetaDiaria(
@@ -163,12 +163,12 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
             const ms = marcasPorDiario.get(d.id) ?? [];
             if (!ms.length) continue;
             const plantaZonas = (zonasAll ?? []).filter(
-              (z: any) => z.planta_id === (zonaPorId.get(ms[0].zona_id) as any)?.planta_id,
+              (z: any) => z.planta_id === (zonaPorId.get(ms[0].zona_id))?.planta_id,
             );
             const estadoPorZona = new Map(ms.map((m: any) => [m.zona_id, m.estado]));
             const zonasEstado = plantaZonas.map((z: any) => ({
               poligono: Array.isArray(z.poligono) ? z.poligono : [],
-              estado: (estadoPorZona.get(z.id) as any) ?? null,
+              estado: (estadoPorZona.get(z.id)) ?? null,
             }));
             const dataUrl = await snapshotZonas(zonasEstado);
             // Si Google Static Maps no está habilitada, componemos la vista
@@ -180,13 +180,13 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
             mapasDiarios.push({
               fecha: String(d.fecha ?? ""),
               folio: folioPorTrabajo.get(d.trabajo_id) ?? null,
-              planta: (plantaZonas[0] as any)?.plantas?.nombre ?? null,
+              planta: (plantaZonas[0])?.plantas?.nombre ?? null,
               dataUrl,
               basemap,
               zonas: plantaZonas.map((z: any) => ({
                 nombre: String(z.nombre ?? ""),
                 poligono: Array.isArray(z.poligono) ? z.poligono : [],
-                estado: (estadoPorZona.get(z.id) as any) ?? null,
+                estado: (estadoPorZona.get(z.id)) ?? null,
               })),
               completadas: ms.filter((m: any) => m.estado === "completada").length,
               en_proceso: ms.filter((m: any) => m.estado === "en_proceso").length,
@@ -470,21 +470,21 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     const diariosConsolidadosPdf = consolidarDiariosPdf(diarios as any[], nombreTecnicoPorId);
 
     return {
-      titulo: (rep as any).titulo,
-      cliente: (rep as any).clientes?.nombre ?? "—",
-      contacto: (rep as any).clientes?.contacto ?? null,
-      color_acento: (rep as any).clientes?.color_acento ?? null,
-      planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
-      periodo: (rep as any).periodo,
-      modelo: (rep as any).model_used,
+      titulo: (rep).titulo,
+      cliente: (rep).clientes?.nombre ?? "—",
+      contacto: (rep).clientes?.contacto ?? null,
+      color_acento: (rep).clientes?.color_acento ?? null,
+      planta: (rep).plantas?.nombre ?? "Todas las plantas",
+      periodo: (rep).periodo,
+      modelo: (rep).model_used,
       // A3: fecha de emisión real guardada por la base de datos (borrador = sin emitir).
-      emitido_at: (rep as any).fecha_emision
-        ? new Date((rep as any).fecha_emision).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" })
+      emitido_at: (rep).fecha_emision
+        ? new Date((rep).fecha_emision).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" })
         : "Borrador — sin emitir",
-      documento_codigo: (rep as any).codigo_documento ?? "BORRADOR",
-      documento_version: String((rep as any).version_label ?? `v${(rep as any).version ?? 1}.0`).replace(/^v/i, ""),
+      documento_codigo: (rep).codigo_documento ?? "BORRADOR",
+      documento_version: String((rep).version_label ?? `v${(rep).version ?? 1}.0`).replace(/^v/i, ""),
       folio_ot: folioReporte ?? (trabajos.length === 1 ? trabajos[0].folio : null),
-      revision_ia_pendiente: !!(rep as any).revision_ia_pendiente,
+      revision_ia_pendiente: !!(rep).revision_ia_pendiente,
       resumen,
       kpis,
       hallazgos,
@@ -494,17 +494,17 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         servicio: t.servicio,
         fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }),
         estado: t.estado,
-        tecnico: (tecnicosPorTrabajo.get((t as any).id) ?? []).join(", ") || null,
+        tecnico: (tecnicosPorTrabajo.get((t).id) ?? []).join(", ") || null,
         notas: t.notas,
       })),
       resumen_por_planta: (() => {
         const map = new Map<string, { total: number; completados: number; servicios: Set<string> }>();
         for (const t of trabajos) {
-          const key = (rep as any).plantas?.nombre ?? "Planta";
+          const key = (rep).plantas?.nombre ?? "Planta";
           const cur = map.get(key) ?? { total: 0, completados: 0, servicios: new Set<string>() };
           cur.total += 1;
-          if ((t as any).estado === "completado") cur.completados += 1;
-          cur.servicios.add((t as any).servicio ?? "—");
+          if ((t).estado === "completado") cur.completados += 1;
+          cur.servicios.add((t).servicio ?? "—");
           map.set(key, cur);
         }
         return Array.from(map.entries()).map(([planta, v]) => ({
@@ -517,10 +517,10 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       resumen_por_servicio: (() => {
         const map = new Map<string, { total: number; completados: number }>();
         for (const t of trabajos) {
-          const key = (t as any).servicio ?? "—";
+          const key = (t).servicio ?? "—";
           const cur = map.get(key) ?? { total: 0, completados: 0 };
           cur.total += 1;
-          if ((t as any).estado === "completado") cur.completados += 1;
+          if ((t).estado === "completado") cur.completados += 1;
           map.set(key, cur);
         }
         return Array.from(map.entries()).map(([servicio, v]) => ({ servicio, total: v.total, completados: v.completados }));
@@ -561,8 +561,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
         })),
       ),
       mapas_diarios: mapasDiarios,
-      responsable_id: (rep as any).generado_por ?? null,
-      reporte_id: (rep as any).id,
+      responsable_id: (rep).generado_por ?? null,
+      reporte_id: (rep).id,
     };
   });
 
