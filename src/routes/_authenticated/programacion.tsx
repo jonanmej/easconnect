@@ -686,13 +686,13 @@ function Programacion() {
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground no-print">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between text-xs text-muted-foreground no-print">
         <span>
           {vista === "semana"
             ? `${totalSemana} trabajos esta semana`
             : `${trabajos.length} trabajos en total`}
         </span>
-        <div className="inline-flex items-center gap-3">
+        <div className="flex flex-wrap min-w-0 items-center gap-3">
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary/40 border border-primary/30" /> En progreso</span>
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-accent/40 border border-accent/30" /> Completado</span>
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
