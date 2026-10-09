@@ -2798,6 +2798,18 @@ export type Database = {
       }
       current_cliente_id: { Args: never; Returns: string }
       dashboard_kpis_v1: { Args: never; Returns: Json }
+      disponibilidad_calendario: {
+        Args: { _desde: string; _hasta: string }
+        Returns: {
+          duracion_dias: number
+          estado: string
+          fecha_inicio: string
+          folio: string
+          planta_nombre: string
+          propio: boolean
+          servicio: string
+        }[]
+      }
       editar_recepcion_item_oc: {
         Args: {
           _motivo: string

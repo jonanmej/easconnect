@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isoWeek } from "@/lib/semana-iso";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -78,13 +79,6 @@ function addWorkdays(start: Date, workdays: number) {
     d.setDate(d.getDate() + 1);
   }
   return out;
-}
-function isoWeek(d: Date) {
-  const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = x.getUTCDay() || 7;
-  x.setUTCDate(x.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
-  return Math.ceil((((+x - +yearStart) / 86400000) + 1) / 7);
 }
 
 type Vista = "semana" | "mes" | "anio";

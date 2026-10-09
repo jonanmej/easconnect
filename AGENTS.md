@@ -16,3 +16,6 @@
 - Report emission fields (fecha_emision, codigo_documento, version_label) are set only by the `reportes_control_emision` trigger, which also locks content once a report is enviado/aprobado — corrections are new versions via reporte_padre_id.
 - Report indicators are built by the system (`construirIndicadores` in src/lib/reporte-ia.ts) and stored in `reportes.indicadores`; AI only writes text, and numbers in that text are checked (`verificarCifras`) and flagged for review — so figures always come from data.
 - Power values are formatted only through src/lib/potencia.ts; capacity is stored numerically in `capacidad_kwp` — one consistent W/kW/kWp/MWp rule across screens, PDFs and AI input.
+- Client calendar availability comes only from the `disponibilidad_calendario` DB function (security definer, role-checked) — other clients' OTs are masked in the database, never via the admin client.
+- ISO week numbers come only from `src/lib/semana-iso.ts` — one rule for all calendars and PDFs.
+- Reports in enviado/aprobado cannot be deleted (trigger `reportes_bloquear_borrado`) — emitted documents are permanent under ISO 9001.
