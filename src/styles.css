@@ -409,7 +409,7 @@
     overscroll-behavior: contain;
   }
   .safe-dialog {
-    max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem);
+    max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem) !important;
     scroll-padding-block: 3rem;
     overscroll-behavior: contain;
     padding-left: max(1rem, var(--safe-left));
@@ -444,6 +444,11 @@
       min-height: 2.75rem;
     }
     button:not([role="switch"]), [role="button"] { min-width: 2.75rem; }
+  }
+  @media (max-width: 400px) {
+    button[aria-label^="Abrir búsqueda global"] { padding: 0; width: 2.75rem; color: transparent; }
+    button[aria-label^="Abrir búsqueda global"] span { display: none; }
+    header [role="radiogroup"] { flex-shrink: 0; }
   }
 }
 
