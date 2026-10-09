@@ -65,6 +65,12 @@
 }
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --visible-height: 100dvh;
+  --visible-top: 0px;
   --radius: 0.625rem;
   --background: oklch(0.99 0 0);
   --foreground: oklch(0.21 0.04 265);
@@ -159,7 +165,7 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     /* Fuente base 16px para mejor legibilidad (clientes/tablets). */
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -361,18 +367,89 @@
      igualmente una separación mínima cómoda para el pulgar.
    Los fallbacks 0px cubren navegadores sin soporte de env(). */
 @utility safe-top {
-  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-min-top, 0.375rem));
+  padding-top: max(var(--safe-top), var(--safe-min-top, 0.375rem));
 }
 @utility safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-min-bottom, 0.375rem));
+  padding-bottom: max(var(--safe-bottom), var(--safe-min-bottom, 0.375rem));
 }
 @utility safe-x {
-  padding-left: max(env(safe-area-inset-left, 0px), var(--safe-min-x, 0px));
-  padding-right: max(env(safe-area-inset-right, 0px), var(--safe-min-x, 0px));
+  padding-left: max(var(--safe-left), var(--safe-min-x, 0px));
+  padding-right: max(var(--safe-right), var(--safe-min-x, 0px));
 }
 /* Altura reservada del inset superior, útil para spacers/offsets. */
 @utility safe-top-height {
-  height: env(safe-area-inset-top, 0px);
+  height: var(--safe-top);
+}
+
+@utility app-viewport {
+  height: var(--visible-height, 100dvh);
+}
+
+@media screen {
+  .app-content > * { min-width: 0; max-width: min(100%, 100rem); margin-inline: auto; }
+  .table-scroll { max-width: 100%; scrollbar-width: auto; scrollbar-color: var(--muted-foreground) var(--secondary); }
+  .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+  .table-scroll::-webkit-scrollbar { height: 10px; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--muted-foreground); border: 2px solid var(--secondary); border-radius: 6px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--secondary); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  :root[data-keyboard-open] [aria-label="Navegación rápida"] { display: none; }
+  .auth-screen { padding: max(1.5rem, var(--safe-top)) max(1rem, var(--safe-right)) max(1.5rem, var(--safe-bottom)) max(1rem, var(--safe-left)); }
+  .safe-update { left: max(0.75rem, var(--safe-left)); right: max(0.75rem, var(--safe-right)); bottom: calc(var(--safe-bottom) + 5.5rem); max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 6rem); overflow-y: auto; }
+  @media (min-width: 640px) { .safe-update { left: auto; right: max(1rem, var(--safe-right)); } }
+  @media (max-width: 639px) {
+    .safe-dialog { max-width: 100%; }
+  }
+  .app-content .recharts-tooltip-wrapper { max-width: 100%; }
+  .app-content .recharts-default-tooltip { max-width: 100%; white-space: normal !important; }
+  .safe-alert {
+    top: calc(var(--visible-top) + var(--visible-height) / 2);
+    max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem);
+    max-width: calc(100% - var(--safe-left) - var(--safe-right) - 2rem);
+    overscroll-behavior: contain;
+  }
+  .safe-dialog {
+    max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem) !important;
+    scroll-padding-block: 3rem;
+    overscroll-behavior: contain;
+    padding-left: max(1rem, var(--safe-left));
+    padding-right: max(1rem, var(--safe-right));
+    padding-bottom: max(1rem, var(--safe-bottom));
+    padding-top: max(1rem, var(--safe-top));
+  }
+  .safe-sheet {
+    max-height: var(--visible-height);
+    overflow-y: auto;
+    padding-top: max(1.5rem, var(--safe-top));
+    padding-bottom: max(1.5rem, var(--safe-bottom));
+    padding-left: max(1.5rem, var(--safe-left));
+    padding-right: max(1.5rem, var(--safe-right));
+  }
+  .safe-close {
+    top: max(0.5rem, var(--safe-top));
+    right: max(0.5rem, var(--safe-right));
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    display: grid;
+    place-items: center;
+  }
+  @media (min-width: 640px) {
+    .safe-dialog { top: calc(var(--visible-top) + var(--visible-height) / 2); }
+  }
+  @media (max-width: 639px) {
+    .safe-dialog { bottom: auto; top: calc(var(--visible-top) + var(--visible-height)); transform: translateY(-100%); }
+  }
+  @media (pointer: coarse), (max-width: 767px) {
+    button:not([role="switch"]), [role="button"], input:not([type="checkbox"]):not([type="radio"]), select {
+      min-height: 2.75rem;
+    }
+    button:not([role="switch"]), [role="button"] { min-width: 2.75rem; }
+  }
+  @media (max-width: 400px) {
+    button[aria-label^="Abrir búsqueda global"] { padding: 0; width: 2.75rem; color: transparent; }
+    button[aria-label^="Abrir búsqueda global"] span { display: none; }
+    header [role="radiogroup"] { flex-shrink: 0; }
+  }
 }
 
 /* ============ Utilidades responsive compartidas ============ */

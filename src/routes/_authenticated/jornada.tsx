@@ -398,7 +398,7 @@ function JornadaPage() {
         )}
 
         {filas.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
             <table className="w-full text-xs min-w-[820px]">
               <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                 <tr>
@@ -485,7 +485,7 @@ function JornadaPage() {
         )}
 
         {(extrasData?.personal.length ?? 0) > 0 && (
-          <div className="overflow-x-auto">
+          <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
             <table className="w-full text-xs min-w-[760px]">
               <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                 <tr>
@@ -578,7 +578,7 @@ function JornadaPage() {
                 que se ingrese el salario mensual.
               </p>
             )}
-            <div className="overflow-x-auto">
+            <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
               <table className="w-full text-xs min-w-[960px]">
                 <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                   <tr>

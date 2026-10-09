@@ -23,3 +23,4 @@
 - Big screens keep only the route and page in `src/routes/_authenticated/*.tsx`; helpers and dialogs live in `src/components/<modulo>/` — non-route files cannot live under src/routes.
 - Month labels come only from `src/lib/nombre-mes.ts` (pure year/month, no time-zone conversion) — local midnight formatted in another zone shifts the month.
 - AppShell fixes the outer main to the viewport and scrolls only its bounded content area — prevents outer blank-space scrolling while preserving page and nested-list access.
+- Safe-area CSS tokens and useVisualViewport bound shared overlays and the app shell to the visible screen — keeps navigation and forms clear of cutouts and the mobile keyboard without altering document printing.

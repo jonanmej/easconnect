@@ -370,7 +370,7 @@ function NominaPage() {
                   </p>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
                   <table className="w-full text-xs min-w-[1100px]">
                     <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                       <tr>
@@ -485,7 +485,7 @@ function NominaPage() {
             {calc.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando cortes…</p>}
 
             {!calc.isLoading && (
-              <div className="overflow-x-auto">
+              <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
                 <table className="w-full text-xs min-w-[900px]">
                   <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                     <tr>
@@ -602,7 +602,7 @@ function NominaPage() {
             <p className="p-4 text-xs text-muted-foreground">Todavía no hay planillas guardadas.</p>
           )}
           {((periodos.data as any[] | undefined)?.length ?? 0) > 0 && (
-            <div className="overflow-x-auto">
+            <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
               <table className="w-full text-xs min-w-[820px]">
                 <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
                   <tr>

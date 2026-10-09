@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
-    meta: [{ title: "Clientes · EA Service Connect" }, { name: "description", content: "Cartera de clientes empresariales." }],
+    meta: [{ title: "Clientes · EA Service Connect" }, { name: "description", content: "Cartera de clientes empresariales." }, { property: "og:title", content: "Clientes · EA Service Connect" }, { property: "og:description", content: "Cartera de clientes empresariales." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Clientes,
   errorComponent: ({ error }) => (

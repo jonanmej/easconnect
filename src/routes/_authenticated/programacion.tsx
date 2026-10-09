@@ -23,8 +23,7 @@ export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
     meta: [
       { title: "Programación · EA Service Connect" },
-      { name: "description", content: "Calendario operativo: arrastra trabajos entre días para reprogramar." },
-    ],
+      { name: "description", content: "Calendario operativo: arrastra trabajos entre días para reprogramar." }, { property: "og:title", content: "Programación · EA Service Connect" }, { property: "og:description", content: "Calendario de órdenes de trabajo." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Programacion,
   errorComponent: ({ error }) => (
@@ -580,10 +579,10 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
-      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto print-week-grid print-hide-visual">
         <div
           style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }}
-          className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+          className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
         >
           {days.map((d) => (
             <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
@@ -591,7 +590,7 @@ function Programacion() {
             </div>
           ))}
         </div>
-        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-h-[420px]">
+        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-w-[700px] min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -666,12 +665,12 @@ function Programacion() {
 
       {vista === "anio" && (
         <div className="print-hide-visual">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-3 grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2">
             <label className="text-xs text-muted-foreground">Filtrar por cliente:</label>
             <select
               value={clienteFilter}
               onChange={(e) => setClienteFilter(e.target.value)}
-              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+              className="h-9 w-full min-w-0 sm:w-auto sm:max-w-sm px-3 rounded-md border border-input bg-background text-sm"
             >
               <option value="">Todos los clientes</option>
               {clientesUnicos.map((c) => (
@@ -687,13 +686,13 @@ function Programacion() {
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground no-print">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between text-xs text-muted-foreground no-print">
         <span>
           {vista === "semana"
             ? `${totalSemana} trabajos esta semana`
             : `${trabajos.length} trabajos en total`}
         </span>
-        <div className="inline-flex items-center gap-3">
+        <div className="flex flex-wrap min-w-0 items-center gap-3">
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary/40 border border-primary/30" /> En progreso</span>
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-accent/40 border border-accent/30" /> Completado</span>
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-secondary border border-border" /> Programado</span>
@@ -764,7 +763,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
   const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].slice(0, nDias);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div style={gridStyle} className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+      <div style={gridStyle} className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
         {dayLabels.map((d) => (
           <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
@@ -946,7 +945,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
               </div>
               <ul className="ml-2 space-y-0.5">
                 {(expanded ? items : items.slice(0, 4)).map((t: any, i: number) => (
-                  <li key={`${t.id}-${i}`} className="truncate">
+                  <li key={`${t.id}-${i}`} className="break-words">
                     <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
                     <span className="text-muted-foreground"> · {t.servicio}</span>
                   </li>
@@ -1245,7 +1244,7 @@ function ClienteCalendar() {
         title="Solicitar Visita"
         description="Los días en rojo muestran el nombre de la planta con visita asignada. Elija un día libre para solicitar una nueva visita técnica."
         actions={
-          <div className="inline-flex items-center gap-2">
+          <div className="flex flex-wrap min-w-0 items-center gap-2">
             <div className="inline-flex border border-border rounded-md overflow-hidden text-xs">
               {(["mes", "anio"] as const).map((v) => (
                 <button key={v} type="button" onClick={() => setVistaCli(v)}
@@ -1312,7 +1311,7 @@ function ClienteCalendar() {
                 disabled={c.ocupada || isPast}
                 onClick={() => setPickDate(c.fecha!)}
                 className={
-                  "min-h-[92px] border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors overflow-hidden " +
+                  "min-w-0 min-h-[92px] border-t border-l border-border first:border-l-0 p-1 sm:p-2 text-left text-sm relative transition-colors overflow-hidden " +
                   (c.ocupada
                     ? (hasPropio
                         ? "bg-primary/10 text-primary cursor-not-allowed"
@@ -1331,7 +1330,7 @@ function ClienteCalendar() {
                       <div
                         key={ix}
                         className={
-                          "text-[10px] leading-tight px-1 py-0.5 rounded font-medium truncate " +
+                          "text-[10px] leading-tight px-1 py-0.5 rounded font-medium break-words " +
                           (a.propio
                             ? "bg-primary/15 text-primary"
                             : "bg-destructive/15 text-destructive")

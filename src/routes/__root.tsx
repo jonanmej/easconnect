@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AppUpdateGate } from "@/components/AppUpdateGate";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 
 function NotFoundComponent() {
   return (
@@ -80,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
       { title: "EA Service Connect" },
       { name: "description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
       { name: "author", content: "Lovable" },
@@ -92,8 +93,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "EA Service Connect" },
       { name: "twitter:description", content: "Plataforma de gestión operativa de EA Service & Consulting" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9584c68b-5118-4489-9c4c-b6bb07c8c80f/id-preview-d7f96237--4a1d8dfa-3473-4ec4-a07c-e2cd9feba391.lovable.app-1782202293031.png" },
       // Color de barra del navegador: variante clara y oscura para integración consistente.
       { name: "theme-color", content: "#fcfcfc", media: "(prefers-color-scheme: light)" },
       { name: "theme-color", content: "#0f172a", media: "(prefers-color-scheme: dark)" },
@@ -112,6 +111,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
+      { rel: "apple-touch-startup-image", href: "/splash/640x1136.png", media: "(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1136x640.png", media: "(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/750x1624.png", media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1624x750.png", media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1170x2532.png", media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2532x1170.png", media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1290x2796.png", media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2796x1290.png", media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1536x2048.png", media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2048x1536.png", media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1640x2360.png", media: "(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2360x1640.png", media: "(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/1668x2388.png", media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2388x1668.png", media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2048x2732.png", media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+      { rel: "apple-touch-startup-image", href: "/splash/2732x2048.png", media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" },
       { rel: "manifest", href: "/manifest.webmanifest?v=4" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png?v=4" },
       // Íconos con fondo sólido de marca: evita esquinas blancas al redondearse.
@@ -212,6 +227,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
+  useVisualViewport();
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
