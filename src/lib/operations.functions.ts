@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 import { findRecursoConflicts, formatRecursoConflict, equiposDeTrabajo } from "@/lib/scheduling";
 
 /**
@@ -775,6 +776,9 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
 export const listTecnicos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Solo personal interno: un cliente no necesita la lista de técnicos.
+    const misRoles = await requireRol(context.supabase, context.userId, ["admin", "supervisor", "tecnico", "cliente"]);
+    if (!misRoles.some((r) => INTERNO.includes(r))) return [];
     const { data: roles, error } = await context.supabase
       .from("user_roles")
       .select("user_id, role")

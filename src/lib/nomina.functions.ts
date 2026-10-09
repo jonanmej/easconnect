@@ -1,12 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 async function requireStaff(context: any) {
-  const { data: esAdmin } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId, _role: "admin",
-  });
-  if (!esAdmin) throw new Error("Solo los administradores pueden usar el módulo de nómina.");
+  await requireRol(context.supabase, context.userId, ["admin"], "Solo los administradores pueden usar el módulo de nómina.");
 }
 
 const ZMes = z.object({

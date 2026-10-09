@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 export const listAuditoria = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,11 +16,7 @@ export const listAuditoria = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     // Defensa en profundidad: solo staff (admin/supervisor) puede leer auditoría.
-    const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
-    ]);
-    if (!isAdmin && !isSup) throw new Error("No autorizado");
+    await requireRol(context.supabase, context.userId, STAFF);
 
     let q = context.supabase
       .from("auditoria_log")

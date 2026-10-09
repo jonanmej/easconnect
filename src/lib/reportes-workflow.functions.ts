@@ -1,14 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 async function ensureStaff(supabase: any, userId: string) {
-  const [{ data: a }, { data: s }] = await Promise.all([
-    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
-  ]);
-  if (!a && !s) throw new Error("Solo administradores y supervisores");
-  return { isAdmin: !!a, isSup: !!s };
+  const roles = await requireRol(supabase, userId, STAFF, "Solo administradores y supervisores");
+  return { isAdmin: roles.includes("admin"), isSup: roles.includes("supervisor") };
 }
 
 async function isCliente(supabase: any, userId: string) {
