@@ -192,8 +192,9 @@ function Reportes() {
         modo,
         responsable: firma?.nombre ?? null,
         responsable_cargo: firma?.cargo ?? null,
-        documento_codigo: `EA-${modo === "ejecutivo" ? "REP-EJE" : "REP-INT"}-${(data.periodo ?? "").toString().slice(0, 10).replace(/\s+/g, "")}`,
-        documento_version: "1.0",
+        // Código, versión y fecha de emisión vienen de la base de datos.
+        documento_codigo: data.documento_codigo,
+        documento_version: data.documento_version,
         documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
         evidencias: evidenciasFinal,
       }, (() => {
