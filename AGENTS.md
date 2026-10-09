@@ -22,3 +22,4 @@
 - Large server files are barrels: `src/lib/reportes.functions.ts` and `src/lib/operations.functions.ts` only re-export from `src/lib/reportes/*` and `src/lib/operations/*` — keeps public import paths stable while modules stay small.
 - Big screens keep only the route and page in `src/routes/_authenticated/*.tsx`; helpers and dialogs live in `src/components/<modulo>/` — non-route files cannot live under src/routes.
 - Month labels come only from `src/lib/nombre-mes.ts` (pure year/month, no time-zone conversion) — local midnight formatted in another zone shifts the month.
+- AppShell fixes the outer main to the viewport and scrolls only its bounded content area — prevents outer blank-space scrolling while preserving page and nested-list access.
