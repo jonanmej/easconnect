@@ -13,7 +13,7 @@ import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { SERVICIOS_OT } from "@/lib/servicios";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
 import { getReportesPeriodoPref, setReportesPeriodoPref } from "@/lib/profile.functions";
-import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte } from "@/lib/reportes-workflow.functions";
+import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte, marcarRevisionIaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
 import { generarYDescargarPdf, buildEvidencias, withAspect } from "@/lib/pdf/descargar";
 import { useAuth } from "@/lib/auth-context";
@@ -53,6 +53,11 @@ type R = {
   aprobado_por?: string | null;
   rechazado_por?: string | null;
   motivo_rechazo?: string | null;
+  fecha_emision?: string | null;
+  codigo_documento?: string | null;
+  version_label?: string | null;
+  revision_ia_pendiente?: boolean;
+  revision_ia_detalle?: { cifras_sin_respaldo?: string[] } | null;
 };
 
 /**
@@ -103,6 +108,7 @@ function Reportes() {
   const fEmail = useServerFn(enviarNotificacionReporte);
   const fDel = useServerFn(eliminarReporte);
   const fEnviarApro = useServerFn(enviarReporteAprobacion);
+  const fRevisionIa = useServerFn(marcarRevisionIaReporte);
   const fAprobar = useServerFn(aprobarReporte);
   const fRechazar = useServerFn(rechazarReporte);
   const fNuevaVer = useServerFn(crearNuevaVersionReporte);
@@ -146,6 +152,11 @@ function Reportes() {
   const del = useMutation({
     mutationFn: (id: string) => fDel({ data: { id } }),
     onSuccess: () => { toast.success("Reporte eliminado"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const revisarIa = useMutation({
+    mutationFn: (id: string) => fRevisionIa({ data: { id } }),
+    onSuccess: () => { toast.success("Cifras marcadas como revisadas"); qc.invalidateQueries({ queryKey: ["reportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
   const enviarApro = useMutation({
@@ -561,7 +572,21 @@ function Reportes() {
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5 truncate">
                 {r.cliente_nombre}{r.planta_nombre ? ` · ${r.planta_nombre}` : ""} · {r.periodo} · {new Date(r.created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
               </p>
+              {r.codigo_documento && (
+                <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                  {r.codigo_documento} · {r.version_label} · emitido {new Date(r.fecha_emision!).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
+                </p>
+              )}
               {r.insight_resumen && <p className="text-sm mt-2 text-foreground/80 line-clamp-2">{r.insight_resumen}</p>}
+              {r.revision_ia_pendiente && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200">
+                  <strong>Revisar cifras del texto:</strong> {(r.revision_ia_detalle?.cifras_sin_respaldo ?? []).join(", ") || "—"} no coinciden con los datos registrados. Corrige el texto o confirma la revisión antes de enviarlo.
+                  {canEdit && r.estado === "borrador" && (
+                    <button onClick={() => revisarIa.mutate(r.id)} disabled={revisarIa.isPending}
+                      className="ml-2 underline font-medium disabled:opacity-50">Marcar como revisado</button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="col-span-2 flex flex-wrap items-center gap-2 sm:gap-3">
               {estadoBadge(r.estado)}
@@ -572,7 +597,7 @@ function Reportes() {
                 <Eye className="size-3.5" /> Ver
               </button>
               {canEdit && r.estado === "borrador" && (
-                <button onClick={() => enviarApro.mutate(r.id)} disabled={enviarApro.isPending}
+                <button onClick={() => enviarApro.mutate(r.id)} disabled={enviarApro.isPending || !!r.revision_ia_pendiente}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-amber-300 text-amber-800 rounded-md hover:bg-amber-50 disabled:opacity-50">
                   <Send className="size-3.5" /> Enviar a aprobación
                 </button>
