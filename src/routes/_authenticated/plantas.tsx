@@ -32,8 +32,7 @@ export const Route = createFileRoute("/_authenticated/plantas")({
         property: "og:description",
         content:
           "Consulta y administra las instalaciones bajo gestión: datos del cliente, ubicación, capacidad y equipos de cada planta.",
-      },
-    ],
+      }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Plantas,
   errorComponent: ({ error }) => (

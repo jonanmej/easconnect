@@ -82,7 +82,7 @@ const CAT_RECURSO = [
 
 export const Route = createFileRoute("/_authenticated/trabajos")({
   head: () => ({
-    meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }],
+    meta: [{ title: "Trabajos · EA Service Connect" }, { name: "description", content: "Órdenes de trabajo: programadas, en progreso y completadas." }, { property: "og:title", content: "Trabajos · EA Service Connect" }, { property: "og:description", content: "Órdenes de trabajo y seguimiento operativo." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   validateSearch: (s: Record<string, unknown>): { alerta?: string } => ({
     alerta: typeof s.alerta === "string" ? (s.alerta as string) : undefined,
@@ -1084,9 +1084,9 @@ function RecursosSection({
 
   return (
     <div className="pt-2 border-t border-border">
-      <div className="flex items-baseline justify-between mb-2">
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-baseline sm:justify-between mb-2">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
           {canEdit && (
             <button
@@ -1148,22 +1148,22 @@ function RecursosSection({
       </div>
       {canEdit && (
         <div ref={addFormRef} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-3">
+          <div className="col-span-12 sm:col-span-3">
             <select name="categoria" required className={inputCls + " text-xs"} defaultValue="herramienta">
               {CAT_RECURSO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
-          <div className="col-span-4">
+          <div className="col-span-12 sm:col-span-4">
             <input name="descripcion" required placeholder="Descripción" className={inputCls + " text-xs"}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }} />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-4 sm:col-span-2">
             <input name="cantidad" type="number" min="0.01" step="0.01" defaultValue={1} className={inputCls + " text-xs"} />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-4 sm:col-span-2">
             <input name="unidad" placeholder="un" className={inputCls + " text-xs"} />
           </div>
-          <div className="col-span-1">
+          <div className="col-span-4 sm:col-span-1">
             <button type="button" onClick={onAdd} disabled={add.isPending}
               className="h-9 w-full grid place-items-center rounded-md bg-primary text-primary-foreground disabled:opacity-50">
               <Plus className="size-3.5" />

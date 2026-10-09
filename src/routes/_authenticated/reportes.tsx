@@ -27,7 +27,7 @@ import { Stat, PeriodoTrimestralFields } from "@/components/reportes/ReportesPar
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
-    meta: [{ title: "Reportes · EA Service Connect" }, { name: "description", content: "Reportes ejecutivos generados para clientes." }],
+    meta: [{ title: "Reportes · EA Service Connect" }, { name: "description", content: "Reportes ejecutivos generados para clientes." }, { property: "og:title", content: "Reportes · EA Service Connect" }, { property: "og:description", content: "Reportes ejecutivos para clientes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Reportes,
   errorComponent: ({ error }) => (

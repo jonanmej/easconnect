@@ -22,7 +22,7 @@ import { exportarExcel } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/inventario")({
   head: () => ({
-    meta: [{ title: "Inventario · EA Service Connect" }, { name: "description", content: "Stock de bodega con movimientos en tiempo real." }],
+    meta: [{ title: "Inventario · EA Service Connect" }, { name: "description", content: "Stock de bodega con movimientos en tiempo real." }, { property: "og:title", content: "Inventario · EA Service Connect" }, { property: "og:description", content: "Stock de bodega y movimientos." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Inventario,
   errorComponent: ({ error }) => (

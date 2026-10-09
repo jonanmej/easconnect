@@ -23,8 +23,7 @@ export const Route = createFileRoute("/_authenticated/programacion")({
   head: () => ({
     meta: [
       { title: "Programación · EA Service Connect" },
-      { name: "description", content: "Calendario operativo: arrastra trabajos entre días para reprogramar." },
-    ],
+      { name: "description", content: "Calendario operativo: arrastra trabajos entre días para reprogramar." }, { property: "og:title", content: "Programación · EA Service Connect" }, { property: "og:description", content: "Calendario de órdenes de trabajo." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Programacion,
   errorComponent: ({ error }) => (
@@ -580,10 +579,10 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
-      <div className="bg-card border border-border rounded-xl overflow-hidden print-week-grid print-hide-visual">
+      <div className="bg-card border border-border rounded-xl overflow-x-auto print-week-grid print-hide-visual">
         <div
           style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }}
-          className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+          className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
         >
           {days.map((d) => (
             <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
@@ -591,7 +590,7 @@ function Programacion() {
             </div>
           ))}
         </div>
-        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-h-[420px]">
+        <div style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }} className="grid min-w-[700px] min-h-[420px]">
           {days.map((d) => {
             const items = byDay.get(d.toDateString()) ?? [];
             const motivo = motivoNoLaborableSV(d);
@@ -764,7 +763,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
   const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].slice(0, nDias);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div style={gridStyle} className="grid border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+      <div style={gridStyle} className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
         <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
         {dayLabels.map((d) => (
           <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
@@ -946,7 +945,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
               </div>
               <ul className="ml-2 space-y-0.5">
                 {(expanded ? items : items.slice(0, 4)).map((t: any, i: number) => (
-                  <li key={`${t.id}-${i}`} className="truncate">
+                  <li key={`${t.id}-${i}`} className="break-words">
                     <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
                     <span className="text-muted-foreground"> · {t.servicio}</span>
                   </li>

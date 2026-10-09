@@ -31,8 +31,7 @@ export const Route = createFileRoute("/_authenticated/")({
       { title: "Dashboard · EA Service Connect" },
       { name: "description", content: "Panel operativo: trabajos, equipos, SLA y alertas en tiempo real." },
       { property: "og:title", content: "Dashboard · EA Service Connect" },
-      { property: "og:description", content: "Panel operativo de mantenimiento solar y térmico." },
-    ],
+      { property: "og:description", content: "Panel operativo de mantenimiento solar y térmico." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }],
   }),
   component: Index,
   errorComponent: ({ error }) => <div className="p-8 text-sm text-destructive">Error: {(error as Error)?.message}</div>,
@@ -74,7 +73,7 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
           Aún no hay ciclos de limpieza cerrados con paneles registrados.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
           <table className="w-full text-sm min-w-[720px]">
             <thead className="text-[10px] uppercase text-muted-foreground">
               <tr>
