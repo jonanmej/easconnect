@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { isoWeek } from "@/lib/semana-iso";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 function startOfDay(d: Date) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -8,13 +9,6 @@ function startOfWeek(d: Date) {
   const dow = (x.getDay() + 6) % 7; // 0 = Monday
   x.setDate(x.getDate() - dow);
   return x;
-}
-function isoWeek(d: Date) {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = (t.getUTCDay() + 6) % 7;
-  t.setUTCDate(t.getUTCDate() - day + 3);
-  const week1 = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
-  return 1 + Math.round(((t.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
 }
 
 /** Series de trabajos por semana (últimas 12 semanas), apilado por estado. */

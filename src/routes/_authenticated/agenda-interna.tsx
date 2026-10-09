@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isoWeek } from "@/lib/semana-iso";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -77,13 +78,6 @@ function addDays(d: Date, n: number) {
 }
 function toISODateLocal(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function isoWeek(d: Date) {
-  const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = x.getUTCDay() || 7;
-  x.setUTCDate(x.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1));
-  return Math.ceil((((+x - +yearStart) / 86400000) + 1) / 7);
 }
 function fmtDayLabel(d: Date) {
   return d.toLocaleDateString("es-SV", { weekday: "short", day: "2-digit", month: "short" });
