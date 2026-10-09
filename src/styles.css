@@ -387,6 +387,14 @@
 
 @media screen {
   .app-content > * { min-width: 0; max-width: 100%; }
+  .app-content .recharts-tooltip-wrapper { max-width: 100%; }
+  .app-content .recharts-default-tooltip { max-width: 100%; white-space: normal !important; }
+  .safe-alert {
+    top: calc(var(--visible-top) + var(--visible-height) / 2);
+    max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem);
+    max-width: calc(100% - var(--safe-left) - var(--safe-right) - 2rem);
+    overscroll-behavior: contain;
+  }
   .safe-dialog {
     max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem);
     scroll-padding-block: 3rem;

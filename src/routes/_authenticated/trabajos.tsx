@@ -562,14 +562,14 @@ function Trabajos() {
         (() => {
           const endIdx = Math.min(startIdx + PAGE_SIZE, filtrados.length);
           return (
-          <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+          <div className="min-w-0 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between mt-3 text-xs text-muted-foreground">
             <span>Mostrando {startIdx + 1}–{endIdx} de {filtrados.length}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1" tabIndex={0} aria-label="Páginas de órdenes de trabajo">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
+                className="shrink-0 h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
               >
                 Anterior
               </button>
@@ -580,7 +580,7 @@ function Trabajos() {
                   onClick={() => setPage(n)}
                   aria-current={n === currentPage ? "page" : undefined}
                   className={
-                    "h-8 min-w-8 px-2 rounded-md border text-xs " +
+                    "shrink-0 h-8 min-w-8 px-2 rounded-md border text-xs " +
                     (n === currentPage
                       ? "bg-primary text-primary-foreground border-primary font-semibold"
                       : "bg-background border-border hover:bg-secondary")
@@ -593,7 +593,7 @@ function Trabajos() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
+                className="shrink-0 h-8 px-3 rounded-md border border-border bg-background hover:bg-secondary disabled:opacity-40"
               >
                 Siguiente
               </button>
@@ -653,7 +653,7 @@ function Trabajos() {
             )}
           </select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Fecha y hora">
             <input
               name="fecha_programada"

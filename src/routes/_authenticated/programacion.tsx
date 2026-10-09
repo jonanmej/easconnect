@@ -666,12 +666,12 @@ function Programacion() {
 
       {vista === "anio" && (
         <div className="print-hide-visual">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-3 grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2">
             <label className="text-xs text-muted-foreground">Filtrar por cliente:</label>
             <select
               value={clienteFilter}
               onChange={(e) => setClienteFilter(e.target.value)}
-              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+              className="h-9 w-full min-w-0 sm:w-auto sm:max-w-sm px-3 rounded-md border border-input bg-background text-sm"
             >
               <option value="">Todos los clientes</option>
               {clientesUnicos.map((c) => (
@@ -1245,7 +1245,7 @@ function ClienteCalendar() {
         title="Solicitar Visita"
         description="Los días en rojo muestran el nombre de la planta con visita asignada. Elija un día libre para solicitar una nueva visita técnica."
         actions={
-          <div className="inline-flex items-center gap-2">
+          <div className="flex flex-wrap min-w-0 items-center gap-2">
             <div className="inline-flex border border-border rounded-md overflow-hidden text-xs">
               {(["mes", "anio"] as const).map((v) => (
                 <button key={v} type="button" onClick={() => setVistaCli(v)}
@@ -1312,7 +1312,7 @@ function ClienteCalendar() {
                 disabled={c.ocupada || isPast}
                 onClick={() => setPickDate(c.fecha!)}
                 className={
-                  "min-h-[92px] border-t border-l border-border first:border-l-0 p-2 text-left text-sm relative transition-colors overflow-hidden " +
+                  "min-w-0 min-h-[92px] border-t border-l border-border first:border-l-0 p-1 sm:p-2 text-left text-sm relative transition-colors overflow-hidden " +
                   (c.ocupada
                     ? (hasPropio
                         ? "bg-primary/10 text-primary cursor-not-allowed"
@@ -1331,7 +1331,7 @@ function ClienteCalendar() {
                       <div
                         key={ix}
                         className={
-                          "text-[10px] leading-tight px-1 py-0.5 rounded font-medium truncate " +
+                          "text-[10px] leading-tight px-1 py-0.5 rounded font-medium break-words " +
                           (a.propio
                             ? "bg-primary/15 text-primary"
                             : "bg-destructive/15 text-destructive")
