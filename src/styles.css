@@ -386,7 +386,14 @@
 }
 
 @media screen {
-  .app-content > * { min-width: 0; max-width: 100%; }
+  .app-content > * { min-width: 0; max-width: min(100%, 100rem); margin-inline: auto; }
+  .table-scroll { max-width: 100%; scrollbar-width: auto; scrollbar-color: var(--muted-foreground) var(--secondary); }
+  .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+  .table-scroll::-webkit-scrollbar { height: 10px; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--muted-foreground); border: 2px solid var(--secondary); border-radius: 6px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--secondary); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  :root[data-keyboard-open] [aria-label="Navegación rápida"] { display: none; }
   .app-content .recharts-tooltip-wrapper { max-width: 100%; }
   .app-content .recharts-default-tooltip { max-width: 100%; white-space: normal !important; }
   .safe-alert {
@@ -402,6 +409,7 @@
     padding-left: max(1rem, var(--safe-left));
     padding-right: max(1rem, var(--safe-right));
     padding-bottom: max(1rem, var(--safe-bottom));
+    padding-top: max(1rem, var(--safe-top));
   }
   .safe-sheet {
     max-height: var(--visible-height);

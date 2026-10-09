@@ -9,6 +9,7 @@ export function useVisualViewport() {
       if (viewport.scale !== 1) return;
       document.documentElement.style.setProperty("--visible-height", `${viewport.height}px`);
       document.documentElement.style.setProperty("--visible-top", `${viewport.offsetTop}px`);
+      document.documentElement.toggleAttribute("data-keyboard-open", window.innerHeight - viewport.height > 150);
     };
     update();
     viewport.addEventListener("resize", update);
@@ -18,6 +19,7 @@ export function useVisualViewport() {
       viewport.removeEventListener("scroll", update);
       document.documentElement.style.removeProperty("--visible-height");
       document.documentElement.style.removeProperty("--visible-top");
+      document.documentElement.removeAttribute("data-keyboard-open");
     };
   }, []);
 }
