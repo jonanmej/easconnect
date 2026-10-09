@@ -19,3 +19,6 @@
 - Client calendar availability comes only from the `disponibilidad_calendario` DB function (security definer, role-checked) — other clients' OTs are masked in the database, never via the admin client.
 - ISO week numbers come only from `src/lib/semana-iso.ts` — one rule for all calendars and PDFs.
 - Reports in enviado/aprobado cannot be deleted (trigger `reportes_bloquear_borrado`) — emitted documents are permanent under ISO 9001.
+- Large server files are barrels: `src/lib/reportes.functions.ts` and `src/lib/operations.functions.ts` only re-export from `src/lib/reportes/*` and `src/lib/operations/*` — keeps public import paths stable while modules stay small.
+- Big screens keep only the route and page in `src/routes/_authenticated/*.tsx`; helpers and dialogs live in `src/components/<modulo>/` — non-route files cannot live under src/routes.
+- Month labels come only from `src/lib/nombre-mes.ts` (pure year/month, no time-zone conversion) — local midnight formatted in another zone shifts the month.
