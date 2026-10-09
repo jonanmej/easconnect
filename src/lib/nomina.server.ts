@@ -34,7 +34,8 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
     .gte("fecha", rango.desde)
     .lte("fecha", rango.hasta)
     .order("fecha", { ascending: true });
-  const { colaboradorPrincipal, cuentasDe } = await import("@/lib/nomina-unificaciones");
+  const { cargarUnificaciones } = await import("@/lib/nomina-unificaciones");
+  const { colaboradorPrincipal, cuentasDe } = await cargarUnificaciones(supabase);
   if (rango.tecnico_id) q = q.in("tecnico_id", cuentasDe(colaboradorPrincipal(rango.tecnico_id)));
 
   const [{ data: rowsRaw, error }, { data: feriados }, { data: salarios }] = await Promise.all([

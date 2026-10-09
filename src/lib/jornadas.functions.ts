@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 const LIMITE_ALMUERZO_MIN = 60;
 
@@ -250,18 +251,12 @@ export const listPersonalJornadas = createServerFn({ method: "GET" })
   });
 
 async function requireStaff(context: any) {
-  const [{ data: esAdmin }, { data: esSup }] = await Promise.all([
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" }),
-  ]);
-  if (!esAdmin && !esSup) throw new Error("Solo administradores y supervisores pueden hacer este ajuste.");
+  // Supervisores solo consultan jornadas; crear, corregir o borrar es exclusivo del administrador.
+  await requireRol(context.supabase, context.userId, ["admin"], "Solo los administradores pueden crear, corregir o eliminar marcaciones.");
 }
 
 async function requireAdmin(context: any) {
-  const { data: esAdmin } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId, _role: "admin",
-  });
-  if (!esAdmin) throw new Error("Solo los administradores pueden ver o modificar la información de pagos y salarios.");
+  await requireRol(context.supabase, context.userId, ["admin"], "Solo los administradores pueden ver o modificar la información de pagos y salarios.");
 }
 
 /** Corrección manual de una marcación (solo admin/supervisor). */

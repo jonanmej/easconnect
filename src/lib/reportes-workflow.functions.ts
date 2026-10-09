@@ -1,14 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 async function ensureStaff(supabase: any, userId: string) {
-  const [{ data: a }, { data: s }] = await Promise.all([
-    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
-  ]);
-  if (!a && !s) throw new Error("Solo administradores y supervisores");
-  return { isAdmin: !!a, isSup: !!s };
+  const roles = await requireRol(supabase, userId, STAFF, "Solo administradores y supervisores");
+  return { isAdmin: roles.includes("admin"), isSup: roles.includes("supervisor") };
 }
 
 async function isCliente(supabase: any, userId: string) {
@@ -118,13 +115,21 @@ export const aprobarReporte = createServerFn({ method: "POST" })
     if (rol.isStaff && (rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
       throw new Error("No puedes aprobar un reporte que tú mismo enviaste");
     }
+    if (rol.isCliente) {
+      // El cliente solo puede cambiar estado/motivo mediante la función de base de datos.
+      const { error } = await context.supabase.rpc("responder_reporte_cliente", {
+        _reporte_id: data.id, _aprobar: true, _motivo: data.comentario ?? undefined,
+      });
+      if (error) throw new Error(error.message);
+    } else {
     const { error } = await context.supabase.from("reportes").update({
       estado: "aprobado",
       aprobado_at: new Date().toISOString(),
       aprobado_por: context.userId,
     }).eq("id", data.id);
     if (error) throw new Error(error.message);
-    await logAuditoria(context.supabase, {
+    }
+    if (!rol.isCliente) await logAuditoria(context.supabase, {
       reporte_id: data.id, accion: "aprobar",
       estado_anterior: "enviado", estado_nuevo: "aprobado",
       version: (rep as any).version, comentario: data.comentario ?? null, actor: context.userId,
@@ -152,6 +157,12 @@ export const rechazarReporte = createServerFn({ method: "POST" })
     if (rol.isStaff && (rep as any).enviado_por && (rep as any).enviado_por === context.userId) {
       throw new Error("No puedes rechazar un reporte que tú mismo enviaste");
     }
+    if (rol.isCliente) {
+      const { error } = await context.supabase.rpc("responder_reporte_cliente", {
+        _reporte_id: data.id, _aprobar: false, _motivo: data.motivo,
+      });
+      if (error) throw new Error(error.message);
+    } else {
     const { error } = await context.supabase.from("reportes").update({
       estado: "rechazado",
       rechazado_at: new Date().toISOString(),
@@ -159,7 +170,8 @@ export const rechazarReporte = createServerFn({ method: "POST" })
       motivo_rechazo: data.motivo,
     }).eq("id", data.id);
     if (error) throw new Error(error.message);
-    await logAuditoria(context.supabase, {
+    }
+    if (!rol.isCliente) await logAuditoria(context.supabase, {
       reporte_id: data.id, accion: "rechazar",
       estado_anterior: "enviado", estado_nuevo: "rechazado",
       version: (rep as any).version, comentario: data.motivo, actor: context.userId,

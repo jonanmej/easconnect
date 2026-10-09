@@ -249,6 +249,30 @@ export type Database = {
         }
         Relationships: []
       }
+      colaborador_unificaciones: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cuenta_principal: string
+          cuenta_secundaria: string
+          notas: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cuenta_principal: string
+          cuenta_secundaria: string
+          notas?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cuenta_principal?: string
+          cuenta_secundaria?: string
+          notas?: string | null
+        }
+        Relationships: []
+      }
       contratos_servicio: {
         Row: {
           activo: boolean
@@ -2789,6 +2813,10 @@ export type Database = {
         Returns: string
       }
       reset_operational_data: { Args: never; Returns: undefined }
+      responder_reporte_cliente: {
+        Args: { _aprobar: boolean; _motivo?: string; _reporte_id: string }
+        Returns: undefined
+      }
       validar_token_aprobacion: {
         Args: { _token: string }
         Returns: {

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 import { EMAIL_CATEGORIAS, EMAIL_CATEGORIAS_CONFIG_KEY } from "./email-categorias";
 
 export const PasswordPolicySchema = z.object({
@@ -23,11 +24,7 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
 };
 
 async function assertAdmin(supabase: any, userId: string) {
-  const { data } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (!data) throw new Error("Forbidden: requiere rol admin");
+  await requireRol(supabase, userId, ["admin"], "Forbidden: requiere rol admin");
 }
 
 const OWNER_EMAIL = "proyectos@easervice.app";

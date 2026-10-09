@@ -1,14 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 async function assertStaff(supabase: any, userId: string) {
-  const [{ data: isAdmin }, { data: isSup }] = await Promise.all([
-    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
-  ]);
-  if (!isAdmin && !isSup) throw new Error("Forbidden: requiere rol admin o supervisor");
-  return { isAdmin: !!isAdmin };
+  const roles = await requireRol(supabase, userId, STAFF, "Forbidden: requiere rol admin o supervisor");
+  return { isAdmin: roles.includes("admin") };
 }
 
 /** Lista usuarios asignados (encargados) de un cliente. */

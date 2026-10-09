@@ -8,6 +8,13 @@
       "when": 1791514785364,
       "tag": "0000_bloquear_cambio_cliente_perfil",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791515113407,
+      "tag": "0001_fase1_seguridad_roles",
+      "breakpoints": true
     }
   ]
 }

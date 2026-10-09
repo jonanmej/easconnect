@@ -1,15 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 export type PersonaListado = { user_id?: string | null; nombre: string; dui: string };
 
 async function requireGestor(supabase: any, userId: string) {
-  const [a, s] = await Promise.all([
-    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
-  ]);
-  if (!a.data && !s.data) throw new Error("Solo administradores o supervisores pueden hacer esto.");
+  await requireRol(supabase, userId, STAFF, "Solo administradores o supervisores pueden hacer esto.");
 }
 
 /** Personal interno con su DUI guardado en el perfil (para autocompletar). */

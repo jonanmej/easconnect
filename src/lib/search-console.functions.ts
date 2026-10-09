@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 import { SEO_PANEL_EMAIL } from "@/lib/roles";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_search_console";
@@ -105,6 +106,7 @@ export const getPanelSearchConsole = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<PanelGsc> => {
     const email = String((context.claims as { email?: string }).email ?? "").trim().toLowerCase();
     if (email !== SEO_PANEL_EMAIL) throw new Error("No autorizado.");
+    await requireRol(context.supabase, context.userId, STAFF, "No autorizado.");
 
     const prop = await resolverPropiedad(data.siteUrl);
     if (prop.estado === "seleccion_requerida") {
@@ -165,6 +167,7 @@ export const getEstadoSitemap = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const email = String((context.claims as { email?: string }).email ?? "").trim().toLowerCase();
     if (email !== SEO_PANEL_EMAIL) throw new Error("No autorizado.");
+    await requireRol(context.supabase, context.userId, STAFF, "No autorizado.");
     const prop = await resolverPropiedad(data.siteUrl);
     if (prop.estado === "seleccion_requerida") return { estado: "seleccion_requerida" as const };
     const sitemap = "https://easconnect.lovable.app/sitemap.xml";

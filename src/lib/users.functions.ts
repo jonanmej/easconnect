@@ -1,19 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 import { DEFAULT_PASSWORD_POLICY, PasswordPolicySchema, type PasswordPolicy } from "@/lib/system-config.functions";
 
 const RoleEnum = z.enum(["admin", "supervisor", "tecnico", "cliente"]);
 
 async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) throw new Error("No se pudo verificar permisos");
-  if (!data) throw new Error("Forbidden: requiere rol admin");
+  await requireRol(supabase, userId, ["admin"], "Forbidden: requiere rol admin");
 }
 
 async function obtenerPolitica(): Promise<PasswordPolicy> {

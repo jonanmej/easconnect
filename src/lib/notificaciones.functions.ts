@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF, INTERNO } from "@/lib/auth-roles";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -102,12 +103,7 @@ async function sendGmail(raw: string) {
 }
 
 async function ensureStaff(supabase: any, userId: string) {
-  const [{ data: a }, { data: s }, { data: t }] = await Promise.all([
-    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "supervisor" }),
-    supabase.rpc("has_role", { _user_id: userId, _role: "tecnico" }),
-  ]);
-  if (!a && !s && !t) throw new Error("Solo el staff puede enviar notificaciones");
+  await requireRol(supabase, userId, INTERNO, "Solo el staff puede enviar notificaciones");
 }
 
 const FROM = "EA Service Connect <proyectos@easervice.app>";
