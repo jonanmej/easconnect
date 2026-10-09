@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Polygon } from "@react-pdf/renderer";
+import { formatPotencia } from "@/lib/potencia";
 import { BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { escalaTabla } from "./escala-tabla";
 
@@ -743,8 +744,8 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
             { key: "jornada", head: "Jornada", ancho: 10, align: "center" as const },
             { key: "meta", head: ejec ? "Avance" : "Meta diaria", ancho: 8, align: "center" as const, bold: true },
             { key: "paneles", head: "Paneles", ancho: 8, align: "center" as const },
-            { key: "wpanel", head: "W / panel", ancho: 7, align: "center" as const },
-            { key: "wtot", head: "W totales", ancho: 8, align: "center" as const },
+            { key: "wpanel", head: "Potencia / panel", ancho: 7, align: "center" as const },
+            { key: "wtot", head: "Potencia total", ancho: 8, align: "center" as const },
             { key: "tds", head: "TDS ppm", ancho: 6, align: "center" as const },
             { key: "angulo", head: "Áng. °", ancho: 6, align: "center" as const },
             { key: "presion", head: "Pres. psi", ancho: 6, align: "center" as const },
@@ -771,8 +772,8 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
                   : "—";
               case "meta": return d.avance_pct == null ? "—" : `${d.avance_pct}%`;
               case "paneles": return d.paneles_limpiados ?? "—";
-              case "wpanel": return d.watts_panel ?? "—";
-              case "wtot": return d.watts_totales ?? "—";
+              case "wpanel": return formatPotencia(d.watts_panel, { unidad: "W" });
+              case "wtot": return formatPotencia(d.watts_totales, { unidad: "W" });
               case "tds": return d.tds_ppm ?? "—";
               case "angulo": return d.angulo_inclinacion ?? "—";
               case "presion": return d.presion_agua_psi ?? "—";
