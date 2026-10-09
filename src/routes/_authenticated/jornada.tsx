@@ -447,7 +447,7 @@ function JornadaPage() {
             ))}
           </select>
         )}
-        {isStaff && (
+        {isAdmin && (
           <button
             type="button"
             onClick={() => setCreando(true)}
@@ -504,7 +504,7 @@ function JornadaPage() {
                   <th className="text-left px-3 py-2">Almuerzo</th>
                   <th className="text-right px-3 py-2">Horas efect.</th>
                   <th className="text-left px-3 py-2">Notas</th>
-                  {isStaff && <th className="text-right px-3 py-2">Acciones</th>}
+                  {isAdmin && <th className="text-right px-3 py-2">Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -527,7 +527,7 @@ function JornadaPage() {
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{(f.horas_efectivas ?? 0).toFixed(2)}</td>
                     <td className="px-3 py-2 text-muted-foreground max-w-[220px]">{f.notas ?? "—"}</td>
-                    {isStaff && (
+                    {isAdmin && (
                       <td className="px-3 py-2 text-right whitespace-nowrap">
                         <button
                           type="button"
