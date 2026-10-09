@@ -1546,35 +1546,17 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""\n`
       : "";
 
-    const ZRep = z.object({
-      titulo: z.string(),
-      resumen: z.string(),
-      kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-      hallazgos: z.array(z.string()),
-      recomendaciones: z.array(z.string()),
-    });
-    const system = [
-      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
-      "Consolidas reportes diarios del equipo técnico en un reporte ejecutivo único, formal y trazable.",
-      "Solo usas datos del dataset y del contenido de los PDFs adjuntos; nunca inventas cifras.",
-      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus datos (mediciones, tablas, hallazgos) por sobre suposiciones.",
-      "NUNCA menciones los archivos PDF adjuntos: nada de nombres de archivo, fechas de subida, notas del PDF ni frases como 'según el PDF' o 'en el documento adjunto'. Integra la información como propia del análisis.",
-      "Nunca menciones IA, modelos ni inteligencia artificial.",
-      "Escribes en español, tono profesional, conciso y accionable.",
-      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "AUDIENCIA CLIENTE: este reporte se entrega directamente al cliente dueño de la planta. Enfócate exclusivamente en información de interés para él: avance del servicio, paneles intervenidos, mediciones de calidad (presión de agua PSI, sólidos disueltos TDS, ángulo de inclinación, potencia de paneles en watts), hallazgos sobre la condición de su planta y recomendaciones de cuidado o mantenimiento.",
-      "PROHIBIDO TEMAS INTERNOS: nunca menciones nombres de técnicos ni dotación, horas trabajadas u horas hombre, jornadas o cumplimiento de metas internas, consumo de agua del equipo, bloqueos o problemas de coordinación interna, ni costos. Todo eso es información operativa interna de la empresa y no debe aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_servicio.porcentaje' del dataset. Cítalo tal cual como 'avance del servicio en su planta' (por ejemplo, KPI: 'Avance del servicio': '85%'). No calcules porcentajes propios, no uses porcentajes de los días individuales y nunca hables de metas diarias ni de cumplimiento de metas.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
-      "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si el dataset incluye estas lecturas, deben aparecer sí o sí en los KPIs o en el resumen.",
-    ].join(" ");
-    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+    const ZRep = ZTextoReporte;
+    const system = construirSystemPrompt("cliente");
+    const prompt = `Redacta el texto del reporte ejecutivo final de este trabajo.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\n${FORMATO_RESPUESTA_IA}`;
 
     if (pdfs.length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
       console.warn("[generarEjecutivoDesdeDiarios] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
-    const parseJson = (raw: string): unknown => {
-      let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    const parseJson = parseJsonIA;
+    const _unusedParse = (raw: string): unknown => {
+      let s = raw.trim();
       const start = s.search(/[{[]/);
       const end = s.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
