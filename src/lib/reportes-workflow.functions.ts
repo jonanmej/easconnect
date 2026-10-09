@@ -202,6 +202,9 @@ export const crearNuevaVersionReporte = createServerFn({ method: "POST" })
       titulo: r.titulo.replace(/\s*\(v\d+\)\s*$/i, "") + ` (v${nextVersion})`,
       contenido_markdown: r.contenido_markdown,
       insight_resumen: r.insight_resumen,
+      indicadores: r.indicadores ?? null,
+      desde: r.desde ?? null,
+      hasta: r.hasta ?? null,
       estado: "borrador",
       generado_por: context.userId,
       model_used: r.model_used,
@@ -241,4 +244,25 @@ export const listAuditoriaReporte = createServerFn({ method: "GET" })
       perf = new Map((ps ?? []).map((p: any) => [p.id, p.display_name ?? "—"]));
     }
     return (rows ?? []).map((r: any) => ({ ...r, actor_nombre: perf.get(r.actor) ?? "Sistema" }));
+  });
+/** A2: confirma que las cifras del texto redactado fueron revisadas por una persona. */
+export const marcarRevisionIaReporte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await ensureStaff(context.supabase, context.userId);
+    const { data: rep } = await context.supabase
+      .from("reportes").select("estado, version, revision_ia_detalle").eq("id", data.id).single();
+    if (!rep) throw new Error("Reporte no encontrado");
+    if ((rep as any).estado !== "borrador") throw new Error("Solo se revisan borradores");
+    const { error } = await context.supabase.from("reportes")
+      .update({ revision_ia_pendiente: false }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await logAuditoria(context.supabase, {
+      reporte_id: data.id, accion: "revision_cifras",
+      version: (rep as any).version, actor: context.userId,
+      comentario: "Cifras del texto revisadas manualmente",
+      snapshot: (rep as any).revision_ia_detalle ?? null,
+    });
+    return { ok: true };
   });

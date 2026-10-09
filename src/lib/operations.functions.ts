@@ -108,7 +108,7 @@ export const listClientes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("clientes")
-      .select("id, nombre, contacto, email, telefono, capacidad, estado, contrato_om, solo_capacitacion, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, color_acento, created_at")
+      .select("id, nombre, contacto, email, telefono, capacidad, capacidad_kwp, estado, contrato_om, solo_capacitacion, cuota_preventivos, cuota_correctivos, cuota_menores, cuota_medios, cuota_mayores, cuota_limpiezas, color_acento, created_at")
       .order("nombre");
     if (error) throw new Error(error.message);
     // include planta count
@@ -131,6 +131,7 @@ export const upsertCliente = createServerFn({ method: "POST" })
       email: z.string().email().nullable().optional().or(z.literal("")),
       telefono: z.string().nullable().optional(),
       capacidad: z.string().nullable().optional(),
+      capacidad_kwp: z.coerce.number().min(0).nullable().optional(),
       estado: ClienteEstado,
       contrato_om: z.coerce.boolean().optional(),
       solo_capacitacion: z.coerce.boolean().optional(),
@@ -170,7 +171,7 @@ export const listPlantas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("plantas")
-      .select("id, nombre, ubicacion, paneles, capacidad, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, latitud, longitud, clientes(nombre, color_acento)")
+      .select("id, nombre, ubicacion, paneles, capacidad, capacidad_kwp, eficiencia, ultima_limpieza, cliente_id, notificaciones_completado, email_notificaciones, sla_horas_respuesta, sla_horas_resolucion, latitud, longitud, clientes(nombre, color_acento)")
       .order("nombre");
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
@@ -190,6 +191,7 @@ export const upsertPlanta = createServerFn({ method: "POST" })
       ubicacion: z.string().nullable().optional(),
       paneles: z.coerce.number().int().min(0).default(0),
       capacidad: z.string().nullable().optional(),
+      capacidad_kwp: z.coerce.number().min(0).nullable().optional(),
       eficiencia: z.coerce.number().min(0).max(100).nullable().optional(),
       notificaciones_completado: z.coerce.boolean().optional(),
       email_notificaciones: z.string().email().nullable().optional().or(z.literal("")),

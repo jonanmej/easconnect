@@ -3,6 +3,18 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
+import { formatCapacidadKwp } from "@/lib/potencia";
+import {
+  construirIndicadores,
+  construirSystemPrompt,
+  FORMATO_RESPUESTA_IA,
+  parseJsonIA,
+  ZTextoReporte,
+  type TextoReporte,
+  cifrasPermitidas,
+  verificarCifras,
+  indicadoresMarkdown,
+} from "@/lib/reporte-ia";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -265,7 +277,7 @@ export const listReportes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("reportes")
-      .select("id, cliente_id, planta_id, periodo, titulo, insight_resumen, estado, model_used, created_at, desde, hasta, clientes(nombre), plantas(nombre)")
+      .select("id, cliente_id, planta_id, periodo, titulo, insight_resumen, estado, model_used, created_at, desde, hasta, version, fecha_emision, codigo_documento, version_label, revision_ia_pendiente, revision_ia_detalle, clientes(nombre), plantas(nombre)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: any) => ({
@@ -371,7 +383,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const { data: cliente } = await supabase.from("clientes").select("nombre").eq("id", data.cliente_id).single();
     const plantaId = data.planta_id ?? null;
     const { data: planta } = plantaId
-      ? await supabase.from("plantas").select("nombre, ubicacion, paneles, capacidad, eficiencia").eq("id", plantaId).single()
+      ? await supabase.from("plantas").select("nombre, ubicacion, paneles, capacidad_kwp, eficiencia").eq("id", plantaId).single()
       : { data: null };
 
     const [{ data: plantasCliente }, { data: clientesTodos }] = await Promise.all([
@@ -550,6 +562,12 @@ export const generarReporte = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     // Avance real por OT (mismo cálculo que la tarjeta de avance de la OT).
     const avancesRealesCtx: Map<string, AvanceOT> = await avanceRealPorTrabajo(supabase, tIdsArr);
+    // A2: los indicadores los arma el sistema; la IA solo los lee.
+    const indicadoresSistema = construirIndicadores(
+      diariosConsolidados as any[],
+      kpisAvanceReal(avancesRealesCtx, folioPorId as Map<string, string>),
+      "interno",
+    );
 
     const datasetCtxRaw = {
 
@@ -558,7 +576,16 @@ export const generarReporte = createServerFn({ method: "POST" })
       periodo: data.periodo,
       servicio: data.servicio ?? "Todos los servicios",
       ventana: { desde: data.desde, hasta: data.hasta },
-      planta_meta: planta ?? null,
+      planta_meta: planta
+        ? {
+            nombre: (planta as any).nombre,
+            ubicacion: (planta as any).ubicacion,
+            paneles: (planta as any).paneles,
+            capacidad_instalada: (planta as any).capacidad_kwp != null ? formatCapacidadKwp((planta as any).capacidad_kwp) : null,
+            eficiencia: (planta as any).eficiencia,
+          }
+        : null,
+      indicadores_calculados: indicadoresSistema,
       kpis: {
         trabajos_total: trabajos.length,
         trabajos_completados: trabajos.filter((t: any) => t.estado === "completado").length,
@@ -673,54 +700,20 @@ export const generarReporte = createServerFn({ method: "POST" })
       : "";
     const usarAdjuntosPdf = pdfParts.length > 0 && pdfTextos.length === 0;
 
-    let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
-    const ZReporte = z.object({
-      titulo: z.string(),
-      resumen: z.string(),
-      kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-      hallazgos: z.array(z.string()),
-      recomendaciones: z.array(z.string()),
-    });
-    const system = [
-      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
-      "Redactas reportes ejecutivos en español, formales y trazables.",
-      "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
-      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus mediciones, tablas y hallazgos por sobre el resumen JSON del dataset.",
-      "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
-      "NUNCA menciones los archivos PDF adjuntos: no cites nombres de archivo, no digas 'según el PDF', 'en el documento adjunto', 'archivo del día X', ni referencias a fechas de subida, notas del PDF ni al origen documental. Integra la información como propia del análisis operativo.",
-      "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
-      "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
-      "Tono profesional, conciso, accionable.",
-      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "Si encuentras placeholders con formato @@NOMBRE_CANONICO_N@@, consérvalos exactamente; representan nombres oficiales que serán restaurados después.",
-      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS del agua utilizada (ppm), ángulo de inclinación de los paneles (°), presión de agua (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Para TDS, ángulo de inclinación y presión de agua NO calcules promedios: enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_por_ot[].porcentaje'. Cítalo como 'avance del servicio' de esa OT (por ejemplo, KPI: 'Avance del servicio OT T-123': '100%'). Los reportes diarios NO contienen porcentajes: no calcules, estimes ni inventes porcentajes por día, y nunca hables de 'meta diaria' ni de 'cumplimiento de la meta'.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
-    ].join(" ");
+    let aiResult!: TextoReporte;
+    const ZReporte = ZTextoReporte;
+    const system = construirSystemPrompt("interno");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
       : "";
-    const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).${servicioLine}
+    const prompt = `Redacta el texto del reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).${servicioLine}
 
 Datos:
 ${JSON.stringify(datasetCtx, null, 2)}
 ${contenidoPdfsBloque}
-Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, sin texto adicional) con esta forma exacta:
-{
-  "titulo": "string (título atractivo)",
-  "resumen": "string (resumen ejecutivo de 2-3 párrafos)",
-  "kpis": [{"label": "string", "value": "string"}],  // 3 a 5 elementos
-  "hallazgos": ["string"],                           // 2 a 4 elementos
-  "recomendaciones": ["string"]                      // 2 a 4 elementos
-}`;
+${FORMATO_RESPUESTA_IA}`;
 
-    const parseJson = (raw: string): unknown => {
-      let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const start = s.search(/[{[]/);
-      const end = s.lastIndexOf("}");
-      if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
-      s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
-      return JSON.parse(s);
-    };
+    const parseJson = parseJsonIA;
 
     const proveedor: Proveedor = (data as any).proveedor ?? "auto";
     const attempts = buildAttempts(proveedor);
@@ -786,25 +779,17 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
 
     // Restaurar placeholders de nombres oficiales sin aplicar correcciones por similitud.
     const fix = (s: string) => protectorNombres.restaurarTexto(s);
-    const metaDiariaKpis = kpisAvanceReal(
-      await avanceRealPorTrabajo(
-        supabase,
-        Array.from(new Set(((reportesDiarios ?? []) as any[]).map((d) => d.trabajo_id).filter(Boolean))) as string[],
-      ),
-      folioPorId as Map<string, string>,
-    );
-    const kpisHumanizados = aiResult.kpis.map((k) => ({
-      label: humanizarTexto(fix(k.label)),
-      value: humanizarTexto(fix(k.value)),
-    }));
     aiResult = {
-      ...aiResult,
       titulo: humanizarTexto(fix(aiResult.titulo)),
       resumen: humanizarTexto(fix(aiResult.resumen)),
-      kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis),
       hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
       recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
     };
+    // Verificación de cifras: todo número del texto debe existir en los datos.
+    const cifrasSinRespaldo = verificarCifras(
+      aiResult,
+      cifrasPermitidas(datasetCtxRaw, indicadoresSistema, pdfTextos, data.desde, data.hasta),
+    );
 
     const markdown = [
       `# ${aiResult.titulo}`,
@@ -815,7 +800,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       aiResult.resumen,
       ``,
       `## KPIs`,
-      ...aiResult.kpis.map((k) => `- **${k.label}:** ${k.value}`),
+      ...indicadoresMarkdown(indicadoresSistema),
       ``,
       `## Hallazgos`,
       ...aiResult.hallazgos.map((h) => `- ${h}`),
@@ -836,6 +821,9 @@ Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, si
       model_used: modelUsed,
       desde: desdeTs,
       hasta: hastaTs,
+      indicadores: indicadoresSistema,
+      revision_ia_pendiente: cifrasSinRespaldo.length > 0,
+      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
@@ -942,11 +930,22 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       diarios = dd ?? [];
     }
     const avancesReales = await avanceRealPorTrabajo(supabase, trabajos.map((t) => t.id));
-    kpis = combinarKpisConMetaDiaria(
-      kpis,
-      kpisAvanceReal(avancesReales, new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
-      audiencia,
-    );
+    // A2: los indicadores salen de los datos, no del texto de la IA.
+    const guardados = Array.isArray((rep as any).indicadores) ? ((rep as any).indicadores as ReporteKpi[]) : null;
+    if (guardados && guardados.length) {
+      const internos = /^(Horas trabajadas|Agua utilizada)$/i;
+      kpis = normalizarKpisMetaDiaria(
+        audiencia === "cliente" ? guardados.filter((k) => !internos.test(k.label)) : guardados,
+        audiencia,
+      );
+    } else {
+      const { consolidarDiarios: cd } = await import("@/lib/consolidar-diarios");
+      kpis = construirIndicadores(
+        cd(diarios as any[], new Map()) as any[],
+        kpisAvanceReal(avancesReales, new Map(trabajos.map((t) => [t.id, t.folio])), audiencia),
+        audiencia,
+      );
+    }
     const diarioIds = diarios.map((d: any) => d.id).filter(Boolean);
 
     // Snapshots del layout satelital con las zonas marcadas por día.
@@ -1304,7 +1303,14 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       planta: (rep as any).plantas?.nombre ?? "Todas las plantas",
       periodo: (rep as any).periodo,
       modelo: (rep as any).model_used,
-      emitido_at: new Date((rep as any).created_at).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" }),
+      // A3: fecha de emisión real guardada por la base de datos (borrador = sin emitir).
+      emitido_at: (rep as any).fecha_emision
+        ? new Date((rep as any).fecha_emision).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", year: "numeric", month: "long", day: "numeric" })
+        : "Borrador — sin emitir",
+      documento_codigo: (rep as any).codigo_documento ?? "BORRADOR",
+      documento_version: String((rep as any).version_label ?? `v${(rep as any).version ?? 1}.0`).replace(/^v/i, ""),
+      folio_ot: folioReporte ?? (trabajos.length === 1 ? trabajos[0].folio : null),
+      revision_ia_pendiente: !!(rep as any).revision_ia_pendiente,
       resumen,
       kpis,
       hallazgos,
@@ -1477,8 +1483,15 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     };
     // Avance real del servicio (zonas del mapa → paneles sobre el parque de la
     // planta), el mismo número que muestra la tarjeta de avance de la OT.
-    const avanceOT = (await avanceRealPorTrabajo(supabase, [data.trabajo_id])).get(data.trabajo_id) ?? null;
+    const avancesMapa = await avanceRealPorTrabajo(supabase, [data.trabajo_id]);
+    const avanceOT = avancesMapa.get(data.trabajo_id) ?? null;
+    const indicadoresSistema = construirIndicadores(
+      consolidados as any[],
+      kpisAvanceReal(avancesMapa, new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]), "cliente"),
+      "cliente",
+    );
     const dataset = {
+      indicadores_calculados: indicadoresSistema,
       cliente: cliente?.nombre,
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
@@ -1551,41 +1564,15 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       ? `\n\nContenido operativo extraído de los reportes de campo (integrar como propio del análisis, sin citar origen):\n"""\n${pdfTextos.map((t, i) => `--- Registro ${i + 1} ---\n${t}`).join("\n\n")}\n"""\n`
       : "";
 
-    const ZRep = z.object({
-      titulo: z.string(),
-      resumen: z.string(),
-      kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-      hallazgos: z.array(z.string()),
-      recomendaciones: z.array(z.string()),
-    });
-    const system = [
-      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
-      "Consolidas reportes diarios del equipo técnico en un reporte ejecutivo único, formal y trazable.",
-      "Solo usas datos del dataset y del contenido de los PDFs adjuntos; nunca inventas cifras.",
-      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus datos (mediciones, tablas, hallazgos) por sobre suposiciones.",
-      "NUNCA menciones los archivos PDF adjuntos: nada de nombres de archivo, fechas de subida, notas del PDF ni frases como 'según el PDF' o 'en el documento adjunto'. Integra la información como propia del análisis.",
-      "Nunca menciones IA, modelos ni inteligencia artificial.",
-      "Escribes en español, tono profesional, conciso y accionable.",
-      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "AUDIENCIA CLIENTE: este reporte se entrega directamente al cliente dueño de la planta. Enfócate exclusivamente en información de interés para él: avance del servicio, paneles intervenidos, mediciones de calidad (presión de agua PSI, sólidos disueltos TDS, ángulo de inclinación, potencia de paneles en watts), hallazgos sobre la condición de su planta y recomendaciones de cuidado o mantenimiento.",
-      "PROHIBIDO TEMAS INTERNOS: nunca menciones nombres de técnicos ni dotación, horas trabajadas u horas hombre, jornadas o cumplimiento de metas internas, consumo de agua del equipo, bloqueos o problemas de coordinación interna, ni costos. Todo eso es información operativa interna de la empresa y no debe aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_servicio.porcentaje' del dataset. Cítalo tal cual como 'avance del servicio en su planta' (por ejemplo, KPI: 'Avance del servicio': '85%'). No calcules porcentajes propios, no uses porcentajes de los días individuales y nunca hables de metas diarias ni de cumplimiento de metas.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español. No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
-      "MEDICIONES: para TDS, ángulo de inclinación y presión de agua NO calcules promedios. Enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si el dataset incluye estas lecturas, deben aparecer sí o sí en los KPIs o en el resumen.",
-    ].join(" ");
-    const prompt = `Consolida el siguiente trabajo en un reporte ejecutivo final.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\nResponde EXCLUSIVAMENTE con JSON válido:\n{"titulo":"string","resumen":"string","kpis":[{"label":"string","value":"string"}],"hallazgos":["string"],"recomendaciones":["string"]}`;
+    const ZRep = ZTextoReporte;
+    const system = construirSystemPrompt("cliente");
+    const prompt = `Redacta el texto del reporte ejecutivo final de este trabajo.\n\nDataset:\n${JSON.stringify(dataset, null, 2)}\n${contenidoPdfsBloque}\n${FORMATO_RESPUESTA_IA}`;
 
     if (pdfs.length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
       console.warn("[generarEjecutivoDesdeDiarios] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
-    const parseJson = (raw: string): unknown => {
-      let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-      const start = s.search(/[{[]/);
-      const end = s.lastIndexOf("}");
-      if (start === -1 || end === -1) throw new Error("Respuesta sin JSON");
-      s = s.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1");
-      return JSON.parse(s);
-    };
+    const parseJson = parseJsonIA;
 
     // Si hay PDFs adjuntos, llamamos al gateway directamente (chat completions
     // multimodal). Si no, mantenemos el camino con AI SDK (generateText).
@@ -1661,20 +1648,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
-      const metaDiariaKpis = kpisAvanceReal(
-        await avanceRealPorTrabajo(supabase, [data.trabajo_id]),
-        new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
-        "cliente",
-      );
-      const kpisHumanizados = aiResult.kpis.map((k) => ({
-        label: humanizarTexto(fix(k.label)),
-        value: humanizarTexto(fix(k.value)),
-      }));
       aiResult = {
-        ...aiResult,
         titulo: humanizarTexto(fix(aiResult.titulo)),
         resumen: humanizarTexto(fix(aiResult.resumen)),
-        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis, "cliente"),
         hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
         recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
@@ -1686,13 +1662,18 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       return fechas[0] === fechas[fechas.length - 1] ? fechas[0] : `${fechas[0]} a ${fechas[fechas.length - 1]}`;
     })();
 
+    const cifrasSinRespaldo = verificarCifras(
+      aiResult,
+      cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, (trabajo as any).folio),
+    );
+
     const markdown = [
       `# ${aiResult.titulo}`,
       ``,
       `**Cliente:** ${cliente?.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${(trabajo as any).folio} · **Periodo:** ${periodo}`,
       ``,
       `## Resumen ejecutivo`, aiResult.resumen, ``,
-      `## KPIs`, ...aiResult.kpis.map((k) => `- **${k.label}:** ${k.value}`), ``,
+      `## KPIs`, ...indicadoresMarkdown(indicadoresSistema), ``,
       `## Hallazgos`, ...aiResult.hallazgos.map((h) => `- ${h}`), ``,
       `## Recomendaciones`, ...aiResult.recomendaciones.map((r) => `- ${r}`),
     ].join("\n");
@@ -1707,6 +1688,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       estado: "borrador",
       generado_por: context.userId,
       model_used: modelUsed,
+      indicadores: indicadoresSistema,
+      revision_ia_pendiente: cifrasSinRespaldo.length > 0,
+      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;

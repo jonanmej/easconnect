@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatCapacidadKwp } from "@/lib/potencia";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -85,7 +86,7 @@ function Plantas() {
       cliente_id: f.get("cliente_id"),
       ubicacion: f.get("ubicacion") || null,
       paneles: f.get("paneles") || 0,
-      capacidad: f.get("capacidad") || null,
+      capacidad_kwp: f.get("capacidad_kwp") || null,
       eficiencia: f.get("eficiencia") || null,
       notificaciones_completado: f.get("notificaciones_completado") === "on",
       email_notificaciones: f.get("email_notificaciones") || "",
@@ -185,7 +186,7 @@ function Plantas() {
                       </div>
                       <div>
                         <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
-                        <p className="font-medium">{p.capacidad ?? "—"}</p>
+                        <p className="font-medium">{formatCapacidadKwp(p.capacidad_kwp)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Eficiencia</p>
@@ -293,8 +294,8 @@ function Plantas() {
           <Field label="Paneles">
             <input name="paneles" type="number" min="0" defaultValue={editing?.paneles ?? 0} className={inputCls} />
           </Field>
-          <Field label="Capacidad">
-            <input name="capacidad" defaultValue={editing?.capacidad ?? ""} className={inputCls} placeholder="32 MW" />
+          <Field label="Capacidad (kWp)">
+            <input name="capacidad_kwp" type="number" step="0.01" min="0" defaultValue={editing?.capacidad_kwp ?? ""} className={inputCls} placeholder="1552.9" />
           </Field>
           <Field label="Eficiencia (%)">
             <input name="eficiencia" type="number" step="0.1" min="0" max="100" defaultValue={editing?.eficiencia ?? ""} className={inputCls} />
