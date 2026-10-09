@@ -369,7 +369,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     .slice(0, 4);
 
   return (
-    <div className="app-viewport flex w-full overflow-hidden bg-background text-foreground">
+    <div className="app-shell app-viewport flex w-full overflow-hidden bg-background text-foreground">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-primary focus:text-primary-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
