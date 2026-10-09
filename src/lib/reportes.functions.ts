@@ -700,45 +700,18 @@ export const generarReporte = createServerFn({ method: "POST" })
       : "";
     const usarAdjuntosPdf = pdfParts.length > 0 && pdfTextos.length === 0;
 
-    let aiResult!: { titulo: string; resumen: string; kpis: { label: string; value: string }[]; hallazgos: string[]; recomendaciones: string[] };
-    const ZReporte = z.object({
-      titulo: z.string(),
-      resumen: z.string(),
-      kpis: z.array(z.object({ label: z.string(), value: z.string() })),
-      hallazgos: z.array(z.string()),
-      recomendaciones: z.array(z.string()),
-    });
-    const system = [
-      "Eres un analista senior de calidad y mantenimiento solar/térmico de EA SERVICE AND CONSULTING.",
-      "Redactas reportes ejecutivos en español, formales y trazables.",
-      "Te basas ESTRICTAMENTE en los datos provistos: no inventes cifras, no estimes lo que no esté en el dataset.",
-      "Cuando existan PDFs adjuntos, léelos íntegramente y prioriza sus mediciones, tablas y hallazgos por sobre el resumen JSON del dataset.",
-      "Cita la naturaleza de la evidencia (registros operativos, mantenimientos, evidencias, reportes técnicos) en lugar de 'según la IA' o 'el modelo'.",
-      "NUNCA menciones los archivos PDF adjuntos: no cites nombres de archivo, no digas 'según el PDF', 'en el documento adjunto', 'archivo del día X', ni referencias a fechas de subida, notas del PDF ni al origen documental. Integra la información como propia del análisis operativo.",
-      "NUNCA menciones que el reporte fue generado por inteligencia artificial, modelo de lenguaje, IA, chatbot ni nada similar. Habla siempre como el equipo de calidad de la empresa.",
-      "Estructura cada hallazgo con: condición observada, evidencia/origen del dato y posible causa. Cada recomendación con: acción, responsable sugerido y criterio de cierre (medible).",
-      "Tono profesional, conciso, accionable.",
-      "CRÍTICO: reproduce los nombres propios (cliente, planta, ubicación, personas) EXACTAMENTE como aparecen en el dataset. Nunca alteres su ortografía, acentos, dobles letras ni espacios.",
-      "Si encuentras placeholders con formato @@NOMBRE_CANONICO_N@@, consérvalos exactamente; representan nombres oficiales que serán restaurados después.",
-      "OBLIGATORIO: cuando el dataset incluya reportes diarios, debes incorporar en KPIs y/o hallazgos las mediciones operativas clave: TDS del agua utilizada (ppm), ángulo de inclinación de los paneles (°), presión de agua (PSI), watts totales recuperados (suma de watts_totales) y paneles limpiados. Para TDS, ángulo de inclinación y presión de agua NO calcules promedios: enumera cada lectura junto con la fecha en que se tomó (por ejemplo, 'TDS: 320 ppm el 12-mar-2026 y 285 ppm el 14-mar-2026'). Si alguno de estos campos tiene valor, DEBE aparecer en el reporte.",
-      "PORCENTAJES DE AVANCE: el ÚNICO porcentaje de avance permitido es 'avance_por_ot[].porcentaje'. Cítalo como 'avance del servicio' de esa OT (por ejemplo, KPI: 'Avance del servicio OT T-123': '100%'). Los reportes diarios NO contienen porcentajes: no calcules, estimes ni inventes porcentajes por día, y nunca hables de 'meta diaria' ni de 'cumplimiento de la meta'.", "REDACCIÓN NATURAL: nunca copies literalmente identificadores técnicos del dataset (p. ej. 'paneles_limpiados', 'horas_trabajadas', 'avance_pct', 'watts_totales', 'tds_ppm', 'angulo_inclinacion', 'presion_agua_psi', 'en_progreso', 'hallazgos'). Redáctalos como frases naturales en español ('paneles limpiados', 'horas trabajadas', 'porcentaje de avance', 'watts totales', 'TDS (ppm)', 'ángulo de inclinación', 'presión de agua (PSI)', 'en progreso'). No uses guiones bajos, ni comillas envolviendo palabras sueltas, ni notación tipo snake_case en el texto final.",
-    ].join(" ");
+    let aiResult!: TextoReporte;
+    const ZReporte = ZTextoReporte;
+    const system = construirSystemPrompt("interno");
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
       : "";
-    const prompt = `Genera un reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).${servicioLine}
+    const prompt = `Redacta el texto del reporte ejecutivo para el cliente "${datasetCtx.cliente}" sobre el periodo ${datasetCtx.periodo} (${data.desde} a ${data.hasta}).${servicioLine}
 
 Datos:
 ${JSON.stringify(datasetCtx, null, 2)}
 ${contenidoPdfsBloque}
-Responde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin \`\`\`, sin texto adicional) con esta forma exacta:
-{
-  "titulo": "string (título atractivo)",
-  "resumen": "string (resumen ejecutivo de 2-3 párrafos)",
-  "kpis": [{"label": "string", "value": "string"}],  // 3 a 5 elementos
-  "hallazgos": ["string"],                           // 2 a 4 elementos
-  "recomendaciones": ["string"]                      // 2 a 4 elementos
-}`;
+${FORMATO_RESPUESTA_IA}`;
 
     const parseJson = (raw: string): unknown => {
       let s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
