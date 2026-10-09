@@ -57,8 +57,8 @@ export const eliminarReporte = createServerFn({ method: "POST" })
     const { data: isSup } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
     if (!isAdmin && !isSup) throw new Error("Solo administradores o supervisores pueden eliminar reportes");
     const { data: rep } = await context.supabase.from("reportes").select("estado").eq("id", data.id).maybeSingle();
-    if (rep && ["enviado", "aprobado"].includes(String((rep as any).estado))) {
-      throw new Error(`Este reporte ya fue emitido (${(rep as any).estado}) y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo crea una nueva versión.`);
+    if (rep && ["enviado", "aprobado"].includes(String((rep).estado))) {
+      throw new Error(`Este reporte ya fue emitido (${(rep).estado}) y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo crea una nueva versión.`);
     }
     const { error } = await context.supabase.from("reportes").delete().eq("id", data.id);
     if (error) {
@@ -74,7 +74,7 @@ export const resetDatosOperacionales = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Solo administradores pueden reiniciar los datos");
-    const email = String((context.claims as any)?.email ?? "").toLowerCase();
+    const email = String((context.claims)?.email ?? "").toLowerCase();
     if (email !== "proyectos@easervice.app") {
       throw new Error("Forbidden: acción restringida al propietario");
     }
@@ -100,7 +100,7 @@ export const getResponsableReporte = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { data: rep } = await context.supabase
       .from("reportes").select("generado_por").eq("id", data.reporte_id).single();
-    const uid = (rep as any)?.generado_por ?? context.userId;
+    const uid = (rep)?.generado_por ?? context.userId;
     const { data: p } = await context.supabase
       .from("profiles").select("display_name, nombres, apellidos, cargo")
       .eq("id", uid).maybeSingle();

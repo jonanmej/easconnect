@@ -26,7 +26,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       .eq("id", data.trabajo_id)
       .single();
     if (tErr) throw new Error(tErr.message);
-    const planta = (trabajo as any).plantas;
+    const planta = (trabajo).plantas;
     const cliente = planta?.clientes;
     if (!cliente?.id) throw new Error("Trabajo sin cliente asociado.");
 
@@ -79,14 +79,14 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const avanceOT = avancesMapa.get(data.trabajo_id) ?? null;
     const indicadoresSistema = construirIndicadores(
       consolidados as any[],
-      kpisAvanceReal(avancesMapa, new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]), "cliente"),
+      kpisAvanceReal(avancesMapa, new Map([[data.trabajo_id, String((trabajo).folio ?? "—")]]), "cliente"),
       "cliente",
     );
     const dataset = {
       indicadores_calculados: indicadoresSistema,
       cliente: cliente?.nombre,
       planta: planta?.nombre,
-      trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
+      trabajo: { folio: (trabajo).folio, servicio: (trabajo).servicio, notas: (trabajo).notas },
       total_dias_reportados: diarios.length,
       avance_servicio: avanceOT
         ? {
@@ -256,13 +256,13 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
 
     const cifrasSinRespaldo = verificarCifras(
       aiResult,
-      cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, (trabajo as any).folio),
+      cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, (trabajo).folio),
     );
 
     const markdown = [
       `# ${aiResult.titulo}`,
       ``,
-      `**Cliente:** ${cliente?.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${(trabajo as any).folio} · **Periodo:** ${periodo}`,
+      `**Cliente:** ${cliente?.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${(trabajo).folio} · **Periodo:** ${periodo}`,
       ``,
       `## Resumen ejecutivo`, aiResult.resumen, ``,
       `## KPIs`, ...indicadoresMarkdown(indicadoresSistema), ``,

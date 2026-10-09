@@ -230,11 +230,11 @@ export const generarReporte = createServerFn({ method: "POST" })
       ventana: { desde: data.desde, hasta: data.hasta },
       planta_meta: planta
         ? {
-            nombre: (planta as any).nombre,
-            ubicacion: (planta as any).ubicacion,
-            paneles: (planta as any).paneles,
-            capacidad_instalada: (planta as any).capacidad_kwp != null ? formatCapacidadKwp((planta as any).capacidad_kwp) : null,
-            eficiencia: (planta as any).eficiencia,
+            nombre: (planta).nombre,
+            ubicacion: (planta).ubicacion,
+            paneles: (planta).paneles,
+            capacidad_instalada: (planta).capacidad_kwp != null ? formatCapacidadKwp((planta).capacidad_kwp) : null,
+            eficiencia: (planta).eficiencia,
           }
         : null,
       indicadores_calculados: indicadoresSistema,
@@ -329,7 +329,7 @@ export const generarReporte = createServerFn({ method: "POST" })
         let bin = "";
         const CHUNK = 0x8000;
         for (let i = 0; i < buf.byteLength; i += CHUNK) {
-          bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)) as any);
+          bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)));
         }
         const b64 = btoa(bin);
         if (b64.length > 0) {
@@ -367,7 +367,7 @@ ${FORMATO_RESPUESTA_IA}`;
 
     const parseJson = parseJsonIA;
 
-    const proveedor: Proveedor = (data as any).proveedor ?? "auto";
+    const proveedor: Proveedor = (data).proveedor ?? "auto";
     const attempts = buildAttempts(proveedor);
     let lastErr: any = null;
     let ok = false;

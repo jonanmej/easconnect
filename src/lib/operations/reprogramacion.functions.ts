@@ -30,20 +30,20 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       .from("trabajos").select("tecnico_id, duracion_dias, planta_id, servicio, notas").eq("id", data.id).single();
     if (excepcion) {
       const nota = notaExcepcion(excepcion, patch.fecha_programada);
-      patch.notas = [String((trabajoActual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n");
+      patch.notas = [String((trabajoActual)?.notas ?? "").trim(), nota].filter(Boolean).join("\n");
     }
     await validarEquiposDisponibles(context.supabase, {
       equipoIds: await equiposDeTrabajo(context.supabase, data.id),
       fechaProgramada: patch.fecha_programada,
-      duracionDias: (trabajoActual as any)?.duracion_dias ?? 1,
+      duracionDias: (trabajoActual)?.duracion_dias ?? 1,
       excluirTrabajoId: data.id,
     });
     const tecnicoFinal = data.tecnico_id !== undefined
       ? (data.tecnico_id || null)
-      : ((trabajoActual as any)?.tecnico_id ?? null);
+      : ((trabajoActual)?.tecnico_id ?? null);
     if (tecnicoFinal) {
-      const dur = Math.max(1, Number((trabajoActual as any)?.duracion_dias ?? 1));
-      const { data: conflictos } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+      const dur = Math.max(1, Number((trabajoActual)?.duracion_dias ?? 1));
+      const { data: conflictos } = await context.supabase.rpc("verificar_conflicto_tecnico", {
         _tecnico_id: tecnicoFinal,
         _fecha: patch.fecha_programada,
         _duracion_dias: dur,
@@ -57,7 +57,7 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
       .from("trabajos").update(patch).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
     // Notificar si hubo cambio de técnico
-    const tecnicoPrev = (trabajoActual as any)?.tecnico_id ?? null;
+    const tecnicoPrev = (trabajoActual)?.tecnico_id ?? null;
     if (tecnicoFinal && tecnicoFinal !== tecnicoPrev) {
       try {
         const { notificarAsignacionTecnico } = await import("@/lib/notificaciones-tecnico.server");
@@ -113,8 +113,8 @@ export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
       .eq("id", data.id).single();
     const tecnicoFinal = data.tecnico_id !== undefined
       ? (data.tecnico_id || null)
-      : ((trabajo as any)?.tecnico_id ?? null);
-    const dur = Math.max(1, Number((trabajo as any)?.duracion_dias ?? 1));
+      : ((trabajo)?.tecnico_id ?? null);
+    const dur = Math.max(1, Number((trabajo)?.duracion_dias ?? 1));
     const { motivoNoLaborableSV } = await import("@/lib/dias-habiles");
     await ensureFeriadosCargados(context.supabase, data.desde);
     const cursor = new Date(data.desde);
@@ -133,7 +133,7 @@ export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
         // 2) Conflictos por técnico
         let sinTecnicoConflict = true;
         if (tecnicoFinal) {
-          const { data: cts } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
+          const { data: cts } = await context.supabase.rpc("verificar_conflicto_tecnico", {
             _tecnico_id: tecnicoFinal,
             _fecha: fechaISO,
             _duracion_dias: dur,
@@ -218,7 +218,7 @@ export const moverDiaTrabajo = createServerFn({ method: "POST" })
       const nota = notaExcepcion(excepcion, destinoISO);
       await context.supabase
         .from("trabajos")
-        .update({ notas: [String((actual as any)?.notas ?? "").trim(), nota].filter(Boolean).join("\n") })
+        .update({ notas: [String((actual)?.notas ?? "").trim(), nota].filter(Boolean).join("\n") })
         .eq("id", trabajo_id);
     }
 

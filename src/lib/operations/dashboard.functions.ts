@@ -6,7 +6,7 @@ export const dashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     // Una sola ida y vuelta a la base de datos (RPC agregada) — mucho más rápido cuando hay muchas OTs.
-    const { data, error } = await context.supabase.rpc("dashboard_kpis_v1" as any);
+    const { data, error } = await context.supabase.rpc("dashboard_kpis_v1");
     if (error) throw new Error(error.message);
     const k: any = data ?? {};
     const paneles_parque = Number(k.paneles_parque ?? 0);
