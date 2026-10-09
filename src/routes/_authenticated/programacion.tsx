@@ -1358,6 +1358,7 @@ function ClienteCalendar() {
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary/40 border border-primary/30" /> Tu programación</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40 border border-destructive/30" /> Reservado</span>
       </div>
+      </>)}
 
       <RecordDialog
         open={!!pickDate}
