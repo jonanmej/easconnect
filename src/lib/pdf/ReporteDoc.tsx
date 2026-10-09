@@ -212,6 +212,8 @@ export type ReporteData = {
   documento_id?: string;
   documento_codigo?: string;
   documento_version?: string;
+  /** Folio de la OT: el reporte se identifica por código + folio + versión. */
+  folio_ot?: string | null;
   documento_clasificacion?: string;
   documento_hash?: string;
   modo: "ejecutivo" | "interno";
@@ -362,7 +364,8 @@ function PageHeader({ data, pageName }: { data: ReporteData; pageName: string })
         <View style={styles.headerRight}>
           <Text style={styles.headerRightTop}>{data.cliente}</Text>
           <Text style={styles.headerRightBot}>{data.periodo}</Text>
-          <Text style={styles.headerRightBot}>{codigo}</Text>
+          <Text style={styles.headerRightBot}>{codigo}{data.folio_ot ? ` · OT ${data.folio_ot}` : ""}</Text>
+          <Text style={styles.headerRightBot}>Emitido: {data.emitido_at}</Text>
           <Text style={styles.headerRightBot}>{clasif}</Text>
         </View>
       </View>
@@ -528,6 +531,7 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
               )}
               <View style={styles.metaRow}><Text style={styles.metaLabel}>ID Doc.</Text><Text style={styles.metaValue}>{(data.documento_id ?? "").slice(0, 8).toUpperCase() || "—"}</Text></View>
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Código</Text><Text style={styles.metaValue}>{data.documento_codigo ?? "REP"} · v{data.documento_version ?? "1.0"}</Text></View>
+              {data.folio_ot && (<View style={styles.metaRow}><Text style={styles.metaLabel}>OT</Text><Text style={styles.metaValue}>{data.folio_ot}</Text></View>)}
               <View style={styles.metaRow}><Text style={styles.metaLabel}>Clasificación</Text><Text style={styles.metaValue}>{data.documento_clasificacion ?? "Uso interno"}</Text></View>
             </View>
           </View>
