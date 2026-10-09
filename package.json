@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "check:redeclare": "eslint . --config eslint.check.config.js",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
