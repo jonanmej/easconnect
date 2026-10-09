@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { nombreMes, nombreMesAnioDe } from "@/lib/nombre-mes";
 import { isoWeek } from "@/lib/semana-iso";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
@@ -464,7 +465,7 @@ function Programacion() {
     vista === "semana"
       ? `Semana del ${cursor.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", day: "2-digit", month: "short" })}`
       : vista === "mes"
-        ? cursor.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" })
+        ? nombreMesAnioDe(cursor)
         : String(cursor.getFullYear());
 
   return (
@@ -882,7 +883,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
         className={"w-full text-left px-3 pt-3 transition-colors " + (onClick ? "hover:bg-secondary/40" : "cursor-default")}
       >
         <p className="text-xs font-bold uppercase tracking-wider mb-2 capitalize">
-          {first.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long" })}
+          {nombreMes(month)}
         </p>
       <div className="px-0 pb-2">
       <div style={{ gridTemplateColumns: `24px repeat(${nDias},1fr)` }} className="grid gap-y-0.5 text-[9px] text-muted-foreground">
@@ -1036,7 +1037,7 @@ function ProgramacionPrintDoc({ trabajos, headerTitle }: { trabajos: any[]; head
 }
 
 function startOfMonth(d: Date) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
-function fmtMonth(d: Date) { return d.toLocaleDateString("es-SV", { timeZone: "America/El_Salvador", month: "long", year: "numeric" }); }
+function fmtMonth(d: Date) { return nombreMesAnioDe(d); }
 function toISODateLocal(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
