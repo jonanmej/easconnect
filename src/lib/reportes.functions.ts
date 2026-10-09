@@ -1630,20 +1630,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
-      const metaDiariaKpis = kpisAvanceReal(
-        await avanceRealPorTrabajo(supabase, [data.trabajo_id]),
-        new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]),
-        "cliente",
-      );
-      const kpisHumanizados = aiResult.kpis.map((k) => ({
-        label: humanizarTexto(fix(k.label)),
-        value: humanizarTexto(fix(k.value)),
-      }));
       aiResult = {
-        ...aiResult,
         titulo: humanizarTexto(fix(aiResult.titulo)),
         resumen: humanizarTexto(fix(aiResult.resumen)),
-        kpis: combinarKpisConMetaDiaria(kpisHumanizados, metaDiariaKpis, "cliente"),
         hallazgos: aiResult.hallazgos.map((h) => humanizarTexto(fix(h))),
         recomendaciones: aiResult.recomendaciones.map((r) => humanizarTexto(fix(r))),
       };
@@ -1655,13 +1644,18 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       return fechas[0] === fechas[fechas.length - 1] ? fechas[0] : `${fechas[0]} a ${fechas[fechas.length - 1]}`;
     })();
 
+    const cifrasSinRespaldo = verificarCifras(
+      aiResult,
+      cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, (trabajo as any).folio),
+    );
+
     const markdown = [
       `# ${aiResult.titulo}`,
       ``,
       `**Cliente:** ${cliente?.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${(trabajo as any).folio} · **Periodo:** ${periodo}`,
       ``,
       `## Resumen ejecutivo`, aiResult.resumen, ``,
-      `## KPIs`, ...aiResult.kpis.map((k) => `- **${k.label}:** ${k.value}`), ``,
+      `## KPIs`, ...indicadoresMarkdown(indicadoresSistema), ``,
       `## Hallazgos`, ...aiResult.hallazgos.map((h) => `- ${h}`), ``,
       `## Recomendaciones`, ...aiResult.recomendaciones.map((r) => `- ${r}`),
     ].join("\n");
@@ -1676,6 +1670,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       estado: "borrador",
       generado_por: context.userId,
       model_used: modelUsed,
+      indicadores: indicadoresSistema,
+      revision_ia_pendiente: cifrasSinRespaldo.length > 0,
+      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
     }).select().single();
     if (error) throw new Error(error.message);
     return row;
