@@ -129,8 +129,7 @@ export function AppUpdateGate() {
         <div
           role="alert"
           aria-live="polite"
-          className="fixed inset-x-3 z-[70] rounded-xl border border-border bg-card p-3 shadow-lg sm:left-auto sm:right-4 sm:w-80"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)" }}
+          className="safe-update fixed z-[70] rounded-xl border border-border bg-card p-3 shadow-lg sm:w-80"
         >
           <div className="flex items-start gap-3">
             <span

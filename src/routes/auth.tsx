@@ -123,7 +123,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-dvh grid place-items-center bg-background px-4 py-6 safe-top safe-bottom safe-x">
+    <div className="auth-screen min-h-dvh grid place-items-center bg-background px-4 py-6 safe-top safe-bottom safe-x">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center mb-8">
           <BrandLogo variant="ea-connect" className="h-32 w-auto object-contain" />

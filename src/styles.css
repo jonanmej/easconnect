@@ -394,6 +394,12 @@
   .table-scroll::-webkit-scrollbar-track { background: var(--secondary); }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   :root[data-keyboard-open] [aria-label="Navegación rápida"] { display: none; }
+  .auth-screen { padding: max(1.5rem, var(--safe-top)) max(1rem, var(--safe-right)) max(1.5rem, var(--safe-bottom)) max(1rem, var(--safe-left)); }
+  .safe-update { left: max(0.75rem, var(--safe-left)); right: max(0.75rem, var(--safe-right)); bottom: calc(var(--safe-bottom) + 5.5rem); max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 6rem); overflow-y: auto; }
+  @media (min-width: 640px) { .safe-update { left: auto; right: max(1rem, var(--safe-right)); } }
+  @media (max-width: 639px) {
+    .safe-dialog { max-width: 100%; }
+  }
   .app-content .recharts-tooltip-wrapper { max-width: 100%; }
   .app-content .recharts-default-tooltip { max-width: 100%; white-space: normal !important; }
   .safe-alert {
