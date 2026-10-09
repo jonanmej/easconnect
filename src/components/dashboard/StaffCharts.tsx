@@ -10,7 +10,7 @@ export function TrabajosSemanaChart({ data }: { data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey="semana" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-          <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+          <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           <Bar dataKey="programado" stackId="a" fill="#3B82F6" name="Programados" />
           <Bar dataKey="en_progreso" stackId="a" fill="#F59E0B" name="En progreso" />
@@ -30,7 +30,7 @@ export function DistribucionTipoChart({ data }: { data: any[] }) {
           <Pie data={data} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
             {data.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
           </Pie>
-          <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+          <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
         </PieChart>
       </ResponsiveContainer>
@@ -46,7 +46,7 @@ export function TopPlantasChart({ data }: { data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
           <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
-          <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+          <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
           <Bar dataKey="count" fill="#F59E0B" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -63,7 +63,8 @@ export function AguaPlantaChart({ data }: { data: any[] }) {
           <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
           <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
           <Tooltip
-            contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+            position={{ x: 0, y: 0 }}
+            contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }}
             formatter={(v: any) => [`${Math.round(Number(v)).toLocaleString()} gal`, "Agua"]}
           />
           <Bar dataKey="galones" fill="#3B82F6" radius={[0, 4, 4, 0]} />
