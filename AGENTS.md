@@ -13,3 +13,6 @@
 - Server functions verify the caller's role with `requireRol` from `src/lib/auth-roles.ts` before any privileged (admin-client) work — one consistent, DB-backed check instead of per-file helpers.
 - Clients change report status only through the `responder_reporte_cliente` DB function — clients have no direct UPDATE on `reportes`, so they cannot alter content.
 - Account unification for payroll lives in the `colaborador_unificaciones` table (admin-only), not in code — so it can change without a deploy.
+- Report emission fields (fecha_emision, codigo_documento, version_label) are set only by the `reportes_control_emision` trigger, which also locks content once a report is enviado/aprobado — corrections are new versions via reporte_padre_id.
+- Report indicators are built by the system (`construirIndicadores` in src/lib/reporte-ia.ts) and stored in `reportes.indicadores`; AI only writes text, and numbers in that text are checked (`verificarCifras`) and flagged for review — so figures always come from data.
+- Power values are formatted only through src/lib/potencia.ts; capacity is stored numerically in `capacidad_kwp` — one consistent W/kW/kWp/MWp rule across screens, PDFs and AI input.
