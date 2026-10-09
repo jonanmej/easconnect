@@ -910,6 +910,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
                 : estado === "en_progreso" ? "bg-primary/25"
                 : estado === "programado" ? "bg-muted-foreground/15"
                 : estado === "cancelado" ? "bg-destructive/15"
+                : estado === "reservado" ? "bg-destructive/25"
                 : "";
               const tooltip = has
                 ? items.map((i: any) => `• ${i.planta_nombre ?? "—"} — ${i.servicio}${i.folio ? ` (${i.folio})` : ""}`).join("\n")
@@ -1182,6 +1183,29 @@ function ClienteCalendar() {
 
   const [pickDate, setPickDate] = useState<string | null>(null);
 
+  // Vista anual: misma función disponibilidad_calendario, año completo.
+  const [vistaCli, setVistaCli] = usePersistedState<"mes" | "anio">("programacion.cliente.vista", "mes");
+  const anio = monthStart.getFullYear();
+  const anioQ = useQuery({
+    queryKey: ["disponibilidad", `${anio}-01-01`, `${anio}-12-31`],
+    queryFn: () => fDisp({ data: { desde: `${anio}-01-01`, hasta: `${anio}-12-31` } }),
+    enabled: vistaCli === "anio",
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const byDayAnio = useMemo(() => {
+    const map = new Map<string, any[]>();
+    ((anioQ.data as any[] | undefined) ?? []).forEach((d) => {
+      const asigns = (d.asignaciones ?? []) as any[];
+      if (!asigns.length) return;
+      const key = new Date(d.fecha + "T12:00:00").toDateString();
+      map.set(key, asigns.map((a) => a.propio
+        ? { planta_nombre: a.planta_nombre, servicio: a.servicio, folio: a.folio, estado: a.estado ?? "programado" }
+        : { planta_nombre: "Ocupado/Reservado", servicio: "", folio: "", estado: "reservado" }));
+    });
+    return map;
+  }, [anioQ.data]);
+
   const crear = useMutation({
     mutationFn: (vars: any) => fCrear({ data: vars }),
     onSuccess: () => {
@@ -1221,14 +1245,22 @@ function ClienteCalendar() {
         description="Los días en rojo muestran el nombre de la planta con visita asignada. Elija un día libre para solicitar una nueva visita técnica."
         actions={
           <div className="inline-flex items-center gap-2">
-            <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(startOfMonth(d)); }}
+            <div className="inline-flex border border-border rounded-md overflow-hidden text-xs">
+              {(["mes", "anio"] as const).map((v) => (
+                <button key={v} type="button" onClick={() => setVistaCli(v)}
+                  className={"px-3 h-9 font-medium " + (vistaCli === v ? "bg-primary text-primary-foreground" : "hover:bg-secondary")}>
+                  {v === "mes" ? "Mes" : "Año"}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { const d = new Date(monthStart); if (vistaCli === "anio") d.setFullYear(d.getFullYear() - 1); else d.setMonth(d.getMonth() - 1); setMonthStart(startOfMonth(d)); }}
               className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Mes anterior">
               <ChevronLeft className="size-3.5" />
             </button>
             <button onClick={() => setMonthStart(startOfMonth(new Date()))} className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
               <CalendarDays className="size-3.5" /> Hoy
             </button>
-            <button onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() + 1); setMonthStart(startOfMonth(d)); }}
+            <button onClick={() => { const d = new Date(monthStart); if (vistaCli === "anio") d.setFullYear(d.getFullYear() + 1); else d.setMonth(d.getMonth() + 1); setMonthStart(startOfMonth(d)); }}
               className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Mes siguiente">
               <ChevronRight className="size-3.5" />
             </button>
@@ -1236,6 +1268,23 @@ function ClienteCalendar() {
         }
       />
 
+      {vistaCli === "anio" && (
+        <div className="space-y-3">
+          <div className="p-3 text-center font-semibold bg-secondary border border-border rounded-xl">Año {anio} · semanas ISO</div>
+          {anioQ.isLoading ? (
+            <div className="text-sm text-muted-foreground p-6 text-center">Cargando…</div>
+          ) : (
+            <YearView year={anio} byDay={byDayAnio} nDias={5}
+              onPickMonth={(m) => { setMonthStart(new Date(anio, m, 1)); setVistaCli("mes"); }} />
+          )}
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-muted-foreground/30" /> Sus visitas</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40" /> Ocupado/Reservado</span>
+          </div>
+        </div>
+      )}
+
+      {vistaCli === "mes" && (<>
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="p-3 text-center font-semibold capitalize bg-secondary border-b border-border">{fmtMonth(monthStart)}</div>
         <div className="grid grid-cols-5 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/50 border-b border-border">
@@ -1309,6 +1358,7 @@ function ClienteCalendar() {
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary/40 border border-primary/30" /> Tu programación</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-destructive/40 border border-destructive/30" /> Reservado</span>
       </div>
+      </>)}
 
       <RecordDialog
         open={!!pickDate}
