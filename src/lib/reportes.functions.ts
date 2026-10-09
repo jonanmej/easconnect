@@ -1465,8 +1465,15 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     };
     // Avance real del servicio (zonas del mapa → paneles sobre el parque de la
     // planta), el mismo número que muestra la tarjeta de avance de la OT.
-    const avanceOT = (await avanceRealPorTrabajo(supabase, [data.trabajo_id])).get(data.trabajo_id) ?? null;
+    const avancesMapa = await avanceRealPorTrabajo(supabase, [data.trabajo_id]);
+    const avanceOT = avancesMapa.get(data.trabajo_id) ?? null;
+    const indicadoresSistema = construirIndicadores(
+      consolidados as any[],
+      kpisAvanceReal(avancesMapa, new Map([[data.trabajo_id, String((trabajo as any).folio ?? "—")]]), "cliente"),
+      "cliente",
+    );
     const dataset = {
+      indicadores_calculados: indicadoresSistema,
       cliente: cliente?.nombre,
       planta: planta?.nombre,
       trabajo: { folio: (trabajo as any).folio, servicio: (trabajo as any).servicio, notas: (trabajo as any).notas },
