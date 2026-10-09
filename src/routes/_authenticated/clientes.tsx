@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatCapacidadKwp } from "@/lib/potencia";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ type ClienteRow = {
   email: string | null;
   telefono: string | null;
   capacidad: string | null;
+  capacidad_kwp?: number | null;
   estado: "activo" | "revision" | "pausado";
   plantas_count: number;
   contrato_om: boolean;
@@ -100,7 +102,7 @@ function Clientes() {
       contacto: f.get("contacto") || null,
       email: f.get("email") || null,
       telefono: f.get("telefono") || null,
-      capacidad: f.get("capacidad") || null,
+      capacidad_kwp: f.get("capacidad_kwp") || null,
       estado: f.get("estado"),
       contrato_om: f.get("contrato_om") === "on",
       solo_capacitacion: f.get("solo_capacitacion") === "on",
@@ -226,7 +228,7 @@ function Clientes() {
               </div>
               <div>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
-                <p className="text-sm font-medium mt-1">{c.capacidad ?? "—"}</p>
+                <p className="text-sm font-medium mt-1">{formatCapacidadKwp(c.capacidad_kwp)}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Contacto</p>
@@ -291,8 +293,8 @@ function Clientes() {
             <input name="telefono" defaultValue={editing?.telefono ?? ""} className={inputCls} placeholder="+56 9 1234 5678" />
           </Field>
         </div>
-        <Field label="Capacidad declarada">
-          <input name="capacidad" defaultValue={editing?.capacidad ?? ""} className={inputCls} placeholder="48 MW" />
+        <Field label="Capacidad declarada (kWp)">
+          <input name="capacidad_kwp" type="number" step="0.01" min="0" defaultValue={editing?.capacidad_kwp ?? ""} className={inputCls} placeholder="13330" />
         </Field>
         <Field label="Color de acento para PDF ejecutivo">
           <div className="flex items-center gap-2">

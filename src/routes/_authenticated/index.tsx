@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { formatCapacidadKwp } from "@/lib/potencia";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useState, useMemo } from "react";
@@ -665,7 +666,7 @@ function ClienteDashboard() {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
-                    <p className="text-sm font-medium">{p.capacidad ?? "—"}</p>
+                    <p className="text-sm font-medium">{formatCapacidadKwp((p as any).capacidad_kwp)}</p>
                   </div>
                 </div>
               </div>
