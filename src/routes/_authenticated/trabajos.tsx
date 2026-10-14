@@ -22,7 +22,8 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon, UserCheck, CalendarRange } from "lucide-react";
+import { AsignarTecnicoMultipleDialog, ProgramarDiasMultiplesDialog } from "@/components/trabajos/AsignacionMultiple";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { InspeccionPreviaSection } from "@/components/InspeccionPreviaSection";
 import { JornadaControl } from "@/components/JornadaControl";
@@ -170,6 +171,16 @@ function Trabajos() {
   const [sortBy, setSortBy] = usePersistedState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("trabajos.sortBy", "smart");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+  // Selección múltiple para asignar técnico a varias OT a la vez
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [asignarOpen, setAsignarOpen] = useState(false);
+  const [diasTrabajo, setDiasTrabajo] = useState<any | null>(null);
+  const toggleSel = (id: string) =>
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter, search, sortBy]);
 
@@ -501,6 +512,15 @@ function Trabajos() {
             ))}
           </select>
         )}
+        {puedeAutorizarEmergencia && seleccion.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setAsignarOpen(true)}
+            className="h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-medium"
+          >
+            <UserCheck className="size-3.5" /> Asignar técnico ({seleccion.size})
+          </button>
+        )}
       </div>
 
       <ResponsiveTable
@@ -513,6 +533,34 @@ function Trabajos() {
             : undefined
         }
         columns={[
+          ...(puedeAutorizarEmergencia
+            ? [{
+                key: "sel",
+                header: (
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todos"
+                    checked={visibles.length > 0 && visibles.every((t) => seleccion.has(t.id))}
+                    onChange={(e) =>
+                      setSeleccion((prev) => {
+                        const next = new Set(prev);
+                        visibles.forEach((t) => (e.target.checked ? next.add(t.id) : next.delete(t.id)));
+                        return next;
+                      })
+                    }
+                  />
+                ),
+                mobileLabel: "Seleccionar",
+                cell: (t: any) => (
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar ${t.folio}`}
+                    checked={seleccion.has(t.id)}
+                    onChange={() => toggleSel(t.id)}
+                  />
+                ),
+              }]
+            : []),
           { key: "folio", header: "Folio", mobileLabel: "Folio", cell: (t) => <span className="font-mono text-xs">{t.folio}</span> },
           {
             key: "cliente_planta",
@@ -559,6 +607,16 @@ function Trabajos() {
                     >
                       <FileSignature className="size-3.5" />
                     </span>
+                  )}
+                  {puedeAutorizarEmergencia && t.estado !== "completado" && t.estado !== "cancelado" && (
+                    <button
+                      onClick={() => setDiasTrabajo(t)}
+                      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
+                      title="Programar en varios días"
+                      aria-label="Programar en varios días"
+                    >
+                      <CalendarRange className="size-3.5" />
+                    </button>
                   )}
                   <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                     <Pencil className="size-3.5" />
@@ -928,6 +986,20 @@ function Trabajos() {
             placeholder="Detalle del servicio realizado, observaciones, etc." />
         </Field>
       </RecordDialog>
+
+      <AsignarTecnicoMultipleDialog
+        open={asignarOpen}
+        onOpenChange={setAsignarOpen}
+        trabajos={((list.data as any[] | undefined) ?? []).filter((t) => seleccion.has(t.id))}
+        tecnicos={(tecnicos.data as any[] | undefined) ?? []}
+        onDone={() => setSeleccion(new Set())}
+      />
+      <ProgramarDiasMultiplesDialog
+        open={!!diasTrabajo}
+        onOpenChange={(v) => !v && setDiasTrabajo(null)}
+        trabajo={diasTrabajo}
+        puedeEmergencia={puedeAutorizarEmergencia}
+      />
     </div>
   );
 }

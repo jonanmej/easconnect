@@ -6,4 +6,5 @@ export { listClientes, upsertCliente, deleteCliente, listPlantas, upsertPlanta, 
 export { listEquipos, upsertEquipo, deleteEquipo } from "./operations/equipos.functions";
 export { listTrabajos, upsertTrabajo, deleteTrabajo, crearTrabajoHistorico, listTecnicos, verificarConflictoTecnico, listAsignacionesLog } from "./operations/trabajos.functions";
 export { reprogramarTrabajo, reubicarTrabajoDisponible, moverDiaTrabajo, listTrabajoTecnicosExtra } from "./operations/reprogramacion.functions";
+export { asignarTecnicoMultiple, programarTrabajoMultiplesDias } from "./operations/asignacion-multiple.functions";
 export { dashboardStats } from "./operations/dashboard.functions";

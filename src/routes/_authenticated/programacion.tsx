@@ -7,13 +7,15 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo, listTecnicos } from "@/lib/operations.functions";
+import { AsignarTecnicoMultipleDialog, ProgramarDiasMultiplesDialog } from "@/components/trabajos/AsignacionMultiple";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2, UserCheck, CalendarRange } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
 import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
@@ -168,6 +170,23 @@ function Programacion() {
   const [pdfServicio, setPdfServicio] = useState<string>("");
   const [pdfFolio, setPdfFolio] = useState<string>("");
   const [downloading, setDownloading] = useState(false);
+  // Asignación múltiple: seleccionar varias OT y asignar técnico de una vez;
+  // y programar una OT en varios días específicos.
+  const [asigPickerOpen, setAsigPickerOpen] = useState(false);
+  const [asigSel, setAsigSel] = useState<Set<string>>(new Set());
+  const [asigOpen, setAsigOpen] = useState(false);
+  const [diasOtId, setDiasOtId] = useState<string>("");
+  const [diasOpen, setDiasOpen] = useState(false);
+  const fetchTecnicos = useServerFn(listTecnicos);
+  const tecnicosQ = useQuery({
+    queryKey: ["tecnicos"],
+    queryFn: () => fetchTecnicos(),
+    enabled: canEdit,
+  });
+  const otsAsignables = useMemo(
+    () => trabajos.filter((t) => t.estado === "programado" || t.estado === "en_progreso"),
+    [trabajos],
+  );
 
   const clientesUnicos = useMemo(() => {
     const map = new Map<string, string>();
@@ -512,6 +531,24 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => { setAsigSel(new Set()); setAsigPickerOpen(true); }}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  title="Asignar el mismo técnico a varias OT a la vez"
+                >
+                  <UserCheck className="size-3.5" /> Asignar a varias OT
+                </button>
+                <button
+                  onClick={() => { setDiasOtId(""); setDiasOpen(true); }}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  title="Programar una OT en varios días específicos"
+                >
+                  <CalendarRange className="size-3.5" /> Varios días
+                </button>
+              </>
+            )}
             <div className="relative">
               <button
                 onClick={() => setPdfOpen((v) => !v)}
@@ -736,6 +773,90 @@ function Programacion() {
           />
         </Field>
       </RecordDialog>
+      {/* Selector de OT para asignación múltiple */}
+      <Dialog open={asigPickerOpen} onOpenChange={setAsigPickerOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Selecciona las OT a asignar</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto rounded border border-border divide-y divide-border text-xs">
+            {otsAsignables.length === 0 && (
+              <p className="px-3 py-4 text-muted-foreground">No hay OT programadas o en progreso.</p>
+            )}
+            {otsAsignables.map((t) => (
+              <label key={t.id} className="flex items-start gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={asigSel.has(t.id)}
+                  onChange={(e) =>
+                    setAsigSel((prev) => {
+                      const next = new Set(prev);
+                      if (e.target.checked) next.add(t.id); else next.delete(t.id);
+                      return next;
+                    })
+                  }
+                />
+                <span>
+                  <span className="font-mono">{t.folio}</span> · {etiquetaTrabajo(t)}
+                  <span className="block text-muted-foreground">
+                    {t.cliente_nombre} · {t.planta_nombre} ·{" "}
+                    {new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <button type="button" onClick={() => setAsigPickerOpen(false)} className="h-9 px-4 rounded-md border border-border text-sm hover:bg-secondary">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={asigSel.size === 0}
+              onClick={() => { setAsigPickerOpen(false); setAsigOpen(true); }}
+              className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            >
+              Continuar ({asigSel.size})
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AsignarTecnicoMultipleDialog
+        open={asigOpen}
+        onOpenChange={setAsigOpen}
+        trabajos={otsAsignables.filter((t) => asigSel.has(t.id))}
+        tecnicos={(tecnicosQ.data as any[] | undefined) ?? []}
+      />
+
+      {/* Selector de OT para programar en varios días */}
+      <Dialog open={diasOpen && !diasOtId} onOpenChange={(v) => !v && setDiasOpen(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>¿Qué OT programar en varios días?</DialogTitle>
+          </DialogHeader>
+          <select
+            className={inputCls}
+            value={diasOtId}
+            onChange={(e) => setDiasOtId(e.target.value)}
+          >
+            <option value="">— Selecciona una OT —</option>
+            {otsAsignables.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.folio} · {etiquetaTrabajo(t)} · {t.cliente_nombre}
+              </option>
+            ))}
+          </select>
+        </DialogContent>
+      </Dialog>
+      <ProgramarDiasMultiplesDialog
+        open={diasOpen && !!diasOtId}
+        onOpenChange={(v) => !v && setDiasOpen(false)}
+        trabajo={otsAsignables.find((t) => t.id === diasOtId) ?? null}
+        puedeEmergencia={canEdit}
+      />
+
     </div>
   );
 }
@@ -1402,6 +1523,7 @@ function ClienteCalendar() {
           <textarea name="descripcion" rows={3} className={inputCls} placeholder="Describa brevemente el motivo de la visita…" />
         </Field>
       </RecordDialog>
+
     </div>
   );
 }
