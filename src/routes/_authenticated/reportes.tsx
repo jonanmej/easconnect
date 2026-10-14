@@ -11,6 +11,7 @@ import { Sparkles, Wand2, Eye, FileDown, Mail, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { listClientes, listPlantas } from "@/lib/operations.functions";
 import { SERVICIOS_OT } from "@/lib/servicios";
+import { listServiciosCatalogo } from "@/lib/servicios.functions";
 import { listReportes, generarReporte, getReporte, marcarReporteEnviado, getReporteParaPDF, getResponsableReporte, eliminarReporte } from "@/lib/reportes.functions";
 import { enviarReporteAprobacion, aprobarReporte, rechazarReporte, crearNuevaVersionReporte, listAuditoriaReporte, marcarRevisionIaReporte } from "@/lib/reportes-workflow.functions";
 import { enviarNotificacionReporte } from "@/lib/notificaciones.functions";
@@ -61,6 +62,16 @@ function Reportes() {
   const list = useQuery({ queryKey: ["reportes"], queryFn: () => fList() });
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: () => fClientes() });
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
+  const fServiciosCat = useServerFn(listServiciosCatalogo);
+  const serviciosCat = useQuery({ queryKey: ["servicios-catalogo"], queryFn: () => fServiciosCat() });
+  // Catálogo dinámico + servicios fijos históricos (para OTs antiguas que no
+  // están en el catálogo).
+  const serviciosOpciones = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of (serviciosCat.data as any[] | undefined) ?? []) if (s?.nombre) set.add(s.nombre);
+    for (const s of SERVICIOS_OT) set.add(s);
+    return Array.from(set);
+  }, [serviciosCat.data]);
 
   const [openGen, setOpenGen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<string>("");
