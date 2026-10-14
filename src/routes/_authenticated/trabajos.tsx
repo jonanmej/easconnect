@@ -512,6 +512,15 @@ function Trabajos() {
             ))}
           </select>
         )}
+        {puedeAutorizarEmergencia && seleccion.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setAsignarOpen(true)}
+            className="h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-medium"
+          >
+            <UserCheck className="size-3.5" /> Asignar técnico ({seleccion.size})
+          </button>
+        )}
       </div>
 
       <ResponsiveTable
