@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2 } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
-import { SERVICIOS_OT } from "@/lib/servicios";
+import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
 import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
@@ -639,7 +639,7 @@ function Programacion() {
                         {new Date(t.fecha_programada).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" })} · {t.folio}
                         {t.__movido ? " · movido" : ""}
                       </p>
-                      <p className="font-medium leading-tight mt-0.5 line-clamp-2">{t.servicio}</p>
+                      <p className="font-medium leading-tight mt-0.5 line-clamp-2">{etiquetaTrabajo(t)}</p>
                       <p className="text-[10px] opacity-70 truncate">{t.planta_nombre}</p>
                     </div>
                   ))}
@@ -809,7 +809,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
                       draggable={canEdit && t.estado !== "completado"}
                       onDragStart={() => setDrag({ id: t.id, fechaOriginal: t.__fechaOriginal, duracion: t.__duracion ?? 1 })}
                       onDragEnd={() => setDrag(null)}
-                      title={`${t.folio} · ${t.servicio} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
+                      title={`${t.folio} · ${etiquetaTrabajo(t)} · ${t.planta_nombre}${(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}`}
                       className={
                         "min-w-0 rounded px-1 sm:px-1.5 py-1 text-[9px] sm:text-[10px] border cursor-grab leading-tight " +
                         (estadoCls[t.estado] ?? "bg-secondary border-border") +
@@ -818,7 +818,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
                     >
                       <div className="font-medium truncate">{t.planta_nombre}</div>
                       <div className="opacity-70 truncate">
-                        {t.servicio}
+                        {etiquetaTrabajo(t)}
                         {(t.__duracion ?? 1) > 1 ? ` · d${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
                       </div>
                     </div>
@@ -947,7 +947,7 @@ function MiniMonth({ year, month, byDay, onClick, expanded, nDias = 5 }: {
                 {(expanded ? items : items.slice(0, 4)).map((t: any, i: number) => (
                   <li key={`${t.id}-${i}`} className="break-words">
                     <span className="text-foreground font-medium">{t.planta_nombre ?? "—"}</span>
-                    <span className="text-muted-foreground"> · {t.servicio}</span>
+                    <span className="text-muted-foreground"> · {etiquetaTrabajo(t)}</span>
                   </li>
                 ))}
                 {!expanded && items.length > 4 && (
@@ -1021,7 +1021,7 @@ function ProgramacionPrintDoc({ trabajos, headerTitle }: { trabajos: any[]; head
                   <td>{t.cliente_nombre ?? "—"}</td>
                   <td>{t.planta_nombre ?? "—"}</td>
                   <td>
-                    {t.servicio}
+                    {etiquetaTrabajo(t)}
                     {(t.__duracion ?? 1) > 1 ? ` · día ${(t.__diaIdx ?? 0) + 1}/${t.__duracion}` : ""}
                   </td>
                   <td style={{ textTransform: "capitalize" }}>{String(t.estado ?? "").replace("_", " ")}</td>
@@ -1077,7 +1077,7 @@ function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) {
     return {
       id: t.id,
       folio: t.folio,
-      servicio: t.servicio,
+      servicio: etiquetaTrabajo(t),
       estado: t.estado,
       cliente_nombre: t.cliente_nombre ?? null,
       planta_nombre: t.planta_nombre ?? null,
