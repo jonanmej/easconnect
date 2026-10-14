@@ -34,3 +34,14 @@ export const SERVICIOS_CONTRATO = [
 ] as const;
 
 export const SERVICIOS_NO_CONTRATABLES = ["Falla", "Emergencia", "Inspección"] as const;
+
+/**
+ * Etiqueta de una OT: nombre específico del trabajo si existe, si no el
+ * servicio del catálogo. Usar en pantallas, calendarios, PDFs y datos de IA.
+ */
+export function etiquetaTrabajo(t: { servicio?: string | null; nombre_trabajo?: string | null }): string {
+  const nombre = String(t.nombre_trabajo ?? "").trim();
+  const servicio = String(t.servicio ?? "").trim();
+  if (nombre && servicio) return `${servicio} — ${nombre}`;
+  return nombre || servicio || "—";
+}

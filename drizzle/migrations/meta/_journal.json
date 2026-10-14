@@ -29,6 +29,13 @@
       "when": 1791516613856,
       "tag": "0003_fase3_bloqueo_borrado_y_disponibilidad",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791936524484,
+      "tag": "0004_nombre_trabajo_y_catalogo_servicios",
+      "breakpoints": true
     }
   ]
 }

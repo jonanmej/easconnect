@@ -59,6 +59,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       equipo_id: z.string().uuid().nullable().optional(),
       equipo_ids: z.array(z.string().uuid()).optional(),
       servicio: z.string().min(1),
+      nombre_trabajo: z.string().max(200).nullable().optional(),
       fecha_programada: z.string(),
       estado: TrabajoEstado,
       tecnico_id: z.string().uuid().nullable().optional(),
@@ -78,6 +79,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     } = data;
     const payload = {
       ...rest,
+      nombre_trabajo: rest.nombre_trabajo?.trim() || null,
       equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
@@ -295,6 +297,7 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
     z.object({
       planta_id: z.string().uuid(),
       servicio: z.string().min(1),
+      nombre_trabajo: z.string().max(200).nullable().optional(),
       fecha: z.string().min(1),
       notas: z.string().nullable().optional(),
     }).parse(d),
@@ -321,6 +324,7 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
       .insert({
         planta_id: data.planta_id,
         servicio: data.servicio,
+        nombre_trabajo: data.nombre_trabajo?.trim() || null,
         fecha_programada: fechaIso,
         fecha_completado: fechaIso,
         estado: "completado",

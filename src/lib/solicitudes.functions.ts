@@ -125,6 +125,8 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
       const plantaNombre = t.planta_nombre ?? "Ocupado/Reservado";
       const folio = t.folio ?? "";
       const servicio = t.servicio ?? "";
+      const nombreTrabajo = String(t.nombre_trabajo ?? "").trim();
+      const servicioLabel = nombreTrabajo && servicio ? `${servicio} — ${nombreTrabajo}` : nombreTrabajo || servicio;
       const estado = t.estado ?? null;
       for (let i = 0; i < dur; i++) {
         const day = new Date(start);
@@ -133,7 +135,7 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
         const key = toISODate(day);
         ocupados.add(key);
         if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
-        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio, propio, estado });
+        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio: servicioLabel, propio, estado });
       }
     });
 

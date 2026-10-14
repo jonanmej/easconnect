@@ -64,11 +64,11 @@ export const generarReporte = createServerFn({ method: "POST" })
       plantasIds.length
         ? (data.servicio
             ? supabase.from("trabajos")
-                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
+                .select("id, folio, servicio, nombre_trabajo, estado, fecha_programada, duracion_dias")
                 .in("planta_id", plantasIds)
                 .eq("servicio", data.servicio)
             : supabase.from("trabajos")
-                .select("id, folio, servicio, estado, fecha_programada, duracion_dias")
+                .select("id, folio, servicio, nombre_trabajo, estado, fecha_programada, duracion_dias")
                 .in("planta_id", plantasIds))
         : Promise.resolve({ data: [] as any[] }),
       plantasIds.length

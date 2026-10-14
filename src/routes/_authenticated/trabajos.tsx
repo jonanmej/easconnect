@@ -68,7 +68,8 @@ function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: 
   );
 }
 
-import { SERVICIOS_OT } from "@/lib/servicios";
+import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
+import { listServiciosCatalogo, agregarServicioCatalogo } from "@/lib/servicios.functions";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
 const CAT_RECURSO = [
@@ -138,6 +139,20 @@ function Trabajos() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
+  const fetchServicios = useServerFn(listServiciosCatalogo);
+  const fetchAgregarServicio = useServerFn(agregarServicioCatalogo);
+  const serviciosCat = useQuery({ queryKey: ["servicios-catalogo"], queryFn: () => fetchServicios() });
+  // Catálogo de la BD; si aún no carga, se usa la lista fija de respaldo.
+  const serviciosOpciones: string[] =
+    (serviciosCat.data?.length ? serviciosCat.data.map((s) => s.nombre) : null) ?? [...SERVICIOS_OT];
+  const addServicio = useMutation({
+    mutationFn: (nombre: string) => fetchAgregarServicio({ data: { nombre } }),
+    onSuccess: (s) => {
+      toast.success(`Servicio «${s.nombre}» agregado al catálogo`);
+      qc.invalidateQueries({ queryKey: ["servicios-catalogo"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = usePersistedState<"diarios" | "recursos" | "ot" | "historial">("trabajos.tab", "diarios");
@@ -175,6 +190,7 @@ function Trabajos() {
           || String(t.cliente_nombre ?? "").toLowerCase().includes(q)
           || String(t.planta_nombre ?? "").toLowerCase().includes(q)
           || String(t.servicio ?? "").toLowerCase().includes(q)
+          || String(t.nombre_trabajo ?? "").toLowerCase().includes(q)
           || String(t.notas ?? "").toLowerCase().includes(q)),
     );
     const fechaMs = (t: any) => new Date(t.fecha_programada).getTime();
@@ -305,6 +321,7 @@ function Trabajos() {
     saveHistorico.mutate({
       planta_id: f.get("planta_id"),
       servicio: f.get("servicio"),
+      nombre_trabajo: (f.get("nombre_trabajo") as string)?.trim() || null,
       fecha: f.get("fecha"),
       notas: (f.get("notas") as string) || null,
     });
@@ -334,6 +351,7 @@ function Trabajos() {
       equipo_id: equipoIds[0] || null,
       equipo_ids: equipoIds,
       servicio: f.get("servicio"),
+      nombre_trabajo: (f.get("nombre_trabajo") as string)?.trim() || null,
       fecha_programada: fechaIso,
       estado: f.get("estado"),
       tecnico_id: (f.get("tecnico_id") as string) || null,
@@ -507,7 +525,7 @@ function Trabajos() {
               </>
             ),
           },
-          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{t.servicio}</span> },
+          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{etiquetaTrabajo(t)}</span> },
           {
             key: "fecha",
             header: "Fecha",
@@ -645,13 +663,40 @@ function Trabajos() {
           </select>
         </Field>
         <Field label="Servicio">
-          <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}>
+          <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}
+            onChange={(e) => {
+              if (e.currentTarget.value !== "__nuevo__") return;
+              const nombre = window.prompt("Nombre del nuevo servicio (se agrega al catálogo):");
+              const limpio = nombre?.trim();
+              if (limpio && limpio.length >= 3) {
+                addServicio.mutate(limpio, {
+                  onSuccess: (s) => { e.currentTarget.value = s.nombre; },
+                });
+              }
+              e.currentTarget.value = editing?.servicio ?? "";
+            }}>
             <option value="">— Selecciona servicio —</option>
-            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
-            {editing?.servicio && !SERVICIOS_OT.includes(editing.servicio) && (
+            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
+            {addServicio.data && !serviciosOpciones.includes(addServicio.data.nombre) && (
+              <option value={addServicio.data.nombre}>{addServicio.data.nombre}</option>
+            )}
+            {editing?.servicio && !serviciosOpciones.includes(editing.servicio) && (
               <option value={editing.servicio}>{editing.servicio} (legado)</option>
             )}
+            {role === "admin" && <option value="__nuevo__">＋ Agregar servicio al catálogo…</option>}
           </select>
+        </Field>
+        <Field label="Nombre específico del trabajo (opcional)">
+          <input
+            name="nombre_trabajo"
+            maxLength={200}
+            defaultValue={editing?.nombre_trabajo ?? ""}
+            placeholder="Ej. Desmontaje de inversores y cambio de combiner box"
+            className={inputCls}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Se muestra junto al servicio en pantallas, calendario y reportes.
+          </p>
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Fecha y hora">
@@ -864,8 +909,12 @@ function Trabajos() {
         <Field label="Servicio">
           <select name="servicio" required className={inputCls} defaultValue="">
             <option value="">— Selecciona servicio —</option>
-            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
+            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+        </Field>
+        <Field label="Nombre específico del trabajo (opcional)">
+          <input name="nombre_trabajo" maxLength={200} className={inputCls}
+            placeholder="Ej. Desmontaje de inversores y cambio de combiner box" />
         </Field>
         <Field label="Fecha de ejecución">
           <input name="fecha" type="date" required className={inputCls}
