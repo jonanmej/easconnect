@@ -531,6 +531,24 @@ function Programacion() {
             <button onClick={() => nav(1)} className="h-9 px-2 grid place-items-center border border-border rounded-md hover:bg-secondary" aria-label="Siguiente">
               <ChevronRight className="size-3.5" />
             </button>
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => { setAsigSel(new Set()); setAsigPickerOpen(true); }}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  title="Asignar el mismo técnico a varias OT a la vez"
+                >
+                  <UserCheck className="size-3.5" /> Asignar a varias OT
+                </button>
+                <button
+                  onClick={() => { setDiasOtId(""); setDiasOpen(true); }}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  title="Programar una OT en varios días específicos"
+                >
+                  <CalendarRange className="size-3.5" /> Varios días
+                </button>
+              </>
+            )}
             <div className="relative">
               <button
                 onClick={() => setPdfOpen((v) => !v)}
