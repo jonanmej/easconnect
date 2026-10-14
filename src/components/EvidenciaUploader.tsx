@@ -46,8 +46,8 @@ function fileToDataURL(file: File | Blob): Promise<string> {
   });
 }
 
-const MAX_LADO = 2000;
-const MAX_BYTES_DIRECTO = 1_200_000;
+const MAX_LADO = 1600;
+const MAX_BYTES_DIRECTO = 500_000;
 
 /**
  * Reduce la foto antes de subirla: las cámaras de teléfono generan archivos de
@@ -71,6 +71,9 @@ async function comprimirImagen(file: File): Promise<File> {
     const blob = await new Promise<Blob | null>((res) =>
       canvas.toBlob((b) => res(b), "image/jpeg", 0.82),
     );
+    // Libera la memoria del lienzo de inmediato (en móviles se agota rápido).
+    canvas.width = 0;
+    canvas.height = 0;
     if (!blob || blob.size >= file.size) return file;
     const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
     return new File([blob], nombre, { type: "image/jpeg" });
@@ -96,6 +99,9 @@ export function EvidenciaUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const procesandoRef = useRef<Set<string>>(new Set());
+  // Las fotos se procesan una a una: en paralelo, el teléfono se queda sin
+  // memoria al comprimir varias a la vez y el navegador reinicia la app.
+  const turnoRef = useRef<Promise<void>>(Promise.resolve());
   const [categoria, setCategoria] = useState<Categoria>(soloCategoria ?? "antes");
 
   const [cola, setCola] = useState<ItemSubida[]>([]);
@@ -198,7 +204,11 @@ export function EvidenciaUploader({
     // ejecutaba y el aviso salía sin detalle del error.
     if (item.intentos >= MAX_INTENTOS) item = { ...item, intentos: 0, error: undefined };
     procesandoRef.current.add(itemId);
+    let liberar: () => void = () => {};
+    const previo = turnoRef.current;
+    turnoRef.current = new Promise<void>((r) => { liberar = r; });
     try {
+      await previo;
       for (let intento = item.intentos; intento < MAX_INTENTOS; intento++) {
         setCola((prev) => prev.map((c) => c.id === itemId
           ? { ...c, estado: "subiendo", intentos: intento + 1, error: undefined }
@@ -241,6 +251,7 @@ export function EvidenciaUploader({
         );
       }
     } finally {
+      liberar();
       procesandoRef.current.delete(itemId);
     }
   }
@@ -272,7 +283,8 @@ export function EvidenciaUploader({
     }));
     setCola((prev) => [...prev, ...nuevos]);
     if (inputRef.current) inputRef.current.value = "";
-    // Procesar en paralelo. Pasamos el item explícitamente porque setState es asíncrono.
+    if (cameraRef.current) cameraRef.current.value = "";
+    // Se encolan en orden (uno a la vez). Pasamos el item explícitamente porque setState es asíncrono.
     for (const n of nuevos) procesar(n.id, n);
   }
 

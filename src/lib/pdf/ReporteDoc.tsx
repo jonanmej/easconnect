@@ -510,39 +510,57 @@ export function ReporteDoc({ data }: { data: ReporteData }) {
           const br = (b.aspect ?? 1) >= 1 ? 0 : 1;
           return ar - br;
         });
+        const norm = (c: unknown) => {
+          const v = String(c ?? "durante").toLowerCase();
+          return v === "después" ? "despues" : v === "anomalía" ? "anomalia" : v;
+        };
+        const secciones = [
+          { key: "antes", titulo: "ANTES" },
+          { key: "durante", titulo: "DURANTE" },
+          { key: "despues", titulo: "DESPUÉS" },
+          { key: "anomalia", titulo: "ANOMALÍAS" },
+          { key: "mediciones", titulo: "MEDICIONES" },
+        ]
+          .map((s) => ({ ...s, fotos: ordenadas.filter((e) => norm(e.categoria) === s.key) }))
+          .filter((s) => s.fotos.length > 0);
+        if (!secciones.length) return null;
         return (
           <Page size="A4" style={styles.page} wrap>
             <PageHeader data={data} pageName="Evidencias" />
             <Text style={styles.pageTitle}>Evidencias Fotográficas</Text>
             <View style={styles.pageTitleRule} />
-            <View style={styles.evidGrid}>
-              {ordenadas.map((e, i) => {
-                const isPortrait = (e.aspect ?? 1) < 0.95;
-                return (
-                  <View key={i} style={styles.evidTile} wrap={false}>
-                    <View style={styles.evidFrame}>
-                      <Image
-                        src={e.dataUrl}
-                        style={isPortrait ? styles.evidImgPortrait : styles.evidImgLandscape}
-                      />
-                    </View>
-                    <Text style={styles.evidCaption}>
-                      {(() => {
-                        const c = String(e.categoria ?? "durante").toLowerCase();
-                        const leyenda =
-                          c === "antes" ? "Fotografía ANTES DE LIMPIEZA" :
-                          c === "durante" ? "Fotografía DURANTE LIMPIEZA" :
-                          c === "despues" || c === "después" ? "Fotografía DESPUÉS DE LIMPIEZA" :
-                          c === "anomalia" || c === "anomalía" ? "Fotografía HALLAZGO O ANOMALÍA" :
-                          c === "mediciones" ? "Fotografía MEDICIONES OPERATIVAS" :
-                          "Fotografía";
-                        return `${leyenda} — ${e.trabajo}`;
-                      })()}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+            {secciones.map((s) => (
+              <View key={s.key} style={{ marginBottom: 10 }}>
+                <Text
+                  minPresenceAhead={120}
+                  style={{
+                    fontSize: 10,
+                    fontFamily: FONT_BOLD,
+                    marginBottom: 6,
+                    paddingBottom: 2,
+                    borderBottomWidth: 0.75,
+                    borderBottomColor: COL.border,
+                  }}
+                >
+                  {s.titulo}
+                </Text>
+                <View style={styles.evidGrid}>
+                  {s.fotos.map((e, i) => {
+                    const isPortrait = (e.aspect ?? 1) < 0.95;
+                    return (
+                      <View key={i} style={styles.evidTile} wrap={false}>
+                        <View style={styles.evidFrame}>
+                          <Image
+                            src={e.dataUrl}
+                            style={isPortrait ? styles.evidImgPortrait : styles.evidImgLandscape}
+                          />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
             <PageFooter data={data} />
           </Page>
         );
