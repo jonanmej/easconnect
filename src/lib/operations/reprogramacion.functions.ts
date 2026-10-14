@@ -41,18 +41,8 @@ export const reprogramarTrabajo = createServerFn({ method: "POST" })
     const tecnicoFinal = data.tecnico_id !== undefined
       ? (data.tecnico_id || null)
       : ((trabajoActual)?.tecnico_id ?? null);
-    if (tecnicoFinal) {
-      const dur = Math.max(1, Number((trabajoActual)?.duracion_dias ?? 1));
-      const { data: conflictos } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-        _tecnico_id: tecnicoFinal,
-        _fecha: patch.fecha_programada,
-        _duracion_dias: dur,
-        _excluir_trabajo_id: data.id,
-      });
-      if ((conflictos ?? []).length > 0) {
-        throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(conflictos));
-      }
-    }
+    // Sin bloqueo por conflicto de técnico: un técnico puede quedar asignado
+    // a varios trabajos en las mismas fechas.
     const { data: row, error } = await context.supabase
       .from("trabajos").update(patch).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
@@ -130,18 +120,8 @@ export const reubicarTrabajoDisponible = createServerFn({ method: "POST" })
           duracionDias: dur,
           excluirTrabajoId: data.id,
         });
-        // 2) Conflictos por técnico
-        let sinTecnicoConflict = true;
-        if (tecnicoFinal) {
-          const { data: cts } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-            _tecnico_id: tecnicoFinal,
-            _fecha: fechaISO,
-            _duracion_dias: dur,
-            _excluir_trabajo_id: data.id,
-          });
-          sinTecnicoConflict = (cts ?? []).length === 0;
-        }
-        if (cf.length === 0 && sinTecnicoConflict) {
+        // 2) Sin bloqueo por técnico: solo importan los equipos.
+        if (cf.length === 0) {
           const patch: any = { fecha_programada: fechaISO };
           if (data.tecnico_id !== undefined) patch.tecnico_id = data.tecnico_id || null;
           const { data: row, error } = await context.supabase

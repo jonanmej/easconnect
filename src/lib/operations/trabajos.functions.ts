@@ -123,20 +123,9 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       duracionDias: rest.duracion_dias ?? 1,
       excluirTrabajoId: id ?? null,
     });
-    // Validar conflicto de técnico (no permitir solapamientos con otros trabajos del mismo técnico)
-    if (payload.tecnico_id) {
-      const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
-      const { data: conflictos, error: cErr } = await context.supabase.rpc("verificar_conflicto_tecnico" as any, {
-        _tecnico_id: payload.tecnico_id,
-        _fecha: payload.fecha_programada,
-        _duracion_dias: dur,
-        _excluir_trabajo_id: id ?? null,
-      });
-      if (cErr) throw new Error(cErr.message);
-      if ((conflictos ?? []).length > 0) {
-        throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(conflictos));
-      }
-    }
+    // Los técnicos pueden asignarse a varios trabajos aunque coincidan en
+    // fechas: ya no se bloquea por conflicto de agenda del técnico.
+
     const q = id
       ? context.supabase.from("trabajos").update(payload).eq("id", id).select().single()
       : context.supabase.from("trabajos").insert(payload).select().single();
@@ -155,21 +144,8 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     // Sincronizar técnicos adicionales (trabajo_tecnicos)
     if (tecnicos_extra_ids) {
       const trabajoId = (row).id;
-      // Validar conflictos de cada técnico extra
-      const dur = Math.max(1, Number(rest.duracion_dias ?? 1));
-      for (const tid of tecnicos_extra_ids) {
-        if (!tid || tid === payload.tecnico_id) continue;
-        const { data: cfx, error: cfxErr } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-          _tecnico_id: tid,
-          _fecha: payload.fecha_programada,
-          _duracion_dias: dur,
-          _excluir_trabajo_id: trabajoId,
-        });
-        if (cfxErr) throw new Error(cfxErr.message);
-        if ((cfx ?? []).length > 0) {
-          throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(cfx));
-        }
-      }
+      // Sin bloqueo por conflicto de técnico: los técnicos de apoyo pueden
+      // coincidir con otros trabajos en las mismas fechas.
       await context.supabase.from("trabajo_tecnicos").delete().eq("trabajo_id", trabajoId);
       const limpios = Array.from(new Set(tecnicos_extra_ids.filter((t) => t && t !== payload.tecnico_id)));
       if (limpios.length > 0) {
