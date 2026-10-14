@@ -7,13 +7,15 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
-import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo } from "@/lib/operations.functions";
+import { listTrabajos, reprogramarTrabajo, reubicarTrabajoDisponible, listPlantas, moverDiaTrabajo, listTecnicos } from "@/lib/operations.functions";
+import { AsignarTecnicoMultipleDialog, ProgramarDiasMultiplesDialog } from "@/components/trabajos/AsignacionMultiple";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getDisponibilidad, crearSolicitud } from "@/lib/solicitudes.functions";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
 import { useFeriados } from "@/hooks/useFeriados";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
-import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2, UserCheck, CalendarRange } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
 import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
