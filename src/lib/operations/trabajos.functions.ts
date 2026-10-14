@@ -296,6 +296,7 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
     z.object({
       planta_id: z.string().uuid(),
       servicio: z.string().min(1),
+      nombre_trabajo: z.string().max(200).nullable().optional(),
       fecha: z.string().min(1),
       notas: z.string().nullable().optional(),
     }).parse(d),
@@ -322,6 +323,7 @@ export const crearTrabajoHistorico = createServerFn({ method: "POST" })
       .insert({
         planta_id: data.planta_id,
         servicio: data.servicio,
+        nombre_trabajo: data.nombre_trabajo?.trim() || null,
         fecha_programada: fechaIso,
         fecha_completado: fechaIso,
         estado: "completado",
