@@ -24,3 +24,4 @@
 - Month labels come only from `src/lib/nombre-mes.ts` (pure year/month, no time-zone conversion) — local midnight formatted in another zone shifts the month.
 - AppShell fixes the outer main to the viewport and locks document scrolling only while .app-shell is present; only its bounded content area scrolls — prevents outer blank-space scrolling while preserving dashboard, nested-list, login and printing access.
 - Safe-area CSS tokens and useVisualViewport bound shared overlays and the app shell to the visible screen — keeps navigation and forms clear of cutouts and the mobile keyboard without altering document printing.
+- Technicians may be assigned to multiple jobs on the same dates — only equipment conflicts block scheduling (owner decision, Oct 2026); keep verificar_conflicto_tecnico RPC for informational use only.
