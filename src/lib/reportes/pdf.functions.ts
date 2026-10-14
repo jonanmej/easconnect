@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { construirIndicadores } from "@/lib/reporte-ia";
+import { etiquetaTrabajo } from "@/lib/servicios";
 import { parseLegacySingleDayPeriod, toProfileName, ReporteKpi, Audiencia, normalizarKpisMetaDiaria, avanceRealPorTrabajo, kpisAvanceReal } from "./helpers";
 
 export const getReporteParaPDF = createServerFn({ method: "POST" })
