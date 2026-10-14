@@ -59,6 +59,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
       equipo_id: z.string().uuid().nullable().optional(),
       equipo_ids: z.array(z.string().uuid()).optional(),
       servicio: z.string().min(1),
+      nombre_trabajo: z.string().max(200).nullable().optional(),
       fecha_programada: z.string(),
       estado: TrabajoEstado,
       tecnico_id: z.string().uuid().nullable().optional(),
