@@ -22,7 +22,8 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
-import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon, UserCheck, CalendarRange } from "lucide-react";
+import { AsignarTecnicoMultipleDialog, ProgramarDiasMultiplesDialog } from "@/components/trabajos/AsignacionMultiple";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { InspeccionPreviaSection } from "@/components/InspeccionPreviaSection";
 import { JornadaControl } from "@/components/JornadaControl";
@@ -170,6 +171,16 @@ function Trabajos() {
   const [sortBy, setSortBy] = usePersistedState<"smart" | "fecha_asc" | "fecha_desc" | "folio" | "cliente" | "servicio" | "estado">("trabajos.sortBy", "smart");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+  // Selección múltiple para asignar técnico a varias OT a la vez
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [asignarOpen, setAsignarOpen] = useState(false);
+  const [diasTrabajo, setDiasTrabajo] = useState<any | null>(null);
+  const toggleSel = (id: string) =>
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   useEffect(() => { setPage(1); }, [estadoFilter, plantaFilter, tecFilter, search, sortBy]);
 
