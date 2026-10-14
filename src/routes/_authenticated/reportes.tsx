@@ -666,7 +666,7 @@ function Reportes() {
         <Field label="Servicio (opcional · todos si vacío)">
           <select name="servicio" defaultValue="" className={inputCls}>
             <option value="">Todos los servicios</option>
-            {SERVICIOS_OT.map((s) => (
+            {serviciosOpciones.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
