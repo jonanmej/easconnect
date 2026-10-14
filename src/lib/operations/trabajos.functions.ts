@@ -79,6 +79,7 @@ export const upsertTrabajo = createServerFn({ method: "POST" })
     } = data;
     const payload = {
       ...rest,
+      nombre_trabajo: rest.nombre_trabajo?.trim() || null,
       equipo_id: rest.equipo_id || (equipo_ids && equipo_ids[0]) || null,
       tecnico_id: rest.tecnico_id || null,
       fecha_programada: new Date(rest.fecha_programada).toISOString(),
