@@ -533,6 +533,34 @@ function Trabajos() {
             : undefined
         }
         columns={[
+          ...(puedeAutorizarEmergencia
+            ? [{
+                key: "sel",
+                header: (
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todos"
+                    checked={visibles.length > 0 && visibles.every((t) => seleccion.has(t.id))}
+                    onChange={(e) =>
+                      setSeleccion((prev) => {
+                        const next = new Set(prev);
+                        visibles.forEach((t) => (e.target.checked ? next.add(t.id) : next.delete(t.id)));
+                        return next;
+                      })
+                    }
+                  />
+                ),
+                mobileLabel: "Seleccionar",
+                cell: (t: any) => (
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar ${t.folio}`}
+                    checked={seleccion.has(t.id)}
+                    onChange={() => toggleSel(t.id)}
+                  />
+                ),
+              }]
+            : []),
           { key: "folio", header: "Folio", mobileLabel: "Folio", cell: (t) => <span className="font-mono text-xs">{t.folio}</span> },
           {
             key: "cliente_planta",
@@ -579,6 +607,16 @@ function Trabajos() {
                     >
                       <FileSignature className="size-3.5" />
                     </span>
+                  )}
+                  {puedeAutorizarEmergencia && t.estado !== "completado" && t.estado !== "cancelado" && (
+                    <button
+                      onClick={() => setDiasTrabajo(t)}
+                      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
+                      title="Programar en varios días"
+                      aria-label="Programar en varios días"
+                    >
+                      <CalendarRange className="size-3.5" />
+                    </button>
                   )}
                   <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                     <Pencil className="size-3.5" />
