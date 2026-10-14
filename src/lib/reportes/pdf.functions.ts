@@ -61,7 +61,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       plantasIds = (ps ?? []).map((p) => p.id);
     }
     let qb = supabase.from("trabajos")
-      .select("id, folio, servicio, fecha_programada, duracion_dias, estado, notas, tecnico_id")
+      .select("id, folio, servicio, nombre_trabajo, fecha_programada, duracion_dias, estado, notas, tecnico_id")
       .in("planta_id", plantasIds)
       .order("fecha_programada");
     if (folioReporte) qb = qb.eq("folio", folioReporte);
@@ -491,7 +491,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
       recomendaciones,
       trabajos: trabajos.map((t) => ({
         folio: t.folio,
-        servicio: t.servicio,
+        servicio: etiquetaTrabajo(t),
         fecha: new Date(t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }),
         estado: t.estado,
         tecnico: (tecnicosPorTrabajo.get((t).id) ?? []).join(", ") || null,
