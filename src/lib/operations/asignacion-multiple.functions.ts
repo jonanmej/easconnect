@@ -44,28 +44,8 @@ export const asignarTecnicoMultiple = createServerFn({ method: "POST" })
         if (t.estado === "cancelado" || t.estado === "completado") {
           throw new Error(`La OT está ${t.estado === "cancelado" ? "cancelada" : "completada"}`);
         }
-        const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-
-        // Conflicto del técnico principal
-        if (data.tecnico_id) {
-          const { data: cf } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-            _tecnico_id: data.tecnico_id,
-            _fecha: t.fecha_programada,
-            _duracion_dias: dur,
-            _excluir_trabajo_id: trabajoId,
-          });
-          if ((cf ?? []).length > 0) throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(cf));
-        }
-        // Conflicto de cada técnico extra
-        for (const tid of extras) {
-          const { data: cfx } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-            _tecnico_id: tid,
-            _fecha: t.fecha_programada,
-            _duracion_dias: dur,
-            _excluir_trabajo_id: trabajoId,
-          });
-          if ((cfx ?? []).length > 0) throw new Error("CONFLICTO_TECNICO::" + JSON.stringify(cfx));
-        }
+        // Sin bloqueo por conflicto de técnico (principal ni extras): un
+        // técnico puede quedar asignado a varias OT en las mismas fechas.
 
         const tecnicoPrevio = t.tecnico_id ?? null;
         const { error } = await context.supabase
@@ -161,18 +141,7 @@ export const programarTrabajoMultiplesDias = createServerFn({ method: "POST" })
       if (conflictos.length > 0) {
         throw new Error(`Día ${f}: ` + formatRecursoConflict(conflictos));
       }
-      // Conflicto del técnico asignado en ese día
-      if (t.tecnico_id) {
-        const { data: cf } = await context.supabase.rpc("verificar_conflicto_tecnico", {
-          _tecnico_id: t.tecnico_id,
-          _fecha: iso,
-          _duracion_dias: 1,
-          _excluir_trabajo_id: data.trabajo_id,
-        });
-        if ((cf ?? []).length > 0) {
-          throw new Error(`Día ${f}: el técnico asignado ya tiene otro trabajo ese día.`);
-        }
-      }
+      // Sin bloqueo por técnico: puede tener varios trabajos el mismo día.
     }
 
     // Base: primera fecha; duración = cantidad de días elegidos. Los días que
