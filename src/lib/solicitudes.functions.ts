@@ -135,7 +135,7 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
         const key = toISODate(day);
         ocupados.add(key);
         if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
-        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio, propio, estado });
+        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio: servicioLabel, propio, estado });
       }
     });
 
