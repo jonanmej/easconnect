@@ -68,7 +68,8 @@ function SolicitarFirmaButton({ trabajoId, folio }: { trabajoId: string; folio: 
   );
 }
 
-import { SERVICIOS_OT } from "@/lib/servicios";
+import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
+import { listServiciosCatalogo, agregarServicioCatalogo } from "@/lib/servicios.functions";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
 const CAT_RECURSO = [
@@ -138,6 +139,20 @@ function Trabajos() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fetchPlantas() });
   const equipos = useQuery({ queryKey: ["equipos"], queryFn: () => fetchEquipos() });
   const tecnicos = useQuery({ queryKey: ["tecnicos"], queryFn: () => fetchTecnicos(), enabled: canEdit });
+  const fetchServicios = useServerFn(listServiciosCatalogo);
+  const fetchAgregarServicio = useServerFn(agregarServicioCatalogo);
+  const serviciosCat = useQuery({ queryKey: ["servicios-catalogo"], queryFn: () => fetchServicios() });
+  // Catálogo de la BD; si aún no carga, se usa la lista fija de respaldo.
+  const serviciosOpciones: string[] =
+    (serviciosCat.data?.length ? serviciosCat.data.map((s) => s.nombre) : null) ?? [...SERVICIOS_OT];
+  const addServicio = useMutation({
+    mutationFn: (nombre: string) => fetchAgregarServicio({ data: { nombre } }),
+    onSuccess: (s) => {
+      toast.success(`Servicio «${s.nombre}» agregado al catálogo`);
+      qc.invalidateQueries({ queryKey: ["servicios-catalogo"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = usePersistedState<"diarios" | "recursos" | "ot" | "historial">("trabajos.tab", "diarios");
