@@ -1829,6 +1829,33 @@ export type Database = {
         }
         Relationships: []
       }
+      servicios_catalogo: {
+        Row: {
+          activo: boolean
+          contratable: boolean
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          contratable?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          contratable?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       solicitudes_visita: {
         Row: {
           cliente_id: string
@@ -2606,6 +2633,7 @@ export type Database = {
           firmado_rut: string | null
           folio: string
           id: string
+          nombre_trabajo: string | null
           notas: string | null
           origen: string
           planta_id: string
@@ -2630,6 +2658,7 @@ export type Database = {
           firmado_rut?: string | null
           folio?: string
           id?: string
+          nombre_trabajo?: string | null
           notas?: string | null
           origen?: string
           planta_id: string
@@ -2654,6 +2683,7 @@ export type Database = {
           firmado_rut?: string | null
           folio?: string
           id?: string
+          nombre_trabajo?: string | null
           notas?: string | null
           origen?: string
           planta_id?: string
@@ -2805,6 +2835,7 @@ export type Database = {
           estado: string
           fecha_inicio: string
           folio: string
+          nombre_trabajo: string
           planta_nombre: string
           propio: boolean
           servicio: string
