@@ -320,6 +320,7 @@ function Trabajos() {
     saveHistorico.mutate({
       planta_id: f.get("planta_id"),
       servicio: f.get("servicio"),
+      nombre_trabajo: (f.get("nombre_trabajo") as string)?.trim() || null,
       fecha: f.get("fecha"),
       notas: (f.get("notas") as string) || null,
     });
