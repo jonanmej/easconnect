@@ -177,12 +177,12 @@ function Programacion() {
   const [asigOpen, setAsigOpen] = useState(false);
   const [diasOtId, setDiasOtId] = useState<string>("");
   const [diasOpen, setDiasOpen] = useState(false);
+  const fetchTecnicos = useServerFn(listTecnicos);
   const tecnicosQ = useQuery({
     queryKey: ["tecnicos"],
     queryFn: () => fetchTecnicos(),
     enabled: canEdit,
   });
-  const fetchTecnicos = useServerFn(listTecnicos);
   const otsAsignables = useMemo(
     () => trabajos.filter((t) => t.estado === "programado" || t.estado === "en_progreso"),
     [trabajos],
