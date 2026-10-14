@@ -349,6 +349,7 @@ function Trabajos() {
       equipo_id: equipoIds[0] || null,
       equipo_ids: equipoIds,
       servicio: f.get("servicio"),
+      nombre_trabajo: (f.get("nombre_trabajo") as string)?.trim() || null,
       fecha_programada: fechaIso,
       estado: f.get("estado"),
       tecnico_id: (f.get("tecnico_id") as string) || null,
@@ -522,7 +523,7 @@ function Trabajos() {
               </>
             ),
           },
-          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{t.servicio}</span> },
+          { key: "servicio", header: "Servicio", secondary: true, cell: (t) => <span className="text-xs">{etiquetaTrabajo(t)}</span> },
           {
             key: "fecha",
             header: "Fecha",
@@ -660,13 +661,40 @@ function Trabajos() {
           </select>
         </Field>
         <Field label="Servicio">
-          <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}>
+          <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}
+            onChange={(e) => {
+              if (e.currentTarget.value !== "__nuevo__") return;
+              const nombre = window.prompt("Nombre del nuevo servicio (se agrega al catálogo):");
+              const limpio = nombre?.trim();
+              if (limpio && limpio.length >= 3) {
+                addServicio.mutate(limpio, {
+                  onSuccess: (s) => { e.currentTarget.value = s.nombre; },
+                });
+              }
+              e.currentTarget.value = editing?.servicio ?? "";
+            }}>
             <option value="">— Selecciona servicio —</option>
-            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
-            {editing?.servicio && !SERVICIOS_OT.includes(editing.servicio) && (
+            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
+            {addServicio.data && !serviciosOpciones.includes(addServicio.data.nombre) && (
+              <option value={addServicio.data.nombre}>{addServicio.data.nombre}</option>
+            )}
+            {editing?.servicio && !serviciosOpciones.includes(editing.servicio) && (
               <option value={editing.servicio}>{editing.servicio} (legado)</option>
             )}
+            {role === "admin" && <option value="__nuevo__">＋ Agregar servicio al catálogo…</option>}
           </select>
+        </Field>
+        <Field label="Nombre específico del trabajo (opcional)">
+          <input
+            name="nombre_trabajo"
+            maxLength={200}
+            defaultValue={editing?.nombre_trabajo ?? ""}
+            placeholder="Ej. Desmontaje de inversores y cambio de combiner box"
+            className={inputCls}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Se muestra junto al servicio en pantallas, calendario y reportes.
+          </p>
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Fecha y hora">
