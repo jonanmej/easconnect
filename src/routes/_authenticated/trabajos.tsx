@@ -986,6 +986,20 @@ function Trabajos() {
             placeholder="Detalle del servicio realizado, observaciones, etc." />
         </Field>
       </RecordDialog>
+
+      <AsignarTecnicoMultipleDialog
+        open={asignarOpen}
+        onOpenChange={setAsignarOpen}
+        trabajos={((list.data as any[] | undefined) ?? []).filter((t) => seleccion.has(t.id))}
+        tecnicos={(tecnicos.data as any[] | undefined) ?? []}
+        onDone={() => setSeleccion(new Set())}
+      />
+      <ProgramarDiasMultiplesDialog
+        open={!!diasTrabajo}
+        onOpenChange={(v) => !v && setDiasTrabajo(null)}
+        trabajo={diasTrabajo}
+        puedeEmergencia={puedeAutorizarEmergencia}
+      />
     </div>
   );
 }
