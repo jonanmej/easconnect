@@ -190,6 +190,7 @@ function Trabajos() {
           || String(t.cliente_nombre ?? "").toLowerCase().includes(q)
           || String(t.planta_nombre ?? "").toLowerCase().includes(q)
           || String(t.servicio ?? "").toLowerCase().includes(q)
+          || String(t.nombre_trabajo ?? "").toLowerCase().includes(q)
           || String(t.notas ?? "").toLowerCase().includes(q)),
     );
     const fechaMs = (t: any) => new Date(t.fecha_programada).getTime();
@@ -908,8 +909,12 @@ function Trabajos() {
         <Field label="Servicio">
           <select name="servicio" required className={inputCls} defaultValue="">
             <option value="">— Selecciona servicio —</option>
-            {SERVICIOS_OT.map((s) => <option key={s} value={s}>{s}</option>)}
+            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+        </Field>
+        <Field label="Nombre específico del trabajo (opcional)">
+          <input name="nombre_trabajo" maxLength={200} className={inputCls}
+            placeholder="Ej. Desmontaje de inversores y cambio de combiner box" />
         </Field>
         <Field label="Fecha de ejecución">
           <input name="fecha" type="date" required className={inputCls}
