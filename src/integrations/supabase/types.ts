@@ -1709,6 +1709,7 @@ export type Database = {
           reporte_padre_id: string | null
           revision_ia_detalle: Json | null
           revision_ia_pendiente: boolean
+          tipo_reporte: string
           titulo: string
           updated_at: string
           version: number
@@ -1741,6 +1742,7 @@ export type Database = {
           reporte_padre_id?: string | null
           revision_ia_detalle?: Json | null
           revision_ia_pendiente?: boolean
+          tipo_reporte?: string
           titulo: string
           updated_at?: string
           version?: number
@@ -1773,6 +1775,7 @@ export type Database = {
           reporte_padre_id?: string | null
           revision_ia_detalle?: Json | null
           revision_ia_pendiente?: boolean
+          tipo_reporte?: string
           titulo?: string
           updated_at?: string
           version?: number
@@ -1832,6 +1835,7 @@ export type Database = {
       servicios_catalogo: {
         Row: {
           activo: boolean
+          categoria: string
           contratable: boolean
           created_at: string
           id: string
@@ -1840,6 +1844,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          categoria?: string
           contratable?: boolean
           created_at?: string
           id?: string
@@ -1848,6 +1853,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          categoria?: string
           contratable?: boolean
           created_at?: string
           id?: string
