@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
@@ -754,7 +754,7 @@ function Trabajos() {
             <option value="">— Selecciona servicio —</option>
             {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
               <optgroup key={categoria} label={categoria}>
-                {servicios.map((s) => <option key={s} value={s}>{s}</option>)}
+                {servicios.map((s: string) => <option key={s} value={s}>{s}</option>)}
               </optgroup>
             ))}
             {addServicio.data && !serviciosOpciones.includes(addServicio.data.nombre) && (
@@ -991,7 +991,7 @@ function Trabajos() {
             <option value="">— Selecciona servicio —</option>
             {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
               <optgroup key={categoria} label={categoria}>
-                {servicios.map((s) => <option key={s} value={s}>{s}</option>)}
+                {servicios.map((s: string) => <option key={s} value={s}>{s}</option>)}
               </optgroup>
             ))}
           </select>
