@@ -208,6 +208,8 @@ export const crearNuevaVersionReporte = createServerFn({ method: "POST" })
       estado: "borrador",
       generado_por: context.userId,
       model_used: r.model_used,
+      revision_ia_detalle: r.revision_ia_detalle,
+      revision_ia_pendiente: r.revision_ia_pendiente,
       version: nextVersion,
       reporte_padre_id: r.id,
     }).select().single();

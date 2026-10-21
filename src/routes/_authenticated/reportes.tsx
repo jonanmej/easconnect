@@ -25,6 +25,8 @@ import { Send, CheckCircle2, XCircle, History, GitBranch } from "lucide-react";
 import { PlantaOptions } from "@/components/PlantaOptions";
 import { R, scopeDeReporte } from "@/components/reportes/reportes-utils";
 import { Stat, PeriodoTrimestralFields } from "@/components/reportes/ReportesPartes";
+import { CompararRedaccion, ReportAiControls } from "@/components/reportes/CompararRedaccion";
+import { reportProvenance } from "@/lib/reportes/ia-contract";
 
 export const Route = createFileRoute("/_authenticated/reportes")({
   head: () => ({
@@ -55,7 +57,7 @@ function Reportes() {
   const fRechazar = useServerFn(rechazarReporte);
   const fNuevaVer = useServerFn(crearNuevaVersionReporte);
   const fAud = useServerFn(listAuditoriaReporte);
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const canEdit = ["admin", "supervisor"].includes(highestRole(roles) ?? "");
   const isCliente = highestRole(roles) === "cliente";
 
@@ -682,6 +684,7 @@ function Reportes() {
           </select>
         </Field>
         <PeriodoTrimestralFields />
+        {roles.includes("admin") && <ReportAiControls owner={user?.email?.toLowerCase() === "proyectos@easervice.app"} />}
       </RecordDialog>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
@@ -689,8 +692,11 @@ function Reportes() {
           <DialogHeader>
             <DialogTitle>{(detail.data as any)?.titulo ?? "Reporte"}</DialogTitle>
             <DialogDescription>
-              {!isCliente && (detail.data as any)?.model_used
-                ? `Modelo: ${(detail.data as any).model_used}`
+              {canEdit && detail.data?.model_used
+                ? (() => {
+                  const provenance = reportProvenance(detail.data.revision_ia_detalle);
+                  return provenance ? `${provenance.proveedor} / ${provenance.modelo} · ${new Date(provenance.fecha).toLocaleString("es-SV")}` : `Modelo: ${detail.data.model_used}`;
+                })()
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -735,6 +741,7 @@ function Reportes() {
               )}
             </section>
           )}
+          {roles.includes("admin") && detail.data?.estado === "borrador" && viewing && <CompararRedaccion key={viewing} id={viewing} />}
         </DialogContent>
       </Dialog>
     </div>
