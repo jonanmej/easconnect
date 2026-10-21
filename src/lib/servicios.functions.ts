@@ -6,10 +6,20 @@ import { requireRol } from "@/lib/auth-roles";
 export type ServicioCatalogo = {
   id: string;
   nombre: string;
+  categoria: string;
   contratable: boolean;
   activo: boolean;
   orden: number;
 };
+
+/** Categorías del catálogo de servicios, en orden de presentación. */
+export const CATEGORIAS_SERVICIO = [
+  "Fotovoltaica",
+  "Motores HFO",
+  "GPS",
+  "PVSTOP",
+  "ChemitekSolar",
+] as const;
 
 /** Catálogo de servicios visible para todo el personal autenticado. */
 export const listServiciosCatalogo = createServerFn({ method: "GET" })
@@ -17,7 +27,7 @@ export const listServiciosCatalogo = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<ServicioCatalogo[]> => {
     const { data, error } = await context.supabase
       .from("servicios_catalogo")
-      .select("id, nombre, contratable, activo, orden")
+      .select("id, nombre, categoria, contratable, activo, orden")
       .eq("activo", true)
       .order("orden", { ascending: true })
       .order("nombre", { ascending: true });
@@ -31,6 +41,7 @@ export const agregarServicioCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       nombre: z.string().trim().min(3).max(120),
+      categoria: z.string().trim().min(2).max(60).optional(),
       contratable: z.boolean().optional(),
     }).parse(d),
   )
@@ -39,10 +50,14 @@ export const agregarServicioCatalogo = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("servicios_catalogo")
       .upsert(
-        { nombre: data.nombre, contratable: data.contratable ?? false },
+        {
+          nombre: data.nombre,
+          categoria: data.categoria ?? "Fotovoltaica",
+          contratable: data.contratable ?? false,
+        },
         { onConflict: "nombre" },
       )
-      .select("id, nombre, contratable, activo, orden")
+      .select("id, nombre, categoria, contratable, activo, orden")
       .single();
     if (error) throw new Error(error.message);
     return row as ServicioCatalogo;

@@ -10,7 +10,9 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid(),
-      variante: z.enum(["ejecutivo", "interno"]).optional(),
+      // "final"/"diario" son los nombres actuales; "ejecutivo"/"interno" se
+      // aceptan como alias de las versiones anteriores de la pantalla.
+      variante: z.enum(["final", "diario", "ejecutivo", "interno"]).optional(),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -36,7 +38,8 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // Normalización determinista: en el reporte del cliente los porcentajes se
     // leen como avance del servicio en su planta; en el interno, como
     // cumplimiento de la meta diaria de la OT.
-    const audiencia: Audiencia = data.variante === "interno" ? "interno" : "cliente";
+    const audiencia: Audiencia =
+      data.variante === "interno" || data.variante === "diario" ? "interno" : "cliente";
     let kpis = normalizarKpisMetaDiaria(kpisParsed, audiencia);
     let hallazgos = parseBullets(section("Hallazgos"));
     let recomendaciones = parseBullets(section("Recomendaciones"));
@@ -391,7 +394,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // el contenido crudo que los técnicos enviaron (trabajo_reportes +
     // trabajo_reportes_diarios). El operador ve exactamente lo ingresado,
     // sin edición ejecutiva.
-    if (data.variante === "interno" && trabajoIds.length) {
+    if (audiencia === "interno" && trabajoIds.length) {
       const [tr, td] = await Promise.all([
         supabase
           .from("trabajo_reportes")

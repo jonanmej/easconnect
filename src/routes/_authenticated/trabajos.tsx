@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
@@ -146,8 +146,21 @@ function Trabajos() {
   // Catálogo de la BD; si aún no carga, se usa la lista fija de respaldo.
   const serviciosOpciones: string[] =
     (serviciosCat.data?.length ? serviciosCat.data.map((s) => s.nombre) : null) ?? [...SERVICIOS_OT];
+  // Catálogo agrupado por categoría (Fotovoltaica, Motores HFO, GPS, PVSTOP,
+  // ChemitekSolar) para los selectores.
+  const serviciosPorCategoria = useMemo(() => {
+    const grupos = new Map<string, string[]>();
+    for (const s of serviciosCat.data ?? []) {
+      const cat = s.categoria || "Fotovoltaica";
+      if (!grupos.has(cat)) grupos.set(cat, []);
+      grupos.get(cat)!.push(s.nombre);
+    }
+    if (!grupos.size) grupos.set("Fotovoltaica", [...SERVICIOS_OT]);
+    return grupos;
+  }, [serviciosCat.data]);
   const addServicio = useMutation({
-    mutationFn: (nombre: string) => fetchAgregarServicio({ data: { nombre } }),
+    mutationFn: (vars: { nombre: string; categoria?: string }) =>
+      fetchAgregarServicio({ data: vars }),
     onSuccess: (s) => {
       toast.success(`Servicio «${s.nombre}» agregado al catálogo`);
       qc.invalidateQueries({ queryKey: ["servicios-catalogo"] });
@@ -727,14 +740,23 @@ function Trabajos() {
               const nombre = window.prompt("Nombre del nuevo servicio (se agrega al catálogo):");
               const limpio = nombre?.trim();
               if (limpio && limpio.length >= 3) {
-                addServicio.mutate(limpio, {
+                const categoria =
+                  window.prompt(
+                    "Categoría del servicio (Fotovoltaica, Motores HFO, GPS, PVSTOP, ChemitekSolar):",
+                    "Fotovoltaica",
+                  )?.trim() || "Fotovoltaica";
+                addServicio.mutate({ nombre: limpio, categoria }, {
                   onSuccess: (s) => { e.currentTarget.value = s.nombre; },
                 });
               }
               e.currentTarget.value = editing?.servicio ?? "";
             }}>
             <option value="">— Selecciona servicio —</option>
-            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
+            {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
+              <optgroup key={categoria} label={categoria}>
+                {servicios.map((s: string) => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+            ))}
             {addServicio.data && !serviciosOpciones.includes(addServicio.data.nombre) && (
               <option value={addServicio.data.nombre}>{addServicio.data.nombre}</option>
             )}
@@ -967,7 +989,11 @@ function Trabajos() {
         <Field label="Servicio">
           <select name="servicio" required className={inputCls} defaultValue="">
             <option value="">— Selecciona servicio —</option>
-            {serviciosOpciones.map((s) => <option key={s} value={s}>{s}</option>)}
+            {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
+              <optgroup key={categoria} label={categoria}>
+                {servicios.map((s: string) => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+            ))}
           </select>
         </Field>
         <Field label="Nombre específico del trabajo (opcional)">

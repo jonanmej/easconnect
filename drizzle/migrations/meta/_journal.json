@@ -36,6 +36,13 @@
       "when": 1791936524484,
       "tag": "0004_nombre_trabajo_y_catalogo_servicios",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792555184228,
+      "tag": "0005_categorias_servicios_y_tipo_reporte",
+      "breakpoints": true
     }
   ]
 }
