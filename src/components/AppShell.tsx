@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, LayoutGroup } from "framer-motion";
 import {
@@ -197,10 +198,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Link
         to="/"
         className={
-          "pt-5 pb-4 flex items-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
+          "pt-4 pb-5 flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
           (mode === "rail"
-            ? "px-2 justify-center lg:pl-6 lg:pr-4 lg:justify-start"
-            : "pl-6 pr-4 justify-start")
+            ? "px-2 justify-center lg:pl-4 lg:pr-4 lg:justify-start"
+            : "pl-4 pr-4 justify-start")
         }
         aria-label="EA Service & Consulting — Ir al inicio"
       >
@@ -208,8 +209,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           variant="ea-main"
           className={
             mode === "rail"
-              ? "h-9 lg:h-20 w-auto object-contain"
-              : "h-16 sm:h-20 w-auto object-contain"
+              ? "h-7 lg:h-12 w-auto object-contain"
+              : "h-12 sm:h-12 w-auto object-contain"
           }
         />
       </Link>
@@ -218,7 +219,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         aria-label="Navegación principal"
         className={
           "flex-1 space-y-1 overflow-y-auto pb-4 " +
-          (mode === "rail" ? "px-2 lg:px-4" : "px-4")
+          (mode === "rail" ? "px-2 lg:px-3" : "px-3")
         }
       >
         <LayoutGroup id="sidebar-nav">
@@ -229,7 +230,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div key={group.title}>
               <div
                 className={
-                  "text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.14em] px-2 mb-2 mt-4 " +
+                  "text-[11px] font-medium text-muted-foreground px-3 mb-2 mt-5 " +
                   (mode === "rail" ? "hidden lg:block" : "")
                 }
               >
@@ -245,17 +246,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                     aria-current={active ? "page" : undefined}
                     title={mode === "rail" ? item.label : undefined}
                     className={
-                      "relative flex items-center gap-3 py-2.5 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
+                      "relative flex items-center gap-2.5 py-2 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
                       (mode === "rail" ? "px-0 justify-center lg:px-3 lg:justify-start " : "px-3 ") +
                       (active
                         ? "text-primary font-semibold"
-                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground hover:translate-x-0.5 transition-transform")
+                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground ")
                     }
                   >
                     {active && (
                       <motion.span
                         layoutId={`sidebar-active-pill-${mode}`}
-                        className="absolute inset-0 rounded-md bg-primary/12 shadow-[inset_3px_0_0_0_var(--color-primary)]"
+                        className="absolute inset-0 rounded-md bg-sidebar-accent border-l-2 border-primary"
                         transition={{ type: "spring", stiffness: 380, damping: 32 }}
                         aria-hidden="true"
                       />
@@ -307,7 +308,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
               className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
             >
@@ -322,7 +323,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </p>
               </div>
               <MoreVertical className={"size-4 shrink-0 text-muted-foreground " + (mode === "rail" ? "hidden lg:block" : "")} />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
             <DropdownMenuLabel className="font-normal">
@@ -378,26 +379,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <aside
         className={
-          "hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-top safe-bottom safe-x transition-[width,opacity] duration-200 overflow-hidden " +
-          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-64 opacity-100")
+          "app-sidebar hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-top safe-bottom safe-x transition-[width,opacity] duration-200 overflow-hidden " +
+          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-56 opacity-100")
         }
       >
         {buildSidebar("rail")}
       </aside>
 
       <main className="flex-1 overflow-hidden flex flex-col min-w-0 min-h-0">
-        <header className="shrink-0 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 safe-top safe-x">
-          <div className="min-h-16 grid grid-cols-[minmax(0,1fr)_auto] sm:flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8">
+        <header className="shrink-0 border-b border-border bg-card sticky top-0 z-10 safe-top safe-x">
+          <div className="min-h-16 grid grid-cols-[minmax(0,1fr)_auto] sm:flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6">
           <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
-                <button
+                <Button variant="ghost"
                   type="button"
                   aria-label="Abrir menú de navegación"
                   className="md:hidden size-10 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Menu className="size-5" />
-                </button>
+                </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-[17rem] max-w-[85vw] bg-sidebar flex flex-col safe-top safe-bottom">
                 <VisuallyHidden>
@@ -406,7 +407,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {buildSidebar("full")}
               </SheetContent>
             </Sheet>
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => setSidebarHidden(!sidebarHidden)}
               aria-label={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
@@ -414,19 +415,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="hidden md:flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {sidebarHidden ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
-            </button>
-            <div className="relative w-full max-w-md min-w-0">
+            </Button>
+            <div className="relative w-full max-w-sm min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Abrir búsqueda global (atajo: Ctrl/Cmd + K)"
-                className="w-full bg-secondary border border-border rounded-md pl-9 pr-3 sm:pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="w-full h-10 bg-background border border-border rounded-md pl-9 pr-3 sm:pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <span className="hidden sm:inline">Buscar planta, cliente, trabajo…</span>
                 <span className="sm:hidden">Buscar…</span>
                 <kbd className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground items-center font-mono">⌘K</kbd>
-              </button>
+              </Button>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -442,7 +443,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               ] as const).map(({ value, icon: Icon, label }) => {
                 const selected = preference === value;
                 return (
-                  <button
+                  <Button variant="ghost"
                     key={value}
                     type="button"
                     role="radio"
@@ -456,7 +457,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                   >
                     <Icon className="size-4" aria-hidden="true" />
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -477,7 +478,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   ? `Hay ${stock} item${stock === 1 ? "" : "s"} de inventario bajo su mínimo.`
                   : `Hay ${soli} solicitud${soli === 1 ? "" : "es"} pendiente${soli === 1 ? "" : "s"} por más de 2 días.`;
               return (
-                <button
+                <Button variant="ghost"
                   type="button"
                   onClick={() => {
                     toast.warning(descripcionPrincipal, {
@@ -492,7 +493,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   <AlertTriangle className="size-[18px] text-destructive" aria-hidden="true" />
                   <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center">{totalAlertas}</span>
-                </button>
+                </Button>
               );
             })()}
             <NotificationsBell />
@@ -512,7 +513,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Barra de navegación inferior (móvil), estilo app nativa */}
         <nav
           aria-label="Navegación rápida"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur-md safe-bottom safe-x no-print"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur-md safe-bottom safe-x no-print"
         >
           <div className="grid grid-cols-5">
             {tabItems.map((item) => {
@@ -525,7 +526,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-current={active ? "page" : undefined}
                   className={
                     "flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-[10px] font-medium transition-colors " +
-                    (active ? "text-primary" : "text-muted-foreground active:bg-secondary/60")
+                    (active ? "text-primary bg-brand-soft" : "text-muted-foreground active:bg-secondary/60")
                   }
                 >
                   <Icon className={"size-5 " + (active ? "scale-110" : "")} aria-hidden="true" />
@@ -533,7 +534,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Abrir más secciones"
@@ -541,7 +542,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu className="size-5" aria-hidden="true" />
               <span className="leading-tight">Más</span>
-            </button>
+            </Button>
           </div>
         </nav>
       </main>

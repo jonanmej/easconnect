@@ -71,88 +71,85 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --visible-height: 100dvh;
   --visible-top: 0px;
-  --radius: 0.625rem;
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.21 0.04 265);
+  --radius: 0.5rem;
+  --background: oklch(0.977 0.004 245);
+  --foreground: oklch(0.28 0.023 248);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.04 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.04 265);
-  /* Brand blue primary (EA Service) */
-  --primary: oklch(0.55 0.11 260);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.488 0.127 248.4);
   --primary-foreground: oklch(1 0 0);
-  /* Brand tokens derived from the EA logo */
-  --brand: oklch(0.55 0.11 260);
-  --brand-foreground: oklch(1 0 0);
-  --brand-soft: oklch(0.86 0.05 255);
-  --secondary: oklch(0.97 0.01 250);
-  --secondary-foreground: oklch(0.21 0.04 265);
-  --muted: oklch(0.97 0.01 250);
-  --muted-foreground: oklch(0.42 0.03 257);
-  /* Emerald accent (operational/ok) */
-  --accent: oklch(0.62 0.14 165);
+  --brand: var(--primary);
+  --brand-foreground: var(--primary-foreground);
+  --brand-soft: oklch(0.95 0.025 245);
+  --secondary: oklch(0.947 0.011 247);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.48 0.025 248);
+  --accent: oklch(0.554 0.102 163.7);
   --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.89 0.012 255);
-  --input: oklch(0.92 0.01 255);
-  --ring: oklch(0.55 0.11 260);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.005 255);
-  --sidebar-foreground: oklch(0.21 0.04 265);
-  --sidebar-primary: oklch(0.55 0.11 260);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.97 0.01 250);
-  --sidebar-accent-foreground: oklch(0.21 0.04 265);
-  --sidebar-border: oklch(0.92 0.01 255);
-  --sidebar-ring: oklch(0.55 0.11 260);
-  /* Mono font for numeric KPIs */
+  --destructive: oklch(0.55 0.19 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.89 0.012 247);
+  --input: oklch(0.84 0.018 247);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: oklch(0.71 0.12 75);
+  --chart-4: oklch(0.61 0.16 25);
+  --chart-5: oklch(0.65 0.065 230);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --shadow-surface: 0 2px 8px oklch(0.28 0.023 248 / 4%);
+  --shadow-raised: 0 12px 40px oklch(0.28 0.023 248 / 10%);
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Epilogue', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Urbanist', ui-sans-serif, system-ui, sans-serif;
 }
 
 .dark {
-  /* Dark mode tuned al brand EA: superficies azul pizarra y acento luminoso */
-  --background: oklch(0.16 0.025 260);
-  --foreground: oklch(0.97 0.005 250);
-  --card: oklch(0.21 0.03 260);
-  --card-foreground: oklch(0.97 0.005 250);
-  --popover: oklch(0.21 0.03 260);
-  --popover-foreground: oklch(0.97 0.005 250);
-  --primary: oklch(0.78 0.11 255);
-  --primary-foreground: oklch(0.18 0.03 260);
-  --brand: oklch(0.78 0.11 255);
-  --brand-foreground: oklch(0.18 0.03 260);
-  --brand-soft: oklch(0.42 0.07 258);
-  --secondary: oklch(0.27 0.03 260);
-  --secondary-foreground: oklch(0.97 0.005 250);
-  --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.82 0.02 255);
-  --accent: oklch(0.74 0.16 165);
-  --accent-foreground: oklch(0.16 0.03 260);
-  --destructive: oklch(0.7 0.2 22);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 20%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.78 0.11 255);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.19 0.03 260);
-  --sidebar-foreground: oklch(0.97 0.005 250);
-  --sidebar-primary: oklch(0.78 0.11 255);
-  --sidebar-primary-foreground: oklch(0.18 0.03 260);
-  --sidebar-accent: oklch(0.27 0.03 260);
-  --sidebar-accent-foreground: oklch(0.97 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.78 0.11 255);
+  --background: oklch(0.185 0.006 245);
+  --foreground: oklch(0.95 0.007 245);
+  --card: oklch(0.225 0.009 245);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.75 0.11 245);
+  --primary-foreground: oklch(0.19 0.025 245);
+  --brand: var(--primary);
+  --brand-foreground: var(--primary-foreground);
+  --brand-soft: oklch(0.29 0.036 245);
+  --secondary: oklch(0.28 0.011 245);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.74 0.018 245);
+  --accent: oklch(0.74 0.11 163);
+  --accent-foreground: oklch(0.19 0.025 163);
+  --destructive: oklch(0.73 0.16 25);
+  --destructive-foreground: oklch(0.19 0.025 25);
+  --border: oklch(0.34 0.012 245);
+  --input: oklch(0.4 0.018 245);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: oklch(0.78 0.12 75);
+  --chart-4: var(--destructive);
+  --chart-5: oklch(0.71 0.07 230);
+  --sidebar: oklch(0.205 0.008 245);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
@@ -282,7 +279,7 @@
 
   h1, h2, h3, h4, h5, h6, .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   :focus-visible {
@@ -393,7 +390,7 @@
     overflow: hidden;
     overscroll-behavior: none;
   }
-  .app-content > * { min-width: 0; max-width: min(100%, 100rem); margin-inline: auto; }
+  .app-content > * { min-width: 0; max-width: min(100%, 112rem); margin-inline: auto; }
   .table-scroll { max-width: 100%; scrollbar-width: auto; scrollbar-color: var(--muted-foreground) var(--secondary); }
   .table-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
   .table-scroll::-webkit-scrollbar { height: 10px; }
@@ -550,6 +547,31 @@ h1, h2, h3, h4, h5, h6,
 
 @utility animate-scanline {
   animation: solaros-scanline 4s linear infinite;
+}
+
+/* Shared screen presentation; print documents keep their controlled format. */
+@media screen {
+  .app-shell { letter-spacing: 0; }
+  .app-shell [class*="tracking-"], .auth-screen [class*="tracking-"] { letter-spacing: 0; }
+  .app-content > * { width: 100%; }
+  .app-content h1 { font-size: 1.875rem; font-weight: 650; line-height: 1.2; }
+  .app-content h2 { text-transform: none; font-size: 1rem; font-weight: 650; }
+  .app-content section.bg-card { background: transparent; border: 0; border-radius: 0; border-top: 1px solid var(--border); padding: 1.5rem 0; box-shadow: none; }
+  .app-content .rounded-xl { border-radius: var(--radius); }
+  .app-content table { background: var(--card); }
+  .app-content thead { background: var(--secondary); color: var(--muted-foreground); }
+  .app-content th { font-weight: 600; letter-spacing: 0; }
+  .app-content tbody tr { transition: background-color 120ms ease; }
+  .app-content tbody tr:hover { background: var(--brand-soft); }
+  .app-content input:not([type="checkbox"]):not([type="radio"]), .app-content select, .app-content textarea { background-color: var(--card); border-color: var(--input); border-radius: var(--radius-sm); }
+  .app-content .font-mono { font-variant-numeric: tabular-nums; }
+  .app-sidebar nav { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .app-sidebar nav > div > div { margin-bottom: 0.75rem; }
+  .dashboard-kpi { box-shadow: var(--shadow-surface); border-top: 3px solid var(--primary); }
+  .dashboard-kpi:nth-child(3n+2) { border-top-color: var(--accent); }
+  .dashboard-kpi:nth-child(3n) { border-top-color: var(--chart-3); }
+  .auth-form { box-shadow: var(--shadow-raised); }
+  @media (max-width: 639px) { .app-content h1 { font-size: 1.5rem; } }
 }
 
 /* ============ Impresión ============ */
