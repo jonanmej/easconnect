@@ -48,6 +48,7 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as ApiPublicCronRevisarFirmasRouteImport } from './routes/api/public/cron/revisar-firmas'
 import { Route as ApiPublicHooksNotificarProgramacionesRouteImport } from './routes/api/public/hooks/notificar-programaciones'
 import { Route as ApiPublicHooksResumenJornadasDiarioRouteImport } from './routes/api/public/hooks/resumen-jornadas-diario'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -261,6 +262,12 @@ const ApiPublicHooksResumenJornadasDiarioRoute =
     path: '/api/public/hooks/resumen-jornadas-diario',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -301,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
   '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -341,6 +349,7 @@ export interface FileRoutesByTo {
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
   '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -383,6 +392,7 @@ export interface FileRoutesById {
   '/api/public/cron/revisar-firmas': typeof ApiPublicCronRevisarFirmasRoute
   '/api/public/hooks/notificar-programaciones': typeof ApiPublicHooksNotificarProgramacionesRoute
   '/api/public/hooks/resumen-jornadas-diario': typeof ApiPublicHooksResumenJornadasDiarioRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -425,6 +435,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
     | '/api/public/hooks/resumen-jornadas-diario'
+    | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -465,6 +476,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
     | '/api/public/hooks/resumen-jornadas-diario'
+    | '/lovable/email/transactional/preview'
   id:
     | '__root__'
     | '/_authenticated'
@@ -506,6 +518,7 @@ export interface FileRouteTypes {
     | '/api/public/cron/revisar-firmas'
     | '/api/public/hooks/notificar-programaciones'
     | '/api/public/hooks/resumen-jornadas-diario'
+    | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -521,6 +534,7 @@ export interface RootRouteChildren {
   ApiPublicCronRevisarFirmasRoute: typeof ApiPublicCronRevisarFirmasRoute
   ApiPublicHooksNotificarProgramacionesRoute: typeof ApiPublicHooksNotificarProgramacionesRoute
   ApiPublicHooksResumenJornadasDiarioRoute: typeof ApiPublicHooksResumenJornadasDiarioRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -798,6 +812,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksResumenJornadasDiarioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -880,6 +901,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksNotificarProgramacionesRoute,
   ApiPublicHooksResumenJornadasDiarioRoute:
     ApiPublicHooksResumenJornadasDiarioRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

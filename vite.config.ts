@@ -7,6 +7,14 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { loadEnv } from "vite";
+import path from "node:path";
+
+// Carga todas las variables de entorno en process.env para el código de
+// servidor (rutas /lovable/*, server functions). Las VITE_* siguen yendo al
+// bundle del cliente por la config base; aquí NO se exponen al cliente.
+const serverEnv = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
+Object.assign(process.env, serverEnv);
 
 export default defineConfig({
   tanstackStart: {
@@ -15,6 +23,15 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    resolve: {
+      alias: {
+        // Fija entities a la copia v4.5.0 (algunas dependencias anidan v7,
+        // que rompe el SSR al quitar ./lib/decode.js).
+        "entities/lib/decode.js": path.resolve(__dirname, "node_modules/entities/lib/decode.js"),
+        "entities/lib/encode.js": path.resolve(__dirname, "node_modules/entities/lib/encode.js"),
+        entities: path.resolve(__dirname, "node_modules/entities"),
+      },
+    },
     plugins: [
       mcpPlugin(),
       VitePWA({
