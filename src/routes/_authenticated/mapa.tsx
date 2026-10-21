@@ -18,6 +18,10 @@ export const Route = createFileRoute("/_authenticated/mapa")({
     meta: [
       { title: "Mapa de plantas \u00b7 EA Service Connect" },
       { name: "description", content: "Ubicaci\u00f3n satelital de todas las plantas registradas." },
+      { property: "og:title", content: "Mapa de plantas \u00b7 EA Service Connect" },
+      { property: "og:description", content: "Ubicaci\u00f3n satelital de todas las plantas registradas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MapaPage,

@@ -395,7 +395,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Button variant="ghost"
                   type="button"
                   aria-label="Abrir menú de navegación"
-                  className="md:hidden size-10 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="md:hidden size-11 p-0 shrink-0 grid place-items-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Menu className="size-5" />
                 </Button>
@@ -412,20 +412,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={() => setSidebarHidden(!sidebarHidden)}
               aria-label={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
               title={sidebarHidden ? "Mostrar sidebar" : "Ocultar sidebar"}
-              className="hidden md:flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="hidden md:flex size-11 p-0 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {sidebarHidden ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
             </Button>
-            <div className="relative w-full max-w-sm min-w-0">
+            <div className="relative w-11 sm:w-full max-w-sm min-w-0 shrink-0 sm:shrink">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Button variant="ghost"
                 type="button"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Abrir búsqueda global (atajo: Ctrl/Cmd + K)"
-                className="w-full h-10 bg-background border border-border rounded-md pl-9 pr-3 sm:pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="w-full h-11 bg-background border border-border rounded-md pl-9 pr-0 sm:pr-12 py-1.5 text-sm text-left text-muted-foreground hover:bg-secondary/70 transition-colors truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <span className="hidden sm:inline">Buscar planta, cliente, trabajo…</span>
-                <span className="sm:hidden">Buscar…</span>
+                
                 <kbd className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 rounded border border-border bg-background text-[10px] text-muted-foreground items-center font-mono">⌘K</kbd>
               </Button>
             </div>
@@ -452,7 +452,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     title={label}
                     onClick={() => setPreference(value)}
                     className={
-                      "size-8 grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-secondary " +
+                      "size-11 p-0 grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-secondary " +
                       (selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
                     }
                   >
@@ -487,7 +487,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     });
                     navigate({ to: destino, search: { alerta: alertaKey } as any });
                   }}
-                  className="relative size-11 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="relative size-11 p-0 grid place-items-center rounded-md hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label={`Alertas operacionales: ${tituloMotivo}`}
                   title={tituloMotivo}
                 >

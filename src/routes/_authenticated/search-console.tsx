@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/search-console")({
         property: "og:description",
         content: "Métricas de Search Console (clics, impresiones, CTR y posición) por periodo y filtro de páginas.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SearchConsolePage,

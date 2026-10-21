@@ -10,7 +10,13 @@ import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { History, Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
-  head: () => ({ meta: [{ title: "Auditoría · EA Service Connect" }] }),
+  head: () => ({ meta: [{ title: "Auditoría · EA Service Connect" },
+      { name: "description", content: "Registro de cambios y trazabilidad de las operaciones." },
+      { property: "og:title", content: "Auditoría · EA Service Connect" },
+      { property: "og:description", content: "Registro de cambios y trazabilidad de las operaciones." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ] }),
   beforeLoad: async () => {
     const { supabase } = await import("@/integrations/supabase/client");
     const { data: userData } = await supabase.auth.getUser();

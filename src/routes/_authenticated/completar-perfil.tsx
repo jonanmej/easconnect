@@ -9,7 +9,13 @@ import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/completar-perfil")({
   head: () => ({
-    meta: [{ title: "Completar perfil · EA Service Connect" }],
+    meta: [{ title: "Completar perfil · EA Service Connect" },
+      { name: "description", content: "Datos personales y acceso a EA Service Connect." },
+      { property: "og:title", content: "Completar perfil · EA Service Connect" },
+      { property: "og:description", content: "Datos personales y acceso a EA Service Connect." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: CompletarPerfilPage,
   errorComponent: ({ error }) => <div className="p-8 text-sm text-destructive">Error: {(error as Error)?.message}</div>,

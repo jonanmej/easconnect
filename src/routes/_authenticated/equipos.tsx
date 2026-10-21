@@ -19,7 +19,12 @@ import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/equipos")({
   head: () => ({
-    meta: [{ title: "Equipos · EA Service Connect" }, { name: "description", content: "Inventario operativo de robots, motores y herramientas." }],
+    meta: [{ title: "Equipos · EA Service Connect" }, { name: "description", content: "Inventario operativo de robots, motores y herramientas." },
+      { property: "og:title", content: "Equipos · EA Service Connect" },
+      { property: "og:description", content: "Inventario operativo de robots, motores y herramientas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: Equipos,
   errorComponent: ({ error }) => (

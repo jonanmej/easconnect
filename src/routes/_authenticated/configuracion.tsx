@@ -29,7 +29,13 @@ import { resetDatosOperacionales } from "@/lib/reportes.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracion")({
-  head: () => ({ meta: [{ title: "Configuración · EA Service Connect" }] }),
+  head: () => ({ meta: [{ title: "Configuración · EA Service Connect" },
+      { name: "description", content: "Preferencias de apariencia y configuración de EA Service Connect." },
+      { property: "og:title", content: "Configuración · EA Service Connect" },
+      { property: "og:description", content: "Preferencias de apariencia y configuración de EA Service Connect." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ] }),
   component: ConfiguracionPage,
 });
 

@@ -16,7 +16,13 @@ import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/notificaciones")({
-  head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" }] }),
+  head: () => ({ meta: [{ title: "Historial de Notificaciones · EA Service Connect" },
+      { name: "description", content: "Historial de avisos relacionados con los servicios técnicos." },
+      { property: "og:title", content: "Historial de Notificaciones · EA Service Connect" },
+      { property: "og:description", content: "Historial de avisos relacionados con los servicios técnicos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ] }),
   beforeLoad: async () => {
     const { supabase } = await import("@/integrations/supabase/client");
     const { data: userData } = await supabase.auth.getUser();

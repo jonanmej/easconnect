@@ -16,7 +16,12 @@ import { exportarExcel } from "@/lib/excel";
 
 export const Route = createFileRoute("/_authenticated/mantenimientos")({
   head: () => ({
-    meta: [{ title: "Mantenimientos · EA Service Connect" }, { name: "description", content: "Bitácora de mantenimientos a equipos." }],
+    meta: [{ title: "Mantenimientos · EA Service Connect" }, { name: "description", content: "Bitácora de mantenimientos a equipos." },
+      { property: "og:title", content: "Mantenimientos · EA Service Connect" },
+      { property: "og:description", content: "Bitácora de mantenimientos a equipos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
   }),
   component: Mantenimientos,
   errorComponent: ({ error }) => (
