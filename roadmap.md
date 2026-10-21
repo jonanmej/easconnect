@@ -1,3 +1,8 @@
+# Rediseño visual
+- [ ] Renovar colores, tipografía y controles compartidos sin cambiar funciones.
+- [ ] Compactar navegación y ampliar contenido; renovar inicio de sesión.
+- [ ] Verificar pantallas con sesión real, móvil y escritorio, claro y oscuro.
+
 # Fase 6 — Adaptabilidad
 - [x] Layout y zonas seguras, teclado y controles compartidos.
 - [x] Metadatos e instalación PWA; orientación libre e inicio iOS.
