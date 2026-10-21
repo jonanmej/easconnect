@@ -1,3 +1,9 @@
+# Fase 7 — Preparar Claude en reportes
+- [ ] Verificar contrato oficial de Anthropic; modelo solicitado bloqueado: el catálogo autenticado no incluye claude-sonnet-5-5.
+- [ ] Proveedor opcional del servidor, respaldo seguro y JSON validado.
+- [ ] Trazabilidad interna y comparación de borradores para administradores.
+- [ ] Pruebas simuladas, pruebas del proyecto y verificación de tipos automatizada.
+
 # Rediseño visual
 - [x] Renovar colores, tipografía y controles compartidos sin cambiar funciones.
 - [x] Compactar navegación y ampliar contenido; renovar inicio de sesión.
