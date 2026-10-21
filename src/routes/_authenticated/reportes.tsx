@@ -231,6 +231,7 @@ function Reportes() {
       hasta,
       proveedor: "auto",
       servicio: servicio || null,
+      tipo_reporte: (f.get("tipo_reporte") as string) === "diario" ? "diario" : "final",
     });
   }
 
@@ -588,20 +589,22 @@ function Reportes() {
                   <GitBranch className="size-3.5" /> Nueva versión
                 </button>
               )}
-              <button onClick={() => descargarPdf(r.id, "ejecutivo")} disabled={downloadingId === r.id + "ejecutivo"}
-                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50">
-                <FileDown className="size-3.5" /> {downloadingId === r.id + "ejecutivo" ? "Generando…" : "PDF Ejec."}
+              <button onClick={() => descargarPdf(r.id, "final")} disabled={downloadingId === r.id + "final"}
+                className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                title="Reporte final para el cliente: abarca todo el periodo del trabajo">
+                <FileDown className="size-3.5" /> {downloadingId === r.id + "final" ? "Generando…" : "PDF Final"}
               </button>
-              <button onClick={() => descargarPdf(r.id, "ejecutivo", "correo")}
-                disabled={downloadingId === r.id + "ejecutivo-correo"}
+              <button onClick={() => descargarPdf(r.id, "final", "correo")}
+                disabled={downloadingId === r.id + "final-correo"}
                 className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
-                title="Misma información del reporte ejecutivo, con las fotografías optimizadas para adjuntar en Outlook">
-                <Mail className="size-3.5" /> {downloadingId === r.id + "ejecutivo-correo" ? "Generando…" : "PDF para correo"}
+                title="Misma información del reporte final, con las fotografías optimizadas para adjuntar en Outlook">
+                <Mail className="size-3.5" /> {downloadingId === r.id + "final-correo" ? "Generando…" : "PDF para correo"}
               </button>
               {canEdit && (
-                <button onClick={() => descargarPdf(r.id, "interno")} disabled={downloadingId === r.id + "interno"}
-                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50">
-                  <FileDown className="size-3.5" /> PDF Interno
+                <button onClick={() => descargarPdf(r.id, "diario")} disabled={downloadingId === r.id + "diario"}
+                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                  title="Reporte diario con detalle operativo: solo uso interno de la empresa">
+                  <FileDown className="size-3.5" /> {downloadingId === r.id + "diario" ? "Generando…" : "PDF Diario"}
                 </button>
               )}
               {canEdit && r.estado === "aprobado" && (
@@ -660,11 +663,21 @@ function Reportes() {
             <PlantaOptions plantas={plantasFiltradas as any[]} />
           </select>
         </Field>
+        <Field label="Tipo de reporte">
+          <select name="tipo_reporte" defaultValue="final" className={inputCls}>
+            <option value="final">Final · para el cliente (abarca todo el trabajo)</option>
+            <option value="diario">Diario · solo uso interno</option>
+          </select>
+        </Field>
         <Field label="Servicio (opcional · todos si vacío)">
           <select name="servicio" defaultValue="" className={inputCls}>
             <option value="">Todos los servicios</option>
-            {serviciosOpciones.map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
+              <optgroup key={categoria} label={categoria}>
+                {servicios.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </Field>
