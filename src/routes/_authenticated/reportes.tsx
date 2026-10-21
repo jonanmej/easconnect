@@ -642,7 +642,7 @@ function Reportes() {
       <RecordDialog
         open={openGen}
         onOpenChange={(v) => { setOpenGen(v); if (!v) setSelectedCliente(""); }}
-        title="Generar reporte ejecutivo IA"
+        title="Generar reporte IA"
         description="La IA puede tardar 20-60 segundos. No cierres la ventana."
         submitLabel={gen.isPending ? "Generando con IA…" : "Generar"}
         busy={gen.isPending}
