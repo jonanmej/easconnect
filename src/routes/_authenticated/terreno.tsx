@@ -17,6 +17,10 @@ export const Route = createFileRoute("/_authenticated/terreno")({
     meta: [
       { title: "A.T. · EA Service Connect" },
       { name: "description", content: "Vista móvil para técnicos en terreno: iniciar, evidenciar y completar." },
+      { property: "og:title", content: "A.T. · EA Service Connect" },
+      { property: "og:description", content: "Vista móvil para técnicos en terreno: iniciar, evidenciar y completar." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Terreno,

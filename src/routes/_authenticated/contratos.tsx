@@ -21,6 +21,10 @@ export const Route = createFileRoute("/_authenticated/contratos")({
     meta: [
       { title: "Contratos · EA Service Connect" },
       { name: "description", content: "Servicios contratados por planta y autoprogramación anual." },
+      { property: "og:title", content: "Contratos · EA Service Connect" },
+      { property: "og:description", content: "Servicios contratados por planta y autoprogramación anual." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ContratosPage,

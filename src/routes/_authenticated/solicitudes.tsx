@@ -11,7 +11,13 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/solicitudes")({
-  head: () => ({ meta: [{ title: "Solicitudes de Visita · EA Service Connect" }] }),
+  head: () => ({ meta: [{ title: "Solicitudes de Visita · EA Service Connect" },
+      { name: "description", content: "Solicitudes y coordinación de visitas a plantas." },
+      { property: "og:title", content: "Solicitudes de Visita · EA Service Connect" },
+      { property: "og:description", content: "Solicitudes y coordinación de visitas a plantas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ] }),
   component: Solicitudes,
   errorComponent: ({ error }) => (
     <div className="p-8 text-sm text-destructive">Error: {(error as Error)?.message}</div>

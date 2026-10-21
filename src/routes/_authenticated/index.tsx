@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatCapacidadKwp } from "@/lib/potencia";
 import { useServerFn } from "@tanstack/react-start";
@@ -443,7 +444,7 @@ function StaffDashboard() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
+    <div className="dashboard-screen p-4 md:p-6 xl:p-8 max-w-[112rem] mx-auto w-full space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Panel Operativo</h1>
@@ -451,20 +452,20 @@ function StaffDashboard() {
         </div>
         <div className="flex gap-2">
           <ExportButton onExport={exportarResumen} />
-          <Link to="/trabajos" className="h-9 px-4 inline-flex items-center gap-2 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:brightness-105 transition-all">
+          <Button asChild><Link to="/trabajos">
             <Plus className="size-3.5" /> Nuevo Trabajo
-          </Link>
+          </Link></Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <div key={kpi.label}
-            className={"animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
+            className={"dashboard-kpi animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
             style={{ animationDelay: `${i * 60}ms` }}>
-            <p className={"text-[10px] font-bold uppercase tracking-wider mb-2 " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
+            <p className={"text-xs font-medium mb-3 " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:flex-wrap gap-x-2 gap-y-1 min-w-0">
-              <span className={"text-3xl font-semibold font-mono tracking-tighter " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</span>
+              <span className={"text-3xl font-semibold font-display " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</span>
               <span className={"text-xs font-medium leading-snug break-normal [overflow-wrap:normal] " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
             </div>
           </div>
@@ -615,7 +616,7 @@ function ClienteDashboard() {
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
+    <div className="dashboard-screen p-4 md:p-6 xl:p-8 max-w-[112rem] mx-auto w-full space-y-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Panel del Cliente</h1>
         <p className="text-sm text-muted-foreground mt-1">Resumen operativo de tus plantas · {hoy}</p>
@@ -624,9 +625,9 @@ function ClienteDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((k) => (
           <div key={k.label}
-            className={"p-5 bg-card border border-border rounded-lg shadow-sm " + (k.tone === "danger" ? "ring-2 ring-destructive/20" : "")}>
-            <p className={"text-[10px] font-bold uppercase tracking-wider mb-2 " + (k.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{k.label}</p>
-            <p className={"text-3xl font-semibold font-mono tracking-tighter " + (k.tone === "danger" ? "text-destructive" : "")}>{k.value}</p>
+            className={"dashboard-kpi p-5 bg-card border border-border rounded-lg shadow-sm " + (k.tone === "danger" ? "ring-2 ring-destructive/20" : "")}>
+            <p className={"text-xs font-medium mb-3 " + (k.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{k.label}</p>
+            <p className={"text-3xl font-semibold font-display " + (k.tone === "danger" ? "text-destructive" : "")}>{k.value}</p>
           </div>
         ))}
       </div>

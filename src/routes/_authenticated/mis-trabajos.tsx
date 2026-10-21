@@ -14,6 +14,10 @@ export const Route = createFileRoute("/_authenticated/mis-trabajos")({
     meta: [
       { title: "Mis trabajos · EA Service Connect" },
       { name: "description", content: "Trabajos ejecutados en sus plantas: estado, evidencias y aprobación." },
+      { property: "og:title", content: "Mis trabajos · EA Service Connect" },
+      { property: "og:description", content: "Trabajos ejecutados en sus plantas: estado, evidencias y aprobación." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MisTrabajos,

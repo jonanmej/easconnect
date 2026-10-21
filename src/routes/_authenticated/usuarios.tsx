@@ -36,6 +36,8 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
         content:
           "Gestiona el acceso al sistema y los roles de cada usuario: administrador, supervisor, técnico y cliente.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: UsersPage,

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,13 +125,13 @@ function AuthPage() {
 
   return (
     <div className="auth-screen min-h-dvh grid place-items-center bg-background px-4 py-6 safe-top safe-bottom safe-x">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
-          <BrandLogo variant="ea-connect" className="h-32 w-auto object-contain" />
+          <BrandLogo variant="ea-connect" className="h-20 w-auto object-contain" />
         </div>
 
-        <div className="border border-border rounded-lg p-4 sm:p-6 bg-card">
-          <h1 className="text-lg font-semibold">Iniciar sesión</h1>
+        <div className="auth-form border border-border rounded-lg p-5 sm:p-8 bg-card">
+          <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
           <p className="text-xs text-muted-foreground mt-1">
             Acceso restringido. Las cuentas se crean por invitación del administrador.
           </p>
@@ -143,7 +144,7 @@ function AuthPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                className="w-full bg-background border border-input rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
               />
             </div>
             <div>
@@ -153,7 +154,7 @@ function AuthPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                className="w-full bg-background border border-input rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
               />
             </div>
             {error && (
@@ -161,17 +162,17 @@ function AuthPage() {
                 {error}
               </p>
             )}
-            <button
+            <Button
               type="submit"
               disabled={busy}
-              className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              className="w-full bg-primary text-primary-foreground rounded-md h-11 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? "Ingresando…" : "Ingresar"}
-            </button>
+            </Button>
           </form>
 
           <div className="text-right mt-3">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setForgotOpen((v) => !v);
@@ -179,10 +180,10 @@ function AuthPage() {
                 setForgotResult(null);
                 setForgotError(null);
               }}
-              className="text-xs text-primary hover:underline"
+              variant="link" className="h-auto p-0 text-xs"
             >
               ¿Olvidaste tu contraseña?
-            </button>
+            </Button>
           </div>
 
           {forgotOpen && (
@@ -224,13 +225,13 @@ function AuthPage() {
                   {forgotResult}
                 </p>
               )}
-              <button
+              <Button
                 type="submit"
                 disabled={forgotBusy}
-                className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+                className="w-full bg-primary text-primary-foreground rounded-md h-11 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
               >
                 {forgotBusy ? "Enviando…" : "Enviar solicitud al administrador"}
-              </button>
+              </Button>
             </form>
           )}
 
@@ -240,11 +241,11 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <button
+          <Button
             type="button"
-            onClick={signInWithGoogle}
+            variant="outline" onClick={signInWithGoogle}
             disabled={busy}
-            className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 h-11 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 disabled:opacity-60 transition-colors"
           >
             {busy ? (
               <span className="size-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
@@ -269,7 +270,7 @@ function AuthPage() {
             </svg>
             )}
             {busy ? "Conectando con Google…" : "Continuar con Google"}
-          </button>
+          </Button>
         </div>
 
         <div className="mt-6 pt-5 border-t border-border/60">
