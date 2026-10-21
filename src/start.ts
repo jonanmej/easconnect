@@ -4,6 +4,11 @@ import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
+  // Las rutas /lovable/* (webhooks, vista previa de correos) se autentican
+  // solas y no deben pasar por los guardias de la app.
+  if (request && new URL(request.url).pathname.startsWith("/lovable/")) {
+    return next();
+  }
   try {
     return await next();
   } catch (error) {
