@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText } from "ai";
+import { requireRol, STAFF } from "@/lib/auth-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
 import { formatCapacidadKwp } from "@/lib/potencia";
@@ -24,6 +24,10 @@ export const generarReporte = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
+    await requireRol(context.supabase, context.userId, STAFF);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { generateReportText } = await import("./ia.server");
+    const { saveReportSnapshot } = await import("./ia-snapshot.server");
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
 
@@ -297,8 +301,6 @@ export const generarReporte = createServerFn({ method: "POST" })
     };
     const datasetCtx = protectorNombres.protegerValor(datasetCtxRaw);
 
-    const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(apiKey);
 
     // Descargar y adjuntar PDFs subidos por técnicos al periodo, para que el
     // modelo lea su contenido y consolide el ejecutivo con datos reales.
@@ -355,8 +357,7 @@ export const generarReporte = createServerFn({ method: "POST" })
       : "";
     const usarAdjuntosPdf = pdfParts.length > 0 && pdfTextos.length === 0;
 
-    let aiResult!: TextoReporte;
-    const ZReporte = ZTextoReporte;
+
     // El reporte final va al cliente (sin detalles operativos internos);
     // el diario es de uso interno y sí los incluye.
     const audienciaReporte = data.tipo_reporte === "diario" ? "interno" : "cliente";
@@ -371,63 +372,16 @@ ${JSON.stringify(datasetCtx, null, 2)}
 ${contenidoPdfsBloque}
 ${FORMATO_RESPUESTA_IA}`;
 
-    const parseJson = parseJsonIA;
-
-    const proveedor: Proveedor = (data).proveedor ?? "auto";
-    const attempts = buildAttempts(proveedor);
-    let lastErr: any = null;
-    let ok = false;
-    let modelUsed = attempts[0].model;
-
-    const callWithPdfs = async (model: string): Promise<string> => {
-      const body = {
-        model,
-        messages: [
-          { role: "system", content: system },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              ...pdfParts,
-            ],
-          },
-        ],
-      };
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error(`${r.status} ${await r.text().catch(() => "")}`);
-      const j: any = await r.json();
-      return j?.choices?.[0]?.message?.content ?? "";
+    const aiInput = {
+      system, prompt, pdfParts: usarAdjuntosPdf ? pdfParts : [],
+      legacyProvider: data.proveedor ?? "auto",
+      permittedFigures: Array.from(cifrasPermitidas(datasetCtxRaw, indicadoresSistema, pdfTextos, data.desde, data.hasta)),
+      canonicalNames: protectorNombres.protegidos.map((n) => n.valor),
+      protectedNames: protectorNombres.protegidos,
     };
-
-    for (const a of attempts) {
-      if (a.wait) await sleep(a.wait);
-      try {
-        let text: string;
-        if (usarAdjuntosPdf && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
-          text = await callWithPdfs(a.model);
-        } else {
-          const result = await generateText({ model: gateway(a.model), system, prompt });
-          text = result.text;
-        }
-        aiResult = ZReporte.parse(parseJson(text));
-        modelUsed = a.model;
-        ok = true;
-        break;
-      } catch (e: any) {
-        lastErr = e;
-        const msg = e?.message || String(e);
-        if (/402|credit/i.test(msg)) throw new Error("Créditos de IA agotados. Recarga créditos en Ajustes para continuar.");
-        // Reintentar también en errores de schema/parse o saturación
-      }
-    }
-    if (!ok) {
-      const msg = lastErr?.message || String(lastErr);
-      throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${msg})`);
-    }
+    const drafted = await generateReportText(aiInput, { apiKey, admin: supabaseAdmin });
+    let aiResult = drafted.texto;
+    const modelUsed = drafted.procedencia.modelo;
 
     if ((reportesPdf ?? []).length > 0 && pdfTextos.length === 0 && pdfParts.length === 0) {
       // Los PDFs existían pero no pudimos leerlos ni adjuntarlos.
@@ -482,9 +436,13 @@ ${FORMATO_RESPUESTA_IA}`;
       indicadores: indicadoresSistema,
       tipo_reporte: data.tipo_reporte,
       revision_ia_pendiente: cifrasSinRespaldo.length > 0,
-      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
+      revision_ia_detalle: { cifras_sin_respaldo: cifrasSinRespaldo, procedencia_ia: drafted.procedencia },
     }).select().single();
     if (error) throw new Error(error.message);
+    await saveReportSnapshot(supabaseAdmin, row.id, {
+      input: aiInput, indicators: indicadoresSistema,
+      markdownHeader: `**Cliente:** ${datasetCtxRaw.cliente} · **Planta:** ${datasetCtxRaw.planta} · **Periodo:** ${datasetCtxRaw.periodo}`,
+    }, context.userId);
     return row;
   });
 
