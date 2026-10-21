@@ -378,20 +378,9 @@ function Reportes() {
       />
 
       {highestRole(roles) !== "cliente" && (
-        <section className="relative overflow-hidden bg-slate-900 text-white rounded-xl p-6 md:p-8 mb-8">
-          <div className="absolute top-0 left-0 w-full h-1 bg-primary/40" />
-          <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
-            <div className="w-full h-20 bg-gradient-to-b from-primary/40 to-transparent animate-scanline" />
-          </div>
-          <div className="relative flex flex-wrap gap-6 items-start justify-between">
-            <div className="max-w-2xl">
-              {/* Badge de modelo oculto a todos los roles */}
-              <h2 className="text-xl font-semibold mb-2">Convierte tus bitácoras en informes ejecutivos</h2>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                La IA toma los trabajos completados, mantenimientos y telemetría del periodo y produce KPIs, hallazgos y recomendaciones priorizadas para el cliente.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
+        <section className="text-foreground mb-8">
+          <div className="flex flex-wrap gap-6 items-start justify-between">
+            <div className="grid w-full grid-cols-3 sm:grid-cols-5 gap-3 text-center">
               <Stat label="Generados" value={items.length} />
               <Stat label="Borradores" value={borradores} tone="primary" />
               <Stat label="En revisión" value={enviados} tone="accent" />
