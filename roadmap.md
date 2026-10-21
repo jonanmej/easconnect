@@ -1,5 +1,5 @@
 # Fase 7 — Preparar Claude en reportes
-- [ ] Verificar modelo solicitado y contrato oficial de Anthropic.
+- [ ] Verificar contrato oficial de Anthropic; modelo solicitado bloqueado: el catálogo autenticado no incluye claude-sonnet-5-5.
 - [ ] Proveedor opcional del servidor, respaldo seguro y JSON validado.
 - [ ] Trazabilidad interna y comparación de borradores para administradores.
 - [ ] Pruebas simuladas, pruebas del proyecto y verificación de tipos automatizada.
