@@ -18,6 +18,9 @@ export const generarReporte = createServerFn({ method: "POST" })
       hasta: z.string().min(1),
       proveedor: z.enum(["gemini", "openai", "auto"]).optional().default("auto"),
       servicio: z.string().min(1).nullable().optional(),
+      // "final": reporte para el cliente (abarca todo el trabajo).
+      // "diario": reporte de un día, solo uso interno de la empresa.
+      tipo_reporte: z.enum(["diario", "final"]).optional().default("final"),
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
@@ -354,7 +357,10 @@ export const generarReporte = createServerFn({ method: "POST" })
 
     let aiResult!: TextoReporte;
     const ZReporte = ZTextoReporte;
-    const system = construirSystemPrompt("interno");
+    // El reporte final va al cliente (sin detalles operativos internos);
+    // el diario es de uso interno y sí los incluye.
+    const audienciaReporte = data.tipo_reporte === "diario" ? "interno" : "cliente";
+    const system = construirSystemPrompt(audienciaReporte);
     const servicioLine = data.servicio
       ? `\n\nIMPORTANTE: El reporte debe centrarse EXCLUSIVAMENTE en el servicio "${data.servicio}". El dataset ya viene filtrado por ese servicio; no menciones otros tipos de servicio.`
       : "";
@@ -474,6 +480,7 @@ ${FORMATO_RESPUESTA_IA}`;
       desde: desdeTs,
       hasta: hastaTs,
       indicadores: indicadoresSistema,
+      tipo_reporte: data.tipo_reporte,
       revision_ia_pendiente: cifrasSinRespaldo.length > 0,
       revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
     }).select().single();
