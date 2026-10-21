@@ -394,7 +394,7 @@ export const getReporteParaPDF = createServerFn({ method: "POST" })
     // el contenido crudo que los técnicos enviaron (trabajo_reportes +
     // trabajo_reportes_diarios). El operador ve exactamente lo ingresado,
     // sin edición ejecutiva.
-    if (data.variante === "interno" && trabajoIds.length) {
+    if (audiencia === "interno" && trabajoIds.length) {
       const [tr, td] = await Promise.all([
         supabase
           .from("trabajo_reportes")

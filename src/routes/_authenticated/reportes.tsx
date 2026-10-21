@@ -64,13 +64,21 @@ function Reportes() {
   const plantas = useQuery({ queryKey: ["plantas"], queryFn: () => fPlantas() });
   const fServiciosCat = useServerFn(listServiciosCatalogo);
   const serviciosCat = useQuery({ queryKey: ["servicios-catalogo"], queryFn: () => fServiciosCat() });
-  // Catálogo dinámico + servicios fijos históricos (para OTs antiguas que no
-  // están en el catálogo).
-  const serviciosOpciones = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of (serviciosCat.data as any[] | undefined) ?? []) if (s?.nombre) set.add(s.nombre);
-    for (const s of SERVICIOS_OT) set.add(s);
-    return Array.from(set);
+  // Catálogo dinámico agrupado por categoría + servicios fijos históricos
+  // (para OTs antiguas que no están en el catálogo).
+  const serviciosPorCategoria = useMemo(() => {
+    const grupos = new Map<string, string[]>();
+    const enCatalogo = new Set<string>();
+    for (const s of (serviciosCat.data as any[] | undefined) ?? []) {
+      if (!s?.nombre) continue;
+      const cat = s.categoria || "Fotovoltaica";
+      if (!grupos.has(cat)) grupos.set(cat, []);
+      grupos.get(cat)!.push(s.nombre);
+      enCatalogo.add(s.nombre);
+    }
+    const historicos = SERVICIOS_OT.filter((s) => !enCatalogo.has(s));
+    if (historicos.length) grupos.set("Históricos", historicos);
+    return grupos;
   }, [serviciosCat.data]);
 
   const [openGen, setOpenGen] = useState(false);
@@ -136,7 +144,7 @@ function Reportes() {
 
   async function descargarPdf(
     id: string,
-    modo: "ejecutivo" | "interno",
+    modo: "final" | "diario",
     calidad: "normal" | "correo" = "normal",
   ) {
     setDownloadingId(id + modo + (calidad === "correo" ? "-correo" : ""));
@@ -158,7 +166,7 @@ function Reportes() {
         // Código, versión y fecha de emisión vienen de la base de datos.
         documento_codigo: data.documento_codigo,
         documento_version: data.documento_version,
-        documento_clasificacion: modo === "ejecutivo" ? "Confidencial · Cliente" : "Uso interno",
+        documento_clasificacion: modo === "final" ? "Confidencial · Cliente" : "Uso interno",
         evidencias: evidenciasFinal,
       }, (() => {
         const limpio = (v: unknown, def: string) =>
@@ -170,7 +178,7 @@ function Reportes() {
         // El nombre incluye la planta sobre la que se corrió el reporte.
         const planta = limpio(data.planta ?? data.planta_nombre, "Todas-las-plantas");
         const fecha = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
-        const suf = modo === "interno" ? "-interno" : "";
+        const suf = modo === "diario" ? "-diario" : "";
         const sufCorreo = calidad === "correo" ? "-correo" : "";
         return `Reporte-${planta}-${servicio}-${fecha}${suf}${sufCorreo}.pdf`;
       })());
