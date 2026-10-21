@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Rules
+- Report AI execution lives in a server-only shared adapter; saved input snapshots use admin-only system_config, signed comparison choices are bound to the actor and unchanged draft, and adoption stores provenance with the text atomically without changing emitted documents.
 - Server functions verify the caller's role with `requireRol` from `src/lib/auth-roles.ts` before any privileged (admin-client) work — one consistent, DB-backed check instead of per-file helpers.
 - Clients change report status only through the `responder_reporte_cliente` DB function — clients have no direct UPDATE on `reportes`, so they cannot alter content.
 - Account unification for payroll lives in the `colaborador_unificaciones` table (admin-only), not in code — so it can change without a deploy.

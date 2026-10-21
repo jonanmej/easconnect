@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText } from "ai";
+import { requireRol, STAFF } from "@/lib/auth-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
 import { construirIndicadores, construirSystemPrompt, FORMATO_RESPUESTA_IA, parseJsonIA, ZTextoReporte, cifrasPermitidas, verificarCifras, indicadoresMarkdown } from "@/lib/reporte-ia";
@@ -15,9 +15,10 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
 
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    const { data: isSup } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
-    if (!isAdmin && !isSup) throw new Error("Solo administradores o supervisores pueden generar el reporte ejecutivo.");
+    await requireRol(context.supabase, context.userId, STAFF);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { generateReportText } = await import("./ia.server");
+    const { saveReportSnapshot } = await import("./ia-snapshot.server");
 
     const supabase = context.supabase;
     const { data: trabajo, error: tErr } = await supabase
@@ -164,68 +165,14 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       console.warn("[generarEjecutivoDesdeDiarios] PDFs encontrados pero no procesables:", pdfsOmitidos);
     }
 
-    const parseJson = parseJsonIA;
-
-    // Si hay PDFs adjuntos, llamamos al gateway directamente (chat completions
-    // multimodal). Si no, mantenemos el camino con AI SDK (generateText).
-    const callWithPdfs = async (model: string): Promise<string> => {
-      const body = {
-        model,
-        messages: [
-          { role: "system", content: system },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              ...pdfParts,
-            ],
-          },
-        ],
-      };
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Lovable-API-Key": apiKey,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) {
-        const t = await r.text().catch(() => "");
-        throw new Error(`${r.status} ${t}`);
-      }
-      const j: any = await r.json();
-      return j?.choices?.[0]?.message?.content ?? "";
+    const aiInput = {
+      system, prompt, pdfParts, legacyProvider: "auto" as const,
+      permittedFigures: Array.from(cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, trabajo.folio)),
+      canonicalNames: [] as string[], protectedNames: [] as Array<{ token: string; valor: string }>,
     };
-
-    const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(apiKey);
-
-    const attempts = buildAttempts("auto");
-    let aiResult!: z.infer<typeof ZRep>;
-    let modelUsed = attempts[0].model;
-    let lastErr: any = null;
-    let ok = false;
-    for (const a of attempts) {
-      if (a.wait) await sleep(a.wait);
-      try {
-        let text: string;
-        if (pdfParts.length > 0 && (a.model.startsWith("google/") || a.model.startsWith("openai/"))) {
-          text = await callWithPdfs(a.model);
-        } else {
-          const r = await generateText({ model: gateway(a.model), system, prompt });
-          text = r.text;
-        }
-        aiResult = ZRep.parse(parseJson(text));
-        modelUsed = a.model;
-        ok = true;
-        break;
-      } catch (e: any) {
-        lastErr = e;
-        if (/402|credit/i.test(e?.message || "")) throw new Error("Créditos de IA agotados. Recarga créditos para continuar.");
-      }
-    }
-    if (!ok) throw new Error(`Servicio de IA saturado. Reintenta en unos minutos. (${lastErr?.message ?? ""})`);
+    const drafted = await generateReportText(aiInput, { apiKey, admin: supabaseAdmin });
+    let aiResult = drafted.texto;
+    const modelUsed = drafted.procedencia.modelo;
 
     // Corregir nombres propios en la respuesta del modelo (evita "Apopa" → "Appopa").
     {
@@ -239,6 +186,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         ...((plantasCliente ?? []).map((p: any) => p.nombre)),
         ...((clientesTodos ?? []).map((c: any) => c.nombre)),
       ];
+      aiInput.canonicalNames = canonicos;
       const fix = (s: string) => normalizarNombresCanonicos(s, canonicos);
       aiResult = {
         titulo: humanizarTexto(fix(aiResult.titulo)),
@@ -254,6 +202,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       return fechas[0] === fechas[fechas.length - 1] ? fechas[0] : `${fechas[0]} a ${fechas[fechas.length - 1]}`;
     })();
 
+    aiInput.permittedFigures = Array.from(cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, trabajo.folio));
     const cifrasSinRespaldo = verificarCifras(
       aiResult,
       cifrasPermitidas(dataset, indicadoresSistema, pdfTextos, periodo, (trabajo).folio),
@@ -282,8 +231,12 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
       model_used: modelUsed,
       indicadores: indicadoresSistema,
       revision_ia_pendiente: cifrasSinRespaldo.length > 0,
-      revision_ia_detalle: cifrasSinRespaldo.length ? { cifras_sin_respaldo: cifrasSinRespaldo } : null,
+      revision_ia_detalle: { cifras_sin_respaldo: cifrasSinRespaldo, procedencia_ia: drafted.procedencia },
     }).select().single();
     if (error) throw new Error(error.message);
+    await saveReportSnapshot(supabaseAdmin, row.id, {
+      input: aiInput, indicators: indicadoresSistema,
+      markdownHeader: `**Cliente:** ${cliente.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${trabajo.folio} · **Periodo:** ${periodo}`,
+    }, context.userId);
     return row;
   });

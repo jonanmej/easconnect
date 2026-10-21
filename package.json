@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3",
     "@ai-sdk/openai-compatible": "^2.0.51",
     "@capacitor/android": "^8.4.1",
     "@capacitor/core": "^8.4.1",
