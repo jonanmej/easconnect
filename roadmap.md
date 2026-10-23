@@ -1,8 +1,10 @@
 # Fase 7 — Preparar Claude en reportes
-- [ ] Verificar contrato oficial de Anthropic; modelo solicitado bloqueado: el catálogo autenticado no incluye claude-sonnet-5-5.
-- [ ] Proveedor opcional del servidor, respaldo seguro y JSON validado.
-- [ ] Trazabilidad interna y comparación de borradores para administradores.
-- [ ] Pruebas simuladas, pruebas del proyecto y verificación de tipos automatizada.
+- [ ] Restaurar exactamente permisos previos de ambos generadores.
+- [ ] Copias sin PDF base64, límite de tamaño y limpieza al emitir/eliminar.
+- [ ] Activación por cualquier administrador e historial de cambios.
+- [ ] Pruebas simuladas, pruebas del proyecto y comprobación automática de tipos.
+- [ ] Generación con Lovable mediante sesión real de administrador; sin activar Claude ni publicar.
+- [ ] Verificar aislamiento del cliente y PDF sin datos de Fase 7.
 
 # Rediseño visual
 - [x] Renovar colores, tipografía y controles compartidos sin cambiar funciones.
