@@ -52,13 +52,13 @@ describe("JSON de la respuesta", () => {
     expect(() => parseReportText(JSON.stringify({ titulo: "x" }))).toThrow(ReportAiError);
   });
   it("reintenta una vez y luego usa el respaldo", async () => {
-    const claude = vi.fn(async () => parseReportText("no es json"));
+    const claude = vi.fn(async (_r: boolean): Promise<DraftedReport> => ({ texto: parseReportText("no es json"), procedencia: draft("anthropic").procedencia }));
     const { result } = run("anthropic", claude);
     expect((await result).procedencia.proveedor).toBe("lovable");
     expect(claude.mock.calls).toEqual([[false], [true]]);
   });
   it("si el reintento es válido, conserva Claude", async () => {
-    const claude = vi.fn(async (repair: boolean) => { if (!repair) return parseReportText("mal"); return draft("anthropic"); });
+    const claude = vi.fn(async (repair: boolean): Promise<DraftedReport> => { if (!repair) parseReportText("mal"); return draft("anthropic"); });
     const { result, callLovable } = run("anthropic", claude);
     expect((await result).procedencia.proveedor).toBe("anthropic");
     expect(callLovable).not.toHaveBeenCalled();
