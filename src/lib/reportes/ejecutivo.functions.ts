@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireRol, STAFF } from "@/lib/auth-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
 import { construirIndicadores, construirSystemPrompt, FORMATO_RESPUESTA_IA, parseJsonIA, ZTextoReporte, cifrasPermitidas, verificarCifras, indicadoresMarkdown } from "@/lib/reporte-ia";
@@ -15,7 +14,9 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
 
-    await requireRol(context.supabase, context.userId, STAFF);
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: isSup } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
+    if (!isAdmin && !isSup) throw new Error("Solo administradores o supervisores pueden generar el reporte ejecutivo.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { generateReportText } = await import("./ia.server");
     const { saveReportSnapshot } = await import("./ia-snapshot.server");
@@ -113,6 +114,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     const MAX_PDF_BYTES = 75 * 1024 * 1024;
     const MAX_TOTAL_BYTES = 150 * 1024 * 1024;
     const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
+    const pdfRefs: Array<{ storage_path: string; filename: string }> = [];
     let totalBytes = 0;
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
@@ -139,13 +141,15 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
         for (let i = 0; i < buf.byteLength; i++) bin += String.fromCharCode(buf[i]);
         const b64 = btoa(bin);
         if (b64.length > 0) {
+          const filename = p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`;
           pdfParts.push({
             type: "file",
             file: {
-              filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+              filename,
               file_data: `data:application/pdf;base64,${b64}`,
             },
           });
+          pdfRefs.push({ storage_path: p.storage_path, filename });
         }
         pdfsUsados.push(p.nombre_original ?? p.storage_path);
       } catch {
@@ -235,7 +239,7 @@ export const generarEjecutivoDesdeDiarios = createServerFn({ method: "POST" })
     }).select().single();
     if (error) throw new Error(error.message);
     await saveReportSnapshot(supabaseAdmin, row.id, {
-      input: aiInput, indicators: indicadoresSistema,
+      input: aiInput, pdfRefs, indicators: indicadoresSistema,
       markdownHeader: `**Cliente:** ${cliente.nombre} · **Planta:** ${planta?.nombre} · **OT:** ${trabajo.folio} · **Periodo:** ${periodo}`,
     }, context.userId);
     return row;

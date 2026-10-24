@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireRol, STAFF } from "@/lib/auth-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { humanizarTexto } from "@/lib/humanizar-texto";
 import { formatCapacidadKwp } from "@/lib/potencia";
@@ -24,7 +23,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    await requireRol(context.supabase, context.userId, STAFF);
+    // Access exactly as before Phase 7: no explicit role check here; saving the report is limited by database rules.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { generateReportText } = await import("./ia.server");
     const { saveReportSnapshot } = await import("./ia-snapshot.server");
@@ -308,6 +307,7 @@ export const generarReporte = createServerFn({ method: "POST" })
     const MAX_PDF_BYTES = 75 * 1024 * 1024;
     const MAX_TOTAL_BYTES = 150 * 1024 * 1024;
     const pdfParts: Array<{ type: "file"; file: { filename: string; file_data: string } }> = [];
+    const pdfRefs: Array<{ storage_path: string; filename: string }> = [];
     const pdfsUsados: string[] = [];
     const pdfsOmitidos: string[] = [];
     const pdfTextos: string[] = [];
@@ -338,13 +338,15 @@ export const generarReporte = createServerFn({ method: "POST" })
         }
         const b64 = btoa(bin);
         if (b64.length > 0) {
+          const filename = p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`;
           pdfParts.push({
             type: "file",
             file: {
-              filename: p.nombre_original ?? `${p.fecha ?? "reporte"}.pdf`,
+              filename,
               file_data: `data:application/pdf;base64,${b64}`,
             },
           });
+          pdfRefs.push({ storage_path: p.storage_path, filename });
         }
         pdfsUsados.push(p.nombre_original ?? p.storage_path);
       } catch {
@@ -440,7 +442,7 @@ ${FORMATO_RESPUESTA_IA}`;
     }).select().single();
     if (error) throw new Error(error.message);
     await saveReportSnapshot(supabaseAdmin, row.id, {
-      input: aiInput, indicators: indicadoresSistema,
+      input: aiInput, pdfRefs: usarAdjuntosPdf ? pdfRefs : [], indicators: indicadoresSistema,
       markdownHeader: `**Cliente:** ${datasetCtxRaw.cliente} · **Planta:** ${datasetCtxRaw.planta} · **Periodo:** ${datasetCtxRaw.periodo}`,
     }, context.userId);
     return row;
