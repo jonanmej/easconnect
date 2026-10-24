@@ -1,21 +1,11 @@
-# Fase 7 — Preparar Claude en reportes
-- [ ] Restaurar exactamente permisos previos de ambos generadores.
-- [ ] Copias sin PDF base64, límite de tamaño y limpieza al emitir/eliminar.
-- [ ] Activación por cualquier administrador e historial de cambios.
-- [ ] Pruebas simuladas, pruebas del proyecto y comprobación automática de tipos.
-- [ ] Generación con Lovable mediante sesión real de administrador; sin activar Claude ni publicar.
-- [ ] Verificar aislamiento del cliente y PDF sin datos de Fase 7.
-
-# Rediseño visual
-- [x] Renovar colores, tipografía y controles compartidos sin cambiar funciones.
-- [x] Compactar navegación y ampliar contenido; renovar inicio de sesión.
-- [x] Verificar pantallas con sesión real, móvil y escritorio, claro y oscuro; navegación y desplazamiento interno comprobados.
+# Fase 7 — Claude en reportes (Claude Sonnet 5 aceptado)
+- [x] Restaurar exactamente permisos previos de ambos generadores.
+- [x] Copias sin PDF base64, límite de 512 KiB y limpieza al emitir/eliminar.
+- [x] Activación por cualquier administrador, con historial.
+- [x] Pruebas simuladas (30 aprobadas) y tipos sin errores.
+- [x] Generación con Lovable usando una sesión real de administrador.
+- [ ] Prueba con una sesión de cliente: no hay una cuenta cliente de prueba (revisión hecha solo en el código).
+- [ ] Activar Claude y probarlo: lo hará el dueño.
 
 # Fase 6 — Adaptabilidad
-- [x] Layout y zonas seguras, teclado y controles compartidos.
-- [x] Metadatos e instalación PWA; orientación libre e inicio iOS.
-- [x] Corregir pantallas principales sin cambios de lógica, permisos, cálculos ni PDF.
-- [x] 120 capturas: once pantallas y calendario semanal en los diez tamaños; 14 pruebas aprobadas.
-- [x] Interacciones reales: abrir detalle de OT, llegar al final del formulario, menú Más y tabla horizontal; altura visible reducida y texto 125%.
-- [ ] Calendario del cliente con sesión de cliente: no hay sesión de ese rol disponible; no crear ni modificar cuentas reales para una revisión visual.
-- [ ] Dispositivo real: instalación iOS/Android, inicio iOS, recortes, barra de gestos y teclado real; requiere acceso físico.
+- [ ] Calendario del cliente con sesión de cliente; dispositivo real iOS/Android.
