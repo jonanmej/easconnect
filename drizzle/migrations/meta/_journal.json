@@ -43,6 +43,13 @@
       "when": 1792555184228,
       "tag": "0005_categorias_servicios_y_tipo_reporte",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792800276516,
+      "tag": "0006_fase7_limpieza_copias_y_historial_ia",
+      "breakpoints": true
     }
   ]
 }

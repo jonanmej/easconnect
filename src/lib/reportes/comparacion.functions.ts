@@ -19,9 +19,8 @@ export const setReportAiProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ provider: ReportProviderSchema, resume: z.boolean().default(false) }).parse(d))
   .handler(async ({ context, data }) => {
-    await requireRol(context.supabase, context.userId, ["admin"]);
-    if (String(context.claims.email ?? "").toLowerCase() !== "proyectos@easervice.app")
-      throw new Error("Solo el dueño puede activar Claude o reanudar la IA de reportes.");
+    // Any administrator (checked in the database) may change or resume; the DB trigger records who and when.
+    await requireRol(context.supabase, context.userId, ["admin"], "Solo administradores pueden cambiar la IA de reportes.");
     const { error } = await context.supabase.from("system_config").upsert({ key: REPORT_AI_CONFIG_KEY,
       value: { provider: data.provider }, updated_by: context.userId });
     if (error) throw new Error("No se pudo guardar el proveedor de reportes.");
@@ -41,22 +40,25 @@ export const compararRedaccion = createServerFn({ method: "POST" })
       .eq("id", data.id).single();
     if (error || !rep) throw new Error("Reporte no encontrado.");
     ensureDraft(rep.estado);
-    const { SnapshotSchema, snapshotKey, normalizeDraft, signChoice } = await import("./ia-snapshot.server");
+    const { SnapshotSchema, DisabledSnapshotSchema, snapshotKey, normalizeDraft, signChoice, loadPdfParts } = await import("./ia-snapshot.server");
     const { data: saved, error: readError } = await context.supabase.from("system_config").select("value")
       .eq("key", snapshotKey(data.id)).maybeSingle();
     if (readError) throw new Error("No se pudieron leer los datos de la comparación.");
+    const disabled = DisabledSnapshotSchema.safeParse(saved?.value);
+    if (disabled.success) throw new Error(disabled.data.reason);
     const parsed = SnapshotSchema.safeParse(saved?.value);
     if (!parsed.success) throw new Error("Este borrador no conserva sus datos originales de IA. Genera un nuevo reporte para comparar con las mismas fuentes.");
     const apiKey = process.env.LOVABLE_API_KEY;
     const signingSecret = process.env.REPORT_AI_COMPARISON_SIGNING_SECRET;
     if (!apiKey || !signingSecret) throw new Error("La comparación de reportes no está configurada.");
+    const input = { ...parsed.data.input, pdfParts: await loadPdfParts(context.supabase, parsed.data.pdfRefs) };
     const { generateReportText } = await import("./ia.server");
     // Sequential calls share a single immutable input and cannot save report content.
     const results = [];
     for (const provider of ["anthropic", "lovable"] as const) {
-      const result = normalizeDraft(await generateReportText(parsed.data.input, {
+      const result = normalizeDraft(await generateReportText(input, {
         apiKey, admin: context.supabase, provider, allowFallback: false,
-      }), parsed.data.input);
+      }), input);
       const token = await signChoice({ actor: context.userId, reportId: data.id, version: rep.version,
         updatedAt: rep.updated_at, expires: Date.now() + 30 * 60 * 1000, result }, signingSecret);
       const { verificarCifras } = await import("@/lib/reporte-ia");

@@ -684,7 +684,7 @@ function Reportes() {
           </select>
         </Field>
         <PeriodoTrimestralFields />
-        {roles.includes("admin") && <ReportAiControls owner={user?.email?.toLowerCase() === "proyectos@easervice.app"} />}
+        {roles.includes("admin") && <ReportAiControls admin />}
       </RecordDialog>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>

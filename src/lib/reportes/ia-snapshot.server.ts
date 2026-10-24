@@ -5,14 +5,36 @@ import { humanizarTexto } from "@/lib/humanizar-texto";
 import { normalizarNombresCanonicos } from "@/lib/normalizar-nombres";
 import { verificarCifras, indicadoresMarkdown, type TextoReporte, type Indicador, ZTextoReporte } from "@/lib/reporte-ia";
 import { ReportInputSchema, ProvenanceSchema, type ReportInput, type DraftedReport } from "./ia-contract";
+import { buildSnapshotRecord, type PdfRef } from "./ia-snapshot-record";
+export { SNAPSHOT_MAX_BYTES, buildSnapshotRecord, type PdfRef } from "./ia-snapshot-record";
 
-export const SnapshotSchema = z.object({ input: ReportInputSchema, markdownHeader: z.string(),
+// Saved copies never contain PDF bytes: only extracted text (already in the prompt) or private storage references.
+const PdfRefSchema = z.object({ storage_path: z.string().min(1), filename: z.string() });
+export const SnapshotSchema = z.object({ input: ReportInputSchema.omit({ pdfParts: true }),
+  pdfRefs: z.array(PdfRefSchema).max(8).default([]), markdownHeader: z.string(),
   indicators: z.array(z.object({ label: z.string(), value: z.string() })) });
 export type ReportSnapshot = z.infer<typeof SnapshotSchema>;
+export const DisabledSnapshotSchema = z.object({ disabled: z.literal(true), reason: z.string() });
 export function snapshotKey(id: string) { return `report_ai_input:${id}`; }
-export async function saveReportSnapshot(admin: SupabaseClient<Database>, id: string, snapshot: ReportSnapshot, actor: string) {
-  const { error } = await admin.from("system_config").upsert({ key: snapshotKey(id), value: snapshot as unknown as Json, updated_by: actor });
-  if (error) throw new Error("El reporte se guardó, pero no fue posible registrar sus datos para comparación.");
+export async function saveReportSnapshot(admin: SupabaseClient<Database>, id: string,
+  snapshot: { input: ReportInput; pdfRefs: PdfRef[]; markdownHeader: string; indicators: Indicador[] }, actor: string) {
+  const record = buildSnapshotRecord(snapshot);
+  const { error } = await admin.from("system_config").upsert({ key: snapshotKey(id), value: record as unknown as Json, updated_by: actor });
+  if (error) console.warn("[report-ai] snapshot_not_saved");
+}
+
+/** Re-reads referenced PDFs with the caller's own storage permissions. */
+export async function loadPdfParts(supabase: SupabaseClient<Database>, refs: PdfRef[]): Promise<ReportInput["pdfParts"]> {
+  const parts: ReportInput["pdfParts"] = [];
+  for (const ref of refs) {
+    const { data, error } = await supabase.storage.from("trabajos-evidencia").download(ref.storage_path);
+    if (error || !data) throw new Error("Un PDF original ya no está disponible. Genera un nuevo reporte para comparar.");
+    const buf = new Uint8Array(await data.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.byteLength; i += 0x8000) bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + 0x8000)));
+    parts.push({ type: "file", file: { filename: ref.filename, file_data: `data:application/pdf;base64,${btoa(bin)}` } });
+  }
+  return parts;
 }
 
 export function normalizeDraft(result: DraftedReport, input: ReportInput): DraftedReport {

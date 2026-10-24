@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 import { compararRedaccion, adoptarRedaccion, getReportAiSettings, setReportAiProvider } from "@/lib/reportes/comparacion.functions";
 import type { ReportProvider } from "@/lib/reportes/ia-contract";
 
-export function ReportAiControls({ owner }: { owner: boolean }) {
+export function ReportAiControls({ admin }: { admin: boolean }) {
   const get = useServerFn(getReportAiSettings);
   const set = useServerFn(setReportAiProvider);
   const qc = useQueryClient();
-  const settings = useQuery({ queryKey: ["report-ai-settings"], queryFn: () => get() });
+  const settings = useQuery({ queryKey: ["report-ai-settings"], queryFn: () => get(), enabled: admin });
   const save = useMutation({ mutationFn: (data: { provider: ReportProvider; resume?: boolean }) => set({ data }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["report-ai-settings"] }); toast.success("Proveedor de reportes actualizado"); },
     onError: (error: Error) => toast.error(error.message) });
-  if (!owner || !settings.data) return null;
+  if (!admin || !settings.data) return null;
   return <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
     <label htmlFor="report-ai-provider">IA de reportes</label>
     <select id="report-ai-provider" value={settings.data.provider} disabled={save.isPending}
