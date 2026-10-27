@@ -162,7 +162,9 @@ function Reportes() {
       const res = await generarYDescargarPdf({
         ...data,
         desglose_tecnico: desgloseTecnico ? data.desglose_tecnico ?? [] : undefined,
-        modo,
+        // El documento PDF espera "ejecutivo" (con carátula, para el cliente)
+        // o "interno" (sin carátula); la pantalla maneja "final"/"diario".
+        modo: modo === "final" ? "ejecutivo" : "interno",
         responsable: firma?.nombre ?? null,
         responsable_cargo: firma?.cargo ?? null,
         // Código, versión y fecha de emisión vienen de la base de datos.
