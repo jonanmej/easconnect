@@ -50,6 +50,13 @@
       "when": 1792800276516,
       "tag": "0006_fase7_limpieza_copias_y_historial_ia",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793913929776,
+      "tag": "0007_pausa_trabajos",
+      "breakpoints": true
     }
   ]
 }

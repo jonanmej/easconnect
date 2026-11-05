@@ -2642,6 +2642,9 @@ export type Database = {
           nombre_trabajo: string | null
           notas: string | null
           origen: string
+          pausa_motivo: string | null
+          pausada_at: string | null
+          pausada_por: string | null
           planta_id: string
           servicio: string
           tecnico_id: string | null
@@ -2667,6 +2670,9 @@ export type Database = {
           nombre_trabajo?: string | null
           notas?: string | null
           origen?: string
+          pausa_motivo?: string | null
+          pausada_at?: string | null
+          pausada_por?: string | null
           planta_id: string
           servicio: string
           tecnico_id?: string | null
@@ -2692,6 +2698,9 @@ export type Database = {
           nombre_trabajo?: string | null
           notas?: string | null
           origen?: string
+          pausa_motivo?: string | null
+          pausada_at?: string | null
+          pausada_por?: string | null
           planta_id?: string
           servicio?: string
           tecnico_id?: string | null

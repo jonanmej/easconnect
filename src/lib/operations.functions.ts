@@ -7,4 +7,5 @@ export { listEquipos, upsertEquipo, deleteEquipo } from "./operations/equipos.fu
 export { listTrabajos, upsertTrabajo, deleteTrabajo, crearTrabajoHistorico, listTecnicos, verificarConflictoTecnico, listAsignacionesLog } from "./operations/trabajos.functions";
 export { reprogramarTrabajo, reubicarTrabajoDisponible, moverDiaTrabajo, listTrabajoTecnicosExtra } from "./operations/reprogramacion.functions";
 export { asignarTecnicoMultiple, programarTrabajoMultiplesDias } from "./operations/asignacion-multiple.functions";
+export { pausarTrabajos, reanudarTrabajo } from "./operations/pausa.functions";
 export { dashboardStats } from "./operations/dashboard.functions";

@@ -159,7 +159,8 @@ function Programacion() {
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
-  const trabajos = (list.data as any[] | undefined) ?? [];
+  // Las OT en pausa salen del calendario hasta que se reanudan.
+  const trabajos = ((list.data as any[] | undefined) ?? []).filter((t) => !t.pausada_at);
   // Filtro por cliente (para vista anual)
   const [clienteFilter, setClienteFilter] = useState<string>("");
   // Filtros de impresión

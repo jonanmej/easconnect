@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { highestRole } from "@/lib/roles";
 import { Plus, Pencil, Trash2, FileSignature, Copy, History, Archive, FileDown, Search as SearchIcon, UserCheck, CalendarRange } from "lucide-react";
 import { AsignarTecnicoMultipleDialog, ProgramarDiasMultiplesDialog } from "@/components/trabajos/AsignacionMultiple";
+import { PausarTrabajosDialog, ReanudarTrabajoDialog } from "@/components/trabajos/PausaTrabajos";
+import { PauseCircle, PlayCircle } from "lucide-react";
 import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { InspeccionPreviaSection } from "@/components/InspeccionPreviaSection";
 import { JornadaControl } from "@/components/JornadaControl";
@@ -188,6 +190,20 @@ function Trabajos() {
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [asignarOpen, setAsignarOpen] = useState(false);
   const [diasTrabajo, setDiasTrabajo] = useState<any | null>(null);
+  // Pausa de programaciones (solo administradores)
+  const esAdmin = role === "admin";
+  const [pausaModo, setPausaModo] = useState<{ tipo: "ots"; ids: string[] } | { tipo: "cliente" } | null>(null);
+  const [reanudando, setReanudando] = useState<any | null>(null);
+  const clientesPausables = useMemo(() => {
+    const m = new Map<string, { id: string; nombre: string; programadas: number }>();
+    for (const t of (list.data as any[] | undefined) ?? []) {
+      if (t.estado !== "programado" || t.pausada_at || !t.cliente_id) continue;
+      const c = m.get(t.cliente_id) ?? { id: t.cliente_id, nombre: t.cliente_nombre, programadas: 0 };
+      c.programadas++;
+      m.set(t.cliente_id, c);
+    }
+    return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [list.data]);
   const toggleSel = (id: string) =>
     setSeleccion((prev) => {
       const next = new Set(prev);
@@ -205,7 +221,9 @@ function Trabajos() {
   const filtrados = (() => {
     const q = search.trim().toLowerCase();
     const rows = ((list.data as any[] | undefined) ?? []).filter((t) =>
-      (!estadoFilter || t.estado === estadoFilter)
+      (!estadoFilter
+          || (estadoFilter === "pausado" ? !!t.pausada_at
+            : t.estado === estadoFilter && !(estadoFilter === "programado" && t.pausada_at)))
       && (!plantaFilter || t.planta_id === plantaFilter)
       && (!tecFilter
           || (tecFilter === "__sin__" ? !t.tecnico_id : t.tecnico_id === tecFilter))
@@ -437,6 +455,15 @@ function Trabajos() {
                 <Plus className="size-3.5" /> Nuevo trabajo
               </button>
             )}
+            {esAdmin && (
+              <button
+                onClick={() => setPausaModo({ tipo: "cliente" })}
+                title="Pausar todas las OT programadas de un cliente"
+                className="h-9 min-h-11 sm:min-h-9 px-4 inline-flex items-center justify-center gap-2 text-xs font-medium bg-secondary text-foreground border border-border rounded-md hover:bg-secondary/70"
+              >
+                <PauseCircle className="size-3.5" /> Pausar cliente
+              </button>
+            )}
             {canEdit && (
               <button
                 onClick={() => setHistoricoOpen(true)}
@@ -491,6 +518,7 @@ function Trabajos() {
         >
           <option value="">Todos los estados</option>
           <option value="programado">Programado</option>
+          <option value="pausado">En pausa</option>
           <option value="en_progreso">En progreso</option>
           <option value="completado">Completado</option>
           <option value="cancelado">Cancelado</option>
@@ -532,6 +560,15 @@ function Trabajos() {
             className="h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-medium"
           >
             <UserCheck className="size-3.5" /> Asignar técnico ({seleccion.size})
+          </button>
+        )}
+        {esAdmin && seleccion.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setPausaModo({ tipo: "ots", ids: [...seleccion] })}
+            className="h-9 px-3 inline-flex items-center gap-2 rounded-md border border-border bg-secondary text-xs font-medium"
+          >
+            <PauseCircle className="size-3.5" /> Pausar ({seleccion.size})
           </button>
         )}
       </div>
@@ -599,7 +636,11 @@ function Trabajos() {
           {
             key: "estado",
             header: "Estado",
-            cell: (t) => (
+            cell: (t) => t.pausada_at ? (
+              <span title={t.pausa_motivo ?? undefined} className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-muted text-muted-foreground border border-dashed border-border">
+                En pausa
+              </span>
+            ) : (
               <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
                 {estadoLabel[t.estado] ?? t.estado}
               </span>
@@ -629,6 +670,26 @@ function Trabajos() {
                       aria-label="Programar en varios días"
                     >
                       <CalendarRange className="size-3.5" />
+                    </button>
+                  )}
+                  {esAdmin && t.pausada_at && (
+                    <button
+                      onClick={() => setReanudando(t)}
+                      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-primary"
+                      title="Reanudar con nueva fecha"
+                      aria-label="Reanudar"
+                    >
+                      <PlayCircle className="size-3.5" />
+                    </button>
+                  )}
+                  {esAdmin && !t.pausada_at && t.estado === "programado" && (
+                    <button
+                      onClick={() => setPausaModo({ tipo: "ots", ids: [t.id] })}
+                      className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
+                      title="Pausar programación"
+                      aria-label="Pausar"
+                    >
+                      <PauseCircle className="size-3.5" />
                     </button>
                   )}
                   <button onClick={() => setEditing(t)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
@@ -691,6 +752,17 @@ function Trabajos() {
           );
         })()
       )}
+
+      {pausaModo && (
+        <PausarTrabajosDialog
+          open
+          onOpenChange={(v) => !v && setPausaModo(null)}
+          modo={pausaModo}
+          clientes={clientesPausables}
+          onDone={() => setSeleccion(new Set())}
+        />
+      )}
+      <ReanudarTrabajoDialog trabajo={reanudando} onOpenChange={(v) => !v && setReanudando(null)} />
 
       <RecordDialog
         open={!!editing}

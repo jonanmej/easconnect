@@ -100,6 +100,7 @@ export async function findRecursoConflicts(
       "id, folio, servicio, fecha_programada, duracion_dias, estado, tecnico_id, equipo_id, plantas(nombre, clientes(nombre)), trabajo_tecnicos(tecnico_id), trabajo_equipos(equipo_id)",
     )
     .neq("estado", "cancelado")
+    .is("pausada_at", null)
     .gte("fecha_programada", from)
     .lte("fecha_programada", to);
   if (error) throw new Error(error.message);
