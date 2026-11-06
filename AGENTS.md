@@ -28,3 +28,4 @@
 - Technicians may be assigned to multiple jobs on the same dates — only equipment conflicts block scheduling (owner decision, Oct 2026); keep verificar_conflicto_tecnico RPC for informational use only.
 
 - Visual redesign is centralized in global semantic tokens and shared shell/controls, with screen-only layout rules; preserve PDF document styling and all operational behavior.
+- Paused OTs keep estado 'programado' and are marked by trabajos.pausada_at; calendars, disponibilidad_calendario and equipment-conflict checks skip them — only admins pause/resume (pausa.functions.ts).
