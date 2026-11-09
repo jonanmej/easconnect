@@ -28,27 +28,22 @@ export const calcularNominaMes = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => ZMes.parse(d))
   .handler(async ({ context, data }) => {
     await requireStaff(context);
-    const { calcularNominaRango } = await import("@/lib/nomina.server");
-    const { cortesDelMes } = await import("@/lib/nomina-cortes");
+    const { calcularNominaRango, calcularCortesMes, cargarRetenidoCortes } = await import("@/lib/nomina.server");
     const { desde, hasta } = rangoMes(data.anio, data.mes);
 
-    const definiciones = cortesDelMes(data.anio, data.mes);
-    const [calc, { data: periodos }, ...porCorte] = await Promise.all([
+    const retenido = await cargarRetenidoCortes(context.supabase, data.anio, data.mes);
+    const [calc, { data: periodos }, porCorte] = await Promise.all([
       calcularNominaRango(context.supabase, { desde, hasta, tecnico_id: data.tecnico_id }),
       context.supabase.from("nomina_periodos").select("*").eq("anio", data.anio).eq("mes", data.mes),
-      ...definiciones.map((c) =>
-        calcularNominaRango(context.supabase, { desde: c.desde, hasta: c.hasta }),
-      ),
+      calcularCortesMes(context.supabase, data.anio, data.mes, retenido),
     ]);
 
     const mapaPeriodos = new Map<string, any>(
       (periodos ?? []).map((p: any) => [p.corte_clave ?? "mes", p]),
     );
 
-    const cortes = definiciones.map((c, i) => {
-      const personal = (porCorte[i]?.personal ?? []).filter((p: any) =>
-        c.modalidades.includes((p.modalidad ?? "mensual") as any),
-      );
+    const cortes = porCorte.map(({ corte: c, personal: conPrevio }) => {
+      const personal = conPrevio.map(({ _previo, ...p }: any) => p);
       const suma = (fn: (p: any) => number) => r2(personal.reduce((s: number, p: any) => s + fn(p), 0));
       const p = mapaPeriodos.get(c.clave);
       return {
@@ -104,7 +99,6 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await requireStaff(context);
-    const { calcularNominaRango } = await import("@/lib/nomina.server");
     const { calcularDescuentos } = await import("@/lib/nomina-descuentos");
     const { resolverCorte } = await import("@/lib/nomina-cortes");
     const corte = resolverCorte(data.anio, data.mes, data.corte_clave ?? "mes");
@@ -117,20 +111,28 @@ export const guardarNominaMes = createServerFn({ method: "POST" })
       throw new Error("El período ya está cerrado. Reábralo antes de volver a calcularlo.");
     }
 
-    const bruta = await calcularNominaRango(context.supabase, { desde, hasta });
-    const calc = {
-      ...bruta,
-      personal: bruta.personal.filter((p) =>
-        corte.modalidades.includes((p.modalidad ?? "mensual") as any),
-      ),
-    };
+    // Mes completo: descuentos sobre el total del mes. Cortes parciales:
+    // descuentos acumulados (total del mes − lo retenido en cortes anteriores).
+    const { calcularNominaRango, calcularCortesMes, cargarRetenidoCortes } = await import("@/lib/nomina.server");
+    const { calcularDescuentosCorte } = await import("@/lib/nomina-descuentos");
+    let calc: { personal: any[] };
+    if (corte.clave === "mes") {
+      calc = await calcularNominaRango(context.supabase, { desde, hasta });
+    } else {
+      const retenido = await cargarRetenidoCortes(context.supabase, data.anio, data.mes);
+      retenido.delete(corte.clave);
+      const todos = await calcularCortesMes(context.supabase, data.anio, data.mes, retenido);
+      calc = { personal: todos.find((x) => x.corte.clave === corte.clave)?.personal ?? [] };
+    }
     const ajustes = new Map(
       (data.ajustes ?? []).map((a) => [a.user_id, a]),
     );
 
     const filas = calc.personal.map((p) => {
       const aj = ajustes.get(p.tecnico_id);
-      const desc = calcularDescuentos(p.total_bruto, aj?.otros_descuentos ?? 0);
+      const desc = p._previo
+        ? calcularDescuentosCorte(p.total_bruto, p._previo, { proyectarQuincena: corte.tipo === "quincena", otros: aj?.otros_descuentos ?? 0 })
+        : calcularDescuentos(p.total_bruto, aj?.otros_descuentos ?? 0);
       return {
         user_id: p.tecnico_id,
         colaborador: p.colaborador,

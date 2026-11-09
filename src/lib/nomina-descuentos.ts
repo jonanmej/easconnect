@@ -78,3 +78,38 @@ export const NOTA_LEGAL_DESCUENTOS =
   "Descuentos de ley de El Salvador: ISSS 3 % del salario con tope de cotización de US$1,000.00 " +
   "(máximo US$30.00); AFP 7.25 % con tope de cotización de US$7,398.24; renta (ISR) según la tabla " +
   "mensual de retención aplicada sobre el bruto menos ISSS y AFP. El neto es el pago después de estos descuentos.";
+
+export type RetenidoPrevio = { bruto: number; isss: number; afp: number; renta: number };
+
+/**
+ * Descuentos de un corte parcial del mes (quincena o semana) usando la tabla
+ * y topes MENSUALES de forma acumulada: se calcula el descuento del total
+ * acumulado del mes y se resta lo ya retenido en cortes anteriores. Así la
+ * suma de los cortes coincide con la planilla del mes y el tope de ISSS no se
+ * excede. En la 1ª quincena sin cortes previos se proyecta el mes (bruto × 2)
+ * y se retiene la mitad, para no sub-retener renta.
+ */
+export function calcularDescuentosCorte(
+  brutoCorte: number,
+  previo: RetenidoPrevio,
+  opts: { proyectarQuincena?: boolean; otros?: number } = {},
+): DescuentosLey {
+  const total_bruto = r2(brutoCorte);
+  let isss: number, afp: number, renta: number;
+  if (opts.proyectarQuincena && previo.bruto <= 0) {
+    const mes = calcularDescuentos(total_bruto * 2);
+    isss = r2(mes.isss / 2); afp = r2(mes.afp / 2); renta = r2(mes.renta / 2);
+  } else {
+    const acum = calcularDescuentos(previo.bruto + total_bruto);
+    isss = r2(Math.max(0, acum.isss - previo.isss));
+    afp = r2(Math.max(0, acum.afp - previo.afp));
+    renta = r2(Math.max(0, acum.renta - previo.renta));
+  }
+  const renta_gravable = r2(Math.max(0, total_bruto - isss - afp));
+  const otros_descuentos = r2(Math.max(0, opts.otros ?? 0));
+  const total_descuentos = r2(isss + afp + renta + otros_descuentos);
+  return {
+    total_bruto, isss, afp, renta_gravable, renta, otros_descuentos, total_descuentos,
+    total_neto: r2(Math.max(0, total_bruto - total_descuentos)),
+  };
+}

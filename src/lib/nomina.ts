@@ -205,3 +205,20 @@ export const NOTA_LEGAL_NOMINA =
   "jornada nocturna (19:00 a 06:00) con recargo del 25 %; hora extra diurna con recargo del 100 %; " +
   "hora extra nocturna con recargo del 100 % sobre la hora nocturna; día de descanso semanal con recargo del 50 %; " +
   "día de asueto con recargo del 100 %. El tiempo de almuerzo no se cuenta como tiempo trabajado.";
+
+/**
+ * Fracción del salario mensual que corresponde a un rango de fechas:
+ * mes completo = 1, quincena (1–15 o 16–fin) = 0.5; otros rangos se
+ * prorratean por días calendario sobre 30 (máximo 1).
+ */
+export function fraccionSalarioMensual(desde: string, hasta: string): number {
+  const [y1, m1, d1] = desde.split("-").map(Number);
+  const [y2, m2, d2] = hasta.split("-").map(Number);
+  const finMes = new Date(Date.UTC(y1, m1, 0)).getUTCDate();
+  if (y1 === y2 && m1 === m2) {
+    if (d1 === 1 && d2 === finMes) return 1;
+    if ((d1 === 1 && d2 === 15) || (d1 === 16 && d2 === finMes)) return 0.5;
+  }
+  const dias = Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000) + 1;
+  return Math.max(0, Math.min(1, dias / 30));
+}

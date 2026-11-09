@@ -11,6 +11,7 @@ import {
   valorHoraOrdinaria,
   valorHoraJornal,
   pagoDiaJornal,
+  fraccionSalarioMensual,
   FACTORES_NOMINA,
   HORAS_JORNADA_ORDINARIA,
   DIAS_MES_NOMINA,
@@ -26,6 +27,12 @@ function esDomingo(fechaISO: string): boolean {
 }
 
 export type RangoNomina = { desde: string; hasta: string; tecnico_id?: string };
+
+/**
+ * Salario mensual: el bruto base es el salario completo (o la fracción del
+ * corte), no las horas marcadas; las marcaciones solo suman extras, domingos y
+ * feriados. Jornal diario: se paga por día trabajado.
+ */
 
 export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
   let q = supabase
@@ -68,7 +75,14 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
   const montoBaseDe = (rem: Remuneracion) =>
     rem.modalidad === "diario" ? rem.pago_diario : rem.salario_mensual;
 
-  const ids = Array.from(new Set((rows ?? []).map((r: any) => r.tecnico_id)));
+  const fraccion = fraccionSalarioMensual(rango.desde, rango.hasta);
+  const filtroTecnico = rango.tecnico_id ? colaboradorPrincipal(rango.tecnico_id) : null;
+  // Colaboradores con salario mensual: entran aunque no hayan marcado.
+  const asalariados = Array.from(mapaSalarios.entries())
+    .filter(([id, r]) => r.modalidad === "mensual" && r.salario_mensual > 0 && colaboradorPrincipal(id) === id)
+    .map(([id]) => id)
+    .filter((id) => !filtroTecnico || id === filtroTecnico);
+  const ids = Array.from(new Set([...(rows ?? []).map((r: any) => r.tecnico_id), ...asalariados]));
   let perfiles = new Map<string, string>();
   if (ids.length) {
     const { data: profs } = await supabase.from("profiles").select("id, display_name").in("id", ids);
@@ -115,16 +129,25 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
     horas_totales: number; sin_salario: boolean;
   };
   const acc = new Map<string, Acc>();
-  for (const d of dias) {
-    const rem = remuneracionDe(d.tecnico_id);
-    const a = acc.get(d.tecnico_id) ?? {
-      tecnico_id: d.tecnico_id, colaborador: d.colaborador,
+  const nuevoAcc = (id: string, colaborador: string): Acc => {
+    const rem = remuneracionDe(id);
+    return {
+      tecnico_id: id, colaborador,
       salario_mensual: rem.salario_mensual, modalidad: rem.modalidad, pago_diario: rem.pago_diario,
       valor_hora: r2(valorHoraDe(rem)), dias: 0,
       habil: desgloseVacio(), descanso: desgloseVacio(), feriado: desgloseVacio(),
       pago_ordinario: 0, pago_extras: 0, pago_descanso: 0, pago_feriado: 0,
       horas_totales: 0, sin_salario: montoBaseDe(rem) <= 0,
     };
+  };
+  for (const id of asalariados) {
+    const a = nuevoAcc(id, perfiles.get(id) ?? "Colaborador");
+    a.pago_ordinario = remuneracionDe(id).salario_mensual * fraccion;
+    acc.set(id, a);
+  }
+  for (const d of dias) {
+    const rem = remuneracionDe(d.tecnico_id);
+    const a = acc.get(d.tecnico_id) ?? nuevoAcc(d.tecnico_id, d.colaborador);
     const tipo: TipoDiaNomina = d.tipo_dia;
     a.dias += 1;
     a.horas_totales += d.horas_totales;
@@ -132,7 +155,8 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
     const extras = d.pago.extra_diurna + d.pago.extra_nocturna;
     const ordinarias = d.pago.ord_diurna + d.pago.ord_nocturna;
     if (tipo === "habil") {
-      a.pago_ordinario += ordinarias;
+      // Salario mensual: las horas ordinarias ya están en el salario base.
+      if (rem.modalidad !== "mensual") a.pago_ordinario += ordinarias;
       a.pago_extras += extras;
     } else if (tipo === "descanso") {
       a.pago_descanso += ordinarias + extras;
@@ -213,3 +237,65 @@ export async function calcularNominaRango(supabase: any, rango: RangoNomina) {
 }
 
 export type NominaCalculo = Awaited<ReturnType<typeof calcularNominaRango>>;
+
+type PersonaNomina = NominaCalculo["personal"][number];
+export type RetenidoCortes = Map<string, Map<string, { bruto: number; isss: number; afp: number; renta: number }>>;
+
+/**
+ * Calcula todos los cortes parciales del mes (quincenas y semanas) en orden,
+ * con descuentos de ley acumulados dentro del mes: cada corte retiene lo que
+ * corresponde al total del mes menos lo retenido en los cortes anteriores.
+ * Si un corte anterior ya está guardado, se usa lo que realmente se retuvo.
+ */
+export async function calcularCortesMes(
+  supabase: any,
+  anio: number,
+  mes: number,
+  guardados: RetenidoCortes = new Map(),
+) {
+  const { cortesDelMes } = await import("@/lib/nomina-cortes");
+  const { calcularDescuentosCorte } = await import("@/lib/nomina-descuentos");
+  const definiciones = cortesDelMes(anio, mes);
+  const calculos = await Promise.all(
+    definiciones.map((c) => calcularNominaRango(supabase, { desde: c.desde, hasta: c.hasta })),
+  );
+  const previo = new Map<string, { bruto: number; isss: number; afp: number; renta: number }>();
+  return definiciones.map((c, i) => {
+    const personal: PersonaNomina[] = (calculos[i]?.personal ?? [])
+      .filter((p) => c.modalidades.includes((p.modalidad ?? "mensual") as ModalidadPago))
+      .map((p) => {
+        const key = `${p.modalidad}:${p.tecnico_id}`;
+        const prev = previo.get(key) ?? { bruto: 0, isss: 0, afp: 0, renta: 0 };
+        const desc = calcularDescuentosCorte(p.total_bruto, prev, { proyectarQuincena: c.tipo === "quincena" });
+        const real = guardados.get(c.clave)?.get(p.tecnico_id) ?? desc;
+        previo.set(key, {
+          bruto: prev.bruto + p.total_bruto,
+          isss: prev.isss + real.isss, afp: prev.afp + real.afp, renta: prev.renta + real.renta,
+        });
+        return { ...p, isss: desc.isss, afp: desc.afp, renta: desc.renta, renta_gravable: desc.renta_gravable,
+          total_descuentos: desc.total_descuentos, total_neto: desc.total_neto, _previo: prev } as PersonaNomina & { _previo: typeof prev };
+      });
+    return { corte: c, personal };
+  });
+}
+
+/** Retenciones ya guardadas por corte y colaborador para un mes. */
+export async function cargarRetenidoCortes(supabase: any, anio: number, mes: number): Promise<RetenidoCortes> {
+  const { data: periodos } = await supabase
+    .from("nomina_periodos").select("id, corte_clave").eq("anio", anio).eq("mes", mes);
+  const parciales = (periodos ?? []).filter((p: any) => (p.corte_clave ?? "mes") !== "mes");
+  const out: RetenidoCortes = new Map();
+  if (!parciales.length) return out;
+  const { data: det } = await supabase
+    .from("nomina_periodo_detalle").select("periodo_id, user_id, total_bruto, isss, afp, renta")
+    .in("periodo_id", parciales.map((p: any) => p.id));
+  const claveDe = new Map(parciales.map((p: any) => [p.id, p.corte_clave]));
+  for (const d of det ?? []) {
+    const clave = claveDe.get(d.periodo_id) as string;
+    if (!out.has(clave)) out.set(clave, new Map());
+    out.get(clave)!.set(d.user_id, {
+      bruto: Number(d.total_bruto ?? 0), isss: Number(d.isss ?? 0), afp: Number(d.afp ?? 0), renta: Number(d.renta ?? 0),
+    });
+  }
+  return out;
+}
