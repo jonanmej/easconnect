@@ -123,129 +123,178 @@ function AuthPage() {
     }
   }
 
-  return (
-    <div className="auth-screen min-h-dvh grid place-items-center bg-background px-4 py-6 safe-top safe-bottom safe-x">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <BrandLogo variant="ea-connect" className="h-20 w-auto object-contain" />
-        </div>
+  const aliados = (dark: boolean) => (
+    <div className="flex items-center gap-6">
+      {dark ? (
+        <BrandLogo variant="chemitek" themeOverride="dark" className="h-8 w-auto object-contain" />
+      ) : (
+        <ChemitekLogo className="h-8 w-auto" />
+      )}
+      <span className={dark ? "h-6 w-px bg-sidebar-border" : "h-6 w-px bg-border"} aria-hidden />
+      <BrandLogo
+        variant="pvstop"
+        themeOverride={dark ? "dark" : undefined}
+        className="h-8 w-auto object-contain"
+      />
+    </div>
+  );
 
-        <div className="auth-form border border-border rounded-lg p-5 sm:p-8 bg-card">
-          <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
-          <p className="text-xs text-muted-foreground mt-1">
+  return (
+    <div className="auth-screen min-h-dvh flex flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-background safe-top safe-bottom safe-x">
+      {/* Panel de marca */}
+      <aside className="bg-sidebar text-sidebar-foreground flex items-center justify-center px-6 py-4 lg:flex-col lg:items-stretch lg:justify-between lg:px-12 lg:py-12">
+        <BrandLogo
+          variant="ea-connect"
+          themeOverride="dark"
+          className="h-12 lg:h-16 w-auto object-contain lg:self-start"
+        />
+        <div className="hidden lg:block max-w-lg">
+          <p className="text-sm font-medium text-sidebar-foreground/80">Sistema de operaciones solares</p>
+          <h2 className="mt-3 font-display text-4xl xl:text-5xl font-bold leading-tight text-sidebar-primary-foreground">
+            Servicio contratado, realizado y documentado.
+          </h2>
+          <p className="mt-4 text-base text-sidebar-foreground/85 leading-relaxed">
+            Plantas, órdenes de trabajo, programación y reportes técnicos de EA Service &amp;
+            Consulting en un solo lugar.
+          </p>
+        </div>
+        <div className="hidden lg:block">
+          <p className="text-sm font-medium text-sidebar-foreground/80 mb-3">Aliados estratégicos</p>
+          {aliados(true)}
+        </div>
+      </aside>
+
+      {/* Formulario */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 lg:py-12">
+        <div className="w-full max-w-sm">
+          <h1 className="font-display text-3xl font-bold text-foreground">Iniciar sesión</h1>
+          <p className="text-sm text-muted-foreground mt-2">
             Acceso restringido. Las cuentas se crean por invitación del administrador.
           </p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
             <div>
-              <label className="text-xs font-medium block mb-1">Email</label>
+              <label htmlFor="auth-email" className="text-sm font-semibold block mb-1.5">
+                Correo electrónico
+              </label>
               <input
+                id="auth-email"
                 type="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-background border border-input rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                className="w-full h-[46px] bg-background border border-input rounded-md px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               />
             </div>
             <div>
-              <label className="text-xs font-medium block mb-1">Contraseña</label>
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <label htmlFor="auth-password" className="text-sm font-semibold">
+                  Contraseña
+                </label>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setForgotOpen((v) => !v);
+                    setForgotEmail(email);
+                    setForgotResult(null);
+                    setForgotError(null);
+                  }}
+                  variant="link"
+                  className="h-auto min-h-0 p-0 text-sm"
+                  aria-expanded={forgotOpen}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Button>
+              </div>
               <input
+                id="auth-password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background border border-input rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                className="w-full h-[46px] bg-background border border-input rounded-md px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               />
             </div>
             {error && (
-              <p className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
                 {error}
               </p>
             )}
             <Button
               type="submit"
               disabled={busy}
-              className="w-full bg-primary text-primary-foreground rounded-md h-11 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+              className="w-full h-12 rounded-md text-sm font-semibold disabled:opacity-60"
             >
               {busy ? "Ingresando…" : "Ingresar"}
             </Button>
           </form>
-
-          <div className="text-right mt-3">
-            <Button
-              type="button"
-              onClick={() => {
-                setForgotOpen((v) => !v);
-                setForgotEmail(email);
-                setForgotResult(null);
-                setForgotError(null);
-              }}
-              variant="link" className="h-auto p-0 text-xs"
-            >
-              ¿Olvidaste tu contraseña?
-            </Button>
-          </div>
 
           {forgotOpen && (
             <form
               onSubmit={onForgotSubmit}
               className="mt-4 p-4 rounded-md border border-border bg-secondary/40 space-y-3"
             >
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Ingresa tu correo y, opcionalmente, un mensaje. Un administrador recibirá tu
                 solicitud y te enviará una nueva contraseña temporal.
               </p>
               <div>
-                <label className="text-xs font-medium block mb-1">Correo</label>
+                <label htmlFor="auth-forgot-email" className="text-sm font-semibold block mb-1.5">Correo</label>
                 <input
+                  id="auth-forgot-email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm"
+                  className="w-full h-[46px] bg-background border border-input rounded-md px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium block mb-1">Mensaje (opcional)</label>
+                <label htmlFor="auth-forgot-msg" className="text-sm font-semibold block mb-1.5">Mensaje (opcional)</label>
                 <textarea
+                  id="auth-forgot-msg"
                   rows={2}
                   value={forgotMsg}
                   onChange={(e) => setForgotMsg(e.target.value)}
                   placeholder="Detalla brevemente tu situación si lo deseas"
-                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm"
+                  className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
               {forgotError && (
-                <p className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+                <p className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
                   {forgotError}
                 </p>
               )}
               {forgotResult && (
-                <p className="text-xs text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2">
+                <p className="text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2">
                   {forgotResult}
                 </p>
               )}
               <Button
                 type="submit"
                 disabled={forgotBusy}
-                className="w-full bg-primary text-primary-foreground rounded-md h-11 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-60"
+                className="w-full h-12 rounded-md text-sm font-semibold disabled:opacity-60"
               >
                 {forgotBusy ? "Enviando…" : "Enviar solicitud al administrador"}
               </Button>
             </form>
           )}
 
-          <div className="flex items-center gap-3 my-5">
+          <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">O</span>
+            <span className="text-sm text-muted-foreground">o</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <Button
             type="button"
-            variant="outline" onClick={signInWithGoogle}
+            variant="outline"
+            onClick={signInWithGoogle}
             disabled={busy}
-            className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 h-11 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 disabled:opacity-60 transition-colors"
+            className="w-full h-12 flex items-center justify-center gap-2 rounded-md border-input bg-background text-sm font-semibold text-foreground disabled:opacity-60"
           >
             {busy ? (
               <span className="size-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
@@ -273,21 +322,11 @@ function AuthPage() {
           </Button>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-border/60">
-          <p className="text-[10px] text-muted-foreground text-center uppercase tracking-[0.18em] mb-3">
-            Aliados estratégicos
-          </p>
-          <div className="flex items-center justify-center gap-6 opacity-80">
-            <ChemitekLogo className="h-8 w-auto" />
-            <span className="h-6 w-px bg-border" aria-hidden />
-            <BrandLogo variant="pvstop" className="h-8 w-auto object-contain" />
-          </div>
+        <div className="lg:hidden w-full max-w-sm mt-10 pt-6 border-t border-border flex flex-col items-center">
+          <p className="text-sm text-muted-foreground mb-3">Aliados estratégicos</p>
+          {aliados(false)}
         </div>
-
-        <p className="text-[10px] text-muted-foreground text-center mt-6 uppercase tracking-widest">
-          Sistema de Operaciones Solares
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
