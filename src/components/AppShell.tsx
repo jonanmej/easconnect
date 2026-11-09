@@ -51,9 +51,7 @@ import { usePersistedState } from "@/hooks/usePersistedState";
 import { reiniciarApp } from "@/lib/app-update";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
-import pvstopLightAsset from "@/assets/brand-pvstop-light.png.asset.json";
 import pvstopDarkAsset from "@/assets/brand-pvstop-dark.png.asset.json";
-import chemitekLightAsset from "@/assets/brand-chemitek-light.png.asset.json";
 import chemitekDarkAsset from "@/assets/brand-chemitek-dark.png.asset.json";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { dashboardAlertas } from "@/lib/dashboard.functions";
@@ -66,6 +64,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -73,6 +73,8 @@ import {
 type NavItem = {
   to: string;
   label: string;
+  /** Etiqueta corta para la barra inferior móvil. */
+  shortLabel?: string;
   icon: ComponentType<{ className?: string }>;
 };
 
@@ -80,15 +82,39 @@ type NavGroup = { title: string; items: NavItem[] };
 
 const allGroups: NavGroup[] = [
   {
-    title: "Operaciones",
+    title: "Operación",
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/programacion", label: "Programación", icon: CalendarRange },
       { to: "/trabajos", label: "Trabajos", icon: ClipboardList },
-      { to: "/terreno", label: "A.T.", icon: HardHat },
+      { to: "/terreno", label: "Asignaciones técnicas", shortLabel: "A.T.", icon: HardHat },
       { to: "/mis-trabajos", label: "Mis trabajos", icon: Briefcase },
       { to: "/solicitudes", label: "Solicitudes", icon: CalendarPlus },
       { to: "/rutas", label: "Rutas", icon: MapIcon },
+      { to: "/finalizados", label: "Trabajos finalizados", icon: CheckCircle2 },
+    ],
+  },
+  {
+    title: "Clientes y plantas",
+    items: [
+      { to: "/clientes", label: "Clientes", icon: Building2 },
+      { to: "/plantas", label: "Plantas solares", icon: Sun },
+      { to: "/mapa", label: "Mapa satelital", icon: Satellite },
+      { to: "/contratos", label: "Contratos", icon: FileSignature },
+    ],
+  },
+  {
+    title: "Equipos y almacén",
+    items: [
+      { to: "/equipos", label: "Equipos", icon: Bot },
+      { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
+      { to: "/inventario", label: "Inventario", icon: Boxes },
+      { to: "/ordenes-compra", label: "Órdenes de compra", icon: ShoppingCart },
+    ],
+  },
+  {
+    title: "Personal",
+    items: [
       { to: "/jornada", label: "Jornada laboral", icon: Clock },
       { to: "/nomina", label: "Nómina", icon: DollarSign },
       { to: "/agenda-interna", label: "Agenda interna", icon: CalendarCheck },
@@ -96,32 +122,18 @@ const allGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Activos",
+    title: "Reportes",
     items: [
-      { to: "/clientes", label: "Clientes", icon: Building2 },
-      { to: "/plantas", label: "Plantas Solares", icon: Sun },
-      { to: "/mapa", label: "Mapa satelital", icon: Satellite },
-      { to: "/equipos", label: "Equipos", icon: Bot },
-      { to: "/inventario", label: "Inventario", icon: Boxes },
-      { to: "/ordenes-compra", label: "Órdenes de compra", icon: ShoppingCart },
-    ],
-  },
-  {
-    title: "Inteligencia",
-    items: [
-      { to: "/mantenimientos", label: "Mantenimientos", icon: Wrench },
       { to: "/reportes", label: "Reportes", icon: Sparkles },
-      { to: "/finalizados", label: "Trabajos finalizados", icon: CheckCircle2 },
       { to: "/notificaciones", label: "Notificaciones", icon: Mail },
-      { to: "/contratos", label: "Contratos", icon: FileSignature },
     ],
   },
   {
     title: "Administración",
     items: [
-      { to: "/usuarios", label: "Usuarios y Roles", icon: Users },
-      { to: "/search-console", label: "Buscadores (SEO)", icon: LineChart },
+      { to: "/usuarios", label: "Usuarios y roles", icon: Users },
       { to: "/auditoria", label: "Auditoría", icon: History },
+      { to: "/search-console", label: "Buscadores (SEO)", icon: LineChart },
       { to: "/configuracion", label: "Configuración", icon: Settings },
     ],
   },
@@ -198,7 +210,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Link
         to="/"
         className={
-          "pt-4 pb-5 flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar " +
+          "pt-4 pb-5 flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar focus-visible:ring-sidebar-foreground " +
           (mode === "rail"
             ? "px-2 justify-center lg:pl-4 lg:pr-4 lg:justify-start"
             : "pl-4 pr-4 justify-start")
@@ -207,6 +219,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <BrandLogo
           variant="ea-main"
+          themeOverride="dark"
           className={
             mode === "rail"
               ? "h-7 lg:h-12 w-auto object-contain"
@@ -230,7 +243,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div key={group.title}>
               <div
                 className={
-                  "text-[11px] font-medium text-muted-foreground px-3 mb-2 mt-5 " +
+                  "text-xs font-semibold text-sidebar-muted-foreground px-3 mb-2 mt-5 " +
                   (mode === "rail" ? "hidden lg:block" : "")
                 }
               >
@@ -246,17 +259,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                     aria-current={active ? "page" : undefined}
                     title={mode === "rail" ? item.label : undefined}
                     className={
-                      "relative flex items-center gap-2.5 py-2 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
+                      "relative flex items-center gap-2.5 py-2 min-h-11 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar group " +
                       (mode === "rail" ? "px-0 justify-center lg:px-3 lg:justify-start " : "px-3 ") +
                       (active
-                        ? "text-primary font-semibold"
-                        : "text-sidebar-foreground/80 hover:bg-secondary hover:text-foreground ")
+                        ? "text-sidebar-accent-foreground font-semibold"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent-foreground/8 hover:text-sidebar-accent-foreground ")
                     }
                   >
                     {active && (
                       <motion.span
                         layoutId={`sidebar-active-pill-${mode}`}
-                        className="absolute inset-0 rounded-md bg-sidebar-accent border-l-2 border-primary"
+                        className="absolute inset-0 rounded-md bg-sidebar-accent"
                         transition={{ type: "spring", stiffness: 380, damping: 32 }}
                         aria-hidden="true"
                       />
@@ -270,13 +283,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                       {item.label}
                     </span>
                     {item.to === "/trabajos" && alertas.data?.sla_vencidos ? (
-                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className={"relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.sla_vencidos}</span>
+                      <span aria-label={`${alertas.data.sla_vencidos} SLA vencidos`} className={"relative text-[10px] font-bold px-1.5 rounded bg-sidebar-alert text-sidebar-alert-foreground " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.sla_vencidos}</span>
                     ) : null}
                     {item.to === "/inventario" && alertas.data?.stock_critico ? (
-                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className={"relative text-[10px] font-bold px-1.5 rounded bg-destructive/15 text-destructive " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.stock_critico}</span>
+                      <span aria-label={`${alertas.data.stock_critico} en stock crítico`} className={"relative text-[10px] font-bold px-1.5 rounded bg-sidebar-alert text-sidebar-alert-foreground " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.stock_critico}</span>
                     ) : null}
                     {item.to === "/solicitudes" && alertas.data?.solicitudes_estancadas ? (
-                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className={"relative text-[10px] font-bold px-1.5 rounded bg-primary/15 text-primary " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.solicitudes_estancadas}</span>
+                      <span aria-label={`${alertas.data.solicitudes_estancadas} solicitudes estancadas`} className={"relative text-[10px] font-bold px-1.5 rounded bg-sidebar-info text-sidebar-info-foreground " + (mode === "rail" ? "hidden lg:inline" : "")}>{alertas.data.solicitudes_estancadas}</span>
                     ) : null}
                   </Link>
                 );
@@ -287,19 +300,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </LayoutGroup>
       </nav>
 
-      <div className={"border-t border-border " + (mode === "rail" ? "p-2 lg:p-3" : "p-3")}>
+      <div className={"border-t border-sidebar-border " + (mode === "rail" ? "p-2 lg:p-3" : "p-3")}>
         <div className={"mb-2 " + (mode === "rail" ? "hidden lg:block" : "")}>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-1.5">
+          <p className="text-[10px] font-bold text-sidebar-muted-foreground uppercase tracking-widest px-2 mb-1.5">
             Marcas asociadas
           </p>
           <div className="flex flex-col items-start gap-1.5 px-2">
             <img
-              src={theme === "dark" ? pvstopDarkAsset.url : pvstopLightAsset.url}
+              src={pvstopDarkAsset.url}
               alt="PVSTOP El Salvador"
               className="h-7 w-auto object-contain"
             />
             <img
-              src={theme === "dark" ? chemitekDarkAsset.url : chemitekLightAsset.url}
+              src={chemitekDarkAsset.url}
               alt="Chemitek Solar"
               className="h-4 w-auto object-contain"
             />
@@ -310,19 +323,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost"
               type="button"
-              className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+              className="w-full flex items-center gap-2 p-1.5 rounded-md text-sidebar-foreground hover:bg-sidebar-accent-foreground/8 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
             >
-              <div className="size-8 shrink-0 rounded-full bg-secondary grid place-items-center text-xs font-bold">
+              <div className="size-8 shrink-0 rounded-full bg-sidebar-accent text-sidebar-accent-foreground grid place-items-center text-xs font-bold">
                 {initials}
               </div>
               <div className={"flex-1 min-w-0 text-left " + (mode === "rail" ? "hidden lg:block" : "")}>
-                <p className="text-xs font-semibold truncate">{user?.email}</p>
-                <p className="text-[10px] text-muted-foreground truncate uppercase flex items-center gap-1">
+                <p className="text-xs font-semibold truncate text-sidebar-accent-foreground">{user?.email}</p>
+                <p className="text-[10px] text-sidebar-muted-foreground truncate uppercase flex items-center gap-1">
                   <ShieldCheck className="size-3 shrink-0" />
                   {role ? ROLE_LABEL[role] : "Sin rol asignado"}
                 </p>
               </div>
-              <MoreVertical className={"size-4 shrink-0 text-muted-foreground " + (mode === "rail" ? "hidden lg:block" : "")} />
+              <MoreVertical className={"size-4 shrink-0 text-sidebar-muted-foreground " + (mode === "rail" ? "hidden lg:block" : "")} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
@@ -347,6 +360,25 @@ export function AppShell({ children }: { children: ReactNode }) {
               <RotateCcw className="size-4" />
               <span>Reiniciar app</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase tracking-wider">Tema</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={preference}
+              onValueChange={(v) => setPreference(v as "light" | "system" | "dark")}
+            >
+              <DropdownMenuRadioItem value="light" className="gap-2">
+                <SunIcon className="size-4" aria-hidden="true" />
+                <span>Claro</span>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="system" className="gap-2">
+                <Laptop className="size-4" aria-hidden="true" />
+                <span>Automático</span>
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark" className="gap-2">
+                <Moon className="size-4" aria-hidden="true" />
+                <span>Oscuro</span>
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => void handleSignOut()}
@@ -431,36 +463,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div
-              role="radiogroup"
-              aria-label="Modo de color"
-              className="hidden sm:flex items-center gap-0.5 p-0.5 rounded-md bg-secondary border border-border"
-            >
-              {([
-                { value: "light", icon: SunIcon, label: "Modo claro" },
-                { value: "system", icon: Laptop, label: "Modo automático (sigue el sistema)" },
-                { value: "dark", icon: Moon, label: "Modo oscuro" },
-              ] as const).map(({ value, icon: Icon, label }) => {
-                const selected = preference === value;
-                return (
-                  <Button variant="ghost"
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={label}
-                    title={label}
-                    onClick={() => setPreference(value)}
-                    className={
-                      "size-11 p-0 grid place-items-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-secondary " +
-                      (selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")
-                    }
-                  >
-                    <Icon className="size-4" aria-hidden="true" />
-                  </Button>
-                );
-              })}
-            </div>
             {role !== "cliente" && totalAlertas > 0 && (() => {
               const sla = alertas.data?.sla_vencidos ?? 0;
               const stock = alertas.data?.stock_critico ?? 0;
@@ -530,7 +532,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }
                 >
                   <Icon className={"size-5 " + (active ? "scale-110" : "")} aria-hidden="true" />
-                  <span className="w-full truncate text-center leading-tight">{item.label}</span>
+                  <span className="w-full truncate text-center leading-tight">{item.shortLabel ?? item.label}</span>
                 </Link>
               );
             })}
