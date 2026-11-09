@@ -50,6 +50,7 @@ import { useTheme } from "@/lib/theme-context";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { reiniciarApp } from "@/lib/app-update";
 import { BrandLogo, BRAND_LOGO_URLS } from "@/components/BrandLogo";
+import eaSidebarLogo from "@/assets/logo-ea-service-sidebar.png.asset.json";
 import { ChemitekLogo } from "@/components/logos/ChemitekLogo";
 import pvstopDarkAsset from "@/assets/brand-pvstop-dark.png.asset.json";
 import chemitekDarkAsset from "@/assets/brand-chemitek-dark.png.asset.json";
@@ -217,13 +218,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         aria-label="EA Service & Consulting — Ir al inicio"
       >
-        <BrandLogo
-          variant="ea-main"
-          themeOverride="dark"
+        <img
+          src={eaSidebarLogo.url}
+          alt="EA Service and Consulting"
           className={
             mode === "rail"
-              ? "h-7 lg:h-12 w-auto object-contain"
-              : "h-12 sm:h-12 w-auto object-contain"
+              ? "h-10 lg:h-20 w-auto object-contain"
+              : "h-20 w-auto object-contain"
           }
         />
       </Link>
