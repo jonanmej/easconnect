@@ -32,7 +32,8 @@ export const dashboardStats = createServerFn({ method: "GET" })
       const { data: trabajosRef } = await context.supabase
         .from("trabajos")
         .select("id, fecha_programada, duracion_dias, estado")
-        .neq("estado", "cancelado");
+        .neq("estado", "cancelado")
+        .is("pausada_at", null);
       const filas = (trabajosRef ?? []) as any[];
       // Excepciones de día (reprogramaciones puntuales), igual que en Programación.
       const excepcionesPorTrabajo = new Map<string, Array<{ fecha_original: string; fecha_movida: string }>>();
