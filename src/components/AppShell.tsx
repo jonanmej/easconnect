@@ -412,7 +412,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside
         className={
           "app-sidebar hidden md:flex shrink-0 border-r border-border flex-col bg-sidebar safe-top safe-bottom safe-x transition-[width,opacity] duration-200 overflow-hidden " +
-          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-56 opacity-100")
+          (sidebarHidden ? "w-0 opacity-0 border-r-0" : "w-16 lg:w-60 opacity-100")
         }
       >
         {buildSidebar("rail")}

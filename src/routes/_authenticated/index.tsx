@@ -4,7 +4,7 @@ import { formatCapacidadKwp } from "@/lib/potencia";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useState, useMemo } from "react";
-import { AlertTriangle, Boxes, CalendarPlus, ClipboardList, Droplets, FileDown, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
+import { Boxes, CalendarPlus, ClipboardList, Droplets, FileDown, Plus, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { dashboardStats, listPlantas, listTrabajos } from "@/lib/operations.functions";
 import { dashboardSeries, dashboardAlertas, listTrabajosSla, aguaPorPlanta, panelesLimpiadosPorPlanta, metaCumplimientoLimpieza } from "@/lib/dashboard.functions";
 import { cumplimientoAnual } from "@/lib/contratos.functions";
@@ -12,6 +12,7 @@ import { colorCliente } from "@/lib/color-cliente";
 import { ExportButton } from "@/components/ExportButton";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { useAuth } from "@/lib/auth-context";
@@ -50,19 +51,19 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
   const totalPaneles = Number(data?.total_paneles ?? 0);
   const totalCiclos = Number(data?.total_ciclos ?? 0);
   return (
-    <section className="bg-card border border-border rounded-xl p-5">
+    <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-accent">Paneles limpiados · por trabajo</h2>
+          <h2 className="text-base font-semibold">Paneles limpiados · por trabajo</h2>
           <p className="text-xs text-muted-foreground mt-1">
             Paneles limpiados por trabajo (completado o en curso) para cada cliente y planta con registro diario ingresado.
           </p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-mono font-semibold text-accent tracking-tight">
+          <p className="text-3xl font-mono tabular-nums font-semibold text-accent">
             {totalPaneles.toLocaleString("es-SV")}
           </p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          <p className="text-xs text-muted-foreground">
             en {totalCiclos} ciclo{totalCiclos === 1 ? "" : "s"} completado{totalCiclos === 1 ? "" : "s"}
           </p>
         </div>
@@ -76,7 +77,7 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
       ) : (
         <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
           <table className="w-full text-sm min-w-[720px]">
-            <thead className="text-[10px] uppercase text-muted-foreground">
+            <thead className="text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">Cliente</th>
                 <th className="px-3 py-2 text-left">Planta</th>
@@ -91,11 +92,11 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
                 <tr key={f.planta_id} className="align-top">
                   <td className="px-3 py-2">{f.cliente}</td>
                   <td className="px-3 py-2">{f.planta}</td>
-                  <td className="px-3 py-2 text-right font-mono">{f.ciclos.length}</td>
-                  <td className="px-3 py-2 text-right font-mono text-accent">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">{f.ciclos.length}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-accent">
                     {Number(f.paneles_limpiados).toLocaleString("es-SV")}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">
                     {f.paneles_planta ? Number(f.paneles_planta).toLocaleString("es-SV") : "—"}
                   </td>
                   <td className="px-3 py-2">
@@ -106,11 +107,11 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
                       <ul className="mt-2 space-y-1 text-xs">
                         {f.ciclos.map((c: any) => (
                           <li key={c.trabajo_id} className="flex items-center justify-between gap-3 border-l-2 border-accent/40 pl-2">
-                            <span className="font-mono text-muted-foreground">{c.folio}</span>
+                            <span className="font-mono tabular-nums text-muted-foreground">{c.folio}</span>
                             <span className="text-muted-foreground">
                               {c.fecha ? new Date(c.fecha).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
                             </span>
-                            <span className="font-mono font-semibold">{Number(c.paneles).toLocaleString("es-SV")}</span>
+                            <span className="font-mono tabular-nums font-semibold">{Number(c.paneles).toLocaleString("es-SV")}</span>
                           </li>
                         ))}
                       </ul>
@@ -122,7 +123,7 @@ function PanelesLimpiadosHistorico({ data, loading }: { data: any; loading: bool
           </table>
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -200,10 +201,10 @@ function CumplimientoContratos() {
     }
   }
   return (
-    <section className="bg-card border border-border rounded-xl p-5">
+    <div>
       <div className="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h2 className="text-sm font-bold uppercase tracking-wider break-words">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h2>
+          <h2 className="text-base font-semibold break-words">Cumplimiento de servicios contratados {data ? `· ${data.anio}` : ""}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {data ? `${data.total_completado} de ${data.total_contratado} completados (${data.cumplimiento_pct}%)` : "Cargando…"}
           </p>
@@ -230,7 +231,7 @@ function CumplimientoContratos() {
           >
             <FileDown className="size-3.5" /> {downloading ? "Generando…" : "Exportar PDF"}
           </button>
-          <p className="text-2xl font-mono font-semibold">{data?.cumplimiento_pct ?? 0}%</p>
+          <p className="text-2xl font-mono tabular-nums font-semibold">{data?.cumplimiento_pct ?? 0}%</p>
         </div>
       </div>
       <div className="h-2 bg-secondary rounded-full overflow-hidden mb-4">
@@ -244,15 +245,15 @@ function CumplimientoContratos() {
           <div key={g.cliente_id ?? g.cliente_nombre} className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: colorCliente(g.cliente_id ?? g.cliente_nombre) }} />
-              <h3 className="text-xs font-semibold uppercase tracking-wider">{g.cliente_nombre}</h3>
-              <span className="text-[11px] text-muted-foreground">
+              <h3 className="text-sm font-semibold">{g.cliente_nombre}</h3>
+              <span className="text-xs text-muted-foreground">
                 {g.completados} de {g.contratados} completados
               </span>
               <span className="ml-auto inline-flex items-center gap-2">
                 <span className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden">
                   <span className="block h-full bg-accent" style={{ width: `${Math.min(100, g.pct)}%` }} />
                 </span>
-                <span className="font-mono text-xs font-semibold">{g.pct}%</span>
+                <span className="font-mono tabular-nums text-xs font-semibold">{g.pct}%</span>
               </span>
             </div>
             <ResponsiveTable
@@ -261,9 +262,9 @@ function CumplimientoContratos() {
           columns={[
             { key: "planta", header: "Planta", primary: true, cell: (f) => f.planta_nombre },
             { key: "servicio", header: "Servicio", secondary: true, cell: (f) => f.servicio },
-            { key: "contratados", header: "Contratados", align: "right", cell: (f) => <span className="font-mono">{f.cantidad_anual}</span> },
-            { key: "completados", header: "Completados", align: "right", cell: (f) => <span className="font-mono text-accent">{f.completados}</span> },
-            { key: "programados", header: "Programados", align: "right", cell: (f) => <span className="font-mono">{f.programados}</span> },
+            { key: "contratados", header: "Contratados", align: "right", cell: (f) => <span className="font-mono tabular-nums">{f.cantidad_anual}</span> },
+            { key: "completados", header: "Completados", align: "right", cell: (f) => <span className="font-mono tabular-nums text-accent">{f.completados}</span> },
+            { key: "programados", header: "Programados", align: "right", cell: (f) => <span className="font-mono tabular-nums">{f.programados}</span> },
             {
               key: "cumplimiento",
               header: "Cumplimiento",
@@ -273,7 +274,7 @@ function CumplimientoContratos() {
                   <span className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
                     <span className="block h-full bg-accent" style={{ width: `${Math.min(100, Number(f.cumplimiento_pct))}%` }} />
                   </span>
-                  <span className="font-mono text-xs">{Number(f.cumplimiento_pct)}%</span>
+                  <span className="font-mono tabular-nums text-xs">{Number(f.cumplimiento_pct)}%</span>
                 </span>
               ),
             },
@@ -292,7 +293,7 @@ function CumplimientoContratos() {
         ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -443,44 +444,73 @@ function StaffDashboard() {
     });
   }
 
+  const slaRiesgo = ((sla.data as any[]) ?? []).filter((r) => r.estado_sla === "vencido" || r.estado_sla === "en_riesgo");
+  const kpiBy = (label: string) => kpis.find((k) => k.label === label)!;
+  const principales = [
+    { ...kpiBy("Trabajos hoy"), pct: null as number | null },
+    { ...kpiBy("Avance de limpieza"), pct: Number((stats.data as any)?.avance_limpieza ?? 0) },
+    { ...kpiBy("Meta de limpieza"), pct: meta && meta.estado !== "sin_datos" ? Number(meta.cumplimiento_pct ?? 0) : null },
+    { ...kpiBy("Cumplimiento cronograma"), pct: cumplimientoCronograma.pct },
+  ];
+  const secundarios = ["Paneles limpiados", "Agua utilizada", "Equipos operativos", "Bajo stock"].map(kpiBy);
+
   return (
-    <div className="dashboard-screen p-4 md:p-6 xl:p-8 max-w-[112rem] mx-auto w-full space-y-8">
+    <div className="dashboard-screen p-4 md:p-6 xl:p-8 max-w-[112rem] mx-auto w-full space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Panel Operativo</h1>
+          <h1 className="text-2xl font-semibold">Panel operativo</h1>
           <p className="text-sm text-muted-foreground mt-1">Resumen de mantenimiento y eficiencia · {hoy}</p>
         </div>
         <div className="flex gap-2">
           <ExportButton onExport={exportarResumen} />
           <Button asChild><Link to="/trabajos">
-            <Plus className="size-3.5" /> Nuevo Trabajo
+            <Plus className="size-3.5" /> Nuevo trabajo
           </Link></Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpis.map((kpi, i) => (
-          <div key={kpi.label}
-            className={"dashboard-kpi animate-entry p-5 bg-card border border-border rounded-lg shadow-sm " + (kpi.tone === "danger" ? "ring-2 ring-destructive/20" : "")}
-            style={{ animationDelay: `${i * 60}ms` }}>
-            <p className={"text-xs font-medium mb-3 " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:flex-wrap gap-x-2 gap-y-1 min-w-0">
-              <span className={"text-3xl font-semibold font-display " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</span>
-              <span className={"text-xs font-medium leading-snug break-normal [overflow-wrap:normal] " + (kpi.tone === "accent" ? "text-accent" : kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</span>
-            </div>
-          </div>
-        ))}
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold">Requiere atención</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <AtencionCard to="/trabajos" icon={ClipboardList} label="SLA vencidos" destino="Ver trabajos" count={alertas.data?.sla_vencidos ?? 0} />
+          <AtencionCard to="/inventario" icon={Boxes} label="Ítems en stock crítico" destino="Ver inventario" count={alertas.data?.stock_critico ?? 0} />
+          <AtencionCard to="/solicitudes" icon={CalendarPlus} label="Solicitudes pendientes > 48 h" destino="Ver solicitudes" count={alertas.data?.solicitudes_estancadas ?? 0} />
+          <AtencionCard to="/reportes" icon={Sparkles} label="Reportes en borrador" destino="Ver reportes" count={stats.data?.reportes_borrador ?? 0} tone="info" />
+        </div>
       </div>
 
-      <CumplimientoContratos />
-
-      <PanelesLimpiadosHistorico data={panelesQ.data} loading={panelesQ.isLoading} />
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold">Indicadores de hoy</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {principales.map((kpi) => (
+            <div key={kpi.label} className={"dashboard-kpi p-5 bg-card border rounded-lg " + (kpi.tone === "danger" ? "border-destructive/50" : "border-border")}>
+              <p className={"text-sm font-medium " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
+              <p className={"mt-2 text-3xl font-semibold font-display tabular-nums " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</p>
+              {kpi.delta && <p className={"mt-1 text-xs " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</p>}
+              {kpi.pct !== null && (
+                <div className="mt-3 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className={"h-full " + (kpi.tone === "danger" ? "bg-destructive" : "bg-primary")} style={{ width: `${Math.max(0, Math.min(100, kpi.pct))}%` }} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="dashboard-kpi bg-card border border-border rounded-lg grid grid-cols-2 lg:grid-cols-4 divide-border [&>*]:border-border">
+          {secundarios.map((kpi, i) => (
+            <div key={kpi.label} className={"p-4 min-w-0 " + (i % 2 === 1 ? "border-l " : "") + (i >= 2 ? "border-t lg:border-t-0 " : "") + (i === 2 ? "lg:border-l" : "")}>
+              <p className={"text-xs font-medium " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.label}</p>
+              <p className={"mt-1 text-xl font-semibold tabular-nums " + (kpi.tone === "danger" ? "text-destructive" : "")}>{kpi.value}</p>
+              {kpi.delta && <p className={"text-xs " + (kpi.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{kpi.delta}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
+        <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5 min-w-0">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider">Trabajos por semana</h2>
+              <h2 className="text-base font-semibold">Trabajos por semana</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Últimas 12 semanas, apilado por estado</p>
             </div>
             <TrendingUp className="size-4 text-muted-foreground" />
@@ -490,96 +520,92 @@ function StaffDashboard() {
           </Suspense>
         </section>
 
-        <section className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Distribución por tipo</h2>
+        <section className="bg-card border border-border rounded-xl p-5 min-w-0">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <h2 className="text-base font-semibold">SLA en riesgo</h2>
+            <Link to="/trabajos" className="text-xs text-primary hover:underline font-medium">Ver trabajos</Link>
+          </div>
+          <ul className="divide-y divide-border text-sm">
+            {slaRiesgo.slice(0, 6).map((r) => (
+              <li key={r.id} className="flex items-center gap-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{r.folio} · {r.planta_nombre}</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">{Math.round(r.horas_transcurridas ?? 0)} h transcurridas</p>
+                </div>
+                <span className={"shrink-0 text-xs font-semibold px-2 py-0.5 rounded " + (r.estado_sla === "vencido" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                  {r.estado_sla === "vencido" ? "Vencido" : "En riesgo"}
+                </span>
+              </li>
+            ))}
+            {!sla.isLoading && slaRiesgo.length === 0 && (
+              <li className="text-xs text-muted-foreground text-center py-4">Sin alertas SLA. ✓</li>
+            )}
+          </ul>
+        </section>
+      </div>
+
+      <section className="bg-card border border-border rounded-xl p-5 min-w-0">
+        <Tabs defaultValue="cumplimiento" className="min-w-0">
+          <div className="overflow-x-auto -mx-1 px-1 mb-4">
+            <TabsList className="w-max">
+              <TabsTrigger value="cumplimiento">Cumplimiento de contratos</TabsTrigger>
+              <TabsTrigger value="paneles">Paneles limpiados</TabsTrigger>
+              <TabsTrigger value="agua">Agua por planta</TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="cumplimiento" className="min-w-0"><CumplimientoContratos /></TabsContent>
+          <TabsContent value="paneles" className="min-w-0"><PanelesLimpiadosHistorico data={panelesQ.data} loading={panelesQ.isLoading} /></TabsContent>
+          <TabsContent value="agua" className="min-w-0">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Total acumulado: <span className="font-mono tabular-nums font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString("es-SV")}</span> galones
+              </p>
+            </div>
+            <Suspense fallback={<ChartSkeleton />}>
+              {agua.isLoading ? <ChartSkeleton /> : <StaffCharts.AguaPlantaChart data={(agua.data?.filas ?? []).slice(0, 8)} />}
+            </Suspense>
+            {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-3">Aún no se ha registrado consumo de agua en ningún reporte.</p>
+            )}
+          </TabsContent>
+        </Tabs>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="bg-card border border-border rounded-xl p-5 min-w-0">
+          <h2 className="text-base font-semibold mb-4">Top 5 plantas con más trabajos</h2>
+          <Suspense fallback={<ChartSkeleton />}>
+            {series.isLoading ? <ChartSkeleton /> : <StaffCharts.TopPlantasChart data={series.data?.topPlantas ?? []} />}
+          </Suspense>
+        </section>
+        <section className="bg-card border border-border rounded-xl p-5 min-w-0">
+          <h2 className="text-base font-semibold mb-4">Distribución por tipo</h2>
           <Suspense fallback={<ChartSkeleton />}>
             {series.isLoading ? <ChartSkeleton /> : <StaffCharts.DistribucionTipoChart data={series.data?.porTipo ?? []} />}
           </Suspense>
         </section>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Top 5 plantas con más trabajos</h2>
-          <Suspense fallback={<ChartSkeleton />}>
-            {series.isLoading ? <ChartSkeleton /> : <StaffCharts.TopPlantasChart data={series.data?.topPlantas ?? []} />}
-          </Suspense>
-        </section>
-
-        <section className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider">Alertas activas</h2>
-            <AlertTriangle className="size-4 text-destructive" />
-          </div>
-          <ul className="space-y-2 text-sm">
-            <AlertaItem to="/trabajos" icon={ClipboardList} label="Trabajos SLA vencidos" count={alertas.data?.sla_vencidos ?? 0} />
-            <AlertaItem to="/inventario" icon={Boxes} label="Ítems bajo stock crítico" count={alertas.data?.stock_critico ?? 0} />
-            <AlertaItem to="/solicitudes" icon={CalendarPlus} label="Solicitudes pendientes > 48h" count={alertas.data?.solicitudes_estancadas ?? 0} />
-            <AlertaItem to="/reportes" icon={Sparkles} label="Reportes en borrador" count={stats.data?.reportes_borrador ?? 0} tone="info" />
-          </ul>
-        </section>
-      </div>
-
-      <section className="bg-card border border-border rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-              <Droplets className="size-4 text-primary" /> Agua usada para limpieza por planta
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Total acumulado: <span className="font-mono font-semibold">{Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", )}</span> galones
-            </p>
-          </div>
-        </div>
-        <Suspense fallback={<ChartSkeleton />}>
-          {agua.isLoading ? <ChartSkeleton /> : <StaffCharts.AguaPlantaChart data={(agua.data?.filas ?? []).slice(0, 8)} />}
-        </Suspense>
-        {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-3">Aún no se ha registrado consumo de agua en ningún reporte.</p>
-        )}
-      </section>
-
-      <div className="grid grid-cols-1 gap-8">
-        <aside className="space-y-6">
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Trabajos con SLA en riesgo</h2>
-            <ul className="space-y-3 text-sm">
-              {((sla.data as any[]) ?? [])
-                .filter((r) => r.estado_sla === "vencido" || r.estado_sla === "en_riesgo")
-                .slice(0, 6)
-                .map((r) => (
-                  <li key={r.id} className="flex items-start gap-3">
-                    <span className={"mt-1 size-2 rounded-full " + (r.estado_sla === "vencido" ? "bg-destructive" : "bg-primary")} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{r.folio} · {r.planta_nombre}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        {r.estado_sla === "vencido" ? "Vencido" : "En riesgo"} · {Math.round(r.horas_transcurridas ?? 0)}h transcurridas
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              {!sla.isLoading && ((sla.data as any[]) ?? []).filter((r) => r.estado_sla === "vencido" || r.estado_sla === "en_riesgo").length === 0 && (
-                <li className="text-xs text-muted-foreground text-center py-4">Sin alertas SLA. ✓</li>
-              )}
-            </ul>
-          </div>
-        </aside>
-      </div>
     </div>
   );
 }
 
-function AlertaItem({ to, icon: Icon, label, count, tone = "danger" }: { to: string; icon: any; label: string; count: number; tone?: "danger" | "info" }) {
+function AtencionCard({ to, icon: Icon, label, destino, count, tone = "danger" }: { to: string; icon: any; label: string; destino: string; count: number; tone?: "danger" | "info" }) {
+  const activo = count > 0;
+  const color = !activo ? "text-muted-foreground" : tone === "info" ? "text-primary" : "text-destructive";
+  const borde = !activo ? "border-border" : tone === "info" ? "border-primary/40" : "border-destructive/40";
   return (
-    <li>
-      <Link to={to} className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary transition-colors">
-        <Icon className={"size-4 " + (count > 0 ? (tone === "info" ? "text-primary" : "text-destructive") : "text-muted-foreground")} />
-        <span className="flex-1 text-sm">{label}</span>
-        <span className={"text-xs font-bold px-2 py-0.5 rounded " + (count > 0 ? (tone === "info" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive") : "text-muted-foreground")}>
-          {count}
+    <Link to={to} className={"flex items-center gap-4 p-4 bg-card border rounded-lg hover:bg-secondary transition-colors min-w-0 " + borde}>
+      <span className={"text-3xl font-semibold font-display tabular-nums shrink-0 " + color}>{count}</span>
+      <span className="min-w-0 flex-1">
+        <span className={"flex items-start gap-1.5 text-sm font-medium leading-snug " + (activo ? "" : "text-muted-foreground")}>
+          <Icon className={"size-4 shrink-0 " + color} /> <span className="min-w-0">{label}</span>
         </span>
-      </Link>
-    </li>
+        <span className="block text-xs text-muted-foreground">{destino} →</span>
+      </span>
+    </Link>
   );
 }
 
@@ -618,7 +644,7 @@ function ClienteDashboard() {
   return (
     <div className="dashboard-screen p-4 md:p-6 xl:p-8 max-w-[112rem] mx-auto w-full space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Panel del Cliente</h1>
+        <h1 className="text-2xl font-semibold">Panel del Cliente</h1>
         <p className="text-sm text-muted-foreground mt-1">Resumen operativo de tus plantas · {hoy}</p>
       </div>
 
@@ -632,11 +658,11 @@ function ClienteDashboard() {
         ))}
       </div>
 
-      <CumplimientoContratos />
+      <section className="bg-card border border-border rounded-xl p-5"><CumplimientoContratos /></section>
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider">Mis plantas solares</h2>
+          <h2 className="text-base font-semibold">Mis plantas solares</h2>
           <Link to="/plantas" className="text-xs text-primary hover:underline font-medium">Ver todas →</Link>
         </div>
         {plantas.isLoading && <p className="text-sm text-muted-foreground">Cargando…</p>}
@@ -655,17 +681,17 @@ function ClienteDashboard() {
                   <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
                     <Sun className="size-5" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">{abiertos} abiertos</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{abiertos} abiertos</span>
                 </div>
-                <h3 className="font-semibold tracking-tight">{p.nombre}</h3>
-                <p className="text-[10px] text-muted-foreground mb-3">{p.ubicacion ?? "—"}</p>
+                <h3 className="font-semibold">{p.nombre}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{p.ubicacion ?? "—"}</p>
                 <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
                   <div>
-                    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Paneles</p>
-                    <p className="text-sm font-mono font-semibold">{p.paneles?.toLocaleString("es-SV", ) ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">Paneles</p>
+                    <p className="text-sm font-mono tabular-nums font-semibold">{p.paneles?.toLocaleString("es-SV", ) ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
+                    <p className="text-xs text-muted-foreground">Capacidad</p>
                     <p className="text-sm font-medium">{formatCapacidadKwp((p as any).capacidad_kwp)}</p>
                   </div>
                 </div>
@@ -678,7 +704,7 @@ function ClienteDashboard() {
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider">Próximos trabajos</h2>
+            <h2 className="text-base font-semibold">Próximos trabajos</h2>
             <Link to="/trabajos" className="text-xs text-primary hover:underline font-medium">Ver →</Link>
           </div>
           <ul className="space-y-3 text-sm">
@@ -687,7 +713,7 @@ function ClienteDashboard() {
                 <span className="mt-1 size-2 rounded-full bg-primary" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · {new Date(t.fecha_programada).toLocaleString("es-SV", )}</p>
+                  <p className="text-xs text-muted-foreground">{t.planta_nombre} · {new Date(t.fecha_programada).toLocaleString("es-SV", )}</p>
                 </div>
               </li>
             ))}
@@ -696,7 +722,7 @@ function ClienteDashboard() {
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider">Pendientes de tu firma</h2>
+            <h2 className="text-base font-semibold">Pendientes de tu firma</h2>
             <Link to="/mis-trabajos" className="text-xs text-primary hover:underline font-medium">Firmar →</Link>
           </div>
           <ul className="space-y-3 text-sm">
@@ -705,7 +731,7 @@ function ClienteDashboard() {
                 <span className="mt-1 size-2 rounded-full bg-destructive" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
+                  <p className="text-xs text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
                 </div>
               </li>
             ))}
@@ -715,14 +741,14 @@ function ClienteDashboard() {
       </section>
 
       <section className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+        <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
           <Droplets className="size-4 text-primary" /> Agua usada para limpieza · {Math.round(agua.data?.total ?? 0).toLocaleString("es-SV", )} gal
         </h2>
         <ul className="divide-y divide-border text-sm">
           {(agua.data?.filas ?? []).slice(0, 8).map((r: any) => (
             <li key={r.planta_id} className="flex items-center justify-between py-2">
               <span className="truncate">{r.nombre}</span>
-              <span className="font-mono text-xs">{Math.round(r.galones).toLocaleString("es-SV", )} gal</span>
+              <span className="font-mono tabular-nums text-xs">{Math.round(r.galones).toLocaleString("es-SV", )} gal</span>
             </li>
           ))}
           {!agua.isLoading && (agua.data?.filas?.length ?? 0) === 0 && (

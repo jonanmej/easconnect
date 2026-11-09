@@ -582,9 +582,8 @@ h1, h2, h3, h4, h5, h6,
   .app-content .font-mono { font-variant-numeric: tabular-nums; }
   .app-sidebar nav { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
   .app-sidebar nav > div > div { margin-bottom: 0.75rem; }
-  .dashboard-kpi { box-shadow: var(--shadow-surface); border-top: 3px solid var(--primary); }
-  .dashboard-kpi:nth-child(3n+2) { border-top-color: var(--accent); }
-  .dashboard-kpi:nth-child(3n) { border-top-color: var(--chart-3); }
+  .dashboard-kpi { box-shadow: var(--shadow-surface); }
+  .app-content .dashboard-screen section.bg-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-surface); }
   .auth-form { box-shadow: var(--shadow-raised); }
   @media (max-width: 639px) { .app-content h1 { font-size: 1.5rem; } }
 }
