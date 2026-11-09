@@ -224,7 +224,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={
             mode === "rail"
               ? "h-10 lg:h-20 w-auto object-contain"
-              : "h-20 w-auto object-contain"
+              : "h-28 w-auto max-w-full object-contain"
           }
         />
       </Link>
