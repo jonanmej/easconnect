@@ -87,6 +87,7 @@ export const Route = createFileRoute("/api/public/hooks/notificar-programaciones
               "id, folio, servicio, fecha_programada, estado, avisos_enviados, planta_id, plantas(nombre, email_notificaciones, clientes(nombre, email, telefono))",
             )
             .eq("estado", "programado")
+            .is("pausada_at", null)
             .gte("fecha_programada", hoy.toISOString())
             .lte("fecha_programada", maxFecha.toISOString());
           if (errT) throw new Error(errT.message);

@@ -237,6 +237,7 @@ export const metaCumplimientoLimpieza = createServerFn({ method: "GET" })
       .from("trabajos")
       .select("id, folio, estado, servicio, fecha_programada, duracion_dias, planta_id, plantas(nombre, paneles, clientes(nombre))")
       .in("estado", ["en_progreso", "programado"])
+      .is("pausada_at", null)
       .ilike("servicio", "%limpieza%");
     if (error) throw new Error(error.message);
     // Día de referencia: hoy si es hábil; si no, el último día hábil previo.

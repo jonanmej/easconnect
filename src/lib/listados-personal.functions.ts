@@ -151,7 +151,7 @@ export const upsertListado = createServerFn({ method: "POST" })
     if (conDui.length) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await Promise.all(
-        conDui.map((p) => supabaseAdmin.from("profiles").update({ dui: p.dui } as any).eq("id", p.user_id!)),
+        conDui.map((p) => supabaseAdmin.from("profiles").update({ dui: p.dui } as any).eq("id", p.user_id!).is("dui", null)),
       );
     }
     return { ok: true };

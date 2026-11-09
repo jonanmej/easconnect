@@ -72,7 +72,7 @@ function MisTrabajos() {
     );
   }, [trabajos.data, plantaFilter, estadoFilter]);
 
-  const proximos = filtered.filter((t) => t.estado === "programado" || t.estado === "en_progreso");
+  const proximos = filtered.filter((t) => (t.estado === "programado" && !(t as any).pausada_at) || t.estado === "en_progreso");
   const cerrados = filtered.filter((t) => t.estado === "completado");
 
   return (

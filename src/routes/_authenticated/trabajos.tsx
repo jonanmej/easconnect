@@ -147,7 +147,7 @@ function Trabajos() {
   const serviciosCat = useQuery({ queryKey: ["servicios-catalogo"], queryFn: () => fetchServicios() });
   // Catálogo de la BD; si aún no carga, se usa la lista fija de respaldo.
   const serviciosOpciones: string[] =
-    (serviciosCat.data?.length ? serviciosCat.data.map((s) => s.nombre) : null) ?? [...SERVICIOS_OT];
+    Array.from(new Set([...(serviciosCat.data ?? []).map((s) => s.nombre), ...SERVICIOS_OT]));
   // Catálogo agrupado por categoría (Fotovoltaica, Motores HFO, GPS, PVSTOP,
   // ChemitekSolar) para los selectores.
   const serviciosPorCategoria = useMemo(() => {
@@ -157,7 +157,10 @@ function Trabajos() {
       if (!grupos.has(cat)) grupos.set(cat, []);
       grupos.get(cat)!.push(s.nombre);
     }
-    if (!grupos.size) grupos.set("Fotovoltaica", [...SERVICIOS_OT]);
+    // Los servicios estándar siempre están disponibles aunque no estén en el catálogo.
+    const enCatalogo = new Set((serviciosCat.data ?? []).map((s) => s.nombre));
+    const faltantes = SERVICIOS_OT.filter((s) => !enCatalogo.has(s));
+    if (faltantes.length) grupos.set("Fotovoltaica", [...(grupos.get("Fotovoltaica") ?? []), ...faltantes]);
     return grupos;
   }, [serviciosCat.data]);
   const addServicio = useMutation({

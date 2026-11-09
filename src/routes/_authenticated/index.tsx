@@ -594,7 +594,7 @@ function ClienteDashboard() {
   const rows = (plantas.data as any[] | undefined) ?? [];
   const ts = (trabajos.data as any[] | undefined) ?? [];
   const ahora = Date.now();
-  const proximos = ts.filter((t) => t.estado === "programado" && new Date(t.fecha_programada).getTime() >= ahora);
+  const proximos = ts.filter((t) => t.estado === "programado" && !(t as any).pausada_at && new Date(t.fecha_programada).getTime() >= ahora);
   const enCurso = ts.filter((t) => t.estado === "en_progreso");
   const completados = ts.filter((t) => t.estado === "completado");
   // Los trabajos históricos no requieren firma del cliente.
@@ -648,7 +648,7 @@ function ClienteDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rows.map((p) => {
             const tp = ts.filter((t) => t.planta_id === p.id);
-            const abiertos = tp.filter((t) => t.estado === "programado" || t.estado === "en_progreso").length;
+            const abiertos = tp.filter((t) => (t.estado === "programado" && !(t as any).pausada_at) || t.estado === "en_progreso").length;
             return (
               <div key={p.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
                 <div className="flex items-start justify-between mb-3">
