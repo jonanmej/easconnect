@@ -115,15 +115,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [preference]);
 
-  // Persistir en el perfil cuando hay sesión y la hidratación remota ya ocurrió.
-  useEffect(() => {
+  // Guardar en el perfil solo cuando el usuario cambia el tema (no en cada carga).
+  const persistRemote = (p: ThemePreference) => {
     if (!userId || !hydratedFromRemote) return;
-    supabase
-      .from("profiles")
-      .update({ theme_preference: preference })
-      .eq("id", userId)
-      .then(() => {});
-  }, [preference, userId, hydratedFromRemote]);
+    supabase.from("profiles").update({ theme_preference: p }).eq("id", userId).then(() => {});
+  };
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -132,14 +128,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setPreference: (p) => {
         setPreferenceState(p);
         setTheme(resolve(p));
+        if (p !== preference) persistRemote(p);
       },
       toggleTheme: () => {
         const next: ResolvedTheme = theme === "dark" ? "light" : "dark";
         setPreferenceState(next);
         setTheme(next);
+        persistRemote(next);
       },
     }),
-    [preference, theme],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [preference, theme, userId, hydratedFromRemote],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
