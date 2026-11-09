@@ -19,7 +19,6 @@ import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
 import { MapaAvanceDiario } from "@/components/MapaAvanceDiario";
-import { envolverPdfExternoConEncabezadoEA, descargarBlob } from "@/lib/pdf/envolverExterno";
 import { consolidarDiarios } from "@/lib/consolidar-diarios";
 import { AvanceOTCard } from "@/components/AvanceOTCard";
 
@@ -818,6 +817,7 @@ function PDFSection({
     try {
       const info: any = await descargarFormatoEA({ data: { id } });
       const filename = `Reporte-EA-${(info.servicio ?? "externo").replace(/[^a-z0-9]+/gi, "-")}-${info.fecha}.pdf`;
+      const { envolverPdfExternoConEncabezadoEA, descargarBlob } = await import("@/lib/pdf/envolverExterno");
       const blob = await envolverPdfExternoConEncabezadoEA(info.pdf_base64, {
         cliente: info.cliente,
         planta: info.planta,

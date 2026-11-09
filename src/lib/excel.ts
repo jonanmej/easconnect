@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 
 export type ColDef<T> = {
   header: string;
@@ -13,6 +12,8 @@ export async function exportarExcel<T extends Record<string, any>>(opts: {
   filename: string;
   hojas: { nombre: string; columnas: ColDef<T>[]; filas: T[]; total?: string[] }[];
 }) {
+  // Carga diferida: la librería de Excel (~1 MB) solo se descarga al exportar.
+  const { default: ExcelJS } = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   wb.creator = "EA Service Connect";
   wb.created = new Date();
