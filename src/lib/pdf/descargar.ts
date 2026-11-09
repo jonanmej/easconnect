@@ -563,3 +563,16 @@ export async function generarYDescargarNominaPdf(
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   return { documento_id, hash };
 }
+
+/** Carga por adelantado el motor de PDF y la plantilla de Programación (sin generar nada). */
+let precargaProgramacion: Promise<unknown> | null = null;
+export function precargarProgramacionPdf() {
+  if (!precargaProgramacion) {
+    ensurePdfBrowserPolyfills();
+    precargaProgramacion = Promise.all([
+      import("@react-pdf/renderer"),
+      import("./ProgramacionDoc"),
+    ]).catch(() => { precargaProgramacion = null; });
+  }
+  return precargaProgramacion;
+}

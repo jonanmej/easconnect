@@ -18,7 +18,7 @@ import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2, UserCheck, CalendarRange } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
-import { generarYDescargarProgramacionPdf } from "@/lib/pdf/descargar";
+import { generarYDescargarProgramacionPdf, precargarProgramacionPdf } from "@/lib/pdf/descargar";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
 export const Route = createFileRoute("/_authenticated/programacion")({
@@ -226,7 +226,7 @@ function Programacion() {
     };
     if (vista === "semana") {
       const start = new Date(cursor); start.setHours(0, 0, 0, 0);
-      const end = addDays(start, 5); end.setHours(0, 0, 0, 0);
+      const end = addDays(start, 7); end.setHours(0, 0, 0, 0);
       arr = arr.filter((t) => intersectaRango(t, (d) => d >= start && d < end));
     } else if (vista === "mes") {
       const y = cursor.getFullYear(), m = cursor.getMonth();
@@ -238,6 +238,9 @@ function Programacion() {
     return arr;
   }, [trabajos, pdfCliente, pdfServicio, pdfFolio, vista, cursor]);
 
+  // Precarga el motor de PDF al abrir las opciones para que la descarga sea inmediata.
+  useEffect(() => { if (pdfOpen) precargarProgramacionPdf(); }, [pdfOpen]);
+
   function resetPdfFilters() {
     setPdfCliente(""); setPdfServicio(""); setPdfFolio("");
   }
@@ -245,6 +248,7 @@ function Programacion() {
   async function descargarPdf() {
     if (downloading) return;
     setDownloading(true);
+    const tid = toast.loading("Generando PDF…");
     try {
       const emitido_at = new Date().toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" });
       const filtros = [
@@ -269,9 +273,9 @@ function Programacion() {
         emitido_at,
       }, filename);
       setPdfOpen(false);
-      toast.success("PDF descargado");
+      toast.success("PDF descargado", { id: tid });
     } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo generar el PDF");
+      toast.error(e?.message ?? "No se pudo generar el PDF", { id: tid });
     } finally {
       setDownloading(false);
     }
@@ -1219,7 +1223,7 @@ function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) {
   }
 
   if (vista === "semana") {
-    const dias = Array.from({ length: 5 }, (_, i) => addDays(cursor, i)).map((d) => ({
+    const dias = Array.from({ length: 7 }, (_, i) => addDays(cursor, i)).map((d) => ({
       fecha: toISODateLocal(d),
       in_month: true,
       feriado: motivoNoLaborableSV(d) === "feriado",
@@ -1235,7 +1239,7 @@ function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) {
     const semanas: { semana_numero: number; dias: any[] }[] = [];
     let curD = firstMonday;
     while (curD <= monthEnd || semanas.length < 5) {
-      const row = Array.from({ length: 5 }, (_, i) => addDays(curD, i));
+      const row = Array.from({ length: 7 }, (_, i) => addDays(curD, i));
       semanas.push({
         semana_numero: isoWeek(row[0]),
         dias: row.map((d) => ({
@@ -1251,7 +1255,7 @@ function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) {
     return {
       semana_dias: undefined,
       mes_semanas: semanas,
-      mes_columnas: ["Lun", "Mar", "Mié", "Jue", "Vie"],
+      mes_columnas: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
     };
   }
 
