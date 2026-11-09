@@ -6,3 +6,4 @@ export { listReportes, getReporte, marcarReporteEnviado, eliminarReporte, resetD
 export { generarReporte } from "./reportes/generar.functions";
 export { getReporteParaPDF } from "./reportes/pdf.functions";
 export { generarEjecutivoDesdeDiarios } from "./reportes/ejecutivo.functions";
+export { convertirPdfAReporte } from "./reportes/desde-pdf.functions";

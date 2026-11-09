@@ -14,7 +14,7 @@ import {
   getPdfExternoParaFormato,
 } from "@/lib/reportes-diarios.functions";
 import { getJornadaHoy } from "@/lib/jornadas.functions";
-import { generarEjecutivoDesdeDiarios } from "@/lib/reportes.functions";
+import { generarEjecutivoDesdeDiarios, convertirPdfAReporte } from "@/lib/reportes.functions";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
 import { EvidenciaUploader } from "@/components/EvidenciaUploader";
@@ -796,6 +796,22 @@ function PDFSection({
   const [uploading, setUploading] = useState(false);
   const [fecha, setFecha] = useState(today());
   const [formateandoId, setFormateandoId] = useState<string | null>(null);
+  const [convirtiendoId, setConvirtiendoId] = useState<string | null>(null);
+  const fConvertir = useServerFn(convertirPdfAReporte);
+
+  async function convertir(id: string) {
+    setConvirtiendoId(id);
+    try {
+      const r = await fConvertir({ data: { id } });
+      toast.success(r.revision
+        ? "Borrador creado en Reportes. Revisa las cifras marcadas antes de enviarlo."
+        : "Borrador creado en Reportes con la plantilla EA.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo convertir el PDF");
+    } finally {
+      setConvirtiendoId(null);
+    }
+  }
 
   async function reformatear(id: string) {
     setFormateandoId(id);
@@ -896,6 +912,18 @@ function PDFSection({
                 {formateandoId === p.id ? <Loader2 className="size-3 animate-spin" /> : <FileDown className="size-3" />}
                 Formato EA
               </button>
+              {isStaff && (
+                <button
+                  type="button"
+                  onClick={() => convertir(p.id)}
+                  disabled={convirtiendoId === p.id}
+                  className="text-primary hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+                  title="Crear un reporte en borrador con la plantilla oficial EA a partir de este PDF"
+                >
+                  {convirtiendoId === p.id ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                  {convirtiendoId === p.id ? "Convirtiendo…" : "Convertir a Reporte EA"}
+                </button>
+              )}
               {canDelete && (
                 <button
                   type="button"
