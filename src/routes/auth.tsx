@@ -140,9 +140,9 @@ function AuthPage() {
   );
 
   return (
-    <div className="auth-screen min-h-dvh flex flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-background safe-top safe-bottom safe-x">
+    <div className="auth-screen min-h-dvh flex flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-background">
       {/* Panel de marca */}
-      <aside className="bg-sidebar text-sidebar-foreground flex items-center justify-center px-6 py-4 lg:flex-col lg:items-stretch lg:justify-between lg:px-12 lg:py-12">
+      <aside className="auth-brand safe-top safe-x bg-sidebar text-sidebar-foreground flex items-center justify-center lg:flex-col lg:items-stretch lg:justify-between">
         <BrandLogo
           variant="ea-connect"
           themeOverride="dark"
@@ -150,7 +150,7 @@ function AuthPage() {
         />
         <div className="hidden lg:block max-w-lg">
           <p className="text-sm font-medium text-sidebar-foreground/80">Sistema de operaciones solares</p>
-          <h2 className="mt-3 font-display text-4xl xl:text-5xl font-bold leading-tight text-sidebar-primary-foreground">
+          <h2 className="mt-3 font-display text-4xl xl:text-5xl font-bold leading-tight text-sidebar-accent-foreground">
             Servicio contratado, realizado y documentado.
           </h2>
           <p className="mt-4 text-base text-sidebar-foreground/85 leading-relaxed">
@@ -165,7 +165,7 @@ function AuthPage() {
       </aside>
 
       {/* Formulario */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 lg:py-12">
+      <main className="auth-main safe-bottom flex-1 flex flex-col items-center justify-center">
         <div className="w-full max-w-sm">
           <h1 className="font-display text-3xl font-bold text-foreground">Iniciar sesión</h1>
           <p className="text-sm text-muted-foreground mt-2">
@@ -188,7 +188,7 @@ function AuthPage() {
               />
             </div>
             <div>
-              <div className="flex items-center justify-between gap-3 mb-1.5">
+              <div className="flex items-center justify-between gap-3 mb-1.5 leading-5">
                 <label htmlFor="auth-password" className="text-sm font-semibold">
                   Contraseña
                 </label>
@@ -201,7 +201,7 @@ function AuthPage() {
                     setForgotError(null);
                   }}
                   variant="link"
-                  className="h-auto min-h-0 p-0 text-sm"
+                  className="h-auto min-h-11 -my-3 p-0 text-sm leading-5"
                   aria-expanded={forgotOpen}
                 >
                   ¿Olvidaste tu contraseña?
