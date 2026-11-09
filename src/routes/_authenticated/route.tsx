@@ -12,9 +12,12 @@ import { PageTransition } from "@/components/PageTransition";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    // Sesión local (sin ida y vuelta al servidor en cada navegación).
+    // La seguridad real la aplican las políticas de la base de datos.
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) throw redirect({ to: "/auth" });
+    return { user };
   },
   component: AuthenticatedLayout,
 });
@@ -49,10 +52,14 @@ function PerfilGate({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [checked, setChecked] = useState(false);
 
+  // El perfil se valida una vez por sesión; se repite solo al salir de /completar-perfil.
+  const enCompletar = location.pathname === "/completar-perfil";
   useEffect(() => {
+    if (checked && !enCompletar) return;
     let cancelled = false;
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: sd } = await supabase.auth.getSession();
+      const u = { user: sd.session?.user };
       if (!u.user) return;
       const { data: p } = await supabase
         .from("profiles")
@@ -73,7 +80,8 @@ function PerfilGate({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [location.pathname, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enCompletar, navigate]);
 
   // Mientras se valida, permite render para no parpadear (la propia ruta /completar-perfil ya es accesible)
   if (!checked && location.pathname !== "/completar-perfil") {
