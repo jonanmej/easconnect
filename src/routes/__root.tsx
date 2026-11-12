@@ -164,29 +164,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@graph": [
             {
               "@type": "Organization",
-              "@id": "https://easconnect.lovable.app/#organizacion",
+              "@id": "https://www.easerviceconnect.app/#organizacion",
               name: "EA Service & Consulting",
               alternateName: "EA Service Connect",
-              url: "https://easconnect.lovable.app/",
-              logo: "https://easconnect.lovable.app/icon-512.png",
+              url: "https://www.easerviceconnect.app/",
+              logo: "https://www.easerviceconnect.app/icon-512.png",
               description:
                 "Gestión operativa de plantas solares y térmicas: programación, reportes técnicos y mantenimiento.",
               areaServed: "SV",
             },
             {
               "@type": "WebSite",
-              "@id": "https://easconnect.lovable.app/#sitio",
-              url: "https://easconnect.lovable.app/",
+              "@id": "https://www.easerviceconnect.app/#sitio",
+              url: "https://www.easerviceconnect.app/",
               name: "EA Service Connect",
               inLanguage: "es-SV",
-              publisher: { "@id": "https://easconnect.lovable.app/#organizacion" },
+              publisher: { "@id": "https://www.easerviceconnect.app/#organizacion" },
             },
             {
               "@type": "SoftwareApplication",
               name: "EA Service Connect",
               applicationCategory: "BusinessApplication",
               operatingSystem: "Web, iOS, Android",
-              url: "https://easconnect.lovable.app/",
+              url: "https://www.easerviceconnect.app/",
               description:
                 "Plataforma de gestión operativa para plantas solares: programación de servicios, reportes diarios, inventario y órdenes de compra.",
               offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },

@@ -26,11 +26,11 @@ export const Route = createFileRoute("/auth")({
         content:
           "Ingreso al sistema de gestión operativa de EA Service & Consulting: plantas, órdenes de trabajo y reportes.",
       },
-      { property: "og:url", content: "https://easconnect.lovable.app/auth" },
+      { property: "og:url", content: "https://www.easerviceconnect.app/auth" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://easconnect.lovable.app/auth" }],
+    links: [{ rel: "canonical", href: "https://www.easerviceconnect.app/auth" }],
   }),
   component: AuthPage,
 });

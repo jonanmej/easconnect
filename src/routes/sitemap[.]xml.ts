@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-const BASE_URL = "https://easconnect.lovable.app";
+const BASE_URL = "https://www.easerviceconnect.app";
 
 interface SitemapEntry {
   path: string;
