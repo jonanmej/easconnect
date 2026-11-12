@@ -1,7 +1,8 @@
 # Inicio según rol
 - [x] Priorizar firmas del cliente y mostrar asignaciones de hoy al técnico con consultas existentes.
 - [x] Verificar tipos y pruebas (38 aprobadas).
-- [ ] Revisar paneles autenticados a 1280/390 px: falta sesión disponible; el acceso redirige a /auth.
+- [x] Revisar panel del administrador a 1280/390 px con sesión real, sin desbordamiento ni errores.
+- [ ] Revisar paneles de cliente y técnico a 1280/390 px: falta sesión de esos roles; la disponible es de administrador.
 
 # Fase 7 — Claude en reportes (Claude Sonnet 5 aceptado)
 - [x] Restaurar exactamente permisos previos de ambos generadores.
