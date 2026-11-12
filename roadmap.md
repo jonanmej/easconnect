@@ -1,3 +1,8 @@
+# Inicio según rol
+- [x] Priorizar firmas del cliente y mostrar asignaciones de hoy al técnico con consultas existentes.
+- [x] Verificar tipos y pruebas (38 aprobadas).
+- [ ] Revisar paneles autenticados a 1280/390 px: falta sesión disponible; el acceso redirige a /auth.
+
 # Fase 7 — Claude en reportes (Claude Sonnet 5 aceptado)
 - [x] Restaurar exactamente permisos previos de ambos generadores.
 - [x] Copias sin PDF base64, límite de 512 KiB y limpieza al emitir/eliminar.

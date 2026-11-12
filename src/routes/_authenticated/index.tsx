@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
+import { MisAsignacionesHoy } from "@/components/dashboard/MisAsignacionesHoy";
 
 // Carga diferida de los gráficos pesados (recharts) — reduce tiempo de primer pintado.
 const StaffCharts = {
@@ -298,6 +299,8 @@ function CumplimientoContratos() {
 }
 
 function StaffDashboard() {
+  const { roles } = useAuth();
+  const esTecnico = highestRole(roles) === "tecnico";
   const fetchStats = useServerFn(dashboardStats);
   const fetchSeries = useServerFn(dashboardSeries);
   const fetchAlertas = useServerFn(dashboardAlertas);
@@ -461,13 +464,17 @@ function StaffDashboard() {
           <h1 className="text-2xl font-semibold">Panel operativo</h1>
           <p className="text-sm text-muted-foreground mt-1">Resumen de mantenimiento y eficiencia · {hoy}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ExportButton onExport={exportarResumen} />
-          <Button asChild><Link to="/trabajos">
+          {esTecnico ? <Button asChild><Link to="/terreno">
+            <ClipboardList className="size-3.5" /> Ir a mis asignaciones
+          </Link></Button> : <Button asChild><Link to="/trabajos">
             <Plus className="size-3.5" /> Nuevo trabajo
-          </Link></Button>
+          </Link></Button>}
         </div>
       </div>
+
+      {esTecnico && <MisAsignacionesHoy />}
 
       <div className="space-y-3">
         <h2 className="text-base font-semibold">Requiere atención</h2>
@@ -648,12 +655,40 @@ function ClienteDashboard() {
         <p className="text-sm text-muted-foreground mt-1">Resumen operativo de tus plantas · {hoy}</p>
       </div>
 
+      {trabajos.isPending ? (
+        <p className="text-sm text-muted-foreground" role="status">Cargando trabajos pendientes de firma…</p>
+      ) : trabajos.isError ? (
+        <p className="text-sm text-destructive" role="alert">No se pudieron cargar los trabajos pendientes de firma.</p>
+      ) : pendienteFirma.length > 0 ? (
+        <section className="bg-card border border-destructive/50 rounded-lg p-5 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h2 className="text-base font-semibold tabular-nums">
+              Tienes {pendienteFirma.length} {pendienteFirma.length === 1 ? "trabajo pendiente" : "trabajos pendientes"} de firma
+            </h2>
+            <Button asChild><Link to="/mis-trabajos">Firmar ahora</Link></Button>
+          </div>
+          <ul className="space-y-3 text-sm">
+            {pendienteFirma.slice(0, 6).map((t) => (
+              <li key={t.id} className="flex items-start gap-3">
+                <span className="mt-1 size-2 shrink-0 rounded-full bg-destructive" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium break-words"><span className="tabular-nums">{t.folio}</span> · {t.servicio}</p>
+                  <p className="text-xs text-muted-foreground break-words">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <p className="text-sm text-muted-foreground">Todo al día: no tienes trabajos pendientes de firma.</p>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((k) => (
           <div key={k.label}
             className={"dashboard-kpi p-5 bg-card border border-border rounded-lg shadow-sm " + (k.tone === "danger" ? "ring-2 ring-destructive/20" : "")}>
             <p className={"text-xs font-medium mb-3 " + (k.tone === "danger" ? "text-destructive" : "text-muted-foreground")}>{k.label}</p>
-            <p className={"text-3xl font-semibold font-display " + (k.tone === "danger" ? "text-destructive" : "")}>{k.value}</p>
+            <p className={"text-3xl font-semibold font-display tabular-nums " + (k.tone === "danger" ? "text-destructive" : "")}>{k.value}</p>
           </div>
         ))}
       </div>
@@ -701,7 +736,7 @@ function ClienteDashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">Próximos trabajos</h2>
@@ -718,24 +753,6 @@ function ClienteDashboard() {
               </li>
             ))}
             {proximos.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Sin trabajos programados.</li>}
-          </ul>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">Pendientes de tu firma</h2>
-            <Link to="/mis-trabajos" className="text-xs text-primary hover:underline font-medium">Firmar →</Link>
-          </div>
-          <ul className="space-y-3 text-sm">
-            {pendienteFirma.slice(0, 6).map((t) => (
-              <li key={t.id} className="flex items-start gap-3">
-                <span className="mt-1 size-2 rounded-full bg-destructive" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{t.folio} · {t.servicio}</p>
-                  <p className="text-xs text-muted-foreground">{t.planta_nombre} · Completado {new Date(t.fecha_completado ?? t.fecha_programada).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" })}</p>
-                </div>
-              </li>
-            ))}
-            {pendienteFirma.length === 0 && <li className="text-xs text-muted-foreground text-center py-3">Todo al día. ✓</li>}
           </ul>
         </div>
       </section>
