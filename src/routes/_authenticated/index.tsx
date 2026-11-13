@@ -558,8 +558,8 @@ function StaffDashboard() {
 
       <section className="bg-card border border-border rounded-xl p-5 min-w-0">
         <Tabs defaultValue="cumplimiento" className="min-w-0">
-          <div className="overflow-x-auto -mx-1 px-1 mb-4">
-            <TabsList className="w-max">
+          <div className="mb-4 min-w-0">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 sm:w-max">
               <TabsTrigger value="cumplimiento">Cumplimiento de contratos</TabsTrigger>
               <TabsTrigger value="paneles">Paneles limpiados</TabsTrigger>
               <TabsTrigger value="agua">Agua por planta</TabsTrigger>

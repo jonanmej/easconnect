@@ -30,6 +30,7 @@ import { ReportesDiariosSection } from "@/components/ReportesDiariosSection";
 import { InspeccionPreviaSection } from "@/components/InspeccionPreviaSection";
 import { JornadaControl } from "@/components/JornadaControl";
 import { ExportButton } from "@/components/ExportButton";
+import { ExportMenu } from "@/components/ExportMenu";
 import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { exportarCSV, exportarXLSX, trabajosARows } from "@/lib/exportar";
 import {
@@ -417,7 +418,8 @@ function Trabajos() {
           : "Programa, ejecuta y cierra cada visita técnica."}
         actions={
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:w-auto [&>button]:min-h-11 sm:[&>button]:min-h-9 [&>button]:w-full sm:[&>button]:w-auto">
-            <ExportButton onExport={async () => {
+            <ExportMenu items={[
+            { label: "Exportar Excel", onExport: async () => {
               const rows = (list.data as any[] | undefined) ?? [];
               await exportarExcel({
                 filename: `trabajos-${new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })}.xlsx`,
@@ -435,21 +437,22 @@ function Trabajos() {
                   filas: rows,
                 }],
               });
-            }} />
-            <ExportButton label="Exportar filtrado (Excel)" onExport={async () => {
+            }},
+            { label: "Exportar filtrado (Excel)", onExport: async () => {
               const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
               const map = new Map<string, string>(
                 ((tecnicos.data as any[] | undefined) ?? []).map((u) => [u.id, u.nombre]),
               );
               await exportarXLSX(trabajosARows(filtrados, map), `trabajos-filtrado-${dia}`);
-            }} />
-            <ExportButton label="Exportar filtrado (CSV)" onExport={async () => {
+            }},
+            { label: "Exportar filtrado (CSV)", onExport: async () => {
               const dia = new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
               const map = new Map<string, string>(
                 ((tecnicos.data as any[] | undefined) ?? []).map((u) => [u.id, u.nombre]),
               );
               exportarCSV(trabajosARows(filtrados, map), `trabajos-filtrado-${dia}.csv`);
-            }} />
+            }},
+            ]} />
             {canEdit && (
               <button
                 onClick={() => setEditing({ estado: "programado", fecha_programada: new Date().toISOString() })}
@@ -622,7 +625,7 @@ function Trabajos() {
             cell: (t) => (
               <>
                 <p className="font-medium">{t.cliente_nombre}</p>
-                <p className="text-[10px] text-muted-foreground">{t.planta_nombre}</p>
+                <p className="text-xs text-muted-foreground">{t.planta_nombre}</p>
               </>
             ),
           },
@@ -640,11 +643,11 @@ function Trabajos() {
             key: "estado",
             header: "Estado",
             cell: (t) => t.pausada_at ? (
-              <span title={t.pausa_motivo ?? undefined} className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-muted text-muted-foreground border border-dashed border-border">
+              <span title={t.pausa_motivo ?? undefined} className="inline-flex px-2 py-0.5 rounded text-xs font-semibold bg-muted text-muted-foreground border border-dashed border-border">
                 En pausa
               </span>
             ) : (
-              <span className={"inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (estadoCls[t.estado] ?? "bg-secondary")}>
+              <span className={"inline-flex px-2 py-0.5 rounded text-xs font-semibold " + (estadoCls[t.estado] ?? "bg-secondary")}>
                 {estadoLabel[t.estado] ?? t.estado}
               </span>
             ),
@@ -849,7 +852,7 @@ function Trabajos() {
             placeholder="Ej. Desmontaje de inversores y cambio de combiner box"
             className={inputCls}
           />
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Se muestra junto al servicio en pantallas, calendario y reportes.
           </p>
         </Field>
@@ -876,7 +879,7 @@ function Trabajos() {
                 }
               }}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Días laborables (lunes a viernes, sin feriados). En emergencias se puede autorizar un día no laborable.
             </p>
           </Field>
@@ -887,12 +890,12 @@ function Trabajos() {
         </div>
         {motivoNoLaborable(fechaSel) && (
           <div className="rounded-md border border-destructive/40 bg-destructive/[0.06] p-3 space-y-2">
-            <p className="text-[11px] font-semibold text-destructive">
+            <p className="text-xs font-semibold text-destructive">
               La fecha elegida cae en {motivoNoLaborable(fechaSel)}.
             </p>
             {puedeAutorizarEmergencia ? (
               <>
-                <label className="flex items-start gap-2 text-[11px]">
+                <label className="flex items-start gap-2 text-xs">
                   <input
                     type="checkbox"
                     checked={emergencia}
@@ -912,7 +915,7 @@ function Trabajos() {
                 )}
               </>
             ) : (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Solo un administrador o supervisor puede autorizar trabajo en días no laborables.
               </p>
             )}
@@ -934,10 +937,10 @@ function Trabajos() {
             ))}
           </select>
           {tecnicos.isLoading && (
-            <p className="text-[10px] text-muted-foreground mt-1">Cargando técnicos…</p>
+            <p className="text-xs text-muted-foreground mt-1">Cargando técnicos…</p>
           )}
           {tecnicos.data && (tecnicos.data as any[]).length === 0 && (
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               No hay usuarios con rol técnico o supervisor. Crea uno en Usuarios.
             </p>
           )}
@@ -965,7 +968,7 @@ function Trabajos() {
                       }}
                     />
                     <span>{t.nombre}</span>
-                    {isPrincipal && <span className="ml-auto text-[10px] text-muted-foreground">(principal)</span>}
+                    {isPrincipal && <span className="ml-auto text-xs text-muted-foreground">(principal)</span>}
                   </label>
                 );
               })
@@ -973,7 +976,7 @@ function Trabajos() {
               <p className="px-3 py-3 text-xs text-muted-foreground">Sin técnicos disponibles.</p>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Marca técnicos de apoyo. Se valida conflicto de fechas y reciben notificación.
           </p>
         </Field>
@@ -996,9 +999,9 @@ function Trabajos() {
                         );
                       }}
                     />
-                    <span className="font-mono text-[10px] text-muted-foreground">{e.codigo}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{e.codigo}</span>
                     <span>{e.nombre}</span>
-                    {e.tipo && <span className="ml-auto text-[10px] text-muted-foreground capitalize">{e.tipo}</span>}
+                    {e.tipo && <span className="ml-auto text-xs text-muted-foreground capitalize">{e.tipo}</span>}
                   </label>
                 );
               })
@@ -1006,7 +1009,7 @@ function Trabajos() {
               <p className="px-3 py-3 text-xs text-muted-foreground">No hay equipos registrados.</p>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Selecciona uno o más equipos para esta OT.</p>
+          <p className="text-xs text-muted-foreground mt-1">Selecciona uno o más equipos para esta OT.</p>
         </Field>
         <Field label="Notas">
           <textarea name="notas" rows={3} defaultValue={editing?.notas ?? ""} className={inputCls} />
@@ -1050,7 +1053,7 @@ function Trabajos() {
         error={saveHistorico.error ? saveHistorico.error.message : null}
         onSubmit={onSubmitHistorico}
       >
-        <p className="text-[11px] text-muted-foreground -mt-1 mb-1">
+        <p className="text-xs text-muted-foreground -mt-1 mb-1">
           Registra un servicio ejecutado antes de la puesta en marcha de la app.
           Se guarda como <strong>completado</strong> y se marca con el prefijo
           <code className="mx-1">[HISTÓRICO]</code> en las notas.
@@ -1078,7 +1081,7 @@ function Trabajos() {
         <Field label="Fecha de ejecución">
           <input name="fecha" type="date" required className={inputCls}
             max={new Date().toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" })} />
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Debe ser una fecha pasada (anterior a hoy).
           </p>
         </Field>
@@ -1135,11 +1138,11 @@ function HistorialAsignacionesSection({ trabajoId }: { trabajoId: string }) {
                 ) : (
                   <p>Asignado a <strong>{r.tecnico_nuevo_nombre}</strong></p>
                 )}
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {new Date(r.created_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" })} · por {r.asignado_por_nombre}
                 </p>
                 {r.motivo && (
-                  <p className="text-[10px] text-muted-foreground italic mt-0.5">"{r.motivo}"</p>
+                  <p className="text-xs text-muted-foreground italic mt-0.5">"{r.motivo}"</p>
                 )}
               </div>
             </li>
@@ -1309,12 +1312,12 @@ function RecursosSection({
       <div className="flex flex-col sm:flex-row gap-2 sm:items-baseline sm:justify-between mb-2">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recursos para la visita</p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
+          <span className="text-xs text-muted-foreground">{rows.length} ítem{rows.length === 1 ? "" : "s"}</span>
           {canEdit && (
             <button
               type="button"
               onClick={() => setCopyOpen(true)}
-              className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary"
+              className="h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary"
               title="Copiar recursos desde otro trabajo (cualquier cliente / planta)"
             >
               <Copy className="size-3.5" />
@@ -1325,7 +1328,7 @@ function RecursosSection({
             type="button"
             onClick={exportarPdf}
             disabled={downloading || rows.length === 0}
-            className="h-8 px-3 inline-flex items-center gap-1.5 text-[11px] font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+            className="h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
             title="Descargar checklist imprimible"
           >
             <FileDown className="size-3.5" />
@@ -1333,12 +1336,12 @@ function RecursosSection({
           </button>
         </div>
       </div>
-      <p className="text-[10px] text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         Herramientas, EPP, equipos, insumos y repuestos que el técnico debe llevar a la empresa.
       </p>
       <div className="border border-border rounded-md overflow-x-auto mb-3">
         <table className="w-full text-xs">
-          <thead className="bg-secondary text-[10px] uppercase text-muted-foreground">
+          <thead className="bg-secondary text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-2 py-2 text-left">Cat.</th>
               <th className="px-2 py-2 text-left">Descripción</th>
@@ -1350,7 +1353,7 @@ function RecursosSection({
             {rows.map((r) => (
               <tr key={r.id}>
                 <td className="px-2 py-2 capitalize">{r.categoria}</td>
-                <td className="px-2 py-2">{r.descripcion}{r.notas && <span className="block text-[10px] text-muted-foreground">{r.notas}</span>}</td>
+                <td className="px-2 py-2">{r.descripcion}{r.notas && <span className="block text-xs text-muted-foreground">{r.notas}</span>}</td>
                 <td className="px-2 py-2 text-right font-mono">{r.cantidad} {r.unidad ?? ""}</td>
                 {canEdit && (
                   <td className="px-2 py-2 text-right">
@@ -1450,7 +1453,7 @@ function RecursosSection({
                       <p className="text-xs font-medium truncate">
                         <span className="font-mono">{t.folio ?? "—"}</span> · {t.planta_nombre}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {t.cliente_nombre} · {t.servicio} · {t.count} recurso{t.count === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -1458,7 +1461,7 @@ function RecursosSection({
                       type="button"
                       disabled={copyMut.isPending}
                       onClick={() => copyMut.mutate(t.id)}
-                      className="h-8 px-3 text-[11px] font-medium rounded-md bg-primary text-primary-foreground disabled:opacity-50 shrink-0"
+                      className="h-8 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground disabled:opacity-50 shrink-0"
                     >
                       {copyMut.isPending ? "Copiando…" : "Usar este"}
                     </button>

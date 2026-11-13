@@ -1,3 +1,10 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { nombreMes, nombreMesAnioDe } from "@/lib/nombre-mes";
 import { isoWeek } from "@/lib/semana-iso";
@@ -518,7 +525,7 @@ function Programacion() {
             <button
               onClick={() => setVerFinDeSemana(!verFinDeSemana)}
               className={
-                "h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border rounded-md " +
+                "h-9 px-3 hidden sm:inline-flex items-center gap-2 text-xs font-medium border rounded-md " +
                 (verFinDeSemana
                   ? "bg-primary text-primary-foreground border-primary"
                   : "border-border hover:bg-secondary")
@@ -540,20 +547,42 @@ function Programacion() {
               <>
                 <button
                   onClick={() => { setAsigSel(new Set()); setAsigPickerOpen(true); }}
-                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  className="h-9 px-3 hidden sm:inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
                   title="Asignar el mismo técnico a varias OT a la vez"
                 >
                   <UserCheck className="size-3.5" /> Asignar a varias OT
                 </button>
                 <button
                   onClick={() => { setDiasOtId(""); setDiasOpen(true); }}
-                  className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  className="h-9 px-3 hidden sm:inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
                   title="Programar una OT en varios días específicos"
                 >
                   <CalendarRange className="size-3.5" /> Varios días
                 </button>
               </>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-9 px-3 inline-flex sm:hidden items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
+                  <MoreHorizontal className="size-3.5" /> Más
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setVerFinDeSemana(!verFinDeSemana)}>
+                  <CalendarDays className="size-3.5" /> {verFinDeSemana ? "Ocultar fin de semana" : "Mostrar fin de semana"}
+                </DropdownMenuItem>
+                {canEdit && (
+                  <>
+                    <DropdownMenuItem onSelect={() => { setAsigSel(new Set()); setAsigPickerOpen(true); }}>
+                      <UserCheck className="size-3.5" /> Asignar a varias OT
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => { setDiasOtId(""); setDiasOpen(true); }}>
+                      <CalendarRange className="size-3.5" /> Varios días
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="relative">
               <button
                 onClick={() => setPdfOpen((v) => !v)}
@@ -565,7 +594,7 @@ function Programacion() {
               {pdfOpen && (
                 <div className="absolute right-0 mt-2 w-80 z-30 bg-popover text-popover-foreground border border-border rounded-md shadow-lg p-3 space-y-2 text-xs">
                   <p className="font-semibold text-sm">Descargar PDF</p>
-                  <p className="text-[11px] text-muted-foreground">Se generará un PDF con los trabajos de la vista actual ({vista}).</p>
+                  <p className="text-xs text-muted-foreground">Se generará un PDF con los trabajos de la vista actual ({vista}).</p>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="space-y-1">
                       <span className="text-muted-foreground">Papel</span>
@@ -600,7 +629,7 @@ function Programacion() {
                     <span className="text-muted-foreground">Orden de trabajo (folio contiene)</span>
                     <input value={pdfFolio} onChange={(e) => setPdfFolio(e.target.value)} placeholder="Ej: T-2026-0046" className="w-full h-8 px-2 rounded border border-input bg-background" />
                   </label>
-                  <p className="text-[11px] text-muted-foreground">{trabajosParaPdf.length} trabajo{trabajosParaPdf.length === 1 ? "" : "s"} se incluirán en el PDF.</p>
+                  <p className="text-xs text-muted-foreground">{trabajosParaPdf.length} trabajo{trabajosParaPdf.length === 1 ? "" : "s"} se incluirán en el PDF.</p>
                   <div className="flex items-center justify-between pt-1">
                     <button onClick={resetPdfFilters} className="text-muted-foreground hover:text-foreground underline underline-offset-2">Limpiar filtros</button>
                     <div className="inline-flex gap-2">
@@ -621,13 +650,16 @@ function Programacion() {
       <p className="text-xs font-semibold text-muted-foreground mb-3 capitalize">{headerTitle}</p>
 
       {vista === "semana" && (
+      <p className="sm:hidden no-print text-xs text-muted-foreground mb-2">Desliza para ver más días →</p>
+      )}
+      {vista === "semana" && (
       <div className="bg-card border border-border rounded-xl overflow-x-auto print-week-grid print-hide-visual">
         <div
           style={{ gridTemplateColumns: `repeat(${nDias},minmax(0,1fr))` }}
-          className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+          className="grid min-w-[700px] border-b border-border bg-secondary text-xs font-semibold text-muted-foreground print:text-[10px] print:font-bold print:uppercase print:tracking-wider"
         >
           {days.map((d) => (
-            <div key={d.toISOString()} className={"min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
+            <div key={d.toISOString()} className={"min-w-0 truncate capitalize print:normal-case p-1.5 sm:p-3 text-center border-l border-border first:border-l-0 " + (sameDay(d, new Date()) ? "text-primary" : "")}>
               {fmtDayLabel(d)}
             </div>
           ))}
@@ -651,15 +683,15 @@ function Programacion() {
                 }
               >
                 {motivo === "feriado" && (
-                  <p className="text-[9px] uppercase tracking-wide text-destructive/80 font-semibold">Feriado</p>
+                  <p className="text-xs text-destructive/80 font-semibold print:text-[9px] print:uppercase print:tracking-wide">Feriado</p>
                 )}
                 {(motivo === "sábado" || motivo === "domingo") && (
-                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
+                  <p className="text-xs text-muted-foreground font-semibold first-letter:uppercase print:text-[9px] print:uppercase print:tracking-wide">
                     {motivo} · solo emergencias
                   </p>
                 )}
                 {items.length === 0 && (
-                  <p className="text-[10px] text-muted-foreground/60 px-1 py-2">—</p>
+                  <p className="text-xs text-muted-foreground/60 px-1 py-2 print:text-[10px]">—</p>
                 )}
                 {items
                   .sort((a: any, b: any) => +new Date(a.fecha_programada) - +new Date(b.fecha_programada))
@@ -889,7 +921,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
   const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].slice(0, nDias);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div style={gridStyle} className="grid min-w-[700px] border-b border-border bg-secondary text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground print-month-header">
+      <div style={gridStyle} className="grid min-w-[700px] border-b border-border bg-secondary text-xs font-semibold text-muted-foreground print:text-[10px] print:font-bold print:uppercase print:tracking-wider print-month-header">
         <div className="min-w-0 truncate p-1.5 sm:p-3 text-center">Sem.</div>
         {dayLabels.map((d) => (
           <div key={d} className="min-w-0 truncate p-1.5 sm:p-3 text-center border-l border-border">{d}</div>
@@ -897,7 +929,7 @@ function MonthView({ cursor, byDay, canEdit, dragId, setDrag, onDrop, nDias = 5 
       </div>
       {weeks.map((row, ri) => (
         <div key={ri} style={gridStyle} className="grid border-b border-border last:border-b-0 min-h-[88px] sm:min-h-[110px] print-month-row">
-          <div className="min-w-0 p-1 sm:p-2 text-center text-[9px] sm:text-[11px] font-mono text-muted-foreground bg-secondary/40 border-r border-border flex items-center justify-center">
+          <div className="min-w-0 p-1 sm:p-2 text-center text-xs font-mono tabular-nums text-muted-foreground bg-secondary/40 print:text-[11px] border-r border-border flex items-center justify-center">
             S{isoWeek(row[0])}
           </div>
           {row.map((d) => {

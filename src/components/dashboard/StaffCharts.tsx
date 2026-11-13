@@ -8,10 +8,10 @@ export function TrabajosSemanaChart({ data }: { data: any[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="semana" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+          <XAxis dataKey="semana" tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
           <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="programado" stackId="a" fill="var(--chart-1)" name="Programados" />
           <Bar dataKey="en_progreso" stackId="a" fill="var(--chart-3)" name="En progreso" />
           <Bar dataKey="completado" stackId="a" fill="var(--chart-2)" name="Completados" />
@@ -31,7 +31,7 @@ export function DistribucionTipoChart({ data }: { data: any[] }) {
             {data.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
           </Pie>
           <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -44,8 +44,8 @@ export function TopPlantasChart({ data }: { data: any[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-          <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
+          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+          <YAxis dataKey="nombre" type="category" tick={{ fontSize: 12 }} width={140} />
           <Tooltip position={{ x: 0, y: 0 }} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }} />
           <Bar dataKey="count" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
         </BarChart>
@@ -60,8 +60,8 @@ export function AguaPlantaChart({ data }: { data: any[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-          <YAxis dataKey="nombre" type="category" tick={{ fontSize: 11 }} width={140} />
+          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+          <YAxis dataKey="nombre" type="category" tick={{ fontSize: 12 }} width={140} />
           <Tooltip
             position={{ x: 0, y: 0 }}
             contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, whiteSpace: "normal", maxWidth: "100%" }}

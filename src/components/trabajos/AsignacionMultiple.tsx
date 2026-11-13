@@ -128,7 +128,7 @@ export function AsignarTecnicoMultipleDialog({
                 ))}
               </div>
             </Field>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Se valida la agenda de cada técnico en cada OT; las que tengan conflicto se omiten y se muestran al final.
             </p>
           </div>
@@ -278,7 +278,7 @@ export function ProgramarDiasMultiplesDialog({
               )}
             </div>
           )}
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             La primera fecha queda como inicio de la OT y los demás días se registran como días movidos. Se valida que el técnico y los equipos estén libres cada día.
           </p>
         </div>

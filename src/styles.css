@@ -591,6 +591,8 @@ h1, h2, h3, h4, h5, h6,
   .dashboard-kpi { box-shadow: var(--shadow-surface); }
   .app-content .dashboard-screen section.bg-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-surface); }
   .auth-form { box-shadow: var(--shadow-raised); }
+  /* Utilidades px-* anulan el padding base; conservar espacio para la flecha propia. */
+  :is(.app-content, .auth-screen, [role="dialog"], [data-radix-popper-content-wrapper]) select:not([multiple]):not([size]) { padding-right: 2rem; }
   @media (max-width: 639px) { .app-content h1 { font-size: 1.5rem; } }
 }
 
