@@ -106,7 +106,16 @@ export const dashboardStats = createServerFn({ method: "GET" })
       ? Math.min(100, Math.round((limpiadosProgreso / parqueProgreso) * 100))
       : 0;
 
+    // Cumplimiento del cronograma calculado aquí (antes en el navegador con listTrabajos).
+    const { data: trabCron, error: errCron } = await context.supabase
+      .from("trabajos")
+      .select("fecha_programada, fecha_completado, duracion_dias, estado");
+    if (errCron) throw new Error(errCron.message);
+    const { calcularCumplimientoCronograma } = await import("@/lib/cumplimiento-cronograma");
+    const cumplimiento_cronograma = calcularCumplimientoCronograma((trabCron ?? []) as any[]);
+
     return {
+      cumplimiento_cronograma,
       trabajos_hoy,
       dia_no_laborable: mostrar_pausa,
       siguiente_dia_habil: mostrar_pausa ? siguiente_dia_habil : null,

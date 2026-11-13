@@ -14,6 +14,7 @@ import { exportarExcel, fmtFechaSV } from "@/lib/excel";
 import { generarYDescargarCumplimientoPdf } from "@/lib/pdf/descargar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isoWeekFromISODate, fechaKeySV } from "@/lib/semana-iso";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { useAuth } from "@/lib/auth-context";
 import { highestRole } from "@/lib/roles";
@@ -317,34 +318,21 @@ function StaffDashboard() {
   const agua = useQuery({ queryKey: ["agua-por-planta"], queryFn: () => fetchAgua(), ...qOpts });
   const panelesQ = useQuery({ queryKey: ["paneles-por-planta"], queryFn: () => fetchPaneles(), ...qOpts });
   const metaQ = useQuery({ queryKey: ["meta-limpieza"], queryFn: () => fetchMeta(), ...qOpts });
-  const fetchTrabajos = useServerFn(listTrabajos);
-  const trabajosQ = useQuery({ queryKey: ["trabajos"], queryFn: () => fetchTrabajos(), ...qOpts });
 
-  // Cumplimiento del cronograma: completados a tiempo / actividades programadas vencidas × 100.
-  // "A tiempo" = fecha_completado <= fecha_programada + duracion_dias.
-  const cumplimientoCronograma = (() => {
-    const ts = (trabajosQ.data as any[] | undefined) ?? [];
-    const ahora = Date.now();
-    const vencidas = ts.filter((t) => {
-      const prog = new Date(t.fecha_programada).getTime();
-      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      return prog + dur * 86400000 <= ahora && (t.estado === "completado" || t.estado === "programado" || t.estado === "en_progreso");
-    });
-    if (vencidas.length === 0) return { pct: 100, num: 0, den: 0 };
-    const aTiempo = vencidas.filter((t) => {
-      if (t.estado !== "completado" || !t.fecha_completado) return false;
-      const prog = new Date(t.fecha_programada).getTime();
-      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      return new Date(t.fecha_completado).getTime() <= prog + dur * 86400000;
-    }).length;
-    return { pct: Math.round((aTiempo / vencidas.length) * 100), num: aTiempo, den: vencidas.length };
-  })();
+  // Cumplimiento del cronograma: calculado en el servidor (dashboardStats).
+  const cumplimientoCronograma = (stats.data as any)?.cumplimiento_cronograma ?? { pct: 100, num: 0, den: 0 };
 
-  // Paneles limpiados por ciclo de limpieza completado.
-  const ciclos = (() => {
-    const ts = (trabajosQ.data as any[] | undefined) ?? [];
-    return ts.filter((t) => t.estado === "completado" && String(t.servicio ?? "").toLowerCase().includes("limpieza")).length;
-  })();
+  // Métrica guía: OT finalizadas en la semana ISO actual (hora de El Salvador),
+  // tomada de la misma serie del gráfico "Trabajos por semana".
+  const semanas = (series.data?.weeks as any[] | undefined) ?? [];
+  const finSemana = semanas.length >= 2 ? Number(semanas[semanas.length - 1].completado ?? 0) : null;
+  const finAnterior = semanas.length >= 2 ? Number(semanas[semanas.length - 2].completado ?? 0) : null;
+  const semanaActualNum = isoWeekFromISODate(fechaKeySV(new Date()));
+  const difSemana = finSemana !== null && finAnterior !== null ? finSemana - finAnterior : 0;
+  const comparacionSemana = difSemana > 0
+    ? `+${difSemana} vs. semana anterior`
+    : difSemana < 0 ? `−${Math.abs(difSemana)} vs. semana anterior` : "igual que la semana anterior";
+
   // Meta de limpieza: reemplaza el KPI "Incidentes de seguridad".
   const meta = metaQ.data as any | undefined;
   const metaKpi = (() => {
@@ -427,7 +415,10 @@ function StaffDashboard() {
             { header: "Indicador", key: "label", width: 30 },
             { header: "Valor", key: "value", width: 18 },
           ],
-          filas: kpis.map((k) => ({ label: k.label, value: k.value })),
+          filas: [
+            { label: "Órdenes finalizadas esta semana", value: String(finSemana ?? 0) },
+            ...kpis.map((k) => ({ label: k.label, value: k.value })),
+          ],
         },
         {
           nombre: "SLA",
@@ -487,7 +478,21 @@ function StaffDashboard() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Indicadores de hoy</h2>
+        <h2 className="text-base font-semibold">Indicadores</h2>
+        <div className="dashboard-kpi p-5 bg-card border border-border rounded-lg flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground">Órdenes finalizadas esta semana</p>
+            {finSemana === null ? (
+              <div className="mt-2 space-y-2"><Skeleton className="h-10 w-20" /><Skeleton className="h-4 w-44" /></div>
+            ) : (
+              <>
+                <p className="mt-2 text-4xl font-semibold font-display tabular-nums">{finSemana}</p>
+                <p className={"mt-1 text-xs tabular-nums " + (difSemana > 0 ? "text-accent" : difSemana < 0 ? "text-destructive" : "text-muted-foreground")}>{comparacionSemana}</p>
+              </>
+            )}
+          </div>
+          <p className="shrink-0 text-sm font-medium text-muted-foreground tabular-nums">Semana {String(semanaActualNum).padStart(2, "0")}</p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {principales.map((kpi) => (
             <div key={kpi.label} className={"dashboard-kpi p-5 bg-card border rounded-lg " + (kpi.tone === "danger" ? "border-destructive/50" : "border-border")}>

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { isoWeek } from "@/lib/semana-iso";
+import { isoWeek, inicioSemanaSV } from "@/lib/semana-iso";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 function startOfDay(d: Date) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -15,7 +15,8 @@ function startOfWeek(d: Date) {
 export const dashboardSeries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const desde = startOfWeek(addDays(new Date(), -7 * 11));
+    // Semanas ISO en hora de El Salvador (lunes 00:00 SV), no en la zona del servidor.
+    const desde = inicioSemanaSV(new Date(Date.now() - 7 * 11 * 86400000));
     const { data, error } = await context.supabase
       .from("trabajos")
       .select("estado, fecha_programada, servicio, planta_id, plantas(nombre)")
@@ -25,8 +26,8 @@ export const dashboardSeries = createServerFn({ method: "GET" })
     // 12 semanas
     const weeks: { semana: string; programado: number; en_progreso: number; completado: number; cancelado: number }[] = [];
     for (let i = 0; i < 12; i++) {
-      const ws = addDays(desde, i * 7);
-      weeks.push({ semana: `S${isoWeek(ws)}`, programado: 0, en_progreso: 0, completado: 0, cancelado: 0 });
+      const ws = new Date(desde.getTime() + i * 7 * 86400000);
+      weeks.push({ semana: `S${isoWeek(new Date(ws.getUTCFullYear(), ws.getUTCMonth(), ws.getUTCDate()))}`, programado: 0, en_progreso: 0, completado: 0, cancelado: 0 });
     }
 
     const tipos = new Map<string, number>();
@@ -34,7 +35,7 @@ export const dashboardSeries = createServerFn({ method: "GET" })
 
     (data ?? []).forEach((t: any) => {
       const f = new Date(t.fecha_programada);
-      const idx = Math.floor((startOfWeek(f).getTime() - desde.getTime()) / (7 * 86400000));
+      const idx = Math.round((inicioSemanaSV(f).getTime() - desde.getTime()) / (7 * 86400000));
       if (idx >= 0 && idx < 12) {
         const w = weeks[idx];
         const key = (t.estado as keyof typeof w);
