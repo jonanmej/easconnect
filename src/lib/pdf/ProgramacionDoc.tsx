@@ -59,6 +59,8 @@ export type CalendarDia = {
   fecha: string; // YYYY-MM-DD
   in_month: boolean;
   feriado: boolean;
+  /** Solo PDF de cliente: fecha ocupada por otro cliente (sin ningún dato de esa OT). */
+  no_disponible?: boolean;
   items: CalendarItem[];
 };
 
@@ -80,6 +82,8 @@ export type ProgramacionData = {
   /** Vista año: marcas de cliente por día (YYYY-MM-DD). */
   anio_dias?: Record<string, { cliente_id: string | null; cliente_nombre: string | null }[]>;
   anio?: number;
+  /** Solo PDF de cliente: fechas (YYYY-MM-DD) ocupadas por otros clientes. */
+  anio_no_disponible?: string[];
   filtros?: { label: string; value: string }[];
   paper: "A4" | "A3";
   orientation: "landscape" | "portrait";
@@ -288,7 +292,7 @@ export function ProgramacionDoc({ data }: { data: ProgramacionData }) {
             ))}
           </View>
         )}
-        {data.vista !== "anio" && <LeyendaClientes clientes={clientes} />}
+        {data.vista !== "anio" && <LeyendaClientes clientes={clientes} noDisponible={hayNoDisponible(data)} />}
         <Text style={s.totalLine}>{data.trabajos.length} {data.doc_unidad ?? "trabajo"}{data.trabajos.length === 1 ? "" : "s"} en el rango seleccionado.</Text>
 
         {data.trabajos.length === 0 && data.vista !== "anio" && <Text style={s.empty}>Sin registros programados.</Text>}
@@ -313,6 +317,22 @@ const HEADER_ROW_H = 14;
 /** Tarjeta compacta: alto fijo + separación (Semana 2 líneas, Mes 1 línea). */
 const CARD = { semana: { h: 18.5, gap: 1.5, pad: 2 }, mes: { h: 9.5, gap: 1.5, pad: 1 } } as const;
 const MORE_H = 9;
+const NO_DISP_H = 10;
+const ROJO = { fondo: "#FEE2E2", borde: "#DC2626", texto: "#991B1B" };
+
+function NoDisponible() {
+  return (
+    <View style={{ height: NO_DISP_H - 1.5, marginBottom: 1.5, backgroundColor: ROJO.fondo, borderLeftWidth: 2, borderLeftColor: ROJO.borde, borderTopWidth: 0.75, borderTopColor: ROJO.borde, paddingHorizontal: 3, paddingTop: 1 }} wrap={false}>
+      <Text style={{ fontSize: 6, color: ROJO.texto, fontFamily: FONT_BOLD }}>No disponible</Text>
+    </View>
+  );
+}
+
+function hayNoDisponible(data: ProgramacionData) {
+  return !!(data.anio_no_disponible?.length
+    || data.semana_dias?.some((d) => d.no_disponible)
+    || data.mes_semanas?.some((w) => w.dias.some((d) => d.no_disponible)));
+}
 
 function paginaUtil(data: ProgramacionData) {
   const [w, h] = PAGE_PT[data.paper];
@@ -336,7 +356,8 @@ function clientesEnRango(data: ProgramacionData): ClienteLeyenda[] {
   return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-function lineasLeyenda(clientes: ClienteLeyenda[], ancho: number) {
+function lineasLeyenda(clientes: ClienteLeyenda[], ancho: number, extra = false) {
+  if (extra) clientes = [...clientes, { key: "_nd", nombre: "No disponible: fecha ocupada", color: "" }];
   if (clientes.length === 0) return 0;
   let lineas = 1, x = 34; // "Clientes:"
   clientes.forEach((c) => {
@@ -353,7 +374,7 @@ function altoDisponible(data: ProgramacionData, _n: number) {
   const clientes = clientesEnRango(data);
   const bloqueTitulo = 16 + 10 + 16 + 18; // título, regla, subtítulo, total
   const filtros = data.filtros && data.filtros.length > 0 ? 21 : 0;
-  const leyenda = lineasLeyenda(clientes, ancho) * 10 + 6;
+  const leyenda = lineasLeyenda(clientes, ancho, hayNoDisponible(data)) * 10 + 6;
   const vacio = data.trabajos.length === 0 && data.vista !== "anio" ? 20 : 0;
   return alto - bloqueTitulo - filtros - leyenda - vacio - 10;
 }
@@ -407,8 +428,8 @@ function fondoDia(d: CalendarDia) {
   return dow === 0 || dow === 6 ? s.calCellWeekend : null;
 }
 
-function LeyendaClientes({ clientes }: { clientes: ClienteLeyenda[] }) {
-  if (clientes.length === 0) return null;
+function LeyendaClientes({ clientes, noDisponible }: { clientes: ClienteLeyenda[]; noDisponible?: boolean }) {
+  if (clientes.length === 0 && !noDisponible) return null;
   return (
     <View style={s.leyenda}>
       <Text style={s.leyendaTitulo}>Clientes:</Text>
@@ -418,6 +439,12 @@ function LeyendaClientes({ clientes }: { clientes: ClienteLeyenda[] }) {
           <Text style={s.leyendaTexto}>{c.nombre}</Text>
         </View>
       ))}
+      {noDisponible && (
+        <View style={s.leyendaItem}>
+          <View style={[s.leyendaMuestra, { backgroundColor: ROJO.borde }]} />
+          <Text style={[s.leyendaTexto, { color: ROJO.texto }]}>No disponible: fecha ocupada</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -440,14 +467,13 @@ function SemanaGrid({ dias, alto }: { dias: CalendarDia[]; alto: number }) {
       </View>
       <View style={{ flexDirection: "row", height: altoFila }}>
         {dias.map((d) => {
-          const domingo = diaSemana(d.fecha) === 0;
-          const notas = (d.feriado ? 8 : 0) + (domingo ? 8 : 0);
+          const notas = (d.feriado ? 8 : 0) + (d.no_disponible ? NO_DISP_H : 0);
           const visibles = tarjetasVisibles(d.items.length, altoFila - 6 - notas, "semana");
           const fondo = fondoDia(d);
           return (
             <View key={d.fecha} style={[s.calCell, { width: colW, height: altoFila }, ...(fondo ? [fondo] : [])]}>
               {d.feriado && <Text style={[s.calHolidayTag, { marginLeft: 0, height: 8 }]}>Feriado</Text>}
-              {domingo && <Text style={[s.notaDomingo, { height: 8 }]}>Solo emergencias</Text>}
+              {d.no_disponible && <NoDisponible />}
               {d.items.length === 0 && <Text style={{ fontSize: 8, color: "#cbd5e1", textAlign: "center", marginTop: 6 }}>—</Text>}
               {d.items.slice(0, visibles).map((it, i) => <EventoCard key={i} it={it} mode="semana" />)}
               <MasLinea n={d.items.length - visibles} />
@@ -477,9 +503,8 @@ function MesGrid({ semanas, columnas, alto }: { semanas: CalendarSemana[]; colum
         <View key={wi} style={[s.calWeekRow, { height: altoFila }]}>
           <Text style={[s.calWeekLabel, { width: labelW }]}>S{w.semana_numero}</Text>
           {w.dias.map((d) => {
-            const visibles = tarjetasVisibles(d.items.length, interior, "mes");
+            const visibles = tarjetasVisibles(d.items.length, interior - (d.no_disponible ? NO_DISP_H : 0), "mes");
             const fondo = fondoDia(d);
-            const domingo = diaSemana(d.fecha) === 0;
             return (
               <View key={d.fecha} style={[s.calCell, { width: colW, height: altoFila }, ...(fondo ? [fondo] : [])]}>
                 <View style={{ flexDirection: "row", alignItems: "center", height: 11 }}>
@@ -487,8 +512,8 @@ function MesGrid({ semanas, columnas, alto }: { semanas: CalendarSemana[]; colum
                     {Number(d.fecha.slice(-2))}
                   </Text>
                   {d.feriado && <Text style={s.calHolidayTag}>FERIADO</Text>}
-                  {domingo && !d.feriado && <Text style={[s.notaDomingo, { marginLeft: 3 }]}>Solo emergencias</Text>}
                 </View>
+                {d.no_disponible && <NoDisponible />}
                 {d.items.slice(0, visibles).map((it, i) => <EventoCard key={i} it={it} mode="mes" />)}
                 <MasLinea n={d.items.length - visibles} />
               </View>
@@ -537,13 +562,14 @@ function AnioMiniCalendarios({ data, alto, clientes }: { data: ProgramacionData;
   const { ancho } = paginaUtil(data);
   const land = data.orientation === "landscape";
   const cols = land ? 4 : 3, rows = land ? 3 : 4, gap = 8;
-  const leyendaH = lineasLeyenda(clientes, ancho) * 10 + 6;
+  const leyendaH = lineasLeyenda(clientes, ancho, hayNoDisponible(data)) * 10 + 6;
   const altoGrid = alto - leyendaH;
   const mw = (ancho - gap * (cols - 1)) / cols;
   const mh = (altoGrid - gap * (rows - 1)) / rows;
   const year = data.anio ?? new Date().getFullYear();
   const filaH = (mh - 12 - 9 - 2) / 6;
   const cellW = mw / 8;
+  const noDisp = data.anio_no_disponible ? new Set(data.anio_no_disponible) : null;
   return (
     <View wrap={false}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", width: ancho, height: altoGrid }}>
@@ -566,10 +592,12 @@ function AnioMiniCalendarios({ data, alto, clientes }: { data: ProgramacionData;
                   {row.map((d, i) => {
                     const en = d.getMonth() === m;
                     const marcas = en ? (data.anio_dias?.[isoLocal(d)] ?? []) : [];
+                    const ocupado = en && !!noDisp?.has(isoLocal(d));
                     const fondo = en && (i >= 5) ? { backgroundColor: "#f3f4f6" } : null;
                     return (
                       <View key={i} style={[{ width: cellW, height: filaH, paddingTop: 1, alignItems: "center" }, ...(fondo ? [fondo] : [])]}>
                         {en && <Text style={s.miniNum}>{d.getDate()}</Text>}
+                        {ocupado && <View style={{ width: "70%", height: 1.6, backgroundColor: ROJO.borde, marginTop: 0.3 }} />}
                         {marcas.length > 0 && (
                           <View style={{ flexDirection: "row", alignItems: "center", marginTop: 0.5 }}>
                             {marcas.slice(0, 3).map((mk, k) => (
@@ -587,7 +615,7 @@ function AnioMiniCalendarios({ data, alto, clientes }: { data: ProgramacionData;
           );
         })}
       </View>
-      <View style={{ marginTop: 6 }}><LeyendaClientes clientes={clientes} /></View>
+      <View style={{ marginTop: 6 }}><LeyendaClientes clientes={clientes} noDisponible={hayNoDisponible(data)} /></View>
     </View>
   );
 }
@@ -599,13 +627,13 @@ export function resumenDesbordes(data: ProgramacionData) {
   if (data.vista === "semana" && data.semana_dias) {
     const fila = alto - HEADER_ROW_H;
     data.semana_dias.forEach((d) => {
-      const notas = (d.feriado ? 8 : 0) + (diaSemana(d.fecha) === 0 ? 8 : 0);
+      const notas = (d.feriado ? 8 : 0) + (d.no_disponible ? NO_DISP_H : 0);
       if (tarjetasVisibles(d.items.length, fila - 6 - notas, "semana") < d.items.length) celdas++;
     });
   } else if (data.vista === "mes" && data.mes_semanas) {
     const fila = (alto - HEADER_ROW_H) / Math.max(1, data.mes_semanas.length);
     data.mes_semanas.forEach((w) => w.dias.forEach((d) => {
-      if (tarjetasVisibles(d.items.length, fila - 6 - 11, "mes") < d.items.length) celdas++;
+      if (tarjetasVisibles(d.items.length, fila - 6 - 11 - (d.no_disponible ? NO_DISP_H : 0), "mes") < d.items.length) celdas++;
     }));
   } else if (data.anio_dias) {
     celdas = Object.values(data.anio_dias).filter((a) => a.length > 3).length;

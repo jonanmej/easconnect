@@ -46,7 +46,7 @@ export function toISODateLocal(d: Date) {
  * de la lista de trabajos ya filtrada. Reaplica la misma lógica de
  * expansión por días laborables (L-V) y excepciones de día usada en la UI.
  */
-export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) {
+export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[], ocupadosAjenos?: Set<string>) {
   const byDay = new Map<string, any[]>();
   trabajos.forEach((t) => {
     const dt = new Date(t.fecha_programada);
@@ -103,9 +103,10 @@ export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) 
       fecha: toISODateLocal(d),
       in_month: true,
       feriado: motivoNoLaborableSV(d) === "feriado",
+      no_disponible: ocupadosAjenos?.has(toISODateLocal(d)) ?? false,
       items: itemsFor(d),
     }));
-    return { semana_dias: dias, mes_semanas: undefined, mes_columnas: undefined, anio_dias: undefined, anio: undefined };
+    return { semana_dias: dias, mes_semanas: undefined, mes_columnas: undefined, anio_dias: undefined, anio: undefined, anio_no_disponible: undefined };
   }
 
   if (vista === "mes") {
@@ -122,6 +123,7 @@ export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) 
           fecha: toISODateLocal(d),
           in_month: d.getMonth() === cursor.getMonth(),
           feriado: motivoNoLaborableSV(d) === "feriado",
+          no_disponible: ocupadosAjenos?.has(toISODateLocal(d)) ?? false,
           items: itemsFor(d),
         })),
       });
@@ -134,6 +136,7 @@ export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) 
       mes_columnas: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
       anio_dias: undefined,
       anio: undefined,
+      anio_no_disponible: undefined,
     };
   }
 
@@ -144,6 +147,23 @@ export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[]) 
     if (!key.startsWith(`${y}-`)) return;
     anio_dias[key] = arr.map((t) => ({ cliente_id: t.cliente_id ?? null, cliente_nombre: t.cliente_nombre ?? null }));
   });
-  return { semana_dias: undefined, mes_semanas: undefined, mes_columnas: undefined, anio_dias, anio: y };
+  const anio_no_disponible = ocupadosAjenos ? [...ocupadosAjenos].filter((k) => k.startsWith(`${y}-`)).sort() : undefined;
+  return { semana_dias: undefined, mes_semanas: undefined, mes_columnas: undefined, anio_dias, anio: y, anio_no_disponible };
 }
 
+
+/**
+ * Respuesta de getDisponibilidad (que envuelve la función de base de datos
+ * disponibilidad_calendario): un registro por día con sus asignaciones; las
+ * de otros clientes llegan enmascaradas (propio = false). Devuelve solo las
+ * fechas ocupadas por otros clientes — sin ningún dato de esas OT.
+ */
+export function diasOcupadosAjenos(
+  dias: Array<{ fecha: string; asignaciones?: Array<{ propio?: boolean | null }> | null }> | null | undefined,
+): Set<string> {
+  const out = new Set<string>();
+  (dias ?? []).forEach((d) => {
+    if ((d.asignaciones ?? []).some((a) => !a.propio)) out.add(d.fecha);
+  });
+  return out;
+}

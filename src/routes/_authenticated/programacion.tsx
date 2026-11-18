@@ -25,7 +25,7 @@ import { highestRole } from "@/lib/roles";
 import { ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, FileDown, Loader2, UserCheck, CalendarRange } from "lucide-react";
 import { RecordDialog, Field, inputCls } from "@/components/RecordDialog";
 import { SERVICIOS_OT, etiquetaTrabajo } from "@/lib/servicios";
-import { startOfWeek, addDays, addWorkdays, isWorkday, toISODateLocal, buildCalendarGrids } from "@/lib/pdf/programacion-grids";
+import { startOfWeek, addDays, addWorkdays, isWorkday, toISODateLocal, buildCalendarGrids, diasOcupadosAjenos } from "@/lib/pdf/programacion-grids";
 import { generarYDescargarProgramacionPdf, precargarProgramacionPdf } from "@/lib/pdf/descargar";
 import { PlantaOptions } from "@/components/PlantaOptions";
 
@@ -102,6 +102,7 @@ function Programacion() {
   const fetchMove = useServerFn(reprogramarTrabajo);
   const fetchReubicar = useServerFn(reubicarTrabajoDisponible);
   const fetchMoverDia = useServerFn(moverDiaTrabajo);
+  const fetchDispPdf = useServerFn(getDisponibilidad);
   const [vista, setVista] = usePersistedState<Vista>("programacion.vista", "semana");
   // Mostrar sábado y domingo (necesario para programar emergencias en fin de semana).
   const [verFinDeSemana, setVerFinDeSemana] = usePersistedState<boolean>(
@@ -238,7 +239,18 @@ function Programacion() {
       // El nombre del archivo refleja el periodo visible (semana / mes / año).
       const filename = `Programacion-${nombrePeriodoArchivo(vista, cursor)}.pdf`;
       // Construimos las cuadrículas del calendario a partir de los trabajos ya filtrados.
-      const grids = buildCalendarGrids(vista, cursor, trabajosParaPdf);
+      // Cliente: fechas ocupadas por otros clientes, solo desde disponibilidad_calendario
+      // (enmascarada en la base de datos); al PDF llegan únicamente las fechas.
+      let ocupadosAjenos: Set<string> | undefined;
+      if (isCliente) {
+        let desde: Date, hasta: Date;
+        if (vista === "semana") { desde = cursor; hasta = addDays(cursor, 6); }
+        else if (vista === "mes") { desde = startOfWeek(new Date(cursor.getFullYear(), cursor.getMonth(), 1)); hasta = addDays(desde, 41); }
+        else { desde = new Date(cursor.getFullYear(), 0, 1); hasta = new Date(cursor.getFullYear(), 11, 31); }
+        const disp = await fetchDispPdf({ data: { desde: toISODateLocal(desde), hasta: toISODateLocal(hasta) } });
+        ocupadosAjenos = diasOcupadosAjenos(disp as any);
+      }
+      const grids = buildCalendarGrids(vista, cursor, trabajosParaPdf, ocupadosAjenos);
       await generarYDescargarProgramacionPdf({
         vista,
         headerTitle,
@@ -248,6 +260,7 @@ function Programacion() {
         mes_columnas: grids.mes_columnas,
         anio_dias: grids.anio_dias,
         anio: grids.anio,
+        anio_no_disponible: grids.anio_no_disponible,
         filtros,
         paper: pdfPaper,
         orientation: pdfOrient,
