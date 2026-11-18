@@ -18,7 +18,7 @@
 - Report emission fields (fecha_emision, codigo_documento, version_label) are set only by the `reportes_control_emision` trigger, which also locks content once a report is enviado/aprobado — corrections are new versions via reporte_padre_id.
 - Report indicators are built by the system (`construirIndicadores` in src/lib/reporte-ia.ts) and stored in `reportes.indicadores`; AI only writes text, and numbers in that text are checked (`verificarCifras`) and flagged for review — so figures always come from data.
 - Power values are formatted only through src/lib/potencia.ts; capacity is stored numerically in `capacidad_kwp` — one consistent W/kW/kWp/MWp rule across screens, PDFs and AI input.
-- Client calendar availability comes only from the `disponibilidad_calendario` DB function (security definer, role-checked) — other clients' OTs are masked in the database, never via the admin client.
+- Client calendar availability comes only from the `disponibilidad_calendario` DB function (security definer, role-checked) — other clients' OTs are masked in the database, never via the admin client; the DB returns a generous candidate range plus moved-day dates, and `src/lib/dias-ocupados.ts` is the single workday/holiday/moved-day expansion rule shared by staff, client and PDF views.
 - ISO week numbers come only from `src/lib/semana-iso.ts` — one rule for all calendars and PDFs.
 - Reports in enviado/aprobado cannot be deleted (trigger `reportes_bloquear_borrado`) — emitted documents are permanent under ISO 9001.
 - Large server files are barrels: `src/lib/reportes.functions.ts` and `src/lib/operations.functions.ts` only re-export from `src/lib/reportes/*` and `src/lib/operations/*` — keeps public import paths stable while modules stay small.
@@ -31,4 +31,4 @@
 - Visual redesign is centralized in global semantic tokens and shared shell/controls, with screen-only layout rules; preserve PDF document styling and all operational behavior.
 - Paused OTs keep estado 'programado' and are marked by trabajos.pausada_at; calendars, disponibilidad_calendario and equipment-conflict checks skip them — only admins pause/resume (pausa.functions.ts).
 - Staff dashboard schedule compliance is computed server-side in dashboardStats via the pure calcularCumplimientoCronograma (src/lib/cumplimiento-cronograma.ts); weekly series bucket by El Salvador ISO weeks (inicioSemanaSV) — avoids downloading all OTs in the browser and keeps the weekly metric equal to the chart.
-- The Programación calendar PDF data (grids, workday expansion) lives in `src/lib/pdf/programacion-grids.ts` and the PDF fits one page by computing row heights from paper size — testable outside the route and never paginates.
+- The Programación calendar PDF grids live in `src/lib/pdf/programacion-grids.ts`, using the shared occupied-day rule from `src/lib/dias-ocupados.ts`; the PDF fits one page by computing row heights from paper size — testable outside the route and never paginates.

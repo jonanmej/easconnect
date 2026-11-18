@@ -163,8 +163,53 @@ function Terreno() {
         </p>
       )}
 
+      {trabajos.isError && trabajos.data !== undefined && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3 text-xs" role="status">
+          <WifiOff className="size-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <p>Sin conexión: mostrando la última información guardada</p>
+            {trabajos.dataUpdatedAt > 0 && (
+              <p className="mt-0.5 text-muted-foreground">
+                Última actualización: {new Date(trabajos.dataUpdatedAt).toLocaleTimeString("es-SV", { timeZone: "America/El_Salvador", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => void trabajos.refetch()}
+            disabled={trabajos.isFetching}
+            className="min-h-11 inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 font-semibold hover:bg-secondary disabled:opacity-50"
+          >
+            <RefreshCw className={"size-4 " + (trabajos.isFetching ? "animate-spin" : "")} />
+            Reintentar
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3">
-        {list.length === 0 && (
+        {trabajos.isPending && trabajos.data === undefined && (
+          <div className="space-y-3" role="status" aria-label="Cargando asignaciones">
+            <p className="text-sm text-muted-foreground">Cargando asignaciones…</p>
+            {[0, 1].map((i) => (
+              <div key={i} className="h-40 animate-pulse rounded-lg border border-border bg-muted/40" />
+            ))}
+          </div>
+        )}
+        {trabajos.isError && trabajos.data === undefined && (
+          <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-center" role="alert">
+            <p className="text-sm text-foreground">No se pudieron cargar tus asignaciones</p>
+            <button
+              type="button"
+              onClick={() => void trabajos.refetch()}
+              disabled={trabajos.isFetching}
+              className="min-h-11 inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 text-xs font-semibold hover:bg-secondary disabled:opacity-50"
+            >
+              <RefreshCw className={"size-4 " + (trabajos.isFetching ? "animate-spin" : "")} />
+              Reintentar
+            </button>
+          </div>
+        )}
+        {trabajos.isSuccess && list.length === 0 && (
           <p className="text-sm text-muted-foreground p-4 border border-dashed border-border rounded-md text-center">
             {isStaff ? "No hay trabajos asignados pendientes." : "No tienes trabajos pendientes asignados."}
           </p>

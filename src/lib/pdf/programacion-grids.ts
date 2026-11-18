@@ -1,5 +1,6 @@
 import { isoWeek } from "@/lib/semana-iso";
 import { esNoLaborableSV, motivoNoLaborableSV } from "@/lib/dias-habiles";
+import { diasOcupadosDesdeClave, diasOcupadosTrabajo } from "@/lib/dias-ocupados";
 import { etiquetaTrabajo } from "@/lib/servicios";
 
 export type Vista = "semana" | "mes" | "anio";
@@ -23,18 +24,10 @@ export function isWorkday(d: Date) {
 }
 
 export function addWorkdays(start: Date, workdays: number) {
-  // Devuelve las N fechas que ocupa la OT desde start (inclusive).
-  // El día de inicio SIEMPRE se respeta tal como está programado, incluso si es
-  // sábado, domingo o feriado (casos de emergencia autorizada); solo los días
-  // siguientes saltan los no laborables.
-  const out: Date[] = [];
-  const d = new Date(start);
-  d.setHours(0, 0, 0, 0);
-  while (out.length < workdays) {
-    if (out.length === 0 || isWorkday(d)) out.push(new Date(d));
-    d.setDate(d.getDate() + 1);
-  }
-  return out;
+  // Mantiene la API de fechas locales del calendario, pero delega la regla de
+  // expansión al mismo helper usado por disponibilidad y el panel del técnico.
+  return diasOcupadosDesdeClave(toISODateLocal(start), workdays)
+    .map((fecha) => new Date(`${fecha}T00:00:00`));
 }
 
 export function toISODateLocal(d: Date) {
@@ -49,19 +42,14 @@ export function toISODateLocal(d: Date) {
 export function buildCalendarGrids(vista: Vista, cursor: Date, trabajos: any[], ocupadosAjenos?: Set<string>) {
   const byDay = new Map<string, any[]>();
   trabajos.forEach((t) => {
-    const dt = new Date(t.fecha_programada);
     const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-    const dias = addWorkdays(dt, dur);
-    const excepciones: Array<{ fecha_original: string; fecha_movida: string }> =
-      (t.excepciones_dia as any[]) ?? [];
-    const excByOriginal = new Map(excepciones.map((e) => [e.fecha_original, e.fecha_movida]));
-    dias.forEach((baseD, i) => {
-      const fechaOriginal = toISODateLocal(baseD);
-      const movida = excByOriginal.get(fechaOriginal);
-      const efectiva = movida
-        ? new Date(`${movida}T${String(baseD.getHours()).padStart(2, "0")}:${String(baseD.getMinutes()).padStart(2, "0")}:00`)
-        : baseD;
-      const key = toISODateLocal(efectiva);
+    const dias = diasOcupadosTrabajo({
+      fecha_programada: t.fecha_programada,
+      duracion_dias: dur,
+      excepciones_dia: (t.excepciones_dia as any[]) ?? [],
+    });
+    dias.forEach((key, i) => {
+      const efectiva = new Date(`${key}T00:00:00`);
       if (!byDay.has(key)) byDay.set(key, []);
       byDay.get(key)!.push({
         ...t,

@@ -2848,6 +2848,7 @@ export type Database = {
         Returns: {
           duracion_dias: number
           estado: string
+          excepciones_dia: Json
           fecha_inicio: string
           folio: string
           nombre_trabajo: string

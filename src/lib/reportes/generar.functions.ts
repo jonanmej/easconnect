@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRol, STAFF } from "@/lib/auth-roles";
 import { humanizarTexto } from "@/lib/humanizar-texto";
 import { formatCapacidadKwp } from "@/lib/potencia";
 import { construirIndicadores, construirSystemPrompt, FORMATO_RESPUESTA_IA, parseJsonIA, ZTextoReporte, type TextoReporte, cifrasPermitidas, verificarCifras, indicadoresMarkdown } from "@/lib/reporte-ia";
@@ -23,7 +24,12 @@ export const generarReporte = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    // Access exactly as before Phase 7: no explicit role check here; saving the report is limited by database rules.
+    await requireRol(
+      context.supabase,
+      context.userId,
+      STAFF,
+      "Solo administradores o supervisores pueden generar reportes con IA.",
+    );
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { generateReportText } = await import("./ia.server");
     const { saveReportSnapshot } = await import("./ia-snapshot.server");

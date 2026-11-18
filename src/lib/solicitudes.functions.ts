@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { findCleaningClientConflicts, formatCleaningClientConflict } from "@/lib/scheduling";
+import { setFeriadosCache } from "@/lib/dias-habiles";
+import { construirDisponibilidad, type TrabajoDisponibilidad } from "@/lib/disponibilidad";
 
 const APP_URL = "https://easconnect.lovable.app";
 
@@ -88,17 +90,7 @@ async function notificarClienteResultado(opts: {
   }
 }
 
-function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
-function addDaysStr(s: string, n: number) {
-  const d = new Date(s + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return toISODate(d);
-}
-
-/** Para un rango [desde, hasta], retorna por cada día si hay trabajos ocupando ese día (basado en duracion_dias). */
+/** Para un rango [desde, hasta], retorna cada día con las OT que realmente lo ocupan. */
 export const getDisponibilidad = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -108,48 +100,34 @@ export const getDisponibilidad = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ context, data }) => {
-    // Filtrado en la base de datos: la función devuelve detalle solo de las OT
-    // propias; las de otros clientes llegan como "Ocupado/Reservado".
+    // Filtrado y enmascarado en la base de datos; la expansión laborable se
+    // hace después con la misma función pura del calendario del personal.
     const { data: trabajos, error } = await context.supabase.rpc("disponibilidad_calendario", {
       _desde: data.desde,
       _hasta: data.hasta,
     });
     if (error) throw new Error(error.message);
 
-    const ocupados = new Set<string>();
-    const asignacionesPorDia = new Map<string, Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean; estado: string | null }>>();
-    (trabajos ?? []).forEach((t: any) => {
-      const start = new Date(t.fecha_inicio);
-      const dur = Math.max(1, Number(t.duracion_dias ?? 1));
-      const propio = !!t.propio;
-      const plantaNombre = t.planta_nombre ?? "Ocupado/Reservado";
-      const folio = t.folio ?? "";
-      const servicio = t.servicio ?? "";
-      const nombreTrabajo = String(t.nombre_trabajo ?? "").trim();
-      const servicioLabel = nombreTrabajo && servicio ? `${servicio} — ${nombreTrabajo}` : nombreTrabajo || servicio;
-      const estado = t.estado ?? null;
-      for (let i = 0; i < dur; i++) {
-        const day = new Date(start);
-        day.setUTCHours(0, 0, 0, 0);
-        day.setUTCDate(day.getUTCDate() + i);
-        const key = toISODate(day);
-        ocupados.add(key);
-        if (!asignacionesPorDia.has(key)) asignacionesPorDia.set(key, []);
-        asignacionesPorDia.get(key)!.push({ planta_nombre: plantaNombre, folio, servicio: servicioLabel, propio, estado });
-      }
-    });
-
-    const result: { fecha: string; ocupada: boolean; asignaciones: Array<{ planta_nombre: string; folio: string; servicio: string; propio: boolean; estado: string | null }> }[] = [];
-    let cur = data.desde;
-    while (cur <= data.hasta) {
-      result.push({
-        fecha: cur,
-        ocupada: ocupados.has(cur),
-        asignaciones: asignacionesPorDia.get(cur) ?? [],
-      });
-      cur = addDaysStr(cur, 1);
+    // La pantalla del personal mezcla los feriados oficiales con los activos
+    // configurados en la app. Cargamos los años del rango y uno de margen a
+    // cada lado para las OT que cruzan un cambio de año.
+    const primerAnio = Number(data.desde.slice(0, 4)) - 1;
+    const ultimoAnio = Number(data.hasta.slice(0, 4)) + 1;
+    const { data: feriados, error: errorFeriados } = await context.supabase
+      .from("feriados")
+      .select("fecha")
+      .gte("fecha", `${primerAnio}-01-01`)
+      .lte("fecha", `${ultimoAnio}-12-31`)
+      .eq("activo", true);
+    if (errorFeriados) throw new Error(errorFeriados.message);
+    const porAnio = new Map<number, Set<string>>();
+    for (let anio = primerAnio; anio <= ultimoAnio; anio++) porAnio.set(anio, new Set());
+    for (const f of (feriados ?? []) as Array<{ fecha: string }>) {
+      porAnio.get(Number(f.fecha.slice(0, 4)))?.add(f.fecha);
     }
-    return result;
+    for (const [anio, fechas] of porAnio) setFeriadosCache(anio, fechas);
+
+    return construirDisponibilidad((trabajos ?? []) as TrabajoDisponibilidad[], data.desde, data.hasta);
   });
 
 export const listSolicitudes = createServerFn({ method: "GET" })

@@ -1,3 +1,11 @@
+# Lote A — Disponibilidad, asignaciones y permisos de IA
+- [x] Unificar disponibilidad del cliente con días hábiles, feriados y días movidos; ampliar el rango de la función sin exponer OT ajenas.
+- [x] Añadir pruebas de expansión y comparar julio–diciembre de 2026: 98 días ocupados en ambos, sin diferencias.
+- [x] Distinguir carga, error, caché sin conexión y lista vacía en Asignaciones técnicas, sin tocar la cola de evidencias.
+- [x] Exigir admin/supervisor en generarReporte y verificar el control de generarEjecutivoDesdeDiarios.
+- [x] Verificar tipos y 58 pruebas; revisar la definición de privacidad y las filas enmascaradas equivalentes con datos reales.
+- [ ] Llamar getDisponibilidad con una sesión administrativa y revisar Asignaciones técnicas sin conexión a 390 px: no hay sesión; la cuenta temporal requiere una aprobación no disponible en este entorno.
+
 # Inicio según rol
 - [x] Priorizar firmas del cliente y mostrar asignaciones de hoy al técnico con consultas existentes.
 - [x] Verificar tipos y pruebas (38 aprobadas).
