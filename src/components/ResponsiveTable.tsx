@@ -288,10 +288,10 @@ export function ResponsiveTable<T>({
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             {restCols.map((c) => (
               <div key={c.key} className="contents">
-                <dt className="text-muted-foreground uppercase tracking-wide text-[10px] font-semibold pt-0.5">
+                <dt className="text-muted-foreground text-xs font-semibold pt-0.5">
                   {c.mobileLabel ?? c.header}
                 </dt>
-                <dd className="min-w-0 text-foreground">{c.cell(row, i)}</dd>
+                <dd className={cn("min-w-0 text-foreground", c.align === "right" && "tabular-nums")}>{c.cell(row, i)}</dd>
               </div>
             ))}
           </dl>
@@ -354,7 +354,7 @@ export function ResponsiveTable<T>({
           {label ? <caption className="sr-only">{label}</caption> : null}
           <thead
             className={cn(
-              "bg-secondary/50 text-xs uppercase tracking-wide text-muted-foreground",
+              "bg-secondary/50 text-xs font-semibold text-muted-foreground",
               stickyHeader && "sticky top-0 z-10",
             )}
           >
@@ -410,7 +410,7 @@ export function ResponsiveTable<T>({
                       className={cn(
                         "px-3 align-top",
                         padY,
-                        c.align === "right" && "text-right",
+                        c.align === "right" && "text-right tabular-nums",
                         c.align === "center" && "text-center",
                         c.className,
                       )}
