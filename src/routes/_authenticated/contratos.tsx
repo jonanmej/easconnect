@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -133,7 +134,7 @@ function ContratosPage() {
               className="size-8 grid place-items-center rounded hover:bg-secondary">
               <CalendarPlus className="size-4" />
             </button>
-            <button onClick={() => { if (confirm("¿Eliminar contrato?")) del.mutate(c.id); }} title="Eliminar"
+            <button onClick={async () => { if (await confirmar({ titulo: "¿Eliminar contrato?", accion: "Eliminar", destructivo: true })) del.mutate(c.id); }} title="Eliminar"
               className="size-8 grid place-items-center rounded hover:bg-destructive/10 text-destructive">
               <Trash2 className="size-4" />
             </button>

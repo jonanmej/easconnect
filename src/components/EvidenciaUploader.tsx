@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -453,7 +454,7 @@ export function EvidenciaUploader({
                 <span
                   role="button"
                   tabIndex={-1}
-                  onClick={(e) => { e.stopPropagation(); if (confirm("¿Eliminar esta foto?")) remove.mutate(ev.id); }}
+                  onClick={async (e) => { e.stopPropagation(); if (await confirmar({ titulo: "¿Eliminar esta foto?", accion: "Eliminar", destructivo: true })) remove.mutate(ev.id); }}
                   className="absolute top-1 right-1 size-6 grid place-items-center rounded bg-black/60 text-white opacity-100 cursor-pointer"
                   aria-label="Eliminar"
                 >

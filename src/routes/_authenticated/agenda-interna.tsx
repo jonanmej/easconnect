@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { isoWeek } from "@/lib/semana-iso";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -642,8 +643,8 @@ function AgendaInterna() {
         {editing && canEdit && (
           <button
             type="button"
-            onClick={() => {
-              if (confirm("¿Eliminar esta actividad?")) borrar.mutate(editing.id);
+            onClick={async () => {
+              if (await confirmar({ titulo: "¿Eliminar esta actividad?", accion: "Eliminar", destructivo: true })) borrar.mutate(editing.id);
             }}
             className="inline-flex items-center gap-2 text-xs text-destructive hover:underline"
           >

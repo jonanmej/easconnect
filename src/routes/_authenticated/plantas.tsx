@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { formatCapacidadKwp } from "@/lib/potencia";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -217,7 +218,7 @@ function Plantas() {
                             <Pencil className="size-3.5" />
                           </button>
                           <button
-                            onClick={() => { if (confirm(`Eliminar ${p.nombre}?`)) remove.mutate(p.id); }}
+                            onClick={async () => { if (await confirmar({ titulo: `Eliminar ${p.nombre}?`, accion: "Eliminar", destructivo: true })) remove.mutate(p.id); }}
                             className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
                             aria-label="Eliminar"
                           >

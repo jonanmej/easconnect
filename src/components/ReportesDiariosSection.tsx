@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -391,7 +392,7 @@ export function ReportesDiariosSection({
                       {canDelete && !readOnly && (
                       <button
                         type="button"
-                        onClick={() => { if (confirm("¿Eliminar este reporte diario?")) del.mutate(d.id); }}
+                        onClick={async () => { if (await confirmar({ titulo: "¿Eliminar este reporte diario?", accion: "Eliminar", destructivo: true })) del.mutate(d.id); }}
                         className="text-destructive text-xs inline-flex items-center gap-1 hover:underline"
                       >
                         <Trash2 className="size-3" /> Eliminar
@@ -927,7 +928,7 @@ function PDFSection({
               {canDelete && (
                 <button
                   type="button"
-                  onClick={() => { if (confirm("¿Eliminar este PDF?")) onDelete(p.id); }}
+                  onClick={async () => { if (await confirmar({ titulo: "¿Eliminar este PDF?", accion: "Eliminar", destructivo: true })) onDelete(p.id); }}
                   className="text-destructive hover:underline inline-flex items-center gap-1"
                 >
                   <Trash2 className="size-3" />

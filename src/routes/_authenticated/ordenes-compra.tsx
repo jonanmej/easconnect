@@ -1,4 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
+import { MotivoDialog } from "@/components/MotivoDialog";
+import { EditarRecepcionDialog } from "@/components/ordenes-compra/EditarRecepcionDialog";
+import { ItemLibreDialog, type ResolucionItemLibre } from "@/components/ordenes-compra/ItemLibreDialog";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -266,6 +270,7 @@ function OrdenDetalleDialog({
     enabled: tab === "variaciones",
   });
 
+  const [cancelarOpen, setCancelarOpen] = useState(false);
   const chgEstado = useMutation({
     mutationFn: (v: { nuevo: EstadoOC; notas?: string }) =>
       fEstado({ data: { id, nuevo_estado: v.nuevo, notas: v.notas ?? null } }),
@@ -326,6 +331,19 @@ function OrdenDetalleDialog({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
       <div className="bg-card border border-border rounded-lg w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <MotivoDialog
+          open={cancelarOpen}
+          titulo="¿Cancelar esta orden de compra?"
+          descripcion="La orden quedará cancelada. Puedes indicar el motivo."
+          etiqueta="Motivo de cancelación"
+          accion="Cancelar orden"
+          destructivo
+          ocupado={chgEstado.isPending}
+          onClose={() => setCancelarOpen(false)}
+          onConfirm={(notas) =>
+            chgEstado.mutate({ nuevo: "cancelada", notas }, { onSettled: () => setCancelarOpen(false) })
+          }
+        />
         <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold font-mono">{orden.folio}</h3>
@@ -358,10 +376,7 @@ function OrdenDetalleDialog({
             )}
             {canManage && estado !== "recibida" && estado !== "cancelada" && (
               <button
-                onClick={() => {
-                  const notas = prompt("Motivo de cancelación (opcional)") ?? "";
-                  chgEstado.mutate({ nuevo: "cancelada", notas });
-                }}
+                onClick={() => setCancelarOpen(true)}
                 className="h-8 px-3 text-xs rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
               >
                 <XCircle className="size-3" /> Cancelar
@@ -369,8 +384,8 @@ function OrdenDetalleDialog({
             )}
             {canManage && estado === "borrador" && (
               <button
-                onClick={() => {
-                  if (confirm("Eliminar esta orden en borrador?")) remove.mutate();
+                onClick={async () => {
+                  if (await confirmar({ titulo: "Eliminar esta orden en borrador?", accion: "Eliminar", destructivo: true })) remove.mutate();
                 }}
                 className="h-8 px-2 text-xs rounded-md hover:bg-destructive/10 text-destructive"
                 title="Eliminar"
@@ -661,31 +676,37 @@ function RecepcionForm({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  async function resolverItemLibre(oi: any) {
-    const opt = window.confirm(
-      `El ítem "${oi.nombre}" no está en bodega.\n\nAceptar = crear un SKU nuevo con esta descripción.\nCancelar = mapear a un SKU existente.`,
-    );
-    if (opt) {
+  const [itemLibre, setItemLibre] = useState<any | null>(null);
+  const [riEdit, setRiEdit] = useState<any | null>(null);
+
+  function resolverItemLibre(oi: any) {
+    setItemLibre(oi);
+  }
+
+  async function aplicarItemLibre(oi: any, r: ResolucionItemLibre) {
+    if (r.modo === "crear") {
       // Crear SKU nuevo
-      const cat = prompt("Categoría (insumo/repuesto/herramienta/epp/equipo/electrico/quimico)", "insumo") || "insumo";
-      const nuevo = await fUpsertInv({
+      const cat = r.categoria;
+      let nuevo: any;
+      try {
+      nuevo = await fUpsertInv({
         data: {
           nombre: oi.nombre,
-          categoria: cat as any,
+          categoria: cat,
           unidad: oi.unidad || "un",
           stock_minimo: 0,
         },
       });
+      } catch (e: any) {
+        toast.error(e?.message ?? "No se pudo crear el SKU");
+        return;
+      }
+      setItemLibre(null);
       upd(oi.id, { item_id_override: (nuevo as any).id });
       toast.success(`SKU ${(nuevo as any).sku} creado`);
     } else {
-      const sku = prompt("Ingresa el SKU existente al que mapear este ítem:");
-      if (!sku) return;
-      const found = invItems.find((x: any) => x.sku.toLowerCase() === sku.toLowerCase());
-      if (!found) {
-        toast.error("SKU no encontrado");
-        return;
-      }
+      const found = r.item;
+      setItemLibre(null);
       upd(oi.id, { item_id_override: found.id });
       toast.success(`Mapeado a ${found.sku}`);
     }
@@ -727,22 +748,28 @@ function RecepcionForm({
     }
   }
 
-  async function editarRi(ri: any) {
-    const cantStr = prompt(`Nueva cantidad para "${ri.inventario_items?.nombre ?? ""}" (actual: ${Number(ri.cantidad).toFixed(2)})`, String(ri.cantidad));
-    if (cantStr == null) return;
-    const costStr = prompt(`Nuevo costo unitario (actual: ${Number(ri.costo_unitario).toFixed(4)})`, String(ri.costo_unitario));
-    if (costStr == null) return;
-    const motivo = prompt("Motivo de la edición (mín. 3 caracteres):");
-    if (!motivo || motivo.trim().length < 3) { toast.error("Motivo obligatorio"); return; }
+  function editarRi(ri: any) {
+    setRiEdit(ri);
+  }
+
+  async function guardarRi(ri: any, v: { cantidad: number; costo: number; motivo: string }) {
     try {
-      await fEditItem({ data: { recepcion_item_id: ri.id, nueva_cantidad: Number(cantStr), nuevo_costo: Number(costStr), motivo } });
+      await fEditItem({ data: { recepcion_item_id: ri.id, nueva_cantidad: v.cantidad, nuevo_costo: v.costo, motivo: v.motivo } });
       toast.success("Recepción actualizada y stock reconciliado");
+      setRiEdit(null);
       onDone();
     } catch (e: any) { toast.error(e.message); }
   }
 
   return (
     <div className="space-y-4">
+      <EditarRecepcionDialog ri={riEdit} onClose={() => setRiEdit(null)} onSubmit={(v) => guardarRi(riEdit, v)} />
+      <ItemLibreDialog
+        item={itemLibre}
+        invItems={invItems}
+        onClose={() => setItemLibre(null)}
+        onResolve={(r) => aplicarItemLibre(itemLibre, r)}
+      />
       {canReceive ? (
         <>
           <div className="grid grid-cols-2 gap-3">

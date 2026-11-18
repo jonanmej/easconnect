@@ -1,4 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
+import { toast } from "sonner";
+import { PasswordTemporalDialog, type PasswordTemporal } from "@/components/usuarios/PasswordTemporalDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -108,11 +111,11 @@ function UsersPage() {
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["role-audit"] });
-      alert(
-        `Limpieza completa.\nRoles huérfanos eliminados: ${res?.rolesEliminados ?? 0}\nPerfiles huérfanos eliminados: ${res?.perfilesEliminados ?? 0}`,
-      );
+      toast.success("Limpieza completa", {
+        description: `Roles huérfanos eliminados: ${res?.rolesEliminados ?? 0}. Perfiles huérfanos eliminados: ${res?.perfilesEliminados ?? 0}.`,
+      });
     },
-    onError: (e: any) => alert(`Error en limpieza: ${e?.message ?? e}`),
+    onError: (e: any) => toast.error(`Error en limpieza: ${e?.message ?? e}`),
   });
 
   const resetPass = useMutation({
@@ -120,9 +123,9 @@ function UsersPage() {
       fetchResetPass({ data: vars }),
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["password-resets"] });
-      alert(`Contraseña restablecida y enviada por correo a ${res?.email ?? ""}.`);
+      toast.success(`Contraseña restablecida y enviada por correo a ${res?.email ?? ""}.`);
     },
-    onError: (e: any) => alert(`Error: ${e?.message ?? e}`),
+    onError: (e: any) => toast.error(`Error: ${e?.message ?? e}`),
   });
 
   const descartar = useMutation({
@@ -134,11 +137,12 @@ function UsersPage() {
     mutationFn: (solicitudId: string) => fetchReenviar({ data: { solicitudId } }),
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["password-resets"] });
-      alert(`Nueva contraseña temporal reenviada a ${res?.email ?? ""}.`);
+      toast.success(`Nueva contraseña temporal reenviada a ${res?.email ?? ""}.`);
     },
-    onError: (e: Error) => alert(`Error al reenviar: ${e.message}`),
+    onError: (e: Error) => toast.error(`Error al reenviar: ${e.message}`),
   });
 
+  const [passTemporal, setPassTemporal] = useState<PasswordTemporal | null>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("tecnico");
   const [inviteClienteId, setInviteClienteId] = useState<string>("");
@@ -153,9 +157,9 @@ function UsersPage() {
             setCliente.mutate({ userId: created.id, clienteId: inviteClienteId });
           }
           if (created?.correo_enviado) {
-            alert(`Cuenta creada. Contraseña automática enviada por correo a ${created.email}. Se solicitará cambiarla al ingresar.`);
+            toast.success(`Cuenta creada. Contraseña automática enviada por correo a ${created.email}. Se solicitará cambiarla al ingresar.`);
           } else if (created?.password) {
-            alert(`Cuenta creada, pero el correo no se envió (${created.correo_error ?? "error"}).\n\nEntrega manualmente esta contraseña temporal:\n${created.password}`);
+            setPassTemporal({ email: created.email, password: created.password, motivo: created.correo_error ?? "error" });
           }
           setEmail("");
           setInviteClienteId("");
@@ -313,8 +317,8 @@ function UsersPage() {
               {s.estado === "pendiente" && s.user_id && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`¿Generar y enviar una nueva contraseña temporal a ${s.email}?`)) {
+                  onClick={async () => {
+                    if (await confirmar({ titulo: `¿Generar y enviar una nueva contraseña temporal a ${s.email}?`, accion: "Generar y enviar" })) {
                       resetPass.mutate({ userId: s.user_id, solicitudId: s.id });
                     }
                   }}
@@ -328,8 +332,8 @@ function UsersPage() {
               {s.estado === "atendida" && s.user_id && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`)) {
+                  onClick={async () => {
+                    if (await confirmar({ titulo: `¿Regenerar y reenviar una nueva contraseña temporal a ${s.email}? (caso "no me llegó el correo")`, accion: "Reenviar" })) {
                       reenviar.mutate(s.id);
                     }
                   }}
@@ -449,8 +453,8 @@ function UsersPage() {
           rowActions={(u: any) => (
             <>
               <button
-                onClick={() => {
-                  if (confirm(`¿Generar y enviar una nueva contraseña a ${u.email}?`)) {
+                onClick={async () => {
+                  if (await confirmar({ titulo: `¿Generar y enviar una nueva contraseña a ${u.email}?`, accion: "Generar y enviar" })) {
                     resetPass.mutate({ userId: u.id });
                   }
                 }}
@@ -462,8 +466,8 @@ function UsersPage() {
                 <KeyRound className="size-4" />
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Eliminar la cuenta ${u.email}?`)) remove.mutate(u.id);
+                onClick={async () => {
+                  if (await confirmar({ titulo: `Eliminar la cuenta ${u.email}?`, accion: "Eliminar", destructivo: true })) remove.mutate(u.id);
                 }}
                 className="text-muted-foreground hover:text-destructive"
                 aria-label="Eliminar"
@@ -490,11 +494,14 @@ function UsersPage() {
           </span>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (
-                confirm(
-                  "¿Limpiar usuarios desvinculados?\nSe eliminarán roles y perfiles huérfanos (usuarios que ya no existen en el sistema de autenticación). Esta acción no se puede deshacer.",
-                )
+                await confirmar({
+                  titulo: "¿Limpiar usuarios desvinculados?",
+                  descripcion: "Se eliminarán roles y perfiles huérfanos (usuarios que ya no existen en el sistema de autenticación). Esta acción no se puede deshacer.",
+                  accion: "Limpiar",
+                  destructivo: true,
+                })
               ) {
                 purge.mutate();
               }
@@ -553,6 +560,7 @@ function UsersPage() {
         />
         </div>
       </section>
+      <PasswordTemporalDialog datos={passTemporal} onClose={() => setPassTemporal(null)} />
     </div>
   );
 }

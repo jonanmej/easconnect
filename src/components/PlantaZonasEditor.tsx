@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -669,7 +670,7 @@ export function PlantaZonasEditor({
                     <Pencil className="size-3.5" />
                   </button>
                   <button
-                    onClick={() => { if (confirm(`¿Eliminar la zona ${z.nombre}?`)) del.mutate(z.id); }}
+                    onClick={async () => { if (await confirmar({ titulo: `¿Eliminar la zona ${z.nombre}?`, accion: "Eliminar", destructivo: true })) del.mutate(z.id); }}
                     className="size-7 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
                     aria-label="Eliminar"
                   >

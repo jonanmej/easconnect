@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
+import { NuevoServicioDialog } from "@/components/trabajos/NuevoServicioDialog";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -173,6 +175,8 @@ function Trabajos() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const [nuevoServicioOpen, setNuevoServicioOpen] = useState(false);
+  const servicioSelectRef = useRef<HTMLSelectElement | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [tab, setTab] = usePersistedState<"diarios" | "recursos" | "ot" | "historial">("trabajos.tab", "diarios");
@@ -702,7 +706,7 @@ function Trabajos() {
                     <Pencil className="size-3.5" />
                   </button>
                   <button
-                    onClick={() => { if (confirm(`Eliminar ${t.folio}?`)) remove.mutate(t.id); }}
+                    onClick={async () => { if (await confirmar({ titulo: `Eliminar ${t.folio}?`, accion: "Eliminar", destructivo: true })) remove.mutate(t.id); }}
                     className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
                     aria-label="Eliminar"
                   >
@@ -813,21 +817,11 @@ function Trabajos() {
         </Field>
         <Field label="Servicio">
           <select name="servicio" required defaultValue={editing?.servicio ?? ""} className={inputCls}
+            ref={servicioSelectRef}
             onChange={(e) => {
               if (e.currentTarget.value !== "__nuevo__") return;
-              const nombre = window.prompt("Nombre del nuevo servicio (se agrega al catálogo):");
-              const limpio = nombre?.trim();
-              if (limpio && limpio.length >= 3) {
-                const categoria =
-                  window.prompt(
-                    "Categoría del servicio (Fotovoltaica, Motores HFO, GPS, PVSTOP, ChemitekSolar):",
-                    "Fotovoltaica",
-                  )?.trim() || "Fotovoltaica";
-                addServicio.mutate({ nombre: limpio, categoria }, {
-                  onSuccess: (s) => { e.currentTarget.value = s.nombre; },
-                });
-              }
               e.currentTarget.value = editing?.servicio ?? "";
+              setNuevoServicioOpen(true);
             }}>
             <option value="">— Selecciona servicio —</option>
             {[...serviciosPorCategoria.entries()].map(([categoria, servicios]) => (
@@ -1103,6 +1097,20 @@ function Trabajos() {
         onOpenChange={(v) => !v && setDiasTrabajo(null)}
         trabajo={diasTrabajo}
         puedeEmergencia={puedeAutorizarEmergencia}
+      />
+      <NuevoServicioDialog
+        open={nuevoServicioOpen}
+        ocupado={addServicio.isPending}
+        onClose={() => setNuevoServicioOpen(false)}
+        onSubmit={({ nombre, categoria }) =>
+          addServicio.mutate({ nombre, categoria }, {
+            onSuccess: (s) => {
+              setNuevoServicioOpen(false);
+              // Espera a que la nueva opción se renderice antes de seleccionarla.
+              setTimeout(() => { if (servicioSelectRef.current) servicioSelectRef.current.value = s.nombre; }, 0);
+            },
+          })
+        }
       />
     </div>
   );

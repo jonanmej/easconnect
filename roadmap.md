@@ -23,3 +23,6 @@
 
 # Fase 6 — Adaptabilidad
 - [ ] Calendario del cliente con sesión de cliente; dispositivo real iOS/Android.
+
+## Lote B — diálogos propios
+- [x] Reemplazar confirm/alert/prompt por diálogos de la app (revisión visual pendiente de sesión)

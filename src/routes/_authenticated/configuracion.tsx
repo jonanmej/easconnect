@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { Sun, Moon, Laptop, ShieldCheck, AlertTriangle, MailX, CalendarDays, Plus, Trash2, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -307,7 +308,7 @@ function FeriadosCard() {
                   />
                   <button
                     type="button"
-                    onClick={() => { if (confirm("¿Eliminar este feriado?")) del.mutate(r.id); }}
+                    onClick={async () => { if (await confirmar({ titulo: "¿Eliminar este feriado?", accion: "Eliminar", destructivo: true })) del.mutate(r.id); }}
                     className="text-destructive hover:opacity-80"
                     aria-label="Eliminar"
                   >
@@ -594,8 +595,8 @@ function ResetDataCard() {
           <button
             type="button"
             disabled={!armed || reset.isPending}
-            onClick={() => {
-              if (window.confirm("¿Confirmas que deseas eliminar TODOS los datos operativos? Esta acción es irreversible.")) {
+            onClick={async () => {
+              if (await confirmar({ titulo: "¿Confirmas que deseas eliminar TODOS los datos operativos?", descripcion: "Esta acción es irreversible.", accion: "Reiniciar datos", destructivo: true })) {
                 reset.mutate();
               }
             }}

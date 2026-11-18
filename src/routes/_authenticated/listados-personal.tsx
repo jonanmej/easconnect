@@ -1,3 +1,4 @@
+import { confirmar } from "@/components/ConfirmDialog";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -140,7 +141,7 @@ function ListadosPage() {
                 <Button size="sm" variant="outline" onClick={() => descargar([l])}><FileDown className="mr-1 h-4 w-4" />PDF</Button>
                 {puedeEditar && <Button size="sm" variant="outline" onClick={() => setEditando(l)}><Pencil className="mr-1 h-4 w-4" />Editar</Button>}
                 {puedeEditar && (
-                  <Button size="sm" variant="ghost" onClick={() => confirm("¿Eliminar este listado?") && del.mutate(l.id)}>
+                  <Button size="sm" variant="ghost" onClick={async () => { if (await confirmar({ titulo: "¿Eliminar este listado?", accion: "Eliminar", destructivo: true })) del.mutate(l.id); }}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 )}
@@ -313,7 +314,7 @@ function VehiculosDialog({ vehiculos, onClose }: { vehiculos: any[]; onClose: ()
             <div key={v.id} className="flex items-center gap-2 p-2 text-sm">
               <span className={`flex-1 ${v.activo ? "" : "text-muted-foreground line-through"}`}>{v.modelo} · {v.placa}</span>
               <Button size="sm" variant="outline" onClick={() => toggle.mutate(v)}>{v.activo ? "Desactivar" : "Activar"}</Button>
-              <Button size="sm" variant="ghost" onClick={() => confirm("¿Eliminar vehículo?") && del.mutate(v.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button size="sm" variant="ghost" onClick={async () => { if (await confirmar({ titulo: "¿Eliminar vehículo?", accion: "Eliminar", destructivo: true })) del.mutate(v.id); }}><Trash2 className="h-4 w-4" /></Button>
             </div>
           ))}
         </div>

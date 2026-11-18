@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -168,7 +169,7 @@ function Mantenimientos() {
                 <button onClick={() => setEditing(m)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                   <Pencil className="size-3.5" />
                 </button>
-                <button onClick={() => { if (confirm("Eliminar mantenimiento?")) remove.mutate(m.id); }}
+                <button onClick={async () => { if (await confirmar({ titulo: "Eliminar mantenimiento?", accion: "Eliminar", destructivo: true })) remove.mutate(m.id); }}
                   className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Eliminar">
                   <Trash2 className="size-3.5" />
                 </button>

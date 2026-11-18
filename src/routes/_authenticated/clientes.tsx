@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { formatCapacidadKwp } from "@/lib/potencia";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
@@ -249,7 +250,15 @@ function Clientes() {
                   <Pencil className="size-3.5" />
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Eliminar ${c.nombre}? Se borrarán sus plantas y equipos asociados.`)) remove.mutate(c.id); }}
+                  onClick={async () => {
+                    if (await confirmar({
+                      titulo: `Eliminar ${c.nombre}?`,
+                      descripcion: `Se borrarán ${c.plantas_count === 1 ? "su planta" : `sus ${c.plantas_count} plantas`} y todos los equipos asociados. Esta acción no se puede deshacer.`,
+                      accion: "Eliminar",
+                      destructivo: true,
+                      textoRequerido: c.nombre,
+                    })) remove.mutate(c.id);
+                  }}
                   className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
                   aria-label="Eliminar"
                 >
@@ -445,8 +454,8 @@ function EncargadosDialog({
                     )}
                   </div>
                   <button
-                    onClick={() => {
-                      if (confirm(`¿Quitar a ${u.email} como encargado?`)) quitar.mutate(u.id);
+                    onClick={async () => {
+                      if (await confirmar({ titulo: `¿Quitar a ${u.email} como encargado?`, accion: "Quitar", destructivo: true })) quitar.mutate(u.id);
                     }}
                     className="text-muted-foreground hover:text-destructive"
                     title="Quitar"

@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmDialogHost } from "@/components/ConfirmDialog";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AppUpdateGate } from "@/components/AppUpdateGate";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
@@ -250,6 +251,7 @@ function RootComponent() {
       <ThemeProvider>
         <Outlet />
         <AppUpdateGate />
+        <ConfirmDialogHost />
         <Toaster richColors position="top-center" expand={false} />
       </ThemeProvider>
     </QueryClientProvider>

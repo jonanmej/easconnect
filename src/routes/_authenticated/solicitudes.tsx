@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -119,7 +120,7 @@ function Solicitudes() {
                 </>
               )}
               {!isStaff && s.estado === "pendiente" && (
-                <button onClick={() => { if (confirm("¿Cancelar esta solicitud?")) cancelar.mutate(s.id); }}
+                <button onClick={async () => { if (await confirmar({ titulo: "¿Cancelar esta solicitud?", accion: "Cancelar solicitud", destructivo: true })) cancelar.mutate(s.id); }}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary">
                   <XCircle className="size-3.5" /> Cancelar
                 </button>

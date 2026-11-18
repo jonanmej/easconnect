@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -443,7 +444,7 @@ function JornadaPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { if (confirm("¿Eliminar esta marcación?")) borrar.mutate(f.id); }}
+                          onClick={async () => { if (await confirmar({ titulo: "¿Eliminar esta marcación?", accion: "Eliminar", destructivo: true })) borrar.mutate(f.id); }}
                           className="ml-3 text-destructive inline-flex items-center gap-1 hover:underline"
                         >
                           <Trash2 className="size-3" /> Eliminar

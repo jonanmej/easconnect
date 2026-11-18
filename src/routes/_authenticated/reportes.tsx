@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
+import { MotivoDialog } from "@/components/MotivoDialog";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -131,6 +133,7 @@ function Reportes() {
     onSuccess: () => { toast.success("Reporte aprobado"); qc.invalidateQueries({ queryKey: ["reportes"] }); qc.invalidateQueries({ queryKey: ["reporte-auditoria"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const [rechazo, setRechazo] = useState<{ id: string; minimo: number } | null>(null);
   const rechazar = useMutation({
     mutationFn: (vars: { id: string; motivo: string }) => fRechazar({ data: vars }),
     onSuccess: () => { toast.success("Reporte rechazado"); qc.invalidateQueries({ queryKey: ["reportes"] }); qc.invalidateQueries({ queryKey: ["reporte-auditoria"] }); },
@@ -345,6 +348,21 @@ function Reportes() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <MotivoDialog
+        open={!!rechazo}
+        titulo="Rechazar reporte"
+        descripcion="Indica el motivo del rechazo; quedará en el historial del reporte."
+        etiqueta="Motivo del rechazo"
+        minimo={rechazo?.minimo ?? 4}
+        accion="Rechazar"
+        destructivo
+        ocupado={rechazar.isPending}
+        onClose={() => setRechazo(null)}
+        onConfirm={(motivo) => {
+          if (!rechazo) return;
+          rechazar.mutate({ id: rechazo.id, motivo }, { onSettled: () => setRechazo(null) });
+        }}
+      />
       <PageHeader
         title="Reportes Ejecutivos"
         description={
@@ -562,10 +580,7 @@ function Reportes() {
                     className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-emerald-400 text-emerald-700 rounded-md hover:bg-emerald-50 disabled:opacity-50">
                     <CheckCircle2 className="size-3.5" /> Aprobar
                   </button>
-                  <button onClick={() => {
-                    const motivo = prompt("Motivo del rechazo:");
-                    if (motivo && motivo.trim().length >= 4) rechazar.mutate({ id: r.id, motivo: motivo.trim() });
-                  }} disabled={rechazar.isPending}
+                  <button onClick={() => setRechazo({ id: r.id, minimo: 4 })} disabled={rechazar.isPending}
                     className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50">
                     <XCircle className="size-3.5" /> Rechazar
                   </button>
@@ -577,10 +592,7 @@ function Reportes() {
                     className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-emerald-400 text-emerald-700 rounded-md hover:bg-emerald-50 disabled:opacity-50">
                     <CheckCircle2 className="size-3.5" /> Aprobar trabajo
                   </button>
-                  <button onClick={() => {
-                    const motivo = prompt("Motivo del rechazo (mínimo 4 caracteres):");
-                    if (motivo && motivo.trim().length >= 4) rechazar.mutate({ id: r.id, motivo: motivo.trim() });
-                  }} disabled={rechazar.isPending}
+                  <button onClick={() => setRechazo({ id: r.id, minimo: 4 })} disabled={rechazar.isPending}
                     className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50">
                     <XCircle className="size-3.5" /> Rechazar
                   </button>
@@ -619,12 +631,12 @@ function Reportes() {
                 </button>
               )}
               {canEdit && (
-                <button onClick={() => {
+                <button onClick={async () => {
                   if (r.estado === "enviado" || r.estado === "aprobado") {
                     toast.error("Este reporte ya fue emitido y no se puede eliminar. Solo se eliminan borradores o rechazados; para corregirlo usa «Nueva versión».");
                     return;
                   }
-                  if (confirm(`¿Eliminar el reporte "${r.titulo}"? Esta acción no se puede deshacer.`)) del.mutate(r.id);
+                  if (await confirmar({ titulo: `¿Eliminar el reporte "${r.titulo}"? Esta acción no se puede deshacer.`, accion: "Eliminar", destructivo: true })) del.mutate(r.id);
                 }}
                   disabled={del.isPending}
                   className="h-9 px-3 inline-flex items-center gap-2 text-xs font-medium border border-destructive/40 text-destructive rounded-md hover:bg-destructive/10 disabled:opacity-50"

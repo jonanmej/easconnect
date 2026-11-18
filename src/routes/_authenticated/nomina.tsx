@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useMemo, useState } from "react";
@@ -647,8 +648,8 @@ function NominaPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`¿Eliminar la planilla de ${MESES[p.mes - 1]} ${p.anio}?`)) borrar.mutate(p.id);
+                          onClick={async () => {
+                            if (await confirmar({ titulo: `¿Eliminar la planilla de ${MESES[p.mes - 1]} ${p.anio}?`, accion: "Eliminar", destructivo: true })) borrar.mutate(p.id);
                           }}
                           className="ml-3 text-[11px] text-destructive hover:underline inline-flex items-center gap-1"
                         >
