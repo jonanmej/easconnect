@@ -31,3 +31,4 @@
 - Visual redesign is centralized in global semantic tokens and shared shell/controls, with screen-only layout rules; preserve PDF document styling and all operational behavior.
 - Paused OTs keep estado 'programado' and are marked by trabajos.pausada_at; calendars, disponibilidad_calendario and equipment-conflict checks skip them — only admins pause/resume (pausa.functions.ts).
 - Staff dashboard schedule compliance is computed server-side in dashboardStats via the pure calcularCumplimientoCronograma (src/lib/cumplimiento-cronograma.ts); weekly series bucket by El Salvador ISO weeks (inicioSemanaSV) — avoids downloading all OTs in the browser and keeps the weekly metric equal to the chart.
+- The Programación calendar PDF data (grids, workday expansion) lives in `src/lib/pdf/programacion-grids.ts` and the PDF fits one page by computing row heights from paper size — testable outside the route and never paginates.
