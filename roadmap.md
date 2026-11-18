@@ -26,3 +26,4 @@
 
 ## Lote B — diálogos propios
 - [x] Reemplazar confirm/alert/prompt por diálogos de la app (revisión visual pendiente de sesión)
+- [x] Lote C: tablas móviles y texto ≥12px en 7 módulos (revisión con sesión pendiente)

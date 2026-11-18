@@ -15,7 +15,7 @@ export function guardadoOtros(data: CalcMes | undefined, userId: string): number
 export function KPI({ label, value, tone }: { label: string; value: string; tone?: "ok" }) {
   return (
     <div className="rounded-md border border-border bg-secondary/30 px-3 py-2">
-      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`text-sm font-bold ${tone === "ok" ? "text-emerald-600" : ""}`}>{value}</p>
     </div>
   );
@@ -47,11 +47,11 @@ export function HistorialColaboradorDialog({
           <p className="text-xs text-muted-foreground">Este colaborador aún no tiene planillas guardadas.</p>
         )}
         {filas.length > 0 && (
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full text-xs min-w-[720px]">
-              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+          <div className="table-scroll overflow-x-auto rounded-md border border-border" role="region" aria-label="Historial de planillas" tabIndex={0}>
+            <table className="w-full tabular-nums text-xs min-w-[720px]">
+              <thead className="bg-secondary/60 text-xs text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2">Período</th>
+                  <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Período</th>
                   <th className="text-right px-3 py-2">Días</th>
                   <th className="text-right px-3 py-2">Extras diurnas</th>
                   <th className="text-right px-3 py-2">Extras nocturnas</th>
@@ -66,10 +66,10 @@ export function HistorialColaboradorDialog({
               <tbody>
                 {filas.map((l) => (
                   <tr key={l.id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">
+                    <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">
                       {MESES[(l.mes ?? 1) - 1]} {l.anio}
-                      {l.estado === "cerrado" && <span className="ml-1 text-[10px] text-emerald-600">(cerrada)</span>}
-                      <span className="block text-[10px] text-muted-foreground">
+                      {l.estado === "cerrado" && <span className="ml-1 text-xs text-emerald-600">(cerrada)</span>}
+                      <span className="block text-xs text-muted-foreground">
                         {l.corte_label ?? "Mes completo"}
                       </span>
                     </td>
@@ -122,11 +122,11 @@ export function DetallePeriodoDialog({
           <p className="text-xs text-muted-foreground">Esta planilla no tiene líneas registradas.</p>
         )}
         {lineas.length > 0 && (
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full text-xs min-w-[720px]">
-              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+          <div className="table-scroll overflow-x-auto rounded-md border border-border" role="region" aria-label="Detalle de planilla" tabIndex={0}>
+            <table className="w-full tabular-nums text-xs min-w-[720px]">
+              <thead className="bg-secondary/60 text-xs text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                   <th className="text-right px-3 py-2">Días</th>
                   <th className="text-right px-3 py-2">Bruto</th>
                   <th className="text-right px-3 py-2">ISSS</th>
@@ -139,7 +139,7 @@ export function DetallePeriodoDialog({
               <tbody>
                 {lineas.map((l) => (
                   <tr key={l.id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">{l.colaborador}</td>
+                    <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">{l.colaborador}</td>
                     <td className="px-3 py-2 text-right font-mono">{l.dias}</td>
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(Number(l.total_bruto))}</td>
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(Number(l.isss))}</td>
@@ -253,11 +253,11 @@ export function SalariosDialog({
           </button>
         </div>
 
-        <div className="rounded-md border border-border overflow-x-auto">
-          <table className="w-full text-xs min-w-[520px]">
-            <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+        <div className="rounded-md border border-border table-scroll overflow-x-auto" role="region" aria-label="Tarifas por colaborador" tabIndex={0}>
+          <table className="w-full tabular-nums text-xs min-w-[520px]">
+            <thead className="bg-secondary/60 text-xs text-muted-foreground">
               <tr>
-                <th className="text-left px-3 py-2">Colaborador</th>
+                <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                 <th className="text-left px-3 py-2">Modalidad</th>
                 <th className="text-right px-3 py-2">Base</th>
                 <th className="text-right px-3 py-2">Hora ordinaria</th>
@@ -273,7 +273,7 @@ export function SalariosDialog({
                 const hora = diario ? base / 8 : base / 30 / 8;
                 return (
                   <tr key={s.user_id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">{s.colaborador}</td>
+                    <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">{s.colaborador}</td>
                     <td className="px-3 py-2">{ETIQUETAS_MODALIDAD[(s.modalidad ?? "mensual") as ModalidadPago]}</td>
                     <td className="px-3 py-2 text-right font-mono">
                       {fmtUSD(base)}{diario ? " / día" : " / mes"}

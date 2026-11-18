@@ -157,7 +157,7 @@ function Terreno() {
       )}
 
       {verAtrasados && !soloMonitoreo && (
-        <p className="text-[11px] text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
+        <p className="text-xs text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">
           Se incluyen trabajos completados de los últimos 30 días. Puedes abrir su reporte diario y
           registrarlo con la fecha en que se ejecutó el trabajo, aunque la subas después.
         </p>
@@ -215,7 +215,7 @@ function Terreno() {
           </p>
         )}
         {list.length > 0 && (
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+          <p className="text-xs text-muted-foreground font-semibold">
             {isStaff ? "Trabajos activos" : "Mis trabajos asignados"} · {list.length}
           </p>
         )}
@@ -294,16 +294,17 @@ function TrabajoCard({
   return (
     <article className="rounded-lg border border-border bg-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">{trabajo.folio}</div>
-          <div className="font-medium">{trabajo.servicio}</div>
-          <div className="text-xs text-muted-foreground">{trabajo.planta_nombre} · {trabajo.cliente_nombre}</div>
+        <div className="min-w-0">
+          <div className="text-sm text-primary font-semibold tabular-nums">{trabajo.folio}</div>
+          <div className="text-base font-semibold leading-snug">{trabajo.planta_nombre}</div>
+          <div className="text-sm text-foreground">{trabajo.servicio}</div>
+          <div className="text-xs text-muted-foreground">{trabajo.cliente_nombre}</div>
         </div>
-        <span className={"text-[10px] font-bold uppercase px-2 py-0.5 rounded " + (inProgress ? "bg-primary/15 text-primary" : completado ? "bg-accent/15 text-accent" : "bg-secondary text-foreground")}>
+        <span className={"shrink-0 text-xs font-semibold px-2 py-1 rounded " + (inProgress ? "bg-primary/15 text-primary" : completado ? "bg-accent/15 text-accent" : "bg-secondary text-foreground")}>
           {inProgress ? "En progreso" : completado ? "Completado" : "Programado"}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">
+      <div className="text-sm text-foreground tabular-nums">
         {new Date(trabajo.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" })}
       </div>
       <div className="flex items-center gap-1.5 text-xs">
@@ -315,7 +316,7 @@ function TrabajoCard({
 
       {equipo.length > 0 && (
         <div className="rounded-md border border-border/70 bg-secondary/20 p-2 space-y-1">
-          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase font-bold text-muted-foreground">
+          <p className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
             <Users className="size-3" />
             Equipo asignado ({equipo.length})
           </p>
@@ -324,7 +325,7 @@ function TrabajoCard({
               <li
                 key={m.id}
                 className={
-                  "text-[11px] px-2 py-0.5 rounded-full border " +
+                  "text-xs px-2 py-0.5 rounded-full border " +
                   (m.yo
                     ? "border-primary/40 bg-primary/10 text-primary font-semibold"
                     : "border-border bg-background text-foreground")
@@ -340,21 +341,20 @@ function TrabajoCard({
       )}
 
       {soloLectura || completado ? null : (
-      <div className="grid grid-cols-3 gap-2 pt-2">
+      <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
         <button
           type="button"
           disabled={inProgress}
           onClick={onIniciar}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+          className="h-14 inline-flex flex-col items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
         >
           <Play className="size-4 mb-0.5" />
           Iniciar
         </button>
-        <div className="grid grid-cols-2 gap-1">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-[10px] font-semibold"
+            className="h-14 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold"
           >
             <Camera className="size-4 mb-0.5" />
             Cámara
@@ -362,16 +362,15 @@ function TrabajoCard({
           <button
             type="button"
             onClick={() => galleryRef.current?.click()}
-            className="h-12 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-[10px] font-semibold"
+            className="h-14 inline-flex flex-col items-center justify-center rounded-md border border-input bg-background text-xs font-semibold"
           >
             <Images className="size-4 mb-0.5" />
             Galería
           </button>
-        </div>
         <button
           type="button"
           onClick={onCompletar}
-          className="h-12 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold"
+          className="h-14 inline-flex flex-col items-center justify-center rounded-md bg-accent text-accent-foreground text-xs font-semibold"
         >
           <CheckCircle2 className="size-4 mb-0.5" />
           Completar
@@ -398,7 +397,7 @@ function TrabajoCard({
         <button
           type="button"
           onClick={() => setReporteOpen(true)}
-          className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10"
+          className="w-full min-h-12 inline-flex items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10"
         >
           <ClipboardList className="size-4" />
           {completado ? "Registrar reporte atrasado" : "Reporte diario del día"}
@@ -407,7 +406,7 @@ function TrabajoCard({
 
       <Link
         to="/trabajos"
-        className="block text-center text-[11px] text-muted-foreground hover:text-foreground"
+        className="flex min-h-11 items-center justify-center text-sm text-muted-foreground hover:text-foreground"
       >
         Ver detalle completo →
       </Link>
@@ -423,7 +422,7 @@ function TrabajoCard({
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase text-primary font-semibold">{trabajo.folio}</p>
+                <p className="text-xs text-primary font-semibold">{trabajo.folio}</p>
                 <p className="text-sm font-medium truncate">{trabajo.servicio}</p>
               </div>
               <button

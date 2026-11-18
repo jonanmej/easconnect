@@ -3,6 +3,7 @@ import { confirmar } from "@/components/ConfirmDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { toast } from "sonner";
 import { Clock, FileDown, Loader2, Pencil, Trash2, AlertTriangle, Plus, DollarSign, Settings2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -390,7 +391,7 @@ function JornadaPage() {
         <div className="px-3 py-2 border-b border-border flex items-center gap-2">
           <Clock className="size-4 text-primary" />
           <h2 className="text-sm font-semibold">Registro de marcaciones</h2>
-          <span className="ml-auto text-[10px] uppercase text-muted-foreground">{alcance}</span>
+          <span className="ml-auto text-xs text-muted-foreground">{alcance}</span>
         </div>
 
         {jornadas.isLoading && <p className="p-4 text-xs text-muted-foreground">Cargando…</p>}
@@ -399,63 +400,49 @@ function JornadaPage() {
         )}
 
         {filas.length > 0 && (
-          <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-            <table className="w-full text-xs min-w-[820px]">
-              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-3 py-2">Fecha</th>
-                  <th className="text-left px-3 py-2">Colaborador</th>
-                  <th className="text-left px-3 py-2">Entrada</th>
-                  <th className="text-left px-3 py-2">Salida</th>
-                  <th className="text-left px-3 py-2">Almuerzo</th>
-                  <th className="text-right px-3 py-2">Horas efect.</th>
-                  <th className="text-left px-3 py-2">Notas</th>
-                  {isAdmin && <th className="text-right px-3 py-2">Acciones</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.id} className="border-t border-border/60 align-top">
-                    <td className="px-3 py-2 font-mono">{f.fecha}</td>
-                    <td className="px-3 py-2 font-medium">{f.tecnico_nombre}</td>
-                    <td className="px-3 py-2 font-mono">{fmtHora(f.hora_inicio)}</td>
-                    <td className="px-3 py-2 font-mono">
-                      {f.hora_fin ? fmtHora(f.hora_fin) : <span className="text-primary">En curso</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="font-mono">{fmtHora(f.almuerzo_inicio)} – {fmtHora(f.almuerzo_fin)}</span>
-                      {f.almuerzo_min > 0 && (
-                        <span className={"ml-2 text-[10px] font-semibold " + (f.almuerzo_excedido ? "text-destructive" : "text-muted-foreground")}>
-                          {fmtDur(f.almuerzo_min)}
-                          {f.almuerzo_excedido && <AlertTriangle className="inline size-3 ml-0.5" />}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">{(f.horas_efectivas ?? 0).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-muted-foreground max-w-[220px]">{f.notas ?? "—"}</td>
-                    {isAdmin && (
-                      <td className="px-3 py-2 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setEditando(f)}
-                          className="text-primary inline-flex items-center gap-1 hover:underline"
-                        >
-                          <Pencil className="size-3" /> Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => { if (await confirmar({ titulo: "¿Eliminar esta marcación?", accion: "Eliminar", destructivo: true })) borrar.mutate(f.id); }}
-                          className="ml-3 text-destructive inline-flex items-center gap-1 hover:underline"
-                        >
-                          <Trash2 className="size-3" /> Eliminar
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            label="Marcaciones"
+            data={filas}
+            rowKey={(f: any) => f.id}
+            density="compact"
+            columns={[
+              { key: "colab", header: "Colaborador", primary: true, cell: (f: any) => <span className="font-medium">{f.tecnico_nombre}</span> },
+              { key: "fecha", header: "Fecha", secondary: true, cell: (f: any) => <span className="font-mono">{f.fecha}</span> },
+              { key: "ent", header: "Entrada", cell: (f: any) => <span className="font-mono">{fmtHora(f.hora_inicio)}</span> },
+              { key: "sal", header: "Salida", cell: (f: any) => <span className="font-mono">{f.hora_fin ? fmtHora(f.hora_fin) : <span className="text-primary">En curso</span>}</span> },
+              { key: "alm", header: "Almuerzo", cell: (f: any) => (
+                <span>
+                  <span className="font-mono">{fmtHora(f.almuerzo_inicio)} – {fmtHora(f.almuerzo_fin)}</span>
+                  {f.almuerzo_min > 0 && (
+                    <span className={"ml-2 text-xs font-semibold " + (f.almuerzo_excedido ? "text-destructive" : "text-muted-foreground")}>
+                      {fmtDur(f.almuerzo_min)}
+                      {f.almuerzo_excedido && <AlertTriangle className="inline size-3 ml-0.5" />}
+                    </span>
+                  )}
+                </span>
+              ) },
+              { key: "horas", header: "Horas efect.", align: "right", cell: (f: any) => <span className="font-mono">{(f.horas_efectivas ?? 0).toFixed(2)}</span> },
+              { key: "notas", header: "Notas", cell: (f: any) => <span className="text-muted-foreground">{f.notas ?? "—"}</span> },
+            ] as ResponsiveColumn<any>[]}
+            rowActions={isAdmin ? (f: any) => (
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setEditando(f)}
+                  className="text-primary inline-flex min-h-11 items-center gap-1 px-2 hover:underline md:min-h-0"
+                >
+                  <Pencil className="size-3" /> Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => { if (await confirmar({ titulo: "¿Eliminar esta marcación?", accion: "Eliminar", destructivo: true })) borrar.mutate(f.id); }}
+                  className="text-destructive inline-flex min-h-11 items-center gap-1 px-2 hover:underline md:min-h-0"
+                >
+                  <Trash2 className="size-3" /> Eliminar
+                </button>
+              </span>
+            ) : undefined}
+          />
         )}
       </div>
 
@@ -464,7 +451,7 @@ function JornadaPage() {
         <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
           <Clock className="size-4 text-primary" />
           <h2 className="text-sm font-semibold">Horas extras por colaborador (nómina)</h2>
-          <span className="text-[10px] uppercase text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Jornada ordinaria {extrasData?.limite_diario ?? 8} h/día
           </span>
           <div className="ml-auto flex items-center gap-2">
@@ -473,7 +460,7 @@ function JornadaPage() {
               type="button"
               onClick={exportarExtrasPdf}
               disabled={extrasPdfBusy || !extrasData}
-              className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+              className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
             >
               {extrasPdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
             </button>
@@ -486,11 +473,11 @@ function JornadaPage() {
         )}
 
         {(extrasData?.personal.length ?? 0) > 0 && (
-          <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-            <table className="w-full text-xs min-w-[760px]">
-              <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+          <div className="table-scroll overflow-x-auto" role="region" aria-label="Horas extras por colaborador" tabIndex={0}>
+            <table className="w-full tabular-nums text-xs min-w-[760px]">
+              <thead className="bg-secondary/60 text-xs text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                   <th className="text-right px-3 py-2">Días</th>
                   <th className="text-right px-3 py-2">Horas efect.</th>
                   <th className="text-right px-3 py-2">Ordinarias</th>
@@ -502,7 +489,7 @@ function JornadaPage() {
               <tbody>
                 {extrasData!.personal.map((p) => (
                   <tr key={p.tecnico_id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">{p.colaborador}</td>
+                    <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">{p.colaborador}</td>
                     <td className="px-3 py-2 text-right font-mono">{p.dias}</td>
                     <td className="px-3 py-2 text-right font-mono">{p.horas_efectivas.toFixed(2)}</td>
                     <td className="px-3 py-2 text-right font-mono">{p.horas_ordinarias.toFixed(2)}</td>
@@ -514,7 +501,7 @@ function JornadaPage() {
                   </tr>
                 ))}
                 <tr className="border-t border-border bg-secondary/40 font-semibold">
-                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2 sticky left-0 z-10 bg-card">Total</td>
                   <td className="px-3 py-2" />
                   <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_efectivas.toFixed(2)}</td>
                   <td className="px-3 py-2 text-right font-mono">{extrasData!.totales.horas_ordinarias.toFixed(2)}</td>
@@ -526,7 +513,7 @@ function JornadaPage() {
             </table>
           </div>
         )}
-        <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+        <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
           Se cuentan como extras las horas que pasan de {extrasData?.limite_diario ?? 8} h efectivas en un día hábil.
           Las horas de domingo o feriado se muestran aparte para pagarlas según corresponda.
         </p>
@@ -536,13 +523,13 @@ function JornadaPage() {
         <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
           <DollarSign className="size-4 text-primary" />
           <h2 className="text-sm font-semibold">Cálculo de pago (El Salvador)</h2>
-          <span className="text-[10px] uppercase text-muted-foreground">Pago bruto del período</span>
+          <span className="text-xs text-muted-foreground">Pago bruto del período</span>
           <div className="ml-auto flex items-center gap-2">
             {isAdmin && (
               <button
                 type="button"
                 onClick={() => setSalariosOpen(true)}
-                className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
+                className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors"
               >
                 <Settings2 className="size-3.5" /> Salarios
               </button>
@@ -552,7 +539,7 @@ function JornadaPage() {
               type="button"
               onClick={exportarNominaPdf}
               disabled={nominaPdfBusy || !nominaData}
-              className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
+              className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-50"
             >
               {nominaPdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
             </button>
@@ -574,16 +561,16 @@ function JornadaPage() {
               <KPI label="Total a pagar" value={fmtUSD(nominaData!.totales.total_a_pagar)} tone="ok" />
             </div>
             {nominaData!.sin_salario.length > 0 && (
-              <p className="mx-3 mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+              <p className="mx-3 mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                 Falta registrar el salario de: {nominaData!.sin_salario.join(", ")}. Su pago aparece en $0.00 hasta
                 que se ingrese el salario mensual.
               </p>
             )}
-            <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-              <table className="w-full text-xs min-w-[960px]">
-                <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+            <div className="table-scroll overflow-x-auto" role="region" aria-label="Detalle de pago por colaborador" tabIndex={0}>
+              <table className="w-full tabular-nums text-xs min-w-[960px]">
+                <thead className="bg-secondary/60 text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-left px-3 py-2">Colaborador</th>
+                    <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                     <th className="text-left px-3 py-2">Modalidad</th>
                     <th className="text-right px-3 py-2">Base</th>
                     <th className="text-right px-3 py-2">Hora ord.</th>
@@ -601,9 +588,9 @@ function JornadaPage() {
                 <tbody>
                   {nominaData!.personal.map((p) => (
                     <tr key={p.tecnico_id} className="border-t border-border/60">
-                      <td className="px-3 py-2 font-medium">
+                      <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">
                         {p.colaborador}
-                        {p.sin_salario && <span className="ml-1 text-[10px] text-destructive">(sin salario)</span>}
+                        {p.sin_salario && <span className="ml-1 text-xs text-destructive">(sin salario)</span>}
                       </td>
                       <td className="px-3 py-2">{ETIQUETAS_MODALIDAD[(p.modalidad ?? "mensual") as ModalidadPago]}</td>
                       <td className="px-3 py-2 text-right font-mono">
@@ -626,7 +613,7 @@ function JornadaPage() {
                     </tr>
                   ))}
                   <tr className="border-t border-border bg-secondary/40 font-semibold">
-                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 sticky left-0 z-10 bg-card">Total</td>
                     <td className="px-3 py-2" colSpan={7} />
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(nominaData!.totales.pago_ordinario)}</td>
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(nominaData!.totales.pago_extras)}</td>
@@ -640,7 +627,7 @@ function JornadaPage() {
             </div>
           </>
         )}
-        <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+        <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
           {NOTA_LEGAL_NOMINA} Los montos son brutos, antes de descuentos de ley (ISSS, AFP, renta).
         </p>
       </div>

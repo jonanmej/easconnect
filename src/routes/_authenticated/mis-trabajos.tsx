@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { ResponsiveTable, type ResponsiveColumn } from "@/components/ResponsiveTable";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { listTrabajos, listPlantas } from "@/lib/operations.functions";
@@ -104,7 +105,7 @@ function MisTrabajos() {
       </div>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-3">
           <CalendarClock className="size-4" /> Próximas visitas
         </h2>
         {proximos.length === 0 ? (
@@ -113,7 +114,7 @@ function MisTrabajos() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {proximos.map((t) => (
               <article key={t.id} className="rounded-lg border border-border bg-card p-4">
-                <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">{t.folio}</div>
+                <div className="text-xs text-primary font-semibold">{t.folio}</div>
                 <div className="font-medium mt-1">{t.servicio}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {new Date(t.fecha_programada).toLocaleString("es-SV", { timeZone: "America/El_Salvador", dateStyle: "medium", timeStyle: "short" })}
@@ -134,46 +135,26 @@ function MisTrabajos() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-3">
           <CheckCircle2 className="size-4" /> Trabajos realizados
         </h2>
-        <div className="rounded-lg border border-border bg-card overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-secondary text-[11px] uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 text-left">Folio</th>
-                <th className="px-4 py-2 text-left">Planta</th>
-                <th className="px-4 py-2 text-left">Servicio</th>
-                <th className="px-4 py-2 text-left">Fecha</th>
-                <th className="px-4 py-2 text-left">Aprobación</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {cerrados.map((t) => (
-                <tr key={t.id}>
-                  <td className="px-4 py-3 font-medium">{t.folio}</td>
-                  <td className="px-4 py-3">{t.planta_nombre}</td>
-                  <td className="px-4 py-3">{t.servicio}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {t.fecha_completado ? new Date(t.fecha_completado).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {t.firmado_at ? (
-                      <span className="inline-flex items-center gap-1 text-accent text-xs font-semibold">
-                        <FileSignature className="size-3.5" /> Firmado
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Pendiente</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {cerrados.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground"><ClipboardList className="size-4 inline mr-1" />Sin trabajos completados aún.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          label="Trabajos realizados"
+          data={cerrados}
+          rowKey={(t: any) => t.id}
+          emptyMessage={<span><ClipboardList className="size-4 inline mr-1" />Sin trabajos completados aún.</span>}
+          columns={[
+            { key: "folio", header: "Folio", primary: true, cell: (t: any) => <span className="font-medium">{t.folio}</span> },
+            { key: "planta", header: "Planta", secondary: true, cell: (t: any) => t.planta_nombre },
+            { key: "serv", header: "Servicio", cell: (t: any) => t.servicio },
+            { key: "fecha", header: "Fecha", cell: (t: any) => <span className="text-muted-foreground">{t.fecha_completado ? new Date(t.fecha_completado).toLocaleDateString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}</span> },
+            { key: "apr", header: "Aprobación", cell: (t: any) => t.firmado_at ? (
+              <span className="inline-flex items-center gap-1 text-accent text-xs font-semibold">
+                <FileSignature className="size-3.5" /> Firmado
+              </span>
+            ) : <span className="text-xs text-muted-foreground">Pendiente</span> },
+          ] as ResponsiveColumn<any>[]}
+        />
       </section>
 
       {reprogTrabajo && (
@@ -222,11 +203,11 @@ function ReprogramarDialog({
           {elegidoOcupado && (
             <p className="text-xs text-destructive">⚠ En esa fecha el equipo o los técnicos ya están comprometidos. Elige otra.</p>
           )}
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Puedes elegir cualquier día dentro de tu ciclo en el que el equipo y los técnicos estén disponibles.
           </p>
           {!ocupados.isLoading && ocupadosSet.size > 0 && (
-            <details className="text-[11px] text-muted-foreground">
+            <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">Ver próximos días ocupados</summary>
               <ul className="mt-1 max-h-32 overflow-y-auto grid grid-cols-3 gap-1 font-mono">
                 {Array.from(ocupadosSet).sort().slice(0, 30).map((d) => <li key={d}>{d}</li>)}

@@ -7,7 +7,7 @@ import { SalarioFila, hoyISO, isoALocal, localAIso, Fila } from "@/components/jo
 export function KPI({ label, value, tone }: { label: string; value: string | number; tone?: "ok" | "danger" }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <p className="text-[10px] uppercase font-bold text-muted-foreground">{label}</p>
+      <p className="text-xs font-bold text-muted-foreground">{label}</p>
       <p className={"text-lg font-bold " + (tone === "danger" ? "text-destructive" : tone === "ok" ? "text-accent" : "")}>
         {value}
       </p>
@@ -86,7 +86,7 @@ export function EditarJornadaDialog({
 export function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[10px] uppercase font-bold text-muted-foreground">{label}</span>
+      <span className="text-xs font-bold text-muted-foreground">{label}</span>
       {children}
     </label>
   );
@@ -278,11 +278,11 @@ export function SalariosDialog({
           </button>
         </div>
 
-        <div className="rounded-md border border-border overflow-x-auto">
-          <table className="w-full text-xs min-w-[520px]">
-            <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+        <div className="rounded-md border border-border table-scroll overflow-x-auto" role="region" aria-label="Tarifas por colaborador" tabIndex={0}>
+          <table className="w-full tabular-nums text-xs min-w-[520px]">
+            <thead className="bg-secondary/60 text-xs text-muted-foreground">
               <tr>
-                <th className="text-left px-3 py-2">Colaborador</th>
+                <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                 <th className="text-left px-3 py-2">Modalidad</th>
                 <th className="text-right px-3 py-2">Base</th>
                 <th className="text-right px-3 py-2">Hora ordinaria</th>
@@ -298,7 +298,7 @@ export function SalariosDialog({
                 const hora = diario ? base / 8 : base / 30 / 8;
                 return (
                   <tr key={s.user_id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">{s.colaborador}</td>
+                    <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">{s.colaborador}</td>
                     <td className="px-3 py-2">{ETIQUETAS_MODALIDAD[(s.modalidad ?? "mensual") as ModalidadPago]}</td>
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(base)}{diario ? " / día" : " / mes"}</td>
                     <td className="px-3 py-2 text-right font-mono">{fmtUSD(hora)}</td>

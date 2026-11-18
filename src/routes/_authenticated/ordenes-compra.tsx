@@ -125,7 +125,7 @@ function OrdenesCompraPage() {
             onClick={() => setFiltro(e)}
             className={`text-left p-3 rounded-lg border ${ESTADO_COLOR[e]} hover:opacity-90 transition`}
           >
-            <p className="text-[10px] font-bold uppercase tracking-wider">{e}</p>
+            <p className="text-xs font-bold">{e}</p>
             <p className="text-xl font-mono font-semibold mt-1">{kpi[e] ?? 0}</p>
           </button>
         ))}
@@ -195,7 +195,7 @@ function OrdenesCompraPage() {
             header: "Estado",
             align: "center",
             cell: (r: any) => (
-              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${ESTADO_COLOR[r.estado as EstadoOC]}`}>
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${ESTADO_COLOR[r.estado as EstadoOC]}`}>
                 {r.estado}
               </span>
             ),
@@ -204,7 +204,7 @@ function OrdenesCompraPage() {
         rowActions={(r: any) => (
           <button
             onClick={() => setOpenId(r.id)}
-            className="h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary"
+            className="min-h-11 md:min-h-0 md:h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary"
           >
             Abrir
           </button>
@@ -351,17 +351,17 @@ function OrdenDetalleDialog({
               {orden.fecha_emision} · Solicitante: {orden.solicitante || "—"}
             </p>
           </div>
-          <span className={`ml-auto inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${ESTADO_COLOR[estado]}`}>
+          <span className={`ml-auto inline-flex px-2 py-0.5 rounded text-xs font-bold border ${ESTADO_COLOR[estado]}`}>
             {estado}
           </span>
           <div className="flex flex-wrap items-center gap-1 basis-full md:basis-auto md:ml-2">
-            <button onClick={descargarPdf} className="h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
+            <button onClick={descargarPdf} className="min-h-11 md:min-h-0 md:h-8 px-3 text-xs rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
               <Download className="size-3" /> PDF
             </button>
             {canManage && estado === "borrador" && (
               <button
                 onClick={() => chgEstado.mutate({ nuevo: "enviada" })}
-                className="h-8 px-3 text-xs rounded-md bg-primary text-primary-foreground inline-flex items-center gap-1"
+                className="min-h-11 md:min-h-0 md:h-8 px-3 text-xs rounded-md bg-primary text-primary-foreground inline-flex items-center gap-1"
               >
                 <Send className="size-3" /> Enviar
               </button>
@@ -369,7 +369,7 @@ function OrdenDetalleDialog({
             {canReceive && (estado === "enviada" || estado === "parcial") && (
               <button
                 onClick={() => setTab("recepcion")}
-                className="h-8 px-3 text-xs rounded-md bg-accent text-accent-foreground inline-flex items-center gap-1"
+                className="min-h-11 md:min-h-0 md:h-8 px-3 text-xs rounded-md bg-accent text-accent-foreground inline-flex items-center gap-1"
               >
                 <PackageCheck className="size-3" /> Registrar recepción
               </button>
@@ -377,7 +377,7 @@ function OrdenDetalleDialog({
             {canManage && estado !== "recibida" && estado !== "cancelada" && (
               <button
                 onClick={() => setCancelarOpen(true)}
-                className="h-8 px-3 text-xs rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
+                className="min-h-11 md:min-h-0 md:h-8 px-3 text-xs rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
               >
                 <XCircle className="size-3" /> Cancelar
               </button>
@@ -387,7 +387,7 @@ function OrdenDetalleDialog({
                 onClick={async () => {
                   if (await confirmar({ titulo: "Eliminar esta orden en borrador?", accion: "Eliminar", destructivo: true })) remove.mutate();
                 }}
-                className="h-8 px-2 text-xs rounded-md hover:bg-destructive/10 text-destructive"
+                className="min-h-11 md:min-h-0 md:h-8 px-2 text-xs rounded-md hover:bg-destructive/10 text-destructive"
                 title="Eliminar"
               >
                 <Trash2 className="size-3.5" />
@@ -414,81 +414,47 @@ function OrdenDetalleDialog({
           {tab === "detalle" && (
             <>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                <p className="text-xs font-bold text-muted-foreground mb-2">
                   Proveedores y cotizaciones
                 </p>
-                <div className="border border-border rounded-md overflow-x-auto">
-                  <table className="w-full text-xs min-w-[600px]">
-                    <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
-                      <tr>
-                        <th className="px-2 py-2 text-left">Proveedor</th>
-                        <th className="px-2 py-2 text-left">Cotización #</th>
-                        <th className="px-2 py-2 text-left">Fecha</th>
-                        <th className="px-2 py-2 text-right">Monto</th>
-                        <th className="px-2 py-2 text-left">Adjunto</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {(orden.proveedores ?? []).map((p: any, i: number) => (
-                        <tr key={i}>
-                          <td className="px-2 py-2 font-medium">{p.nombre}</td>
-                          <td className="px-2 py-2">{p.cotizacion_folio || "—"}</td>
-                          <td className="px-2 py-2">{p.cotizacion_fecha || "—"}</td>
-                          <td className="px-2 py-2 text-right font-mono">
-                            {p.cotizacion_monto != null ? `$ ${Number(p.cotizacion_monto).toFixed(2)}` : "—"}
-                          </td>
-                          <td className="px-2 py-2">
-                            {p.cotizacion_url ? (
-                              <a href={p.cotizacion_url} target="_blank" rel="noreferrer" className="text-primary inline-flex items-center gap-1 hover:underline">
-                                <ExternalLink className="size-3" /> Ver
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {(!orden.proveedores || orden.proveedores.length === 0) && (
-                        <tr>
-                          <td colSpan={5} className="px-3 py-4 text-center text-xs text-muted-foreground">
-                            Sin proveedores.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <ResponsiveTable
+                  label="Proveedores y cotizaciones"
+                  data={orden.proveedores ?? []}
+                  rowKey={(_p: any, i) => String(i)}
+                  emptyMessage="Sin proveedores."
+                  density="compact"
+                  columns={[
+                    { key: "prov", header: "Proveedor", primary: true, cell: (p: any) => <span className="font-medium">{p.nombre}</span> },
+                    { key: "folio", header: "Cotización #", secondary: true, cell: (p: any) => p.cotizacion_folio || "—" },
+                    { key: "fecha", header: "Fecha", cell: (p: any) => p.cotizacion_fecha || "—" },
+                    { key: "monto", header: "Monto", align: "right", cell: (p: any) => <span className="font-mono">{p.cotizacion_monto != null ? `$ ${Number(p.cotizacion_monto).toFixed(2)}` : "—"}</span> },
+                    { key: "adj", header: "Adjunto", cell: (p: any) => p.cotizacion_url ? (
+                      <a href={p.cotizacion_url} target="_blank" rel="noreferrer" className="text-primary inline-flex min-h-11 items-center gap-1 hover:underline md:min-h-0">
+                        <ExternalLink className="size-3" /> Ver
+                      </a>
+                    ) : <span className="text-muted-foreground">—</span> },
+                  ] as ResponsiveColumn<any>[]}
+                />
               </div>
 
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                <p className="text-xs font-bold text-muted-foreground mb-2">
                   Líneas
                 </p>
-                <div className="border border-border rounded-md overflow-x-auto">
-                  <table className="w-full text-xs min-w-[700px]">
-                    <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
-                      <tr>
-                        <th className="px-2 py-2 text-left">SKU</th>
-                        <th className="px-2 py-2 text-left">Descripción</th>
-                        <th className="px-2 py-2 text-left">Proveedor</th>
-                        <th className="px-2 py-2 text-right">Pedida</th>
-                        <th className="px-2 py-2 text-right">Recibida</th>
-                        <th className="px-2 py-2 text-right">Pendiente</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {items.map((it: any) => {
-                        const pend = Number(it.cantidad_pedida) - Number(it.cantidad_recibida);
-                        return (
-                          <tr key={it.id}>
-                            <td className="px-2 py-2 font-mono">
-                              {it.inventario_items?.sku || <span className="text-muted-foreground">libre</span>}
-                            </td>
-                            <td className="px-2 py-2">
+                <ResponsiveTable
+                  label="Líneas de la orden"
+                  data={items}
+                  rowKey={(it: any) => it.id}
+                  emptyMessage="Sin líneas."
+                  density="compact"
+                  columns={[
+                    { key: "sku", header: "SKU", secondary: true, cell: (it: any) => <span className="font-mono">{it.inventario_items?.sku || <span className="text-muted-foreground">libre</span>}</span> },
+                    { key: "desc", header: "Descripción", primary: true, cell: (it: any) => (
+                      <div>
                               <div className="font-medium">{it.nombre}</div>
-                              <div className="text-[10px] text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
+                              <div className="text-xs text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
                               {it.oferta_ia && (
-                                <div className="mt-1 text-[10px] text-muted-foreground border-l-2 border-primary/50 pl-2">
+                                <div className="mt-1 text-xs text-muted-foreground border-l-2 border-primary/50 pl-2">
                                   <div>
                                     Oferta IA · {it.oferta_ia.moneda} {Number(it.oferta_ia.precio_final ?? it.oferta_ia.precio_con_impuesto ?? it.oferta_ia.precio ?? 0).toFixed(2)}
                                     {it.oferta_ia.impuesto_pct
@@ -529,24 +495,22 @@ function OrdenDetalleDialog({
                                   </div>
                                 </div>
                               )}
-                            </td>
-                            <td className="px-2 py-2 text-muted-foreground">{it.proveedor || "—"}</td>
-                            <td className="px-2 py-2 text-right font-mono">{Number(it.cantidad_pedida).toFixed(2)}</td>
-                            <td className="px-2 py-2 text-right font-mono text-accent">{Number(it.cantidad_recibida).toFixed(2)}</td>
-                            <td className={"px-2 py-2 text-right font-mono " + (pend > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground")}>
-                              {pend.toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      </div>
+                    ) },
+                    { key: "prov", header: "Proveedor", cell: (it: any) => <span className="text-muted-foreground">{it.proveedor || "—"}</span> },
+                    { key: "ped", header: "Pedida", align: "right", cell: (it: any) => <span className="font-mono">{Number(it.cantidad_pedida).toFixed(2)}</span> },
+                    { key: "rec", header: "Recibida", align: "right", cell: (it: any) => <span className="font-mono text-accent">{Number(it.cantidad_recibida).toFixed(2)}</span> },
+                    { key: "pend", header: "Pendiente", align: "right", cell: (it: any) => {
+                      const pend = Number(it.cantidad_pedida) - Number(it.cantidad_recibida);
+                      return <span className={"font-mono " + (pend > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground")}>{pend.toFixed(2)}</span>;
+                    } },
+                  ] as ResponsiveColumn<any>[]}
+                />
               </div>
 
               {estados_log.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  <p className="text-xs font-bold text-muted-foreground mb-2">
                     Historial de estados
                   </p>
                   <div className="border border-border rounded-md">
@@ -783,7 +747,7 @@ function RecepcionForm({
 
           {reconciliacion.length > 0 && (
             <div className="border border-border rounded-md p-3 bg-secondary/40 text-xs space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <p className="text-xs font-bold text-muted-foreground mb-1">
                 Reconciliación contra cotizaciones
               </p>
               {reconciliacion.map((r) => (
@@ -805,9 +769,9 @@ function RecepcionForm({
             </div>
           )}
 
-          <div className="border border-border rounded-md overflow-x-auto">
+          <div className="border border-border rounded-md table-scroll overflow-x-auto" role="region" aria-label="Ítems a recibir" tabIndex={0}>
             <table className="w-full text-xs min-w-[800px]">
-              <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
+              <thead className="bg-secondary text-xs font-bold text-muted-foreground">
                 <tr>
                   <th className="px-2 py-2 text-left">SKU</th>
                   <th className="px-2 py-2 text-left">Descripción</th>
@@ -840,14 +804,14 @@ function RecepcionForm({
                       <tr key={it.id} className={pendiente <= 0 ? "opacity-50" : ""}>
                         <td className="px-2 py-2 font-mono">
                           {skuMostrado ? skuMostrado : (
-                            <button onClick={() => resolverItemLibre(it)} className="text-primary underline text-[11px]">Resolver…</button>
+                            <button onClick={() => resolverItemLibre(it)} className="text-primary underline text-xs">Resolver…</button>
                           )}
                         </td>
                         <td className="px-2 py-2">
                           <div className="font-medium">{it.nombre}</div>
-                          <div className="text-[10px] text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
-                          {libre && !override && <div className="text-[10px] text-orange-600 dark:text-orange-400">Ítem libre — requiere resolución</div>}
-                          {precioEsp != null && <div className="text-[10px] text-muted-foreground">Esperado: ${precioEsp.toFixed(4)}</div>}
+                          <div className="text-xs text-muted-foreground">{it.categoria || ""} · {it.unidad}</div>
+                          {libre && !override && <div className="text-xs text-orange-600 dark:text-orange-400">Ítem libre — requiere resolución</div>}
+                          {precioEsp != null && <div className="text-xs text-muted-foreground">Esperado: ${precioEsp.toFixed(4)}</div>}
                         </td>
                         <td className="px-2 py-2 text-right font-mono">{pendiente.toFixed(2)}</td>
                         <td className="px-2 py-2 text-right">
@@ -874,7 +838,7 @@ function RecepcionForm({
                             disabled={pendiente <= 0}
                             value={monedaAct}
                             onChange={(e) => upd(it.id, { moneda: e.target.value.toUpperCase().slice(0, 8) })}
-                            className={"h-8 w-16 px-2 rounded-md border bg-background font-mono uppercase disabled:opacity-40 " + (cambioMoneda ? "border-orange-500/60" : "border-input")}
+                            className={"h-8 w-16 px-2 rounded-md border bg-background font-mono disabled:opacity-40 " + (cambioMoneda ? "border-orange-500/60" : "border-input")}
                           />
                         </td>
                         <td className="px-2 py-2 text-right">
@@ -893,7 +857,7 @@ function RecepcionForm({
                             <div className="flex items-start gap-2">
                               <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
                               <div className="flex-1 space-y-1">
-                                <p className="text-[10px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">
+                                <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
                                   Variación detectada — motivo obligatorio
                                 </p>
                                 <input
@@ -931,7 +895,7 @@ function RecepcionForm({
       )}
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+        <p className="text-xs font-bold text-muted-foreground mb-2">
           Recepciones anteriores
         </p>
         {recepciones.length === 0 ? (
@@ -945,36 +909,34 @@ function RecepcionForm({
                   {r.recibido_por_nombre && <span>· Recibió: {r.recibido_por_nombre}</span>}
                   {r.notas && <span>· {r.notas}</span>}
                 </div>
-                <div className="overflow-x-auto">
-                <table className="w-full text-xs min-w-[560px]">
-                  <tbody>
-                    {(r.orden_compra_recepcion_items ?? []).map((ri: any) => (
-                      <tr key={ri.id} className="border-t border-border">
-                        <td className="py-1 font-mono text-[11px]">{ri.inventario_items?.sku ?? "—"}</td>
-                        <td className="py-1">{ri.inventario_items?.nombre ?? ""}</td>
-                        <td className="py-1 text-right font-mono">{Number(ri.cantidad).toFixed(2)}</td>
-                        <td className="py-1 text-right font-mono text-muted-foreground">
-                          {ri.moneda || "USD"} {Number(ri.costo_unitario).toFixed(4)}
-                          {ri.impuesto_pct ? ` +${Number(ri.impuesto_pct).toFixed(1)}%` : ""}
-                        </td>
-                        <td className="py-1 text-right">
-                          {canEdit && (
-                            <button
-                              onClick={() => editarRi(ri)}
-                              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
-                              title="Editar y reconciliar"
-                            >
-                              <Pencil className="size-3" /> Editar
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
+                <ResponsiveTable
+                  label="Ítems recibidos"
+                  data={r.orden_compra_recepcion_items ?? []}
+                  rowKey={(ri: any) => ri.id}
+                  density="compact"
+                  columns={[
+                    { key: "nombre", header: "Ítem", primary: true, cell: (ri: any) => ri.inventario_items?.nombre ?? "" },
+                    { key: "sku", header: "SKU", secondary: true, cell: (ri: any) => <span className="font-mono">{ri.inventario_items?.sku ?? "—"}</span> },
+                    { key: "cant", header: "Cantidad", align: "right", cell: (ri: any) => <span className="font-mono">{Number(ri.cantidad).toFixed(2)}</span> },
+                    { key: "costo", header: "Costo unitario", align: "right", cell: (ri: any) => (
+                      <span className="font-mono text-muted-foreground">
+                        {ri.moneda || "USD"} {Number(ri.costo_unitario).toFixed(4)}
+                        {ri.impuesto_pct ? ` +${Number(ri.impuesto_pct).toFixed(1)}%` : ""}
+                      </span>
+                    ) },
+                  ] as ResponsiveColumn<any>[]}
+                  rowActions={canEdit ? (ri: any) => (
+                    <button
+                      onClick={() => editarRi(ri)}
+                      className="inline-flex min-h-11 items-center gap-1 px-2 text-xs text-primary hover:underline md:min-h-0"
+                      title="Editar y reconciliar"
+                    >
+                      <Pencil className="size-3" /> Editar
+                    </button>
+                  ) : undefined}
+                />
                 {(r.orden_compra_recepcion_items ?? []).some((ri: any) => ri.variacion_motivo) && (
-                  <div className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+                  <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
                     {(r.orden_compra_recepcion_items ?? [])
                       .filter((ri: any) => ri.variacion_motivo)
                       .map((ri: any) => (
@@ -1005,36 +967,21 @@ function VariacionesList({ rows, loading }: { rows: any[]; loading: boolean }) {
     cantidad: "bg-destructive/10 text-destructive border-destructive/30",
   };
   return (
-    <div className="border border-border rounded-md overflow-x-auto">
-      <table className="w-full text-xs min-w-[600px]">
-        <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
-          <tr>
-            <th className="px-2 py-2 text-left">Fecha</th>
-            <th className="px-2 py-2 text-left">Tipo</th>
-            <th className="px-2 py-2 text-left">Esperado</th>
-            <th className="px-2 py-2 text-left">Recibido</th>
-            <th className="px-2 py-2 text-left">Motivo</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {rows.map((v: any) => (
-            <tr key={v.id}>
-              <td className="px-2 py-2 font-mono text-[11px] text-muted-foreground">
-                {new Date(v.created_at).toLocaleString("es-SV")}
-              </td>
-              <td className="px-2 py-2">
-                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badge[v.tipo] ?? ""}`}>
-                  {v.tipo}
-                </span>
-              </td>
-              <td className="px-2 py-2 font-mono">{v.valor_esperado ?? "—"}</td>
-              <td className="px-2 py-2 font-mono">{v.valor_recibido ?? "—"}</td>
-              <td className="px-2 py-2">{v.motivo || <span className="text-muted-foreground italic">—</span>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ResponsiveTable
+      label="Variaciones"
+      data={rows}
+      rowKey={(v: any) => v.id}
+      density="compact"
+      columns={[
+        { key: "tipo", header: "Tipo", primary: true, cell: (v: any) => (
+          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold border ${badge[v.tipo] ?? ""}`}>{v.tipo}</span>
+        ) },
+        { key: "fecha", header: "Fecha", secondary: true, cell: (v: any) => <span className="font-mono text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString("es-SV")}</span> },
+        { key: "esp", header: "Esperado", cell: (v: any) => <span className="font-mono">{v.valor_esperado ?? "—"}</span> },
+        { key: "rec", header: "Recibido", cell: (v: any) => <span className="font-mono">{v.valor_recibido ?? "—"}</span> },
+        { key: "mot", header: "Motivo", cell: (v: any) => v.motivo || <span className="text-muted-foreground italic">—</span> },
+      ] as ResponsiveColumn<any>[]}
+    />
   );
 }
 
@@ -1047,35 +994,20 @@ function HistorialGlobal({ items }: { items: any[] }) {
         Historial contextual de esta orden. Para ver el historial completo de un SKU, entra a{" "}
         <Link to="/inventario" className="text-primary underline">Inventario</Link> y usa el ícono de historial.
       </p>
-      <div className="border border-border rounded-md overflow-x-auto">
-        <table className="w-full text-xs min-w-[600px]">
-          <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
-            <tr>
-              <th className="px-2 py-2 text-left">Ítem</th>
-              <th className="px-2 py-2 text-left">Proveedor</th>
-              <th className="px-2 py-2 text-right">Pedida</th>
-              <th className="px-2 py-2 text-right">Recibida</th>
-              <th className="px-2 py-2 text-right">Precio unit.</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {items.map((it: any) => (
-              <tr key={it.id}>
-                <td className="px-2 py-2">
-                  <div className="font-medium">{it.nombre}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">{it.inventario_items?.sku ?? "libre"}</div>
-                </td>
-                <td className="px-2 py-2">{it.proveedor || "—"}</td>
-                <td className="px-2 py-2 text-right font-mono">{Number(it.cantidad_pedida).toFixed(2)}</td>
-                <td className="px-2 py-2 text-right font-mono text-accent">{Number(it.cantidad_recibida).toFixed(2)}</td>
-                <td className="px-2 py-2 text-right font-mono">
-                  {it.precio_unitario != null ? `$ ${Number(it.precio_unitario).toFixed(4)}` : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        label="Historial de la orden"
+        data={items}
+        rowKey={(it: any) => it.id}
+        density="compact"
+        columns={[
+          { key: "item", header: "Ítem", primary: true, cell: (it: any) => <span className="font-medium">{it.nombre}</span> },
+          { key: "sku", header: "SKU", secondary: true, cell: (it: any) => <span className="font-mono text-xs text-muted-foreground">{it.inventario_items?.sku ?? "libre"}</span> },
+          { key: "prov", header: "Proveedor", cell: (it: any) => it.proveedor || "—" },
+          { key: "ped", header: "Pedida", align: "right", cell: (it: any) => <span className="font-mono">{Number(it.cantidad_pedida).toFixed(2)}</span> },
+          { key: "rec", header: "Recibida", align: "right", cell: (it: any) => <span className="font-mono text-accent">{Number(it.cantidad_recibida).toFixed(2)}</span> },
+          { key: "pu", header: "Precio unit.", align: "right", cell: (it: any) => <span className="font-mono">{it.precio_unitario != null ? `$ ${Number(it.precio_unitario).toFixed(4)}` : "—"}</span> },
+        ] as ResponsiveColumn<any>[]}
+      />
     </div>
   );
 }
@@ -1421,42 +1353,42 @@ function NuevaOrdenDialog({
           {/* Proveedores */}
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Proveedores y cotizaciones</h4>
-              <button type="button" onClick={addProv} className="h-7 px-2 text-[11px] rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
+              <h4 className="text-xs font-bold text-muted-foreground">Proveedores y cotizaciones</h4>
+              <button type="button" onClick={addProv} className="h-7 px-2 text-xs rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
                 <Plus className="size-3" /> Agregar proveedor
               </button>
             </div>
             {proveedores.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">Opcional. Puedes cargar cotizaciones ahora o agregarlas más tarde.</p>
+              <p className="text-xs text-muted-foreground">Opcional. Puedes cargar cotizaciones ahora o agregarlas más tarde.</p>
             )}
             <div className="space-y-2">
               {proveedores.map((p) => (
                 <div key={p.key} className="border border-border rounded-md p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  <label className="text-[11px] md:col-span-3">
+                  <label className="text-xs md:col-span-3">
                     <span className="block text-muted-foreground mb-1">Proveedor</span>
                     <input value={p.nombre} onChange={(e) => updProv(p.key, { nombre: e.target.value })} className={inputCls} placeholder="Nombre" />
                   </label>
-                  <label className="text-[11px] md:col-span-2">
+                  <label className="text-xs md:col-span-2">
                     <span className="block text-muted-foreground mb-1">Cotización #</span>
                     <input value={p.cotizacion_folio} onChange={(e) => updProv(p.key, { cotizacion_folio: e.target.value })} className={inputCls} />
                   </label>
-                  <label className="text-[11px] md:col-span-2">
+                  <label className="text-xs md:col-span-2">
                     <span className="block text-muted-foreground mb-1">Fecha</span>
                     <input type="date" value={p.cotizacion_fecha} onChange={(e) => updProv(p.key, { cotizacion_fecha: e.target.value })} className={inputCls} />
                   </label>
-                  <label className="text-[11px] md:col-span-2">
+                  <label className="text-xs md:col-span-2">
                     <span className="block text-muted-foreground mb-1">Monto</span>
                     <input type="number" min={0} step="0.01" value={p.cotizacion_monto} onChange={(e) => updProv(p.key, { cotizacion_monto: e.target.value === "" ? "" : Number(e.target.value) })} className={inputCls} />
                   </label>
-                  <label className="text-[11px] md:col-span-2">
+                  <label className="text-xs md:col-span-2">
                     <span className="block text-muted-foreground mb-1 flex items-center gap-1"><Paperclip className="size-3" /> Adjunto</span>
                     <input
                       type="file"
                       accept="application/pdf,image/*"
                       onChange={(e) => updProv(p.key, { file: e.target.files?.[0] ?? null })}
-                      className="block w-full text-[10px]"
+                      className="block w-full text-xs"
                     />
-                    {p.file && <span className="block text-[10px] text-muted-foreground mt-1 truncate">{p.file.name}</span>}
+                    {p.file && <span className="block text-xs text-muted-foreground mt-1 truncate">{p.file.name}</span>}
                   </label>
                   <div className="md:col-span-1 flex justify-end">
                     <button onClick={() => rmProv(p.key)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive" aria-label="Quitar">
@@ -1471,12 +1403,12 @@ function NuevaOrdenDialog({
           {/* Ítems */}
           <section className="space-y-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ítems solicitados</h4>
+              <h4 className="text-xs font-bold text-muted-foreground">Ítems solicitados</h4>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIaOpen(true)}
-                  className="h-8 px-2 text-[11px] rounded-md border border-primary/40 text-primary hover:bg-primary/10 inline-flex items-center gap-1"
+                  className="min-h-11 md:min-h-0 md:h-8 px-2 text-xs rounded-md border border-primary/40 text-primary hover:bg-primary/10 inline-flex items-center gap-1"
                   title="Buscar proveedores y precios en la web con IA (por nombre o foto)"
                 >
                   <Sparkles className="size-3" /> Buscar con IA
@@ -1484,7 +1416,7 @@ function NuevaOrdenDialog({
                 <button
                   type="button"
                   onClick={cargarBajoMinimo}
-                  className="h-8 px-2 text-[11px] rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
+                  className="min-h-11 md:min-h-0 md:h-8 px-2 text-xs rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"
                   title="Agrega los ítems agotados o por debajo del mínimo"
                 >
                   <AlertTriangle className="size-3" /> Cargar bajo mínimo
@@ -1505,15 +1437,15 @@ function NuevaOrdenDialog({
                     <option key={i.id} value={i.id}>{i.sku} · {i.nombre}</option>
                   ))}
                 </select>
-                <button type="button" onClick={addFree} className="h-8 px-2 text-[11px] rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
+                <button type="button" onClick={addFree} className="min-h-11 md:min-h-0 md:h-8 px-2 text-xs rounded-md border border-border hover:bg-secondary inline-flex items-center gap-1">
                   <Plus className="size-3" /> Ítem libre
                 </button>
               </div>
             </div>
 
-            <div className="border border-border rounded-md overflow-x-auto">
+            <div className="border border-border rounded-md table-scroll overflow-x-auto" role="region" aria-label="Líneas de la nueva orden" tabIndex={0}>
               <table className="w-full text-xs min-w-[880px]">
-                <thead className="bg-secondary text-[10px] font-bold text-muted-foreground uppercase">
+                <thead className="bg-secondary text-xs font-bold text-muted-foreground">
                   <tr>
                     <th className="px-2 py-2 text-left">SKU</th>
                     <th className="px-2 py-2 text-left">Descripción</th>
@@ -1527,7 +1459,7 @@ function NuevaOrdenDialog({
                 <tbody className="divide-y divide-border">
                   {filas.map((f) => (
                     <tr key={f.key}>
-                      <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
+                      <td className="px-2 py-2 font-mono text-xs whitespace-nowrap">
                         {f.source === "inventario" ? (f.sku_texto ?? "—") : <span className="text-muted-foreground">— libre —</span>}
                       </td>
                       <td className="px-2 py-2">
@@ -1535,8 +1467,8 @@ function NuevaOrdenDialog({
                           <div className="font-medium">{f.nombre}</div>
                         ) : (
                           <div className="flex flex-col gap-1">
-                            <input value={f.nombre} onChange={(e) => updFila(f.key, { nombre: e.target.value })} placeholder="Descripción" className="h-8 px-2 rounded-md border border-input bg-background w-full" />
-                            <input value={f.categoria} onChange={(e) => updFila(f.key, { categoria: e.target.value })} placeholder="Categoría" className="h-7 px-2 rounded-md border border-input bg-background w-full text-[11px]" />
+                            <input value={f.nombre} onChange={(e) => updFila(f.key, { nombre: e.target.value })} placeholder="Descripción" className="min-h-11 md:min-h-0 md:h-8 px-2 rounded-md border border-input bg-background w-full" />
+                            <input value={f.categoria} onChange={(e) => updFila(f.key, { categoria: e.target.value })} placeholder="Categoría" className="h-7 px-2 rounded-md border border-input bg-background w-full text-xs" />
                           </div>
                         )}
                       </td>
@@ -1555,12 +1487,12 @@ function NuevaOrdenDialog({
                       </td>
                       <td className="px-2 py-2">
                         {nombresProv.length > 0 ? (
-                          <select value={nombresProv.includes(f.proveedor) ? f.proveedor : ""} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[9rem]">
+                          <select value={nombresProv.includes(f.proveedor) ? f.proveedor : ""} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} className="min-h-11 md:min-h-0 md:h-8 px-2 rounded-md border border-input bg-background text-xs min-w-[9rem]">
                             <option value="">— sin asignar —</option>
                             {nombresProv.map((n) => <option key={n} value={n}>{n}</option>)}
                           </select>
                         ) : (
-                          <input value={f.proveedor} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} placeholder="Proveedor" className="h-8 px-2 rounded-md border border-input bg-background text-[11px] min-w-[9rem]" />
+                          <input value={f.proveedor} onChange={(e) => updFila(f.key, { proveedor: e.target.value })} placeholder="Proveedor" className="min-h-11 md:min-h-0 md:h-8 px-2 rounded-md border border-input bg-background text-xs min-w-[9rem]" />
                         )}
                       </td>
                       <td className="px-2 py-2 text-right">

@@ -278,7 +278,7 @@ function NominaPage() {
         <button
           type="button"
           onClick={() => setSalariosOpen(true)}
-          className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+          className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
         >
           <Settings2 className="size-3.5" /> Salarios
         </button>
@@ -306,7 +306,7 @@ function NominaPage() {
               <ExportButton onExport={exportarXls} />
               <button
                 type="button" onClick={exportarPdf} disabled={pdfBusy || !data}
-                className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
               >
                 {pdfBusy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />} PDF
               </button>
@@ -314,7 +314,7 @@ function NominaPage() {
                 <button
                   type="button"
                   onClick={() => data?.periodo && reabrir.mutate(data.periodo.id)}
-                  className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
+                  className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary"
                 >
                   <LockOpen className="size-3.5" /> Reabrir mes
                 </button>
@@ -322,13 +322,13 @@ function NominaPage() {
                 <>
                   <button
                     type="button" onClick={() => guardar.mutate({ cerrar: false })} disabled={guardar.isPending || !filas.length}
-                    className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
+                    className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium border border-border rounded-md hover:bg-secondary disabled:opacity-50"
                   >
                     {guardar.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Guardar
                   </button>
                   <button
                     type="button" onClick={() => guardar.mutate({ cerrar: true })} disabled={guardar.isPending || !filas.length}
-                    className="h-8 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                    className="min-h-11 md:min-h-0 md:h-8 px-3 inline-flex items-center gap-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
                   >
                     <Lock className="size-3.5" /> Cerrar mes
                   </button>
@@ -341,7 +341,7 @@ function NominaPage() {
             <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
               <DollarSign className="size-4 text-primary" />
               <h2 className="text-sm font-semibold">Planilla de {etiquetaMes}</h2>
-              <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full border ${cerrado ? "border-emerald-500/40 text-emerald-600" : "border-border text-muted-foreground"}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${cerrado ? "border-emerald-500/40 text-emerald-600" : "border-border text-muted-foreground"}`}>
                 {cerrado ? "Cerrada" : data?.periodo ? "Borrador guardado" : "Sin guardar"}
               </span>
             </div>
@@ -365,17 +365,17 @@ function NominaPage() {
                 </div>
 
                 {(data?.sin_salario.length ?? 0) > 0 && (
-                  <p className="mx-3 mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+                  <p className="mx-3 mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                     Falta registrar el salario de: {data!.sin_salario.join(", ")}. Su pago aparece en $0.00 hasta que
                     se ingrese el salario mensual.
                   </p>
                 )}
 
-                <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-                  <table className="w-full text-xs min-w-[1100px]">
-                    <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+                <div className="table-scroll overflow-x-auto" role="region" aria-label="Planilla del mes" tabIndex={0}>
+                  <table className="w-full tabular-nums text-xs min-w-[1100px]">
+                    <thead className="bg-secondary/60 text-xs text-muted-foreground">
                       <tr>
-                        <th className="text-left px-3 py-2">Colaborador</th>
+                        <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Colaborador</th>
                         <th className="text-right px-3 py-2">Días</th>
                         <th className="text-right px-3 py-2">H. ord.</th>
                         <th className="text-right px-3 py-2">Extra diurna</th>
@@ -395,9 +395,9 @@ function NominaPage() {
                     <tbody>
                       {filas.map((p) => (
                         <tr key={p.tecnico_id} className="border-t border-border/60">
-                          <td className="px-3 py-2 font-medium">
+                          <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">
                             {p.colaborador}
-                            {p.sin_salario && <span className="ml-1 text-[10px] text-destructive">(sin salario)</span>}
+                            {p.sin_salario && <span className="ml-1 text-xs text-destructive">(sin salario)</span>}
                           </td>
                           <td className="px-3 py-2 text-right font-mono">{p.dias}</td>
                           <td className="px-3 py-2 text-right font-mono">
@@ -428,7 +428,7 @@ function NominaPage() {
                             <button
                               type="button"
                               onClick={() => setVerColaborador({ id: p.tecnico_id, nombre: p.colaborador })}
-                              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             >
                               <History className="size-3.5" /> Historial
                             </button>
@@ -436,7 +436,7 @@ function NominaPage() {
                         </tr>
                       ))}
                       <tr className="border-t border-border bg-secondary/40 font-semibold">
-                        <td className="px-3 py-2">Total</td>
+                        <td className="px-3 py-2 sticky left-0 z-10 bg-card">Total</td>
                         <td className="px-3 py-2" colSpan={4} />
                         <td className="px-3 py-2 text-right font-mono">{fmtUSD(totales.ordinario)}</td>
                         <td className="px-3 py-2 text-right font-mono">{fmtUSD(totales.extras)}</td>
@@ -469,7 +469,7 @@ function NominaPage() {
               </>
             )}
 
-            <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+            <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
               {NOTA_LEGAL_NOMINA} {NOTA_LEGAL_DESCUENTOS}
             </p>
           </div>
@@ -478,7 +478,7 @@ function NominaPage() {
             <div className="px-3 py-2 border-b border-border flex flex-wrap items-center gap-2">
               <CalendarClock className="size-4 text-primary" />
               <h2 className="text-sm font-semibold">Cortes de pago de {etiquetaMes}</h2>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Quincenas para salario mensual · viernes para pago por día
               </span>
             </div>
@@ -486,11 +486,11 @@ function NominaPage() {
             {calc.isLoading && <p className="p-4 text-xs text-muted-foreground">Calculando cortes…</p>}
 
             {!calc.isLoading && (
-              <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-                <table className="w-full text-xs min-w-[900px]">
-                  <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+              <div className="table-scroll overflow-x-auto" role="region" aria-label="Cortes de pago" tabIndex={0}>
+                <table className="w-full tabular-nums text-xs min-w-[900px]">
+                  <thead className="bg-secondary/60 text-xs text-muted-foreground">
                     <tr>
-                      <th className="text-left px-3 py-2">Corte</th>
+                      <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Corte</th>
                       <th className="text-left px-3 py-2">Período</th>
                       <th className="text-left px-3 py-2">Se paga</th>
                       <th className="text-left px-3 py-2">Aplica a</th>
@@ -509,7 +509,7 @@ function NominaPage() {
                       return (
                         <Fragment key={c.clave}>
                         <tr className="border-t border-border/60">
-                          <td className="px-3 py-2 font-medium">{c.label}</td>
+                          <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">{c.label}</td>
                           <td className="px-3 py-2 text-muted-foreground">
                             {diaMesCorto(c.desde)} – {diaMesCorto(c.hasta)}
                           </td>
@@ -534,7 +534,7 @@ function NominaPage() {
                               <button
                                 type="button"
                                 onClick={() => c.periodo && reabrir.mutate(c.periodo.id)}
-                                className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                               >
                                 <LockOpen className="size-3" /> Reabrir
                               </button>
@@ -544,7 +544,7 @@ function NominaPage() {
                                   type="button"
                                   disabled={guardar.isPending || c.colaboradores === 0}
                                   onClick={() => guardar.mutate({ cerrar: false, corte_clave: c.clave })}
-                                  className="text-[11px] text-primary hover:underline disabled:opacity-40"
+                                  className="text-xs text-primary hover:underline disabled:opacity-40"
                                 >
                                   Guardar
                                 </button>
@@ -552,7 +552,7 @@ function NominaPage() {
                                   type="button"
                                   disabled={guardar.isPending || c.colaboradores === 0}
                                   onClick={() => guardar.mutate({ cerrar: true, corte_clave: c.clave })}
-                                  className="ml-3 text-[11px] text-primary hover:underline disabled:opacity-40 inline-flex items-center gap-1"
+                                  className="ml-3 text-xs text-primary hover:underline disabled:opacity-40 inline-flex items-center gap-1"
                                 >
                                   <Lock className="size-3" /> Cerrar
                                 </button>
@@ -561,8 +561,8 @@ function NominaPage() {
                           </td>
                         </tr>
                         {(c.personal ?? []).map((p) => (
-                          <tr key={`${c.clave}-${p.tecnico_id}`} className="bg-secondary/20 text-[11px]">
-                            <td className="pl-8 pr-3 py-1.5" colSpan={5}>{p.colaborador}</td>
+                          <tr key={`${c.clave}-${p.tecnico_id}`} className="bg-secondary/20 text-xs">
+                            <td className="pl-8 pr-3 py-1.5 sticky left-0 z-10 bg-card" colSpan={5}>{p.colaborador}</td>
                             <td className="px-3 py-1.5 text-right font-mono">{p.dias}</td>
                             <td className="px-3 py-1.5 text-right font-mono">{fmtUSD(p.total_bruto)}</td>
                             <td className="px-3 py-1.5 text-right font-mono">{fmtUSD(p.total_bruto - p.total_neto)}</td>
@@ -575,7 +575,7 @@ function NominaPage() {
                     })}
                     {(data?.cortes ?? []).every((c) => c.colaboradores === 0) && (
                       <tr className="border-t border-border/60">
-                        <td className="px-3 py-3 text-muted-foreground" colSpan={11}>
+                        <td className="px-3 py-3 text-muted-foreground sticky left-0 z-10 bg-card" colSpan={11}>
                           No hay marcaciones registradas en los cortes de {etiquetaMes}.
                         </td>
                       </tr>
@@ -585,7 +585,7 @@ function NominaPage() {
               </div>
             )}
 
-            <p className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
+            <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
               {NOTA_LEGAL_CORTES}
             </p>
           </div>
@@ -603,11 +603,11 @@ function NominaPage() {
             <p className="p-4 text-xs text-muted-foreground">Todavía no hay planillas guardadas.</p>
           )}
           {((periodos.data as any[] | undefined)?.length ?? 0) > 0 && (
-            <div className="table-scroll overflow-x-auto" role="region" aria-label="Tabla desplazable horizontalmente" tabIndex={0}>
-              <table className="w-full text-xs min-w-[820px]">
-                <thead className="bg-secondary/60 text-[10px] uppercase text-muted-foreground">
+            <div className="table-scroll overflow-x-auto" role="region" aria-label="Planillas guardadas" tabIndex={0}>
+              <table className="w-full tabular-nums text-xs min-w-[820px]">
+                <thead className="bg-secondary/60 text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-left px-3 py-2">Período</th>
+                    <th className="text-left px-3 py-2 sticky left-0 z-10 bg-card">Período</th>
                     <th className="text-left px-3 py-2">Estado</th>
                     <th className="text-right px-3 py-2">Bruto</th>
                     <th className="text-right px-3 py-2">ISSS</th>
@@ -621,9 +621,9 @@ function NominaPage() {
                 <tbody>
                   {(periodos.data as any[]).map((p) => (
                     <tr key={p.id} className="border-t border-border/60">
-                      <td className="px-3 py-2 font-medium">
+                      <td className="px-3 py-2 font-medium sticky left-0 z-10 bg-card">
                         {MESES[p.mes - 1]} {p.anio}
-                        <span className="block text-[10px] text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground">
                           {p.corte_label ?? "Mes completo"}
                         </span>
                       </td>
@@ -642,7 +642,7 @@ function NominaPage() {
                         <button
                           type="button"
                           onClick={() => setVerPeriodo({ id: p.id, titulo: `${MESES[p.mes - 1]} ${p.anio}` })}
-                          className="text-[11px] text-primary hover:underline"
+                          className="text-xs text-primary hover:underline"
                         >
                           Ver detalle
                         </button>
@@ -651,7 +651,7 @@ function NominaPage() {
                           onClick={async () => {
                             if (await confirmar({ titulo: `¿Eliminar la planilla de ${MESES[p.mes - 1]} ${p.anio}?`, accion: "Eliminar", destructivo: true })) borrar.mutate(p.id);
                           }}
-                          className="ml-3 text-[11px] text-destructive hover:underline inline-flex items-center gap-1"
+                          className="ml-3 text-xs text-destructive hover:underline inline-flex items-center gap-1"
                         >
                           <Trash2 className="size-3" /> Eliminar
                         </button>

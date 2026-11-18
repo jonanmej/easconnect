@@ -197,7 +197,7 @@ function Clientes() {
               </div>
               <span
                 className={
-                  "px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
+                  "px-2 py-0.5 rounded text-xs font-bold " +
                   (c.estado === "activo"
                     ? "bg-accent/10 text-accent"
                     : c.estado === "pausado"
@@ -212,7 +212,7 @@ function Clientes() {
             <div className="mt-1">
               <span
                 className={
-                  "inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase " +
+                  "inline-block px-2 py-0.5 rounded text-xs font-bold " +
                   (c.contrato_om
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-slate-100 text-slate-600")
@@ -224,15 +224,15 @@ function Clientes() {
             </div>
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Plantas</p>
+                <p className="text-xs text-muted-foreground">Plantas</p>
                 <p className="text-lg font-mono font-semibold">{c.plantas_count}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Capacidad</p>
+                <p className="text-xs text-muted-foreground">Capacidad</p>
                 <p className="text-sm font-medium mt-1">{formatCapacidadKwp(c.capacidad_kwp)}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Contacto</p>
+                <p className="text-xs text-muted-foreground">Contacto</p>
                 <p className="text-sm">{c.contacto ?? "—"}</p>
               </div>
             </div>
@@ -240,13 +240,13 @@ function Clientes() {
               <div className="mt-4 pt-3 border-t border-border flex gap-2 justify-end">
                 <button
                   onClick={() => setManaging(c)}
-                  className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary"
+                  className="size-11 md:size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary"
                   aria-label="Gestionar encargados"
                   title="Gestionar encargados"
                 >
                   <UserCog className="size-3.5" />
                 </button>
-                <button onClick={() => setEditing(c)} className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
+                <button onClick={() => setEditing(c)} className="size-11 md:size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Editar">
                   <Pencil className="size-3.5" />
                 </button>
                 <button
@@ -259,7 +259,7 @@ function Clientes() {
                       textoRequerido: c.nombre,
                     })) remove.mutate(c.id);
                   }}
-                  className="size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
+                  className="size-11 md:size-8 grid place-items-center rounded-md hover:bg-secondary text-muted-foreground hover:text-destructive"
                   aria-label="Eliminar"
                 >
                   <Trash2 className="size-3.5" />
@@ -294,7 +294,7 @@ function Clientes() {
         <Field label="Contacto principal">
           <input name="contacto" defaultValue={editing?.contacto ?? ""} className={inputCls} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Email">
             <input name="email" type="email" defaultValue={editing?.email ?? ""} className={inputCls} placeholder="contacto@cliente.cl" />
           </Field>
@@ -313,7 +313,7 @@ function Clientes() {
               defaultValue={(editing as any)?.color_acento ?? "#2E4A87"}
               className="h-9 w-16 rounded-md border border-input bg-background cursor-pointer"
             />
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Se aplica en portada, títulos y KPIs del reporte ejecutivo.
             </span>
           </div>
@@ -327,11 +327,11 @@ function Clientes() {
             <input type="checkbox" name="solo_capacitacion" defaultChecked={!!(editing as any)?.solo_capacitacion} />
             Solo recibe capacitaciones
           </label>
-          <p className="text-[10px] text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Si está activo, el sistema bloqueará trabajos y contratos cuyo servicio no sea "Capacitación".
           </p>
-          <p className="text-[10px] text-muted-foreground mb-2">Cuotas anuales contratadas por tipo de servicio:</p>
-          <div className="grid grid-cols-3 gap-2">
+          <p className="text-xs text-muted-foreground mb-2">Cuotas anuales contratadas por tipo de servicio:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
               { name: "cuota_preventivos", label: "Servicio técnico de drone" },
               { name: "cuota_correctivos", label: "Mantenimiento de transformador eléctrico" },
@@ -430,7 +430,7 @@ function EncargadosDialog({
 
         <div className="space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            <p className="text-xs text-muted-foreground mb-2">
               Usuarios actuales
             </p>
             {encargados.isLoading && (
@@ -450,7 +450,7 @@ function EncargadosDialog({
                       {u.display_name ?? u.email}
                     </div>
                     {u.display_name && (
-                      <div className="text-[10px] text-muted-foreground">{u.email}</div>
+                      <div className="text-xs text-muted-foreground">{u.email}</div>
                     )}
                   </div>
                   <button
@@ -469,7 +469,7 @@ function EncargadosDialog({
           </div>
 
           <div className="pt-3 border-t border-border">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            <p className="text-xs text-muted-foreground mb-2">
               Asignar nuevo encargado
             </p>
             <div className="flex gap-2">
@@ -495,7 +495,7 @@ function EncargadosDialog({
                 Asignar
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Para crear una cuenta nueva, ve a Usuarios → Invitar usuario con rol "cliente".
             </p>
           </div>

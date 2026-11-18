@@ -237,7 +237,7 @@ function UsersPage() {
             {(invite.error as Error).message}
           </p>
         )}
-        <p className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <Mail className="size-3.5 text-primary" />
           La contraseña se genera automáticamente según la política activa y se envía por correo al usuario. Se le pedirá cambiarla en su primer ingreso.
         </p>
@@ -247,7 +247,7 @@ function UsersPage() {
         <div className="px-5 py-4 border-b border-border flex items-center gap-2">
           <KeyRound className="size-4 text-primary" />
           <h2 className="text-sm font-semibold">Solicitudes de recuperación de contraseña</h2>
-          <span className="text-[10px] text-muted-foreground ml-auto uppercase tracking-widest">
+          <span className="text-xs text-muted-foreground ml-auto">
             {(resets.data ?? []).filter((s: any) => s.estado === "pendiente").length} pendientes
           </span>
         </div>
@@ -276,9 +276,9 @@ function UsersPage() {
               cell: (s: any) => (
                 <div className="text-muted-foreground max-w-[260px] truncate" title={s.mensaje ?? ""}>
                   <div className="truncate">{s.mensaje ?? "—"}</div>
-                  {s.ip && <div className="text-[10px] font-mono">IP: {s.ip}</div>}
+                  {s.ip && <div className="text-xs font-mono">IP: {s.ip}</div>}
                   {(s.reenvios ?? 0) > 0 && (
-                    <div className="text-[10px] text-primary">Reenviada {s.reenvios}×</div>
+                    <div className="text-xs text-primary">Reenviada {s.reenvios}×</div>
                   )}
                 </div>
               ),
@@ -288,7 +288,7 @@ function UsersPage() {
               header: "Expira",
               hideOnMobile: true,
               cell: (s: any) => (
-                <span className="text-[10px] font-mono text-muted-foreground">
+                <span className="text-xs font-mono text-muted-foreground">
                   {s.expira_at ? new Date(s.expira_at).toLocaleString("es-SV", { timeZone: "America/El_Salvador" }) : "—"}
                 </span>
               ),
@@ -298,7 +298,7 @@ function UsersPage() {
               header: "Estado",
               cell: (s: any) => (
                 <span className={
-                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  "text-xs font-bold px-2 py-1 rounded " +
                   (s.estado === "pendiente"
                     ? "bg-primary/15 text-primary"
                     : s.estado === "atendida"
@@ -323,7 +323,7 @@ function UsersPage() {
                     }
                   }}
                   disabled={resetPass.isPending}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                 >
                   <Mail className="size-3.5" />
                   <span className="hidden sm:inline">Enviar nueva clave</span>
@@ -338,7 +338,7 @@ function UsersPage() {
                     }
                   }}
                   disabled={reenviar.isPending}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
                   title="Regenera la clave temporal y reenvía el correo"
                 >
                   <Send className="size-3.5" />
@@ -346,7 +346,7 @@ function UsersPage() {
                 </button>
               )}
               {s.estado === "pendiente" && !s.user_id && (
-                <span className="text-[10px] text-destructive">Sin cuenta</span>
+                <span className="text-xs text-destructive">Sin cuenta</span>
               )}
               {s.estado === "pendiente" && (
                 <button
@@ -489,7 +489,7 @@ function UsersPage() {
         <div className="px-5 py-4 border-b border-border flex items-center gap-2">
           <History className="size-4 text-primary" />
           <h2 className="text-sm font-semibold">Bitácora de cambios de roles</h2>
-          <span className="text-[10px] text-muted-foreground ml-auto uppercase tracking-widest">
+          <span className="text-xs text-muted-foreground ml-auto">
             Últimos 100 eventos
           </span>
           <button
@@ -507,7 +507,7 @@ function UsersPage() {
               }
             }}
             disabled={purge.isPending}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-secondary hover:bg-secondary/70 disabled:opacity-60"
             title="Elimina roles y perfiles de usuarios desvinculados de la app"
           >
             <Eraser className="size-3.5" />
@@ -537,7 +537,7 @@ function UsersPage() {
               header: "Acción",
               cell: (l: any) => (
                 <span className={
-                  "text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded " +
+                  "text-xs font-bold px-2 py-1 rounded " +
                   (l.action === "granted"
                     ? "bg-accent/10 text-accent"
                     : "bg-destructive/10 text-destructive")
